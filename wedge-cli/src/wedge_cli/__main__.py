@@ -5,6 +5,7 @@ from pathlib import Path
 from wedge_cli.commands.config import config
 from wedge_cli.commands.deploy import deploy
 from wedge_cli.commands.start import start
+from wedge_cli.commands.get import get
 from wedge_cli.utils.config import setup_default_config
 from wedge_cli.utils.enums import Command
 from wedge_cli.utils.enums import Config
@@ -13,7 +14,7 @@ from wedge_cli.utils.parser import get_parser
 
 logger = logging.getLogger(__name__)
 
-COMMANDS = {Command.START: start, Command.DEPLOY: deploy, Command.CONFIG: config}
+COMMANDS = {Command.START: start, Command.DEPLOY: deploy, Command.GET: get,  Command.CONFIG: config}
 
 
 def setup_agent_filesystem() -> None:

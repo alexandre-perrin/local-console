@@ -12,3 +12,8 @@ class Command(str, Enum):
     DEPLOY = "deploy"
     GET = "get"
     CONFIG = "config"
+
+class GetObjects(str, Enum):
+    INSTANCE = "instance"
+    DEPLOYMENT = "deployment"
+    TELEMETRY = "telemetry"

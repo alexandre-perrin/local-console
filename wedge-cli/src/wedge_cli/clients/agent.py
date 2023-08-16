@@ -10,7 +10,7 @@ class Agent:
     DEPLOYMENT_TOPIC = "v1/devices/me/attributes"
     REQUEST_TOPIC = "v1/devices/me/attributes/response/10002"
 
-    def __init__(self, mqtt_url: str = "localhost", mqtt_port: int = 1883) -> None:
+    def __init__(self, mqtt_url: str = "localhost", mqtt_port: int = 1884) -> None:
         self.mqttc = paho.Client()
         self.mqttc.connect(mqtt_url, mqtt_port)
         self._on_connect()
