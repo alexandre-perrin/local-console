@@ -7,4 +7,4 @@ def configure_logger(debug: bool, verbose: bool) -> None:
         level = logging.INFO
     if debug:
         level = logging.DEBUG
-    logging.basicConfig(level=level)
+    logging.basicConfig(format="%(levelname)s: %(message)s", level=level)

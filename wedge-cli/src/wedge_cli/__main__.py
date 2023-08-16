@@ -1,29 +1,15 @@
-import configparser
 import logging
+import sys
 from pathlib import Path
 
+from wedge_cli.commands.start import start
+from wedge_cli.utils.config import setup_default_config
 from wedge_cli.utils.enums import Config
+from wedge_cli.utils.enums import Subparser
 from wedge_cli.utils.logger import configure_logger
 from wedge_cli.utils.parser import get_parser
 
 logger = logging.getLogger(__name__)
-
-
-def get_default_config() -> configparser.ConfigParser:
-    config = configparser.ConfigParser()
-    config["evp"] = {
-        "iot-platform": "tb",
-        "version": "EVP2",
-    }
-    config["mqtt"] = {"host": "localhost", "port": "1883"}
-    return config
-
-
-def setup_default_config() -> None:
-    if not Path(Config.CONFIG_PATH).is_file():
-        logger.info("Generating default config")
-        with open(Config.CONFIG_PATH, "w") as f:
-            get_default_config().write(f)
 
 
 def setup_agent_filesystem() -> None:
@@ -34,10 +20,15 @@ def setup_agent_filesystem() -> None:
 
 
 def main() -> None:
-    args = get_parser()
+    parser = get_parser()
+    if len(sys.argv) < 2:
+        parser.print_usage()
+    args = parser.parse_args()
     configure_logger(args.debug, args.verbose)
     setup_default_config()
     setup_agent_filesystem()
+    if args.command == Subparser.START:
+        start()
 
 
 if __name__ == "__main__":
