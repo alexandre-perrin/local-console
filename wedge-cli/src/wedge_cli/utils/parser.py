@@ -10,6 +10,10 @@ def get_parser() -> argparse.ArgumentParser:
     command = parser.add_subparsers(dest="command")
     # Command: start
     start = command.add_parser("start", description="Start the agent")  # noqa: F841
+    # Command: deploy
+    deploy = command.add_parser(  # noqa: F841
+        "deploy", description="Deploy application of current working directory"
+    )
     # Command: get
     get = command.add_parser("get", description="Get status, telemetries or logs")
     get_subparsers = get.add_subparsers()

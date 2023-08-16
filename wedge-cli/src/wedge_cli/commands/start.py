@@ -8,7 +8,7 @@ from wedge_cli.utils.enums import Config
 logger = logging.getLogger(__name__)
 
 
-def start() -> None:
+def start(**kwargs: dict) -> None:
     try:
         config = get_config()
         env = os.environ.copy()

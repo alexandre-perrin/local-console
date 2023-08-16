@@ -7,5 +7,7 @@ class Config:
     EVP_DATA = Path.home() / ".config/wedge/evp_data"
 
 
-class Subparser(str, Enum):
+class Command(str, Enum):
     START = "start"
+    DEPLOY = "deploy"
+    GET = "get"

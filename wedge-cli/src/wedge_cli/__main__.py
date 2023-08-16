@@ -2,14 +2,17 @@ import logging
 import sys
 from pathlib import Path
 
+from wedge_cli.commands.deploy import deploy
 from wedge_cli.commands.start import start
 from wedge_cli.utils.config import setup_default_config
+from wedge_cli.utils.enums import Command
 from wedge_cli.utils.enums import Config
-from wedge_cli.utils.enums import Subparser
 from wedge_cli.utils.logger import configure_logger
 from wedge_cli.utils.parser import get_parser
 
 logger = logging.getLogger(__name__)
+
+COMMANDS = {Command.START: start, Command.DEPLOY: deploy}
 
 
 def setup_agent_filesystem() -> None:
@@ -27,8 +30,8 @@ def main() -> None:
     configure_logger(args.debug, args.verbose)
     setup_default_config()
     setup_agent_filesystem()
-    if args.command == Subparser.START:
-        start()
+    if args.command in COMMANDS:
+        COMMANDS[args.command](**vars(args))
 
 
 if __name__ == "__main__":
