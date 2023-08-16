@@ -13,6 +13,7 @@ class Command(str, Enum):
     GET = "get"
     CONFIG = "config"
 
+
 class GetObjects(str, Enum):
     INSTANCE = "instance"
     DEPLOYMENT = "deployment"
