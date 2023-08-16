@@ -28,7 +28,7 @@ def connect_client_loop(connect_callback, message_callback):
     client.on_connect = connect_callback
     client.on_message = message_callback
 
-    client.connect("localhost", 1884, 60)
+    client.connect("localhost", 1883, 60)
     try:
         client.loop_forever()
     except KeyboardInterrupt:
