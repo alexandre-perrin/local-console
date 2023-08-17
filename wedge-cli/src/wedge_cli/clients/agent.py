@@ -5,6 +5,7 @@ from collections.abc import Callable
 
 import paho.mqtt.client as paho
 from paho.mqtt.client import MQTT_ERR_SUCCESS
+from wedge_cli.utils.config import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -14,9 +15,10 @@ class Agent:
     REQUEST_TOPIC = "v1/devices/me/attributes/response/10002"
     TELEMETRY = "v1/devices/me/telemetry"
 
-    def __init__(self, mqtt_url: str = "localhost", mqtt_port: int = 1883) -> None:
+    def __init__(self) -> None:
+        config = get_config()
         self.mqttc = paho.Client()
-        self.mqttc.connect(mqtt_url, mqtt_port)
+        self.mqttc.connect(config["mqtt"]["host"], int(config["mqtt"]["port"]))
         self._on_connect()
 
     def _on_connect(self) -> None:
