@@ -1,5 +1,6 @@
 import json
 import logging
+import sys
 from collections.abc import Callable
 
 import paho.mqtt.client as mqtt
@@ -31,9 +32,14 @@ def on_message_return_payload() -> Callable:
 def on_message_instance(instance_id: str) -> Callable:
     def __callback(client: mqtt.Client, userdata: None, msg: mqtt.MQTTMessage) -> None:
         instances = json.loads(msg.payload)["deploymentStatus"]["instances"]
-        for instance in list(instances.keys()):
-            if instance == instance_id:
-                logger.info(instances[str(instance)])
+
+        if instance_id in list(instances.keys()):
+            logger.info(instances[str(instance_id)])
+        else:
+            logger.info(
+                f"Module instance not found. The available module instance are {list(instances.keys())}"
+            )
+            sys.exit()
 
     return __callback
 
