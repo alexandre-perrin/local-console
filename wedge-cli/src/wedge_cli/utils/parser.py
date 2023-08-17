@@ -37,7 +37,7 @@ def get_parser() -> argparse.ArgumentParser:
     get_instance = get_subparsers.add_parser(  # noqa: F841
         "instance", description="Get the status of instance"
     )
-    get_instance.add_argument("--instance_id", required=True)
+    get_instance.add_argument("instance_id", nargs=1)
 
     # Command: config
     config = command.add_parser(  # noqa: F841

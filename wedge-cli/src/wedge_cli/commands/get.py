@@ -83,4 +83,4 @@ GET_COMMANDS = {
 
 
 def get(**kwargs: dict) -> None:
-    GET_COMMANDS[GetObjects(kwargs["get_action"])](**kwargs)
+    GET_COMMANDS[GetObjects(kwargs["get_subparsers"])](**kwargs)

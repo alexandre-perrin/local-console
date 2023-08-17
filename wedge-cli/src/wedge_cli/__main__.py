@@ -14,7 +14,12 @@ from wedge_cli.utils.parser import get_parser
 
 logger = logging.getLogger(__name__)
 
-COMMANDS = {Command.START: start, Command.DEPLOY: deploy, Command.GET: get,  Command.CONFIG: config}
+COMMANDS = {
+    Command.START: start,
+    Command.DEPLOY: deploy,
+    Command.GET: get,
+    Command.CONFIG: config,
+}
 
 
 def setup_agent_filesystem() -> None:
