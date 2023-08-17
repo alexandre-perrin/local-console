@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def on_connect(topic: str) -> Callable:
-    def callback(
+    def __callback(
         client: mqtt.Client,
         userdata: None,
         flags: dict,
@@ -17,25 +17,25 @@ def on_connect(topic: str) -> Callable:
     ) -> None:
         client.subscribe(topic)
 
-    return callback
+    return __callback
 
 
 def on_message_return_payload() -> Callable:
-    def callback(client: mqtt.Client, userdata: None, msg: mqtt.MQTTMessage) -> None:
+    def __callback(client: mqtt.Client, userdata: None, msg: mqtt.MQTTMessage) -> None:
         payload = json.loads(msg.payload)
         logger.info(payload)
 
-    return callback
+    return __callback
 
 
 def on_message_instance(instance_id: str) -> Callable:
-    def callback(client: mqtt.Client, userdata: None, msg: mqtt.MQTTMessage) -> None:
+    def __callback(client: mqtt.Client, userdata: None, msg: mqtt.MQTTMessage) -> None:
         instances = json.loads(msg.payload)["deploymentStatus"]["instances"]
         for instance in list(instances.keys()):
             if instance == instance_id:
                 logger.info(instances[str(instance)])
 
-    return callback
+    return __callback
 
 
 def connect_client_loop(connect_callback: Callable, message_callback: Callable) -> None:
@@ -43,7 +43,7 @@ def connect_client_loop(connect_callback: Callable, message_callback: Callable) 
     client.on_connect = connect_callback
     client.on_message = message_callback
 
-    client.connect("localhost", 1883, 60)
+    client.connect("localhost", 1884, 60)
     try:
         client.loop_forever()
     except KeyboardInterrupt:
@@ -51,31 +51,33 @@ def connect_client_loop(connect_callback: Callable, message_callback: Callable) 
         pass
 
 
-def get_deployment() -> None:
+def get_deployment(**kwargs: dict) -> None:
     connect_client_loop(
         connect_callback=on_connect(topic="v1/devices/me/attributes"),
         message_callback=on_message_return_payload(),
     )
 
 
-def get_telemetry() -> None:
+def get_telemetry(**kwargs: dict) -> None:
     connect_client_loop(
         connect_callback=on_connect(topic="v1/devices/me/telemetry"),
         message_callback=on_message_return_payload(),
     )
 
 
-def get_instance(instance_id: str) -> None:
+def get_instance(**kwargs: dict) -> None:
     connect_client_loop(
         connect_callback=on_connect(topic="v1/devices/me/attributes"),
-        message_callback=on_message_instance(instance_id),
+        message_callback=on_message_instance(kwargs["instance_id"][0]),
     )
 
 
+GET_COMMANDS = {
+    GetObjects.DEPLOYMENT: get_deployment,
+    GetObjects.TELEMETRY: get_telemetry,
+    GetObjects.INSTANCE: get_instance,
+}
+
+
 def get(**kwargs: dict) -> None:
-    if kwargs["get_action"] == GetObjects.DEPLOYMENT:
-        get_deployment()
-    if kwargs["get_action"] == GetObjects.TELEMETRY:
-        get_telemetry()
-    if kwargs["get_action"] == GetObjects.INSTANCE:
-        get_instance(kwargs["instance_id"])
+    GET_COMMANDS[GetObjects(kwargs["get_action"])](**kwargs)
