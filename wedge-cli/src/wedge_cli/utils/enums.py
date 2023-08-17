@@ -11,3 +11,4 @@ class Command(str, Enum):
     START = "start"
     DEPLOY = "deploy"
     GET = "get"
+    CONFIG = "config"
