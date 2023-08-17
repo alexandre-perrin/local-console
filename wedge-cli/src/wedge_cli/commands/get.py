@@ -1,12 +1,9 @@
 import json
-import logging
 import sys
 from collections.abc import Callable
 
 import paho.mqtt.client as mqtt
 from wedge_cli.utils.enums import GetObjects
-
-logger = logging.getLogger(__name__)
 
 
 def on_connect(topic: str) -> Callable:
@@ -24,7 +21,7 @@ def on_connect(topic: str) -> Callable:
 def on_message_return_payload() -> Callable:
     def __callback(client: mqtt.Client, userdata: None, msg: mqtt.MQTTMessage) -> None:
         payload = json.loads(msg.payload)
-        logger.info(payload)
+        print(payload)
 
     return __callback
 
@@ -34,9 +31,9 @@ def on_message_instance(instance_id: str) -> Callable:
         instances = json.loads(msg.payload)["deploymentStatus"]["instances"]
 
         if instance_id in list(instances.keys()):
-            logger.info(instances[str(instance_id)])
+            print(instances[str(instance_id)])
         else:
-            logger.info(
+            print(
                 f"Module instance not found. The available module instance are {list(instances.keys())}"
             )
             sys.exit()
@@ -49,7 +46,7 @@ def connect_client_loop(connect_callback: Callable, message_callback: Callable) 
     client.on_connect = connect_callback
     client.on_message = message_callback
 
-    client.connect("localhost", 1884, 60)
+    client.connect("localhost", 1883, 60)
     try:
         client.loop_forever()
     except KeyboardInterrupt:
