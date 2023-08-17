@@ -1,0 +1,11 @@
+{
+  "method": "ModuleMethodCall",
+  "params": {
+    "direct-command-request": {
+      "reqid": "",
+      "method": "$agent/set",
+      "instance": "",
+      "params": "{\"log_enable\": true}"
+    }
+  }
+}

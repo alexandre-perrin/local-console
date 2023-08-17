@@ -86,4 +86,9 @@ def get_parser() -> argparse.ArgumentParser:
         type=regex_entry,
         help="key to set. Format <section>.<option>=<value>. E.g., mqtt.port=1234",
     )
+
+    # Command: log
+    logs = command.add_parser("logs", description="Get logs of a specific instance")
+    logs.add_argument("instance_id", nargs=1)
+
     return parser
