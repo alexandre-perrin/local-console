@@ -17,6 +17,7 @@ def start(**kwargs: dict) -> None:
         env["EVP_MQTT_HOST"] = config["mqtt"]["host"]
         env["EVP_MQTT_PORT"] = config["mqtt"]["port"]
         env["EVP_DATA_DIR"] = str(Config.EVP_DATA)
+        env["EVP_REPORT_STATUS_INTERVAL_MAX_SEC"] = "3"
         # TODO: check process return code
         subprocess.run(["evp_agent"], env=env)
     except FileNotFoundError:
