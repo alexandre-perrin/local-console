@@ -9,7 +9,6 @@ from collections.abc import Callable
 import paho.mqtt.client as paho
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 from wedge_cli.utils.config import get_config
-from wedge_cli.utils.pub_logs import PubLogsJSON
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +113,17 @@ class Agent:
     def publish_logs(self, instance_id: str) -> None:
         reqid = str(random.randint(0, 10**8))
         RPC_TOPIC = f"v1/devices/me/rpc/request/{reqid}"
-        message: dict = PubLogsJSON
+        message: dict = {
+            "method": "ModuleMethodCall",
+            "params": {
+                "direct-command-request": {
+                    "reqid": "",
+                    "method": "$agent/set",
+                    "instance": "",
+                    "params": '{"log_enable": true}',
+                }
+            },
+        }
         message["params"]["direct-command-request"]["reqid"] = reqid
         message["params"]["direct-command-request"]["instance"] = instance_id
         mqtt_msg_info = self.mqttc.publish(RPC_TOPIC, payload=json.dumps(message))
