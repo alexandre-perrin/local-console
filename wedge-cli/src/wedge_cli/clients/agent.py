@@ -9,6 +9,7 @@ from collections.abc import Callable
 import paho.mqtt.client as paho
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 from wedge_cli.utils.config import get_config
+from wedge_cli.utils.pub_logs import PubLogsJSON
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,7 @@ class Agent:
 
         return __callback
 
-    def _on_message_logs(self, instance_id: str) -> Callable:
+    def _on_message_logs(self, instance_id: str, timeout: int) -> Callable:
         global start_time
         start_time = time.time()
 
@@ -68,11 +69,23 @@ class Agent:
                     globals()["start_time"] = time.time()
                     for instance_log in logs[instance_id]:
                         print(instance_log)
-            elif (time.time() - globals()["start_time"]) > 5:
+            elif (time.time() - globals()["start_time"]) > timeout:
                 logger.info(
                     f"No logs found for {instance_id}. Please check the instance id is correct"
                 )
                 sys.exit()
+
+        return __callback
+
+    def _on_message_telemetry(self) -> Callable:
+        def __callback(
+            client: paho.Client, userdata: None, msg: paho.MQTTMessage
+        ) -> None:
+            payload = json.loads(msg.payload)
+            if "device/log" in list(payload.keys()):
+                pass
+            else:
+                print(payload)
 
         return __callback
 
@@ -101,11 +114,7 @@ class Agent:
     def publish_logs(self, instance_id: str) -> None:
         reqid = str(random.randint(0, 10**8))
         RPC_TOPIC = f"v1/devices/me/rpc/request/{reqid}"
-        message = json.load(
-            open(
-                "/home/alex/Desktop/wedge-cli/wedge-cli/src/wedge_cli/utils/pub_logs.json"
-            )
-        )
+        message: dict = PubLogsJSON
         message["params"]["direct-command-request"]["reqid"] = reqid
         message["params"]["direct-command-request"]["instance"] = instance_id
         mqtt_msg_info = self.mqttc.publish(RPC_TOPIC, payload=json.dumps(message))
@@ -113,10 +122,10 @@ class Agent:
         if rc != MQTT_ERR_SUCCESS:
             logger.error("Error on MQTT publish agent logs")
 
-    def get_logs(self, instance_id: str) -> None:
+    def get_logs(self, instance_id: str, timeout: int) -> None:
         self._loop_client(
             connect_callback=self._on_connect_subscribe_callback(topic=self.TELEMETRY),
-            message_callback=self._on_message_logs(instance_id),
+            message_callback=self._on_message_logs(instance_id, timeout),
         )
 
     def _loop_client(
@@ -141,7 +150,7 @@ class Agent:
     def get_telemetry(self, **kwargs: dict) -> None:
         self._loop_client(
             connect_callback=self._on_connect_subscribe_callback(topic=self.TELEMETRY),
-            message_callback=self._on_message_return_payload(),
+            message_callback=self._on_message_telemetry(),
         )
 
     def get_instance(self, **kwargs: dict) -> None:
