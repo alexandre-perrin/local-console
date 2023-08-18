@@ -2,10 +2,12 @@ import logging
 import sys
 from pathlib import Path
 
+from wedge_cli.commands.build import build
 from wedge_cli.commands.config import config
 from wedge_cli.commands.deploy import deploy
 from wedge_cli.commands.get import get
 from wedge_cli.commands.logs import logs
+from wedge_cli.commands.new import new
 from wedge_cli.commands.start import start
 from wedge_cli.utils.config import setup_default_config
 from wedge_cli.utils.enums import Command
@@ -21,6 +23,8 @@ COMMANDS = {
     Command.GET: get,
     Command.CONFIG: config,
     Command.LOGS: logs,
+    Command.BUILD: build,
+    Command.NEW: new,
 }
 
 
@@ -40,7 +44,7 @@ def main() -> None:
     setup_default_config()
     setup_agent_filesystem()
     if args.command in COMMANDS:
-        COMMANDS[args.command](**vars(args))
+        COMMANDS[args.command](**vars(args))  # type: ignore
 
 
 if __name__ == "__main__":

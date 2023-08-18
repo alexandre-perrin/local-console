@@ -17,7 +17,8 @@ start_time: float
 
 class Agent:
     DEPLOYMENT_TOPIC = "v1/devices/me/attributes"
-    REQUEST_TOPIC = "v1/devices/me/attributes/response/10002"
+    # TODO: get reqid from mqtt
+    REQUEST_TOPIC = "v1/devices/me/attributes/response/10003"
     TELEMETRY = "v1/devices/me/telemetry"
 
     def __init__(self) -> None:

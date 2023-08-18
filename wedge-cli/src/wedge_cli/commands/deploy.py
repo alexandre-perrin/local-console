@@ -29,7 +29,7 @@ class _WebServer:
         self.stop_flag.set()
         self.web_server_thread.join()
 
-    def _start_http_server(self, num_downloads: int, timeout: int = 5) -> None:
+    def _start_http_server(self, num_downloads: int, timeout: int = 10) -> None:
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server_socket.bind((self.host, self.port))

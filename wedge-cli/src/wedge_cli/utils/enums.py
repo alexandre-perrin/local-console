@@ -13,6 +13,8 @@ class Command(str, Enum):
     GET = "get"
     CONFIG = "config"
     LOGS = "logs"
+    BUILD = "build"
+    NEW = "new"
 
 
 class GetObjects(str, Enum):

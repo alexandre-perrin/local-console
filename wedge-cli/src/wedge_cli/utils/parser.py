@@ -29,6 +29,19 @@ def get_parser() -> argparse.ArgumentParser:
     deploy.add_argument(
         "-e", "--empty", action="store_true", help="Deploy empty application"
     )
+    # Command: build
+    build = command.add_parser(  # noqa: F841
+        "build", description="Build application of current working directory"
+    )
+    # Command: new
+    new = command.add_parser(  # noqa: F841
+        "new", description="Create a new template application"
+    )
+    new.add_argument(
+        "project_name",
+        nargs=1,
+        help="Folder name to create new project",
+    )
     # Command: get
     get = command.add_parser("get", description="Get status, telemetries or logs")
     get_subparsers = get.add_subparsers(dest="get_subparsers", required=True)
