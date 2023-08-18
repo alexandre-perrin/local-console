@@ -31,7 +31,7 @@ def get_parser() -> argparse.ArgumentParser:
     )
     # Command: get
     get = command.add_parser("get", description="Get status, telemetries or logs")
-    get_subparsers = get.add_subparsers(dest="get_subparsers")
+    get_subparsers = get.add_subparsers(dest="get_subparsers", required=True)
     get_deployment = get_subparsers.add_parser(  # noqa: F841
         "deployment", description="Get the status of deployment"
     )
