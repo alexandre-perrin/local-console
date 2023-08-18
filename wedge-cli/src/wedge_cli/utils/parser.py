@@ -1,5 +1,6 @@
 import argparse
 import re
+import textwrap
 
 
 def regex_entry(
@@ -43,16 +44,41 @@ def get_parser() -> argparse.ArgumentParser:
     get_instance.add_argument("instance_id", nargs=1)
 
     # Command: config
+    config_description = textwrap.dedent(
+        """
+        CONFIGURATION ITEMS
+            evp.iot-platform
+                    Runtime option used by the device to determine the type of IoT Hub used by EVP cloud.
+                    Accepted values are tb and c8y. By default is tb.
+
+            evp.version
+                    Runtime option used by the devic to determine the EVP protocol to be used with the EVP hub.
+                    Accepted values are EVP1 and EVP2.
+                    By default is EVP2.
+
+            mqtt.host
+                    URL used to connect to the mqtt broker. By default is localhost.
+
+            mqtt.port
+                    Port number used to connect to the mqtt broker. By default is 1883.
+    """
+    )
     config = command.add_parser(  # noqa: F841
-        "config", description="Get and modify configuration"
+        "config",
+        description=f"Get and modify configuration\n{config_description}",
+        formatter_class=argparse.RawTextHelpFormatter,
     )
     config_subparsers = config.add_subparsers(dest="config_subparsers", required=True)
     config_get = config_subparsers.add_parser(  # noqa: F841
-        "get", description="Get configuration"
+        "get",
+        description=f"Get configuration\n{config_description}",
+        formatter_class=argparse.RawTextHelpFormatter,
     )
     config_get.add_argument("key", nargs="?", help="Optional key to get")
     config_set = config_subparsers.add_parser(  # noqa: F841
-        "set", description="Set configuration"
+        "set",
+        description=f"Set configuration\n{config_description}",
+        formatter_class=argparse.RawTextHelpFormatter,
     )
     config_set.add_argument(
         "entry",
