@@ -63,9 +63,7 @@ class Agent:
 
         return __callback
 
-    def deploy(self, deployment_fp: str) -> None:
-        with open(deployment_fp, "rb") as f:
-            deployment = f.read()
+    def deploy(self, deployment: str) -> None:
         mqtt_msg_info = self.mqttc.publish(self.DEPLOYMENT_TOPIC, deployment)
         rc, _ = mqtt_msg_info
         if rc != MQTT_ERR_SUCCESS:

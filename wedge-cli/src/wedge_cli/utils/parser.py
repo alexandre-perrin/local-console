@@ -25,6 +25,9 @@ def get_parser() -> argparse.ArgumentParser:
     deploy = command.add_parser(  # noqa: F841
         "deploy", description="Deploy application of current working directory"
     )
+    deploy.add_argument(
+        "-e", "--empty", action="store_true", help="Deploy empty application"
+    )
     # Command: get
     get = command.add_parser("get", description="Get status, telemetries or logs")
     get_subparsers = get.add_subparsers(dest="get_subparsers")

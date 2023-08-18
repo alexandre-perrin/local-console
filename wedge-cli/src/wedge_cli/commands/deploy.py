@@ -5,6 +5,7 @@ import select
 import socket
 import threading
 import time
+import uuid
 from pathlib import Path
 
 from wedge_cli.clients.agent import agent
@@ -112,6 +113,19 @@ class _WebServer:
 
 
 def deploy(**kwargs: dict) -> None:
+    if kwargs["empty"]:
+        deployment = {
+            "deployment": {
+                "deploymentId": str(uuid.uuid4()),
+                "instanceSpecs": {},
+                "modules": {},
+                "publishTopics": {},
+                "subscribeTopics": {},
+            }
+        }
+        agent.deploy(json.dumps(deployment))
+        return
+
     bin_fp = Path("bin")
     if not bin_fp.exists():
         logger.warning("Folder bin does not exists")
@@ -124,12 +138,10 @@ def deploy(**kwargs: dict) -> None:
 
     with open(deployment_fp, "rb") as f:
         deployment = json.load(f)
-    with open(deployment_fp, "w") as f:
-        json.dump(deployment, f, indent=4)
 
     num_modules = len(deployment["deployment"]["modules"])
 
     webserver = _WebServer()
     webserver.start(num_modules)
-    agent.deploy(str(deployment_fp))
+    agent.deploy(json.dumps(deployment))
     webserver.close()

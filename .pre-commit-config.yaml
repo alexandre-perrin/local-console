@@ -10,7 +10,6 @@ repos:
     args: [--autofix, --no-sort-keys]
   - id: check-added-large-files
   - id: debug-statements
-  - id: end-of-file-fixer
 - repo: https://github.com/asottile/pyupgrade
   rev: v3.9.0
   hooks:
