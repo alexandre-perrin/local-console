@@ -14,6 +14,7 @@ def get_default_config() -> configparser.ConfigParser:
         "version": "EVP2",
     }
     config["mqtt"] = {"host": "localhost", "port": "1883"}
+    config["webserver"] = {"host": "localhost", "port": "8000"}
     return config
 
 

@@ -22,13 +22,13 @@
         "entryPoint": "main",
         "moduleImpl": "wasm",
         "downloadUrl": "http://localhost:8000/bin/source.wasm",
-        "hash": "9b3b26929cedfe542cd42045136bf11dee820603a9e2d37979085cdb0f4b67ab"
+        "hash": "0ad4c49e62867fea677b6ea15723cd9e3a4fd55a2ce958297fbeb13b4de2f6b5"
       },
       "sink": {
         "entryPoint": "main",
         "moduleImpl": "wasm",
         "downloadUrl": "http://localhost:8000/bin/sink.wasm",
-        "hash": "1c0e0765ec6089b911891e6f777d1d0887c9ba6bb1482c61ac5dfd97f53e1438"
+        "hash": "84d8f2dca0d1cd2c9f4c2b0442bfad4b547f571957be9739586974a8158f7628"
       }
     },
     "publishTopics": {

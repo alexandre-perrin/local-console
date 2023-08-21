@@ -74,6 +74,12 @@ def get_parser() -> argparse.ArgumentParser:
 
             mqtt.port
                     Port number used to connect to the mqtt broker. By default is 1883.
+
+            webserver.host
+                    URL used for the agent to download the modules. By default is localhost.
+
+            webserver.port
+                    Port number for the agent to download the modules. By default is 8000.
     """
     )
     config = command.add_parser(  # noqa: F841
