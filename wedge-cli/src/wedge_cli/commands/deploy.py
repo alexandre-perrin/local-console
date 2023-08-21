@@ -8,16 +8,17 @@ import time
 import uuid
 from pathlib import Path
 
-from wedge_cli.clients.agent import agent
+from wedge_cli.clients.agent import Agent
 
 logger = logging.getLogger(__name__)
 
 
 class _WebServer:
-    def __init__(self, port: int = 8000):
+    def __init__(self, agent: Agent, port: int = 8000):
         self.host = "localhost"
         self.port = port
         self.stop_flag = threading.Event()
+        self.agent = agent
 
     def start(self, num_downloads: int) -> None:
         self.web_server_thread = threading.Thread(
@@ -113,6 +114,7 @@ class _WebServer:
 
 
 def deploy(**kwargs: dict) -> None:
+    agent = Agent()
     if kwargs["empty"]:
         deployment = {
             "deployment": {
@@ -141,7 +143,7 @@ def deploy(**kwargs: dict) -> None:
 
     num_modules = len(deployment["deployment"]["modules"])
 
-    webserver = _WebServer()
+    webserver = _WebServer(agent)
     webserver.start(num_modules)
     agent.deploy(json.dumps(deployment))
     webserver.close()

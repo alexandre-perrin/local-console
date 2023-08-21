@@ -5,6 +5,7 @@ import sys
 import time
 from collections import defaultdict
 from collections.abc import Callable
+from typing import Any
 
 import paho.mqtt.client as paho
 from paho.mqtt.client import MQTT_ERR_SUCCESS
@@ -36,7 +37,7 @@ class Agent:
     def _on_connect_subscribe_callback(self, topic: str) -> Callable:
         def __callback(
             client: paho.Client,
-            userdata: None,
+            userdata: Any,
             flags: dict,
             rc: str,
         ) -> None:
@@ -46,7 +47,7 @@ class Agent:
 
     def _on_message_return_payload(self) -> Callable:
         def __callback(
-            client: paho.Client, userdata: None, msg: paho.MQTTMessage
+            client: paho.Client, userdata: Any, msg: paho.MQTTMessage
         ) -> None:
             payload = json.loads(msg.payload)
             print(payload)
@@ -58,7 +59,7 @@ class Agent:
         start_time = time.time()
 
         def __callback(
-            client: paho.Client, userdata: None, msg: paho.MQTTMessage
+            client: paho.Client, userdata: Any, msg: paho.MQTTMessage
         ) -> None:
             payload = json.loads(msg.payload)
             logs = defaultdict(list)
@@ -79,7 +80,7 @@ class Agent:
 
     def _on_message_telemetry(self) -> Callable:
         def __callback(
-            client: paho.Client, userdata: None, msg: paho.MQTTMessage
+            client: paho.Client, userdata: Any, msg: paho.MQTTMessage
         ) -> None:
             payload = json.loads(msg.payload)
             if "device/log" in list(payload.keys()):
@@ -91,7 +92,7 @@ class Agent:
 
     def _on_message_instance(self, instance_id: str) -> Callable:
         def __callback(
-            client: paho.Client, userdata: None, msg: paho.MQTTMessage
+            client: paho.Client, userdata: Any, msg: paho.MQTTMessage
         ) -> None:
             instances = json.loads(msg.payload)["deploymentStatus"]["instances"]
 
@@ -170,6 +171,3 @@ class Agent:
             ),
             message_callback=self._on_message_instance(kwargs["instance_id"][0]),
         )
-
-
-agent = Agent()
