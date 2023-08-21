@@ -22,6 +22,13 @@ def get_parser() -> argparse.ArgumentParser:
     command = parser.add_subparsers(dest="command")
     # Command: start
     start = command.add_parser("start", description="Start the agent")  # noqa: F841
+    start.add_argument(
+        "-l",
+        "--library",
+        nargs="*",
+        type=str,
+        help="Native libraries (capabilities). They must be accesible from LD_LIBRARY_PATH",
+    )
     # Command: deploy
     deploy = command.add_parser(  # noqa: F841
         "deploy", description="Deploy application of current working directory"

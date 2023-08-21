@@ -19,7 +19,13 @@ def start(**kwargs: dict) -> None:
         env["EVP_DATA_DIR"] = str(Config.EVP_DATA)
         env["EVP_REPORT_STATUS_INTERVAL_MAX_SEC"] = "3"
         # TODO: check process return code
-        subprocess.run(["evp_agent"], env=env)
+        libraries = []
+        for l in kwargs["library"]:
+            libraries.append("-l")
+            libraries.append(l)
+        command = ["evp_agent"] + libraries
+        logger.info(f"Running: {' '.join(command)}")
+        subprocess.run(command, env=env)
     except FileNotFoundError:
         logger.warning("evp_agent not in PATH")
         exit(1)
