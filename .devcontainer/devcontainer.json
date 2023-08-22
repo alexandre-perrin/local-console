@@ -2,5 +2,5 @@
   "name": "Devcontainer",
   "dockerFile": "Dockerfile",
   "context": "..",
-  "postCreateCommand": "mosquitto -c /app/mosquitto.conf"
+  "postCreateCommand": ".devcontainer/entrypoint.sh"
 }

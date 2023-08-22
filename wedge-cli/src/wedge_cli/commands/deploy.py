@@ -7,6 +7,7 @@ import threading
 import time
 import uuid
 from pathlib import Path
+from typing import Optional
 
 from wedge_cli.clients.agent import Agent
 from wedge_cli.utils.config import get_config
@@ -60,7 +61,7 @@ class _WebServer:
 
         server_socket.close()
 
-    def handle_request(self, client_socket) -> str | None:  # type: ignore
+    def handle_request(self, client_socket: socket.socket) -> Optional[str]:
         module = None
 
         bufsize = 4096

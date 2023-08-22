@@ -19,7 +19,7 @@ sudo mv /tmp/wasi-sdk-20.0 /opt/wasi-sdk
 ```
 * mosquitto, with `mosquitto.service` running with default configuration or with your desired configuration
     * If you use a port that is not the default one, you can specify it by using `wedge config set mqtt.port=XXXX`
-* Python 3.10 (or higher)
+* Python 3.9 (or higher)
 * pip
 * WEdge Agent 1.21.0 (or higher)
     * Built and added to PATH (see next section)

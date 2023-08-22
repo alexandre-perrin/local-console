@@ -59,10 +59,11 @@ def config_set(entry: str, **kwargs: dict) -> None:
         config.write(f)
 
 
-def config(**kwargs: dict) -> None:  # type: ignore
+def config(**kwargs: dict) -> None:
+    command = str(kwargs["config_subparsers"])
     {
         "get": config_get,  # type: ignore
         "set": config_set,  # type: ignore
     }[
-        str(kwargs["config_subparsers"])
+        command
     ](**kwargs)
