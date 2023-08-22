@@ -4,7 +4,7 @@ import textwrap
 
 
 def regex_entry(
-    arg_value: str, pat: re.Pattern = re.compile(r"^[\w-]+\.[\w-]+=[\w-]+$")
+    arg_value: str, pat: re.Pattern = re.compile(r"^[\w-]+\.[\w-]+=[\.\w-]+$")
 ) -> str:
     if not pat.match(arg_value):
         raise argparse.ArgumentTypeError(
