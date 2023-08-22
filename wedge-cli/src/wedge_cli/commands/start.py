@@ -18,7 +18,7 @@ def start(**kwargs: dict) -> None:
         env["EVP_MQTT_PORT"] = config["mqtt"]["port"]
         env["EVP_DATA_DIR"] = str(Config.EVP_DATA)
         env["EVP_HTTPS_CA_CERT"] = str(Config.HTTPS_CA_PATH)
-        env["EVP_REPORT_STATUS_INTERVAL_MAX_SEC"] = "10"
+        env["EVP_REPORT_STATUS_INTERVAL_MAX_SEC"] = "3"
         # TODO: check process return code
         command = ["evp_agent"]
         if kwargs["library"]:

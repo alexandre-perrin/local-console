@@ -92,7 +92,7 @@ class _WebServer:
                     response += file.read()
                 module = file_path
             else:
-                logger.error("File not found")
+                logger.error(f"File {file_path} not found")
                 response = b"HTTP/1.1 404 Not Found\r\n"
                 response += b"\r\n"
                 response += b"File not found"
@@ -133,12 +133,12 @@ def deploy(**kwargs: dict) -> None:
 
     bin_fp = Path("bin")
     if not bin_fp.exists():
-        logger.warning("Folder bin does not exists")
+        logger.warning("bin folder does not exist")
         exit(1)
 
     deployment_fp = Path("deployment.json")
     if not deployment_fp.exists():
-        logger.warning("File deployment.json does not exists")
+        logger.warning("deployment.json does not exist")
         exit(1)
 
     with open(deployment_fp, "rb") as f:

@@ -28,7 +28,7 @@ def build(**kwargs: dict) -> None:
         with open("deployment.json") as f:
             deployment = json.load(f)
     except Exception:
-        logger.error("File deployment.json is missing")
+        logger.error("deployment.json does not exist")
         exit(1)
     try:
         modules = deployment["deployment"]["modules"].keys()
@@ -41,7 +41,7 @@ def build(**kwargs: dict) -> None:
     for module in modules:
         wasm_file = f"{module}.wasm"
         if wasm_file not in files:
-            logger.error("file not compiled")
+            logger.error(f"{wasm_file} not found")
         deployment["deployment"]["modules"][module]["hash"] = _calculate_sha256(
             str(Path("bin") / wasm_file)
         )
