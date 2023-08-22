@@ -1,5 +1,6 @@
 import logging
 import sys
+import urllib.request
 from pathlib import Path
 
 from wedge_cli.commands.build import build
@@ -35,6 +36,19 @@ def setup_agent_filesystem() -> None:
         evp_data.mkdir(parents=True, exist_ok=True)
 
 
+def setup_default_https_ca() -> None:
+    if Config.HTTPS_CA_PATH.exists():
+        return
+    try:
+        response = urllib.request.urlopen(Config.HTTPS_CA_URL)
+        with open(Config.HTTPS_CA_PATH, "wb") as f:
+            f.write(response.read())
+        response.close()
+    except Exception as e:
+        logger.error("Error while downloading HTTPS CA", e)
+        sys.exit(1)
+
+
 def main() -> None:
     parser = get_parser()
     if len(sys.argv) < 2:
@@ -43,6 +57,7 @@ def main() -> None:
     configure_logger(args.debug, args.verbose)
     setup_default_config()
     setup_agent_filesystem()
+    setup_default_https_ca()
     if args.command in COMMANDS:
         COMMANDS[args.command](**vars(args))  # type: ignore
 

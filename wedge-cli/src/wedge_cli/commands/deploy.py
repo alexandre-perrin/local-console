@@ -92,6 +92,7 @@ class _WebServer:
                     response += file.read()
                 module = file_path
             else:
+                logger.error("File not found")
                 response = b"HTTP/1.1 404 Not Found\r\n"
                 response += b"\r\n"
                 response += b"File not found"
