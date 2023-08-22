@@ -28,8 +28,9 @@ def config_get(key: str, **kwargs: dict) -> None:
                 config_str += f"{opt} = {val}\n"
         elif len(key_split) == 2:
             sec, opt = key_split
-            val = config.get(sec, opt)
-            config_str += f"{val}\n"
+            if opt in config[sec]:
+                val = config.get(sec, opt)
+                config_str += f"{val}\n"
         else:
             logger.error("Incorrect selection. Filter using '<section>.<item>'")
             exit(1)

@@ -94,7 +94,13 @@ class Agent:
         def __callback(
             client: paho.Client, userdata: Any, msg: paho.MQTTMessage
         ) -> None:
-            instances = json.loads(msg.payload)["deploymentStatus"]["instances"]
+            payload = json.loads(msg.payload)
+            if (
+                "deploymentStatus" not in payload
+                or "instances" not in payload["deploymentStatus"]
+            ):
+                return
+            instances = payload["deploymentStatus"]["instances"]
 
             if instance_id in list(instances.keys()):
                 print(instances[str(instance_id)])
