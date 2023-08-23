@@ -2,6 +2,8 @@ import argparse
 import re
 import textwrap
 
+from wedge_cli.utils.enums import Target
+
 
 def regex_entry(
     arg_value: str, pat: re.Pattern = re.compile(r"^[\w-]+\.[\w-]+=[\.\w-]+$")
@@ -40,6 +42,7 @@ def get_parser() -> argparse.ArgumentParser:
     build = command.add_parser(  # noqa: F841
         "build", description="Build application of current working directory"
     )
+    build.add_argument("target", nargs="?", type=Target, choices=list(Target))
     # Command: new
     new = command.add_parser(  # noqa: F841
         "new", description="Create a new template application"

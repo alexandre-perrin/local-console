@@ -23,3 +23,11 @@ class GetObjects(str, Enum):
     INSTANCE = "instance"
     DEPLOYMENT = "deployment"
     TELEMETRY = "telemetry"
+
+
+class Target(Enum):
+    AMD64 = "amd64"
+    ARM64 = "arm64"
+
+    def __str__(self) -> str:
+        return self.value
