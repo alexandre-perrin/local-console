@@ -25,13 +25,11 @@ jobs:
       if: github.ref == 'refs/heads/main'
       run: |
         python3 -m build wedge-cli/ --wheel
-        mkdir builds
-        mv *.whl builds
     - name: Upload to AZ
       if: github.ref == 'refs/heads/main'
       uses: bacongobbler/azure-blob-storage-upload@main
       with:
-        source_dir: builds
+        source_dir: wedge-cli/dist
         container_name: main
         connection_string: ${{ secrets.CEDATA_CONNECTION_STRING }}
         extra_args: '--pattern *.whl'
