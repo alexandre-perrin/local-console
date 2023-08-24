@@ -113,7 +113,7 @@ def get_parser() -> argparse.ArgumentParser:
         "entry",
         nargs=1,
         type=regex_entry,
-        help="key to set. Format <section>.<option>=<value>. E.g., mqtt.port=1234",
+        help="key to set. Format <section>.<option>=<value>. For example, mqtt.port=1234",
     )
     # Command: log
     logs = command.add_parser("logs", description="Get logs of a specific instance")
@@ -125,5 +125,22 @@ def get_parser() -> argparse.ArgumentParser:
         default=5,
         help="Max time to wait for a module isntance log to be reported",
     )
+    # Command: rpc
+    rpc_description = textwrap.dedent(
+        """
+        Send RPC to module instance
 
+        Examples
+            Set color to yellow in rpc-example
+                wedge-cli rpc node my-method '{"rgb":"FFFF00"}'
+    """
+    )
+    rpc = command.add_parser(
+        "rpc",
+        description=rpc_description,
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
+    rpc.add_argument("instance_id", nargs=1, help="Target instance of the RPC.")
+    rpc.add_argument("method", nargs=1, help="Method of the RPC.")
+    rpc.add_argument("params", nargs=1, help="JSON representing the parameters.")
     return parser

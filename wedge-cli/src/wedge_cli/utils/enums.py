@@ -17,6 +17,7 @@ class Command(str, Enum):
     LOGS = "logs"
     BUILD = "build"
     NEW = "new"
+    RPC = "rpc"
 
 
 class GetObjects(str, Enum):

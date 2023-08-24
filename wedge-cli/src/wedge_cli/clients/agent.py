@@ -118,23 +118,23 @@ class Agent:
         if rc != MQTT_ERR_SUCCESS:
             logger.error("Error on MQTT deploy to agent")
 
-    def publish_logs(self, instance_id: str) -> None:
+    def rpc(self, instance_id: str, method: str, params: str) -> None:
         reqid = str(random.randint(0, 10**8))
         RPC_TOPIC = f"v1/devices/me/rpc/request/{reqid}"
         message: dict = {
             "method": "ModuleMethodCall",
             "params": {
                 "direct-command-request": {
-                    "reqid": "",
-                    "method": "$agent/set",
-                    "instance": "",
-                    "params": '{"log_enable": true}',
+                    "reqid": f"{reqid}",
+                    "method": f"{method}",
+                    "instance": f"{instance_id}",
+                    "params": f"{params}",
                 }
             },
         }
-        message["params"]["direct-command-request"]["reqid"] = reqid
-        message["params"]["direct-command-request"]["instance"] = instance_id
-        mqtt_msg_info = self.mqttc.publish(RPC_TOPIC, payload=json.dumps(message))
+        payload = json.dumps(message)
+        logger.debug(f"payload: {payload}")
+        mqtt_msg_info = self.mqttc.publish(RPC_TOPIC, payload=payload)
         rc, _ = mqtt_msg_info
         if rc != MQTT_ERR_SUCCESS:
             logger.error("Error on MQTT publish agent logs")
