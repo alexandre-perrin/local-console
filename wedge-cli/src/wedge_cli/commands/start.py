@@ -10,7 +10,10 @@ logger = logging.getLogger(__name__)
 
 
 def start(**kwargs: dict) -> None:
-    if kwargs["start_subparsers"] == "remote":
+    if kwargs["remote"]:
+        if not kwargs["ip"] or not kwargs["port"]:
+            logger.error("Please specify an IP and a port")
+            exit()
         server = Listener(ip=kwargs["ip"], port=kwargs["port"])  # type: ignore
         server.open_listener()
         server.recieve_config()

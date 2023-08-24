@@ -15,6 +15,17 @@ def regex_entry(
     return arg_value
 
 
+def ip_entry(
+    arg_value: str,
+    pat: re.Pattern = re.compile(
+        r"^(localhost|((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4})$"
+    ),
+) -> str:
+    if not pat.match(arg_value):
+        raise argparse.ArgumentTypeError("Invalid value. Use format of an IP address")
+    return arg_value
+
+
 def get_parser() -> argparse.ArgumentParser:
     """Get CLI parser arguments."""
     parser = argparse.ArgumentParser(description="Wedge-Agent CLI")
@@ -29,22 +40,27 @@ def get_parser() -> argparse.ArgumentParser:
         "--library",
         nargs="*",
         type=str,
-        help="Native libraries (capabilities). They must be accesible from LD_LIBRARY_PATH",
+        help="Native libraries (capabilities). They must be accessible from LD_LIBRARY_PATH",
     )
-    start_subparsers = start.add_subparsers(dest="start_subparsers", required=True)
-    start_remote = start_subparsers.add_parser(
+    start.add_argument(
+        "--remote",
+        action="store_true",
+        help="Enable remote starting, which waits for the configuration to arrive and starts the agent",
+    )
+    start_remote = start.add_argument_group(
         "remote",
-        description="Start the agent but waiting for the configuration to setup remotely",
     )
     start_remote.add_argument(
+        "-i",
         "--ip",
-        required=True,
-        help="Enables remote configuration of the agent before starting",
+        type=ip_entry,
+        help="IP to show for receiving the configuration. Only meaningful when used with --remote",
     )
     start_remote.add_argument(
+        "-p",
         "--port",
-        required=True,
-        help="Enables remote configuration of the agent before starting",
+        type=int,
+        help="Port to show for receiving the configuration. Only meaningful when used with --remote",
     )
     # Command: deploy
     deploy = command.add_parser(  # noqa: F841
@@ -90,7 +106,7 @@ def get_parser() -> argparse.ArgumentParser:
                     Accepted values are tb and c8y. By default is tb.
 
             evp.version
-                    Runtime option used by the devic to determine the EVP protocol to be used with the EVP hub.
+                    Runtime option used by the device to determine the EVP protocol to be used with the EVP hub.
                     Accepted values are EVP1 and EVP2.
                     By default is EVP2.
 
@@ -138,6 +154,7 @@ def get_parser() -> argparse.ArgumentParser:
     config_send.add_argument(
         "--ip",
         required=True,
+        type=ip_entry,
         help="IP address of the remote device",
     )
     config_send.add_argument(
@@ -159,7 +176,7 @@ def get_parser() -> argparse.ArgumentParser:
         nargs="?",
         type=int,
         default=5,
-        help="Max time to wait for a module isntance log to be reported",
+        help="Max time to wait for a module instance log to be reported",
     )
     # Command: rpc
     rpc_description = textwrap.dedent(
