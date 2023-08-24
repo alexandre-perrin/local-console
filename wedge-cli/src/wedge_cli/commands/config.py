@@ -1,6 +1,10 @@
+import json
 import logging
+import socket
+from typing import Optional
 
 from wedge_cli.utils.config import get_config
+from wedge_cli.utils.config import get_default_config
 from wedge_cli.utils.enums import Config
 
 logger = logging.getLogger(__name__)
@@ -59,11 +63,46 @@ def config_set(entry: str, **kwargs: dict) -> None:
         config.write(f)
 
 
+def config_send(entries: Optional[list[str]], **kwargs: dict) -> None:
+    config = get_default_config()
+    if entries:
+        for entry in entries:
+            identifier, value = entry.split("=")
+            section, option = identifier.split(".")
+
+            if section not in config:
+                log = f"Invalid config section. Valid ones are: {config.sections()}"
+                logger.error(log)
+                exit(1)
+            if option not in config[section]:
+                log = "Invalid config option"
+                logger.error(log)
+                exit(1)
+
+            config[section][option] = value
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((kwargs["ip"], int(kwargs["port"])))  # type: ignore
+    config_dict: dict = {}
+    for section in config.sections():
+        config_dict[section] = {}
+        for option in config.options(section):
+            config_dict[section][option] = config.get(section, option)
+    s.send(bytes(json.dumps(config_dict), "utf-8"))
+
+    while True:
+        reply = s.recv(1024)
+        if not reply:
+            continue
+        elif reply:
+            logger.info(reply.decode("utf-8"))
+            break
+
+
 def config(**kwargs: dict) -> None:
     command = str(kwargs["config_subparsers"])
     {
         "get": config_get,  # type: ignore
         "set": config_set,  # type: ignore
-    }[
-        command
-    ](**kwargs)
+        "send": config_send,  # type: ignore
+    }[command](**kwargs)

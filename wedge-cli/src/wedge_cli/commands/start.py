@@ -2,6 +2,7 @@ import logging
 import os
 import subprocess
 
+from wedge_cli.clients.listener import Listener
 from wedge_cli.utils.config import get_config
 from wedge_cli.utils.enums import Config
 
@@ -9,6 +10,11 @@ logger = logging.getLogger(__name__)
 
 
 def start(**kwargs: dict) -> None:
+    if kwargs["start_subparsers"] == "remote":
+        server = Listener(ip=kwargs["ip"], port=kwargs["port"])  # type: ignore
+        server.open_listener()
+        server.recieve_config()
+
     try:
         config = get_config()
         env = os.environ.copy()

@@ -31,6 +31,21 @@ def get_parser() -> argparse.ArgumentParser:
         type=str,
         help="Native libraries (capabilities). They must be accesible from LD_LIBRARY_PATH",
     )
+    start_subparsers = start.add_subparsers(dest="start_subparsers", required=True)
+    start_remote = start_subparsers.add_parser(
+        "remote",
+        description="Start the agent but waiting for the configuration to setup remotely",
+    )
+    start_remote.add_argument(
+        "--ip",
+        required=True,
+        help="Enables remote configuration of the agent before starting",
+    )
+    start_remote.add_argument(
+        "--port",
+        required=True,
+        help="Enables remote configuration of the agent before starting",
+    )
     # Command: deploy
     deploy = command.add_parser(  # noqa: F841
         "deploy", description="Deploy application of current working directory"
@@ -114,6 +129,27 @@ def get_parser() -> argparse.ArgumentParser:
         nargs=1,
         type=regex_entry,
         help="key to set. Format <section>.<option>=<value>. For example, mqtt.port=1234",
+    )
+    config_send = config_subparsers.add_parser(  # noqa: F841
+        "send",
+        description=f"Send configuration to specified IP and port\n{config_description}",
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
+    config_send.add_argument(
+        "--ip",
+        required=True,
+        help="IP address of the remote device",
+    )
+    config_send.add_argument(
+        "--port",
+        required=True,
+        help="Port number of the remote device",
+    )
+    config_send.add_argument(
+        "entries",
+        nargs="*",
+        type=regex_entry,
+        help="key to set. Format <section>.<option>=<value>. E.g., mqtt.port=1234",
     )
     # Command: log
     logs = command.add_parser("logs", description="Get logs of a specific instance")
