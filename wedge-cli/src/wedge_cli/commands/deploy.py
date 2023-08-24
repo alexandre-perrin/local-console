@@ -23,9 +23,9 @@ class _WebServer:
         self.stop_flag = threading.Event()
         self.agent = agent
 
-    def start(self, num_downloads: int) -> None:
+    def start(self, num_downloads: int, timeout: int) -> None:
         self.web_server_thread = threading.Thread(
-            target=lambda: self._start_http_server(num_downloads), daemon=True
+            target=lambda: self._start_http_server(num_downloads, timeout), daemon=True
         )
         self.web_server_thread.start()
 
@@ -33,7 +33,7 @@ class _WebServer:
         self.stop_flag.set()
         self.web_server_thread.join()
 
-    def _start_http_server(self, num_downloads: int, timeout: int = 10) -> None:
+    def _start_http_server(self, num_downloads: int, timeout: int) -> None:
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server_socket.bind((self.host, self.port))
@@ -146,8 +146,7 @@ def deploy(**kwargs: dict) -> None:
         deployment = json.load(f)
 
     num_modules = len(deployment["deployment"]["modules"])
-
     webserver = _WebServer(agent)
-    webserver.start(num_modules)
+    webserver.start(num_modules, kwargs["timeout"])  # type: ignore
     agent.deploy(json.dumps(deployment))
     webserver.close()

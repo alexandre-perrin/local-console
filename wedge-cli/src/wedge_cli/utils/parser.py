@@ -69,6 +69,13 @@ def get_parser() -> argparse.ArgumentParser:
     deploy.add_argument(
         "-e", "--empty", action="store_true", help="Deploy empty application"
     )
+    deploy.add_argument(
+        "-t",
+        "--timeout",
+        type=int,
+        default=10,
+        help="Seconds for the webserver to wait that the agent downloads the modules",
+    )
     # Command: build
     build = command.add_parser(  # noqa: F841
         "build", description="Build application of current working directory"
