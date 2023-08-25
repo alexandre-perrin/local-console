@@ -56,7 +56,7 @@ def main() -> None:
     if len(sys.argv) < 2:
         parser.print_usage()
     args = parser.parse_args()
-    config_paths.wedge = args.config_dir
+    config_paths.home = args.config_dir
     configure_logger(args.debug, args.verbose)
     setup_default_config()
     setup_agent_filesystem()

@@ -4,20 +4,19 @@ from pathlib import Path
 
 class Config:
     def __init__(self) -> None:
-        self.home = Path.home()
-        self.wedge = Path(".config_paths/wedge")
-        self._config_file = "config_paths.ini"
+        self._home = Path("~/.config/wedge")
+        self._config_file = "config.ini"
         self._https_ca_file = "mozilla-root-ca.pem"
         self._https_ca_url = "https://ccadb-public.secure.force.com/mozilla/IncludedRootsPEMTxt?TrustBitsInclude=Websites"
         self._evp_data = "evp_data"
 
     @property
     def config_path(self) -> Path:
-        return self.home / self.wedge / self._config_file
+        return self.home / self._config_file
 
     @property
     def https_ca_path(self) -> Path:
-        return self.home / self.wedge / self._https_ca_file
+        return self.home / self._https_ca_file
 
     @property
     def https_ca_url(self) -> str:
@@ -25,15 +24,15 @@ class Config:
 
     @property
     def evp_data_path(self) -> Path:
-        return self.home / self.wedge / self._evp_data
+        return self.home / self._evp_data
 
     @property
-    def wedge(self) -> Path:
-        return self._wedge
+    def home(self) -> Path:
+        return self._home
 
-    @wedge.setter
-    def wedge(self, value: str) -> None:
-        self._wedge = Path(value)
+    @home.setter
+    def home(self, value: str) -> None:
+        self._home = Path(value)
 
 
 config_paths = Config()

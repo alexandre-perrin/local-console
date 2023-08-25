@@ -35,7 +35,7 @@ def get_parser() -> argparse.ArgumentParser:
         "-D",
         "--config_dir",
         type=str,
-        default=".config/wedge",
+        default="~/.config/wedge",
         help="Directory to save the wedge agent information. Defaults to '~/.config/wedge/'",
     )
     # Commands
