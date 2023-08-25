@@ -30,10 +30,9 @@ class Listener:
     def recieve_config(self) -> None:
         self.socket.listen()
         (self.conn, self.addr) = self.socket.accept()
-        data: bytes = self.conn.recv(1024)
-        # preprocess config
+        data: bytes = self.conn.recv(1024)  # preprocess config
         config_parse = configparser.ConfigParser()
-        config_dict = json.loads(data.decode("utf-8"))
+        config_dict = json.loads(data.decode("utf-8").strip().replace("'", ""))
         for section in config_dict.keys():
             config_parse.add_section(section)
             for key in config_dict[section].keys():
