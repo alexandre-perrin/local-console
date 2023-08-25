@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 def rpc(**kwargs: dict) -> None:
-    agent = Agent()
+    agent = Agent()  # type: ignore
     instance_id: str = kwargs["instance_id"][0]
     method: str = kwargs["method"][0]
     params: str = kwargs["params"][0]

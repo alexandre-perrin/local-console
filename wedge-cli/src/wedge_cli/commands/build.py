@@ -26,7 +26,7 @@ def _calculate_sha256(filename: str) -> str:
 
 
 def build(**kwargs: dict) -> None:
-    config = get_config()
+    config_parse = get_config()  # type: ignore
     try:
         # TODO: check process return code
         subprocess.run(["make", "clean"])
@@ -71,7 +71,7 @@ def build(**kwargs: dict) -> None:
         )
         deployment["deployment"]["modules"][module][
             "downloadUrl"
-        ] = f"http://{config['webserver']['host']}:8000/bin/{file}"
+        ] = f"http://{config_parse['webserver']['host']}:{config_parse['webserver']['port']}/bin/{file}"
 
     with open("deployment.json", "w") as f:
         json.dump(deployment, f, indent=2)

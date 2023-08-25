@@ -1,8 +1,7 @@
 import configparser
 import logging
-from pathlib import Path
 
-from wedge_cli.utils.enums import Config
+from wedge_cli.utils.enums import config_paths
 
 logger = logging.getLogger(__name__)
 
@@ -19,19 +18,19 @@ def get_default_config() -> configparser.ConfigParser:
 
 
 def setup_default_config() -> None:
-    config_file = Path(Config.CONFIG_PATH)
+    config_file = config_paths.config_path
     if not config_file.is_file():
-        logger.info("Generating default config")
+        logger.info("Generating default config_paths")
         try:
             config_file.parent.mkdir(parents=True, exist_ok=True)
         except Exception:
             logger.error(f"Error while generating folder {config_file.parent}")
             exit(1)
-        with open(Config.CONFIG_PATH, "w") as f:
+        with open(config_paths.config_path, "w") as f:
             get_default_config().write(f)
 
 
 def get_config() -> configparser.ConfigParser:
-    config = configparser.ConfigParser()
-    config.read(Config.CONFIG_PATH)
-    return config
+    config_parser = configparser.ConfigParser()
+    config_parser.read(config_paths.config_path)
+    return config_parser

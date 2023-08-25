@@ -31,6 +31,13 @@ def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Wedge-Agent CLI")
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("-d", "--debug", action="store_true")
+    parser.add_argument(
+        "-D",
+        "--config_dir",
+        type=str,
+        default=".config/wedge",
+        help="Directory to save the wedge agent information. Defaults to '~/.config/wedge/'",
+    )
     # Commands
     command = parser.add_subparsers(dest="command")
     # Command: start

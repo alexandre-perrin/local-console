@@ -4,7 +4,7 @@ import subprocess
 
 from wedge_cli.clients.listener import Listener
 from wedge_cli.utils.config import get_config
-from wedge_cli.utils.enums import Config
+from wedge_cli.utils.enums import config_paths
 
 logger = logging.getLogger(__name__)
 
@@ -19,14 +19,14 @@ def start(**kwargs: dict) -> None:
         server.recieve_config()
 
     try:
-        config = get_config()
+        config = get_config()  # type:ignore
         env = os.environ.copy()
         env["EVP_IOT_PLATFORM"] = config["evp"]["iot-platform"]
         env["EVP_VERSION"] = config["evp"]["version"]
         env["EVP_MQTT_HOST"] = config["mqtt"]["host"]
         env["EVP_MQTT_PORT"] = config["mqtt"]["port"]
-        env["EVP_DATA_DIR"] = str(Config.EVP_DATA)
-        env["EVP_HTTPS_CA_CERT"] = str(Config.HTTPS_CA_PATH)
+        env["EVP_DATA_DIR"] = str(config_paths.evp_data_path)  # type:ignore
+        env["EVP_HTTPS_CA_CERT"] = str(config_paths.https_ca_path)  # type:ignore
         env["EVP_REPORT_STATUS_INTERVAL_MAX_SEC"] = "3"
         # TODO: check process return code
         command = ["evp_agent"]

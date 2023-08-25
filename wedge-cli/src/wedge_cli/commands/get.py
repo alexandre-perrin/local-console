@@ -3,7 +3,7 @@ from wedge_cli.utils.enums import GetObjects
 
 
 def get(**kwargs: dict) -> None:
-    agent = Agent()
+    agent = Agent()  # type:ignore
     get_command = {
         GetObjects.DEPLOYMENT: agent.get_deployment,
         GetObjects.TELEMETRY: agent.get_telemetry,

@@ -1,7 +1,6 @@
 import logging
 import sys
 import urllib.request
-from pathlib import Path
 
 from wedge_cli.commands.build import build
 from wedge_cli.commands.config import config
@@ -13,7 +12,7 @@ from wedge_cli.commands.rpc import rpc
 from wedge_cli.commands.start import start
 from wedge_cli.utils.config import setup_default_config
 from wedge_cli.utils.enums import Command
-from wedge_cli.utils.enums import Config
+from wedge_cli.utils.enums import config_paths
 from wedge_cli.utils.logger import configure_logger
 from wedge_cli.utils.parser import get_parser
 
@@ -32,18 +31,19 @@ COMMANDS = {
 
 
 def setup_agent_filesystem() -> None:
-    evp_data = Path(Config.EVP_DATA)
+    evp_data = config_paths.evp_data_path
     if not evp_data.exists():
         logger.debug("Generating evp_data")
         evp_data.mkdir(parents=True, exist_ok=True)
 
 
 def setup_default_https_ca() -> None:
-    if Config.HTTPS_CA_PATH.exists():
+    https_ca = config_paths.https_ca_path
+    if https_ca.exists():
         return
     try:
-        response = urllib.request.urlopen(Config.HTTPS_CA_URL)
-        with open(Config.HTTPS_CA_PATH, "wb") as f:
+        response = urllib.request.urlopen(config_paths.https_ca_url)
+        with open(https_ca, "wb") as f:
             f.write(response.read())
         response.close()
     except Exception as e:
@@ -56,6 +56,7 @@ def main() -> None:
     if len(sys.argv) < 2:
         parser.print_usage()
     args = parser.parse_args()
+    config_paths.wedge = args.config_dir
     configure_logger(args.debug, args.verbose)
     setup_default_config()
     setup_agent_filesystem()

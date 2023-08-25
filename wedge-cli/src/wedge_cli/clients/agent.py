@@ -23,9 +23,11 @@ class Agent:
     TELEMETRY = "v1/devices/me/telemetry"
 
     def __init__(self) -> None:
-        config = get_config()
+        config_parse = get_config()
         self.mqttc = paho.Client()
-        self.mqttc.connect(config["mqtt"]["host"], int(config["mqtt"]["port"]))
+        self.mqttc.connect(
+            config_parse["mqtt"]["host"], int(config_parse["mqtt"]["port"])
+        )
         self._on_connect()
 
     def _on_connect(self) -> None:
