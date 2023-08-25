@@ -4,7 +4,7 @@ from pathlib import Path
 
 class Config:
     def __init__(self) -> None:
-        self._home = Path("~/.config/wedge")
+        self.home = "~/.config/wedge"  # type: ignore
         self._config_file = "config.ini"
         self._https_ca_file = "mozilla-root-ca.pem"
         self._https_ca_url = "https://ccadb-public.secure.force.com/mozilla/IncludedRootsPEMTxt?TrustBitsInclude=Websites"
@@ -32,7 +32,7 @@ class Config:
 
     @home.setter
     def home(self, value: str) -> None:
-        self._home = Path(value)
+        self._home = Path(value).expanduser()
 
 
 config_paths = Config()
