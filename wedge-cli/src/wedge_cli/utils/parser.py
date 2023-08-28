@@ -17,9 +17,7 @@ def regex_entry(
 
 def ip_entry(
     arg_value: str,
-    pat: re.Pattern = re.compile(
-        r"^(localhost|((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4})$"
-    ),
+    pat: re.Pattern = re.compile(r"^[\.\w-]+$"),
 ) -> str:
     if not pat.match(arg_value):
         raise argparse.ArgumentTypeError("Invalid value. Use format of an IP address")
