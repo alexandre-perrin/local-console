@@ -58,6 +58,7 @@ class GetObjects(str, Enum):
 class Target(Enum):
     AMD64 = "amd64"
     ARM64 = "arm64"
+    XTENSA = "xtensa"
 
     def __str__(self) -> str:
         return self.value

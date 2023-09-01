@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 COMPILATION_FLAGS = {
     Target.AMD64: "--target=x86_64 --cpu=skylake --disable-simd --size-level=1",
     Target.ARM64: "--target=aarch64",
+    Target.XTENSA: "--target=xtensa --enable-multi-thread",
 }
 
 
@@ -62,7 +63,13 @@ def build(**kwargs: dict) -> None:
             file = f"{module}.{target}.aot"
             options += f" -o bin/{file} bin/{module}.wasm"
             try:
-                subprocess.run(["wamrc", *options.split(" ")])
+                result = subprocess.run(
+                    ["wamrc", *options.split(" ")], stdout=subprocess.PIPE, text=True
+                )
+                if result.returncode != 0:
+                    err_msg = result.stdout.rstrip("\n")
+                    logger.error(err_msg)
+                    exit(1)
             except FileNotFoundError:
                 logger.error("wamrc not in PATH")
                 exit(1)
