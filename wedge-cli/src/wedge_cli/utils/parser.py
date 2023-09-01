@@ -86,6 +86,7 @@ def get_parser() -> argparse.ArgumentParser:
         "build", description="Build application of current working directory"
     )
     build.add_argument("target", nargs="?", type=Target, choices=list(Target))
+    build.add_argument("-s", "--secret", help="Path to the ECC key used to sign")
     # Command: new
     new = command.add_parser(  # noqa: F841
         "new", description="Create a new template application"

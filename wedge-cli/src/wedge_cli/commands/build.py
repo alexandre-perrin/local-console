@@ -7,6 +7,7 @@ from pathlib import Path
 
 from wedge_cli.utils.config import get_config
 from wedge_cli.utils.enums import Target
+from wedge_cli.utils.signature import sign
 
 
 logger = logging.getLogger(__name__)
@@ -65,6 +66,27 @@ def build(**kwargs: dict) -> None:
             except FileNotFoundError:
                 logger.error("wamrc not in PATH")
                 exit(1)
+
+        if kwargs["secret"]:
+            secret_path = Path(str(kwargs["secret"]))
+            if not secret_path.exists():
+                logger.error("Secret does not exist")
+                exit(1)
+
+            logger.info(f"Signing {file}")
+            with open(f"bin/{file}", "rb") as f:
+                aot_bytes = f.read()
+            with open(secret_path, "rb") as f:
+                secret_bytes = f.read()
+            try:
+                signed_aot_bytes = sign(aot_bytes, secret_bytes)
+            except Exception as e:
+                logger.error(f"Error while signing the module {file}: {str(e)}")
+                exit(1)
+
+            file = f"{file}.signed"
+            with open(f"bin/{file}", "wb") as f:
+                f.write(signed_aot_bytes)
 
         deployment["deployment"]["modules"][module]["hash"] = _calculate_sha256(
             str(Path("bin") / file)

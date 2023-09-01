@@ -248,3 +248,4 @@ dkms.conf
 
 *.wasm
 *.aot
+*.signed
