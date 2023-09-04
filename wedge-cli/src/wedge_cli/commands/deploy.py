@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class _WebServer:
     def __init__(self, agent: Agent):
         config = get_config()
-        self.host = config["webserver"]["host"]
+        self.host = "localhost"
         self.port = int(config["webserver"]["port"])
         self.stop_flag = threading.Event()
         self.agent = agent
