@@ -52,7 +52,10 @@ class Agent:
             client: paho.Client, userdata: Any, msg: paho.MQTTMessage
         ) -> None:
             payload = json.loads(msg.payload)
-            print(payload)
+            if payload:
+                print(payload)
+            else:
+                logger.debug("Empty message arrived")
 
         return __callback
 
