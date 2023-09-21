@@ -5,7 +5,6 @@ import os
 import subprocess
 from pathlib import Path
 
-from wedge_cli.utils.config import get_config
 from wedge_cli.utils.enums import Target
 from wedge_cli.utils.signature import sign
 
@@ -28,7 +27,6 @@ def _calculate_sha256(filename: str) -> str:
 
 
 def build(**kwargs: dict) -> None:
-    config_parse = get_config()  # type: ignore
     try:
         # TODO: check process return code
         subprocess.run(["make", "clean"])
@@ -94,13 +92,3 @@ def build(**kwargs: dict) -> None:
             file = f"{file}.signed"
             with open(f"bin/{file}", "wb") as f:
                 f.write(signed_aot_bytes)
-
-        deployment["deployment"]["modules"][module]["hash"] = _calculate_sha256(
-            str(Path("bin") / file)
-        )
-        deployment["deployment"]["modules"][module][
-            "downloadUrl"
-        ] = f"http://{config_parse['webserver']['host']}:{config_parse['webserver']['port']}/bin/{file}"
-
-    with open("deployment.json", "w") as f:
-        json.dump(deployment, f, indent=2)

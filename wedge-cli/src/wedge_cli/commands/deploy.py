@@ -10,7 +10,9 @@ from pathlib import Path
 from typing import Optional
 
 from wedge_cli.clients.agent import Agent
+from wedge_cli.commands.build import _calculate_sha256
 from wedge_cli.utils.config import get_config
+from wedge_cli.utils.enums import Target
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +20,7 @@ logger = logging.getLogger(__name__)
 class _WebServer:
     def __init__(self, agent: Agent):
         config = get_config()
-        self.host = "localhost"
+        self.host = config["webserver"]["host"]
         self.port = int(config["webserver"]["port"])
         self.stop_flag = threading.Event()
         self.agent = agent
@@ -116,6 +118,52 @@ class _WebServer:
         listing += "</ul></body></html>"
         return listing
 
+    def update_deployment_manifest(
+        self, target_arch: Optional[Target], use_signed: bool
+    ) -> None:
+        config_parse = get_config()  # type: ignore
+        try:
+            with open("deployment.json") as f:
+                deployment = json.load(f)
+        except Exception:
+            logger.error("deployment.json does not exist")
+            exit(1)
+
+        try:
+            modules = deployment["deployment"]["modules"].keys()
+        except Exception:
+            logger.error(
+                "deployment.json wrong format. Attribute `deployment.modules` is missing"
+            )
+            exit(1)
+        files = set(os.listdir("bin"))
+        for module in modules:
+            wasm_file = f"{module}.wasm"
+            if wasm_file not in files:
+                logger.error(
+                    f"{wasm_file} not found. Please build the modules before deployment"
+                )
+                exit(1)
+
+            file = wasm_file
+            if target_arch:
+                file = f"{module}.{target_arch}.aot"
+                if use_signed:
+                    file = f"{file}.signed"
+            else:
+                if use_signed:
+                    logger.warning(
+                        f"There is no target architecture, the {file} module to be deployed is not signed"
+                    )
+            deployment["deployment"]["modules"][module]["hash"] = _calculate_sha256(
+                str(Path("bin") / file)
+            )
+            deployment["deployment"]["modules"][module][
+                "downloadUrl"
+            ] = f"http://{config_parse['webserver']['host']}:{config_parse['webserver']['port']}/bin/{file}"
+        with open("deployment.json", "w") as f:
+            json.dump(deployment, f, indent=2)
+
 
 def deploy(**kwargs: dict) -> None:
     agent = Agent()
@@ -137,6 +185,8 @@ def deploy(**kwargs: dict) -> None:
         logger.warning("bin folder does not exist")
         exit(1)
 
+    webserver = _WebServer(agent)
+    webserver.update_deployment_manifest(kwargs["target"], kwargs["signed"])  # type: ignore
     deployment_fp = Path("deployment.json")
     if not deployment_fp.exists():
         logger.warning("deployment.json does not exist")
@@ -146,7 +196,6 @@ def deploy(**kwargs: dict) -> None:
         deployment = json.load(f)
 
     num_modules = len(deployment["deployment"]["modules"])
-    webserver = _WebServer(agent)
     webserver.start(num_modules, kwargs["timeout"])  # type: ignore
     agent.deploy(json.dumps(deployment))
     webserver.close()

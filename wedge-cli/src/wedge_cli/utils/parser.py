@@ -71,6 +71,13 @@ def get_parser() -> argparse.ArgumentParser:
     deploy = command.add_parser(  # noqa: F841
         "deploy", description="Deploy application of current working directory"
     )
+    deploy.add_argument("target", nargs="?", type=Target, choices=list(Target))
+    deploy.add_argument(
+        "-s",
+        "--signed",
+        help="Define whether to use a signed AoT or not.",
+        action="store_true",
+    )
     deploy.add_argument(
         "-e", "--empty", action="store_true", help="Deploy empty application"
     )
