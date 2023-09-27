@@ -28,11 +28,11 @@ sudo mv /tmp/wasi-sdk-20.0 /opt/wasi-sdk
 
 First clone the following repository
 ```sh
-git clone https://github.com/midokura/evp-device-agent.git
+git clone git@github.com:midokura/evp-device-agent.git
 ```
 and update the wedge agent submodule in the repo.
 ```sh
-git submodule update
+git submodule update --init
 ```
 
 Follow the instructions in `wedge-agent/BUILD.md` to build the WEdge agent. Once
