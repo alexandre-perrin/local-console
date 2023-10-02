@@ -30,7 +30,10 @@ def build(**kwargs: dict) -> None:
     try:
         # TODO: check process return code
         subprocess.run(["make", "clean"])
-        subprocess.run(["make"])
+        if kwargs["flags"]:
+            subprocess.run(["make", kwargs["flags"]])  # type: ignore
+        else:
+            subprocess.run(["make"])
     except FileNotFoundError:
         logger.error("Error when running")
         exit(1)

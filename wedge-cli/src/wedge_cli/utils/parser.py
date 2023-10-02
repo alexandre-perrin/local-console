@@ -94,6 +94,13 @@ def get_parser() -> argparse.ArgumentParser:
     )
     build.add_argument("target", nargs="?", type=Target, choices=list(Target))
     build.add_argument("-s", "--secret", help="Path to the ECC key used to sign")
+    build.add_argument(
+        "-f",
+        "--flags",
+        nargs="?",
+        type=str,
+        help="Additional flags to `make`. For example, wedge-cli build -f CFLAGS='-DENABLE_TPU'",
+    )
     # Command: new
     new = command.add_parser(  # noqa: F841
         "new", description="Create a new template application"
