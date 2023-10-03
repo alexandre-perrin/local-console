@@ -53,7 +53,10 @@ class Agent:
         ) -> None:
             payload = json.loads(msg.payload)
             if payload:
-                print(payload)
+                try:
+                    print(payload, flush=True)
+                except (BrokenPipeError, OSError):
+                    pass
             else:
                 logger.debug("Empty message arrived")
 
@@ -91,7 +94,7 @@ class Agent:
             if "device/log" in list(payload.keys()):
                 pass
             else:
-                print(payload)
+                print(payload, flush=True)
 
         return __callback
 
