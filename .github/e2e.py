@@ -50,7 +50,6 @@ def start_deploy_build() -> None:
     env = os.environ.copy()
     # start_agent
     subprocess.Popen(["wedge-cli", "start"], env=env)
-
     # build and deploy, wait necessary to give time for wasms to build
     os.chdir("samples/rpc-example")
     subprocess.run(["wedge-cli", "-v", "build"])

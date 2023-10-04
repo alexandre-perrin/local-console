@@ -11,9 +11,10 @@ env:
   PYTHON_VERSION: '3.11'
 
 jobs:
-  test-and-publish:
-    name: Test and Publish
+  test:
+    name: Test
     runs-on: [self-hosted, X64]
+    container: ubuntu:22.04
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -21,42 +22,59 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-    - name: Run Pre-commit
-      uses: pre-commit/action@v3.0.0
+    - name: Install test requirements
+      run: |
+        apt-get -y update && apt install -y wget curl gcc python3-dev make cmake git software-properties-common
     - name: Download and install agent
       run: |
         wget ${{  secrets.WEDGE_AGENT_SAS_URL  }} -k -O wedge-agent_amd64.deb
-        sudo apt-get -y update
-        sudo apt-get -y upgrade
-        sudo apt install -y libc6
-        sudo apt install -y ./wedge-agent_amd64.deb
-        sudo cp /usr/bin/wedge_agent /usr/bin/evp_agent
+        apt install -y libc6
+        apt install -y ./wedge-agent_amd64.deb
+        cp /usr/bin/wedge_agent /usr/bin/evp_agent
     - name: Download install wasi-sdk
       run: |
         curl -sL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-20/wasi-sdk-20.0-linux.tar.gz | tar zxvf - -C /tmp && \
-            sudo mv /tmp/wasi-sdk-20.0 /opt/wasi-sdk
+            mv /tmp/wasi-sdk-20.0 /opt/wasi-sdk
     - name: Install wedge-cli
       run: |
         pip install wedge-cli/
     - name: Start Mosquitto
-      uses: namoshek/mosquitto-github-action@v1
-      with:
-        version: '2.0.15'
-        ports: '1883:1883'
-        config: ${{ github.workspace}}/.devcontainer/mosquitto.conf
-        container-name: 'mqtt'
+      run : |
+        apt-get install -y mosquitto
+        mosquitto -d -c .devcontainer/mosquitto.conf
     - name: Run E2E
       id: e2e
       run: |
         python .github/e2e.py
+  pre-commit:
+    name: Pre-commit
+    runs-on: [self-hosted, X64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Run Pre-commit
+        uses: pre-commit/action@v3.0.0
+  publish:
+    name: Publish
+    runs-on: [self-hosted, X64]
+    needs: [pre-commit, test]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Setup Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
     - name: Build wheel
       id: build_wheel
-      if: github.ref == 'refs/heads/main' && steps.e2e.outcome == 'success'
       run: |
         python3 -m pip install build
         python3 -m build wedge-cli/ --wheel
     - name: Upload to AZ
-      if: github.ref == 'refs/heads/main' && steps.build_wheel.outcome == 'success'
       uses: bacongobbler/azure-blob-storage-upload@main
       with:
         source_dir: wedge-cli/dist
