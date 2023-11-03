@@ -70,11 +70,13 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     - name: Build wheel
+      if: github.ref == 'refs/heads/main'
       id: build_wheel
       run: |
         python3 -m pip install build
         python3 -m build wedge-cli/ --wheel
     - name: Upload to AZ
+      if: github.ref == 'refs/heads/main'
       uses: bacongobbler/azure-blob-storage-upload@main
       with:
         source_dir: wedge-cli/dist
