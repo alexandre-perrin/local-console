@@ -59,9 +59,10 @@ jobs:
       - name: Run Pre-commit
         uses: pre-commit/action@v3.0.0
   publish:
-    name: Publish
+    name: Publish and tag
     runs-on: [self-hosted, X64]
     needs: [pre-commit, test]
+    if: github.ref == 'refs/heads/main'
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -69,14 +70,27 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ env.PYTHON_VERSION }}
+    - name: Extract version
+      run: |
+            package_version=$(awk -F' = ' '/^version/ {print $2}' wedge-cli/setup.cfg | tr -d "'")
+            echo "PACKAGE_VERSION=$package_version" >> "$GITHUB_ENV"
+    - name: Check
+      uses: mukunku/tag-exists-action@v1.2.0
+      id: check-tag
+      with:
+        tag: v${{ env.PACKAGE_VERSION }}
+    - name: Tag new version
+      uses: tvdias/github-tagger@v0.0.2
+      if: ${{ steps.check-tag.outputs.exists }} == 'false'
+      with:
+        repo-token: ${{ secrets.TOKEN_PACKAGES }}
+        tag: v${{ env.PACKAGE_VERSION }}
     - name: Build wheel
-      if: github.ref == 'refs/heads/main'
       id: build_wheel
       run: |
         python3 -m pip install build
         python3 -m build wedge-cli/ --wheel
     - name: Upload to AZ
-      if: github.ref == 'refs/heads/main'
       uses: bacongobbler/azure-blob-storage-upload@main
       with:
         source_dir: wedge-cli/dist
