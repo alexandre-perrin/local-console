@@ -81,7 +81,7 @@ jobs:
         tag: v${{ env.PACKAGE_VERSION }}
     - name: Tag new version
       uses: tvdias/github-tagger@v0.0.2
-      if: ${{ steps.check-tag.outputs.exists }} == 'false'
+      if: steps.check-tag.outputs.exists == 'false'
       with:
         repo-token: ${{ secrets.TOKEN_PACKAGES }}
         tag: v${{ env.PACKAGE_VERSION }}
