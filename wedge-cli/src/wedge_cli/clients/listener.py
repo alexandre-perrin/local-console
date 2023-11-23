@@ -4,13 +4,14 @@ import logging
 import socket
 
 from wedge_cli.utils.enums import config_paths
+from wedge_cli.utils.schemas import IPAddress
 
 logger = logging.getLogger(__name__)
 
 
 class Listener:
-    def __init__(self, ip: str, port: int) -> None:
-        self.ip = ip
+    def __init__(self, ip: IPAddress, port: int) -> None:
+        self.ip = ip.ip_value
         self.port = port
         self.config_paths = config_paths
 
@@ -33,10 +34,11 @@ class Listener:
         data: bytes = self.conn.recv(1024)  # preprocess config
         config_parse = configparser.ConfigParser()
         config_dict = json.loads(data.decode("utf-8").strip().replace("'", ""))
-        for section in config_dict.keys():
-            config_parse.add_section(section)
-            for key in config_dict[section].keys():
-                config_parse.set(section, key, config_dict[section][key])
+        for section_names, values in config_dict.items():
+            if "host" in values.keys():
+                if isinstance(values["host"], dict):
+                    values["host"] = values["host"]["ip_value"]
+            config_parse[section_names] = values
         # save config_paths
         with open(self.config_paths.config_path, "w") as f:
             config_parse.write(f)

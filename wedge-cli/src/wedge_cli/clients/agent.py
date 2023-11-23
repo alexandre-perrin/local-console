@@ -10,6 +10,7 @@ from typing import Any
 import paho.mqtt.client as paho
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 from wedge_cli.utils.config import get_config
+from wedge_cli.utils.schemas import AgentConfiguration
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +24,9 @@ class Agent:
     TELEMETRY = "v1/devices/me/telemetry"
 
     def __init__(self) -> None:
-        config_parse = get_config()
+        config_parse: AgentConfiguration = get_config()
         self.mqttc = paho.Client()
-        self.mqttc.connect(
-            config_parse["mqtt"]["host"], int(config_parse["mqtt"]["port"])
-        )
+        self.mqttc.connect(config_parse.mqtt.host.ip_value, config_parse.mqtt.port)
         self._on_connect()
 
     def _on_connect(self) -> None:
@@ -146,6 +145,7 @@ class Agent:
         rc, _ = mqtt_msg_info
         if rc != MQTT_ERR_SUCCESS:
             logger.error("Error on MQTT publish agent logs")
+            raise ConnectionError
 
     def get_logs(self, instance_id: str, timeout: int) -> None:
         self._loop_client(
@@ -164,7 +164,7 @@ class Agent:
             # avoids ugly logs when killing the loop
             pass
 
-    def get_deployment(self, **kwargs: dict) -> None:
+    def get_deployment(self) -> None:
         self._loop_client(
             connect_callback=self._on_connect_subscribe_callback(
                 topic=self.DEPLOYMENT_TOPIC
@@ -172,16 +172,16 @@ class Agent:
             message_callback=self._on_message_return_payload(),
         )
 
-    def get_telemetry(self, **kwargs: dict) -> None:
+    def get_telemetry(self) -> None:
         self._loop_client(
             connect_callback=self._on_connect_subscribe_callback(topic=self.TELEMETRY),
             message_callback=self._on_message_telemetry(),
         )
 
-    def get_instance(self, **kwargs: dict) -> None:
+    def get_instance(self, instance_id: str) -> None:
         self._loop_client(
             connect_callback=self._on_connect_subscribe_callback(
                 topic=self.DEPLOYMENT_TOPIC
             ),
-            message_callback=self._on_message_instance(kwargs["instance_id"][0]),
+            message_callback=self._on_message_instance(instance_id),
         )

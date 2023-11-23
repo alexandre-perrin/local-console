@@ -1,33 +1,37 @@
 import logging
 import sys
 import urllib.request
+from pathlib import Path
+from typing import Annotated
 
-from wedge_cli.commands.build import build
-from wedge_cli.commands.config import config
-from wedge_cli.commands.deploy import deploy
-from wedge_cli.commands.get import get
-from wedge_cli.commands.logs import logs
-from wedge_cli.commands.new import new
-from wedge_cli.commands.rpc import rpc
-from wedge_cli.commands.start import start
+import typer
+from wedge_cli.commands import build
+from wedge_cli.commands import config
+from wedge_cli.commands import deploy
+from wedge_cli.commands import get
+from wedge_cli.commands import logs
+from wedge_cli.commands import new
+from wedge_cli.commands import rpc
+from wedge_cli.commands import start
 from wedge_cli.utils.config import setup_default_config
-from wedge_cli.utils.enums import Command
 from wedge_cli.utils.enums import config_paths
 from wedge_cli.utils.logger import configure_logger
-from wedge_cli.utils.parser import get_parser
 
 logger = logging.getLogger(__name__)
 
-COMMANDS = {
-    Command.START: start,
-    Command.DEPLOY: deploy,
-    Command.GET: get,
-    Command.CONFIG: config,
-    Command.LOGS: logs,
-    Command.BUILD: build,
-    Command.NEW: new,
-    Command.RPC: rpc,
-}
+app = typer.Typer(
+    name="wedge_cli",
+    add_completion=False,
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
+app.add_typer(start.app, name="start")
+app.add_typer(deploy.app, name="deploy")
+app.add_typer(build.app, name="build")
+app.add_typer(new.app, name="new")
+app.add_typer(logs.app, name="logs")
+app.add_typer(rpc.app, name="rpc")
+app.add_typer(get.app, name="get")
+app.add_typer(config.app, name="config")
 
 
 def setup_agent_filesystem() -> None:
@@ -51,19 +55,25 @@ def setup_default_https_ca() -> None:
         sys.exit(1)
 
 
-def main() -> None:
-    parser = get_parser()
-    if len(sys.argv) < 2:
-        parser.print_usage()
-    args = parser.parse_args()
-    config_paths.home = args.config_dir
-    configure_logger(args.debug, args.verbose)
+@app.callback(invoke_without_command=True)
+def main(
+    config_dir: Annotated[
+        Path,
+        typer.Option(help="Path for the file configs of the CLI and agent"),
+    ] = config_paths.home,
+    debug: Annotated[
+        bool, typer.Option("--debug", "-d", help="Set log level to debug")
+    ] = False,
+    verbose: Annotated[
+        bool, typer.Option("--verbose", "-v", help="Set log level to verbose")
+    ] = False,
+) -> None:
+    config_paths.home = config_dir
+    configure_logger(debug, verbose)
     setup_default_config()
     setup_agent_filesystem()
     setup_default_https_ca()
-    if args.command in COMMANDS:
-        COMMANDS[args.command](**vars(args))  # type: ignore
 
 
 if __name__ == "__main__":
-    main()
+    app()

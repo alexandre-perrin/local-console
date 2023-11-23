@@ -1,97 +1,27 @@
 import json
 import logging
 import socket
+from pathlib import Path
+from typing import Annotated
 from typing import Optional
 
+import typer
+from wedge_cli.utils.config import check_section_and_params
 from wedge_cli.utils.config import get_config
-from wedge_cli.utils.config import get_default_config
+from wedge_cli.utils.config import parse_section_to_ini
+from wedge_cli.utils.config import schema_to_parser
 from wedge_cli.utils.enums import config_paths
+from wedge_cli.utils.schemas import AgentConfiguration
+from wedge_cli.utils.schemas import IPAddress
+from wedge_cli.utils.schemas import RemoteConnectionInfo
 
 logger = logging.getLogger(__name__)
+app = typer.Typer(help="Commands that interact with the configuration of the agent")
 
 
-def config_get(key: str, **kwargs: dict) -> None:
-    config_parser = get_config()  # type: ignore
-    config_str = ""
-    if key is None:
-        prechar = ""
-        for section in config_parser.sections():
-            config_str += f"{prechar}[{section}]\n"
-            prechar = "\n"
-            for key, value in config_parser.items(section):
-                config_str += f"{key} = {value}\n"
-    else:
-        key_split = key.split(".")
-        if len(key_split) == 1:
-            sec = key_split[0]
-            if sec not in config_parser:
-                log = f"Invalid config_paths section. Valid ones are: {config_parser.sections()}"
-                logger.error(log)
-                exit(1)
-            for opt, val in config_parser.items(sec):
-                config_str += f"{opt} = {val}\n"
-        elif len(key_split) == 2:
-            sec, opt = key_split
-            if opt in config_parser[sec]:
-                val = config_parser.get(sec, opt)
-                config_str += f"{val}\n"
-        else:
-            logger.error("Incorrect selection. Filter using '<section>.<item>'")
-            exit(1)
-
-    print(config_str, end="")
-
-
-def config_set(entry: str, **kwargs: dict) -> None:
-    config_parser = get_config()  # type:ignore
-    entry = entry[0]
-    identifier, value = entry.split("=")
-    section, option = identifier.split(".")
-
-    if section not in config_parser:
-        log = (
-            f"Invalid config_paths section. Valid ones are: {config_parser.sections()}"
-        )
-        logger.error(log)
-        exit(1)
-    if option not in config_parser[section]:
-        log = "Invalid config_parser option"
-        logger.error(log)
-        exit(1)
-
-    config_parser[section][option] = value
-
-    with open(
-        config_paths.config_path, "w"  # type:ignore
-    ) as f:
-        config_parser.write(f)
-
-
-def config_send(entries: Optional[list[str]], **kwargs: dict) -> None:
-    config_parser = get_default_config()
-    if entries:
-        for entry in entries:
-            identifier, value = entry.split("=")
-            section, option = identifier.split(".")
-
-            if section not in config_parser:
-                log = f"Invalid config section. Valid ones are: {config_parser.sections()}"
-                logger.error(log)
-                exit(1)
-            if option not in config_parser[section]:
-                log = "Invalid config option"
-                logger.error(log)
-                exit(1)
-
-            config_parser[section][option] = value
-
+def send_config(config_dict: dict, connection_info: RemoteConnectionInfo) -> None:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((kwargs["ip"], int(kwargs["port"])))  # type: ignore
-    config_dict: dict = {}
-    for section in config_parser.sections():
-        config_dict[section] = {}
-        for option in config_parser.options(section):
-            config_dict[section][option] = config_parser.get(section, option)
+    s.connect((connection_info.host.ip_value, connection_info.port))  # type: ignore
     s.send(bytes(json.dumps(config_dict), "utf-8"))
 
     while True:
@@ -103,10 +33,94 @@ def config_send(entries: Optional[list[str]], **kwargs: dict) -> None:
             break
 
 
-def config(**kwargs: dict) -> None:
-    command = str(kwargs["config_subparsers"])
-    {
-        "get": config_get,  # type: ignore
-        "set": config_set,  # type: ignore
-        "send": config_send,  # type: ignore
-    }[command](**kwargs)
+@app.command("get", help="Gets the config key values requested or the whole config")
+def config_get(
+    section: Annotated[
+        Optional[str],
+        typer.Argument(
+            help="Section to be retrieved if none is specified returns the whole config"
+        ),
+    ] = None,
+    parameter: Annotated[
+        Optional[str],
+        typer.Argument(
+            help="Parameter from a specific section to be retrieved if none is specified returns the whole section"
+        ),
+    ] = None,
+) -> None:
+    agent_config: AgentConfiguration = get_config()  # type: ignore
+    if section is None:
+        for section_name, section_value in agent_config.__dict__.items():
+            parsed_section = parse_section_to_ini(section_value, section_name)
+            print(parsed_section, "\n")
+    else:
+        try:
+            check_section_and_params(agent_config, section, parameter)
+        except ValueError:
+            exit(1)
+        parsed_section = parse_section_to_ini(
+            agent_config.__dict__[f"{section}"], section, parameter
+        )
+        print(parsed_section)
+
+
+@app.command("set", help="Sets the config key values to the specified value")
+def config_set(
+    section: Annotated[
+        str,
+        typer.Argument(help="Section of the configuration to be set"),
+    ],
+    parameter: Annotated[
+        str,
+        typer.Argument(help="Parameter of the section of the configuration to be set"),
+    ],
+    new: Annotated[
+        str,
+        typer.Argument(
+            help="New value to be used in the specified parameter of the section"
+        ),
+    ],
+) -> None:
+    agent_config: AgentConfiguration = get_config()  # type:ignore
+
+    try:
+        check_section_and_params(agent_config, section, parameter)
+        config_parser = schema_to_parser(agent_config, section, parameter, new)
+    except ValueError:
+        exit(1)
+
+    with open(
+        config_paths.config_path, "w"  # type:ignore
+    ) as f:
+        config_parser.write(f)
+
+
+@app.command(
+    "send", help="Send the configuration to an agent started with the remote option"
+)
+def config_send(
+    config_file: Annotated[
+        Path,
+        typer.Option(
+            help="Path to a .ini file where the configuration to be sent is defined, it should have the same format as the on in ~/.config/wedge."
+        ),
+    ],
+    ip: Annotated[str, typer.Option(help="IP where the configuration is send")],
+    port: Annotated[int, typer.Option(help="Port where the configuration is send")],
+) -> None:
+    if config_file.suffix != ".ini":
+        logger.error("Specified file is not a .ini file")
+        exit(1)
+
+    else:
+        try:
+            connection_info = RemoteConnectionInfo(
+                host=IPAddress(ip_value=ip), port=port
+            )
+        except ValueError:
+            logger.warning("Invalid IP address used")
+            exit(1)
+
+        agent_config: AgentConfiguration = get_config(config_file)
+        config_dict: dict = agent_config.model_dump()
+        send_config(config_dict, connection_info)

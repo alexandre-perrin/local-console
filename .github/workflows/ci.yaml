@@ -38,14 +38,19 @@ jobs:
     - name: Install wedge-cli
       run: |
         pip install wedge-cli/
+        pip install -r tests/requirements.txt
     - name: Start Mosquitto
       run : |
         apt-get install -y mosquitto
         mosquitto -d -c .devcontainer/mosquitto.conf
+    - name: Run Unit Test
+      id: unit-test
+      run: |
+        python -m pytest tests --cov --cov-report=xml --cov-report=html --hypothesis-seed=42
     - name: Run E2E
       id: e2e
       run: |
-        python .github/e2e.py
+        python tests/e2e.py
   pre-commit:
     name: Pre-commit
     runs-on: [self-hosted, X64]

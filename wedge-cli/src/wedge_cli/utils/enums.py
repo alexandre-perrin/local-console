@@ -9,6 +9,8 @@ class Config:
         self._https_ca_file = "mozilla-root-ca.pem"
         self._https_ca_url = "https://ccadb-public.secure.force.com/mozilla/IncludedRootsPEMTxt?TrustBitsInclude=Websites"
         self._evp_data = "evp_data"
+        self.deployment_json = "deployment.json"
+        self.bin = "bin"
 
     @property
     def config_path(self) -> Path:
@@ -38,27 +40,54 @@ class Config:
 config_paths = Config()
 
 
-class Command(str, Enum):
-    START = "start"
-    DEPLOY = "deploy"
-    GET = "get"
-    CONFIG = "config"
-    LOGS = "logs"
-    BUILD = "build"
-    NEW = "new"
-    RPC = "rpc"
+class Commands(str, Enum):
+    WAMRC = "wamrc"
+    EVP_AGENT = "evp_agent"
+    MAKE = "make"
+    CLEAN = "clean"
 
 
-class GetObjects(str, Enum):
+class GetObjects(Enum):
     INSTANCE = "instance"
     DEPLOYMENT = "deployment"
     TELEMETRY = "telemetry"
+
+    def __str__(self) -> str:
+        return self.value
+
+
+class GetCommands(Enum):
+    GET = "get"
+    SET = "set"
+    SEND = "send"
+
+    def __str__(self) -> str:
+        return self.value
+
+
+class EVPEnvVars:
+    EVP_IOT_PLATFORM = "EVP_IOT_PLATFORM"
+    EVP_VERSION = "EVP_VERSION"
+    EVP_MQTT_HOST = "EVP_MQTT_HOST"
+    EVP_MQTT_PORT = "EVP_MQTT_PORT"
+    EVP_DATA_DIR = "EVP_DATA_DIR"
+    EVP_HTTPS_CA_CERT = "EVP_HTTPS_CA_CERT"
+    EVP_REPORT_STATUS_INTERVAL_MAX_SEC = "EVP_REPORT_STATUS_INTERVAL_MAX_SEC"
 
 
 class Target(Enum):
     AMD64 = "amd64"
     ARM64 = "arm64"
     XTENSA = "xtensa"
+
+    def __str__(self) -> str:
+        return self.value
+
+
+class ModuleExtension(Enum):
+    WASM = "wasm"
+    AOT = "aot"
+    SIGNED = "signed"
 
     def __str__(self) -> str:
         return self.value
