@@ -1,3 +1,4 @@
+import json
 from unittest.mock import Mock
 from unittest.mock import patch
 
@@ -117,3 +118,21 @@ def test_get_logs(instance_id: str, timeout: int, agent_config: AgentConfigurati
         )
         agent._on_message_logs.assert_called_once_with(instance_id, timeout)
         agent._loop_client.assert_called_once()
+
+
+@given(generate_agent_config())
+def test_handshake_response(agent_config: AgentConfiguration):
+    with (
+        patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
+        patch("wedge_cli.clients.agent.paho.Client") as mqtt_client,
+    ):
+        mqtt_client.return_value.publish.return_value = Mock(), Mock()
+        agent = Agent()
+        agent.mqttc.publish.assert_called_once()
+        request_topic, payload = agent.mqttc.publish.call_args.args
+        assert request_topic == Agent.REQUEST_TOPIC
+        # Payload must be a valid JSON
+        try:
+            json.loads(payload)
+        except json.JSONDecodeError as e:
+            raise Exception(f"Payload is not a valid JSON string: {e}")

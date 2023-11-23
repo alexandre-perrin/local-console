@@ -30,7 +30,7 @@ class Agent:
         self._on_connect()
 
     def _on_connect(self) -> None:
-        mqtt_msg_info = self.mqttc.publish(self.REQUEST_TOPIC, "")
+        mqtt_msg_info = self.mqttc.publish(self.REQUEST_TOPIC, "{}")
         rc, _ = mqtt_msg_info
         if rc != MQTT_ERR_SUCCESS:
             logger.error("Error on MQTT handshake with agent")
