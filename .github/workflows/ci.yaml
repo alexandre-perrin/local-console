@@ -91,12 +91,13 @@ jobs:
         repo-token: ${{ secrets.TOKEN_PACKAGES }}
         tag: v${{ env.PACKAGE_VERSION }}
     - name: Build wheel
-      id: build_wheel
+      if: steps.check-tag.outputs.exists == 'false'
       run: |
         python3 -m pip install build
         python3 -m build wedge-cli/ --wheel
     - name: Upload to AZ
       uses: bacongobbler/azure-blob-storage-upload@main
+      if: steps.check-tag.outputs.exists == 'false'
       with:
         source_dir: wedge-cli/dist
         container_name: main
