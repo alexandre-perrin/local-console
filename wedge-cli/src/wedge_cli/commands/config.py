@@ -6,6 +6,7 @@ from typing import Annotated
 from typing import Optional
 
 import typer
+from wedge_cli.clients.agent import Agent
 from wedge_cli.utils.config import check_section_and_params
 from wedge_cli.utils.config import get_config
 from wedge_cli.utils.config import parse_section_to_ini
@@ -124,3 +125,25 @@ def config_send(
         agent_config: AgentConfiguration = get_config(config_file)
         config_dict: dict = agent_config.model_dump()
         send_config(config_dict, connection_info)
+
+
+@app.command("instance", help="Configure a module instance")
+def config_instance(
+    instance_id: Annotated[
+        str,
+        typer.Argument(help="Target instance of the configuration."),
+    ],
+    topic: Annotated[
+        str,
+        typer.Argument(help="Topic of the configuration."),
+    ],
+    config: Annotated[
+        str,
+        typer.Argument(help="Data of the configuration."),
+    ],
+) -> None:
+    agent = Agent()  # type: ignore
+    try:
+        agent.configure(instance_id, topic, config)
+    except ConnectionError:
+        exit(1)

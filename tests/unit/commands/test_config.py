@@ -224,3 +224,31 @@ def test_config_send_command_invalid_ip(
         ],
     )
     assert result.exit_code == 1
+
+
+@given(
+    st.text(min_size=1, max_size=5),
+    st.text(min_size=1, max_size=5),
+    st.text(min_size=1, max_size=5),
+)
+def test_config_instance_command(instance_id: str, method: str, params: str):
+    with (patch("wedge_cli.commands.config.Agent") as mock_agent,):
+        result = runner.invoke(app, ["instance", instance_id, method, params])
+        mock_agent.return_value.configure.assert_called_with(
+            instance_id, method, params
+        )
+        assert result.exit_code == 0
+
+
+@given(
+    st.text(min_size=1, max_size=5),
+    st.text(min_size=1, max_size=5),
+    st.text(min_size=1, max_size=5),
+)
+def test_config_instance_command_exception(instance_id: str, method: str, params: str):
+    with patch("wedge_cli.commands.config.Agent") as mock_agent:
+        mock_agent.return_value.configure.side_effect = ConnectionError
+
+        result = runner.invoke(app, ["instance", instance_id, method, params])
+        mock_agent.assert_called()
+        assert result.exit_code == 1

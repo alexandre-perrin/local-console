@@ -1,3 +1,4 @@
+import base64
 import json
 from unittest.mock import Mock
 from unittest.mock import patch
@@ -11,6 +12,31 @@ from wedge_cli.clients.agent import Agent
 from wedge_cli.utils.schemas import AgentConfiguration
 
 from tests.strategies.configs import generate_agent_config
+
+
+@given(st.text(), st.text(), st.text(), generate_agent_config())
+def test_configure_instance(
+    instance_id: str, topic: str, config: str, agent_config: AgentConfiguration
+):
+    with (
+        patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
+        patch("wedge_cli.clients.agent.paho.Client"),
+        patch("wedge_cli.clients.agent.Agent._on_connect"),
+    ):
+        agent = Agent()
+        agent.mqttc.publish = Mock(return_value=(MQTT_ERR_SUCCESS, None))
+        agent.configure(instance_id, topic, config)
+
+        payload = json.dumps(
+            {
+                f"configuration/{instance_id}/{topic}": base64.b64encode(
+                    config.encode("utf-8")
+                ).decode("utf-8")
+            }
+        )
+        agent.mqttc.publish.assert_called_once_with(
+            agent.DEPLOYMENT_TOPIC, payload=payload
+        )
 
 
 @given(st.text(), generate_agent_config())

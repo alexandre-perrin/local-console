@@ -1,3 +1,4 @@
+import base64
 import json
 import logging
 import random
@@ -142,6 +143,20 @@ class Agent:
         payload = json.dumps(message)
         logger.debug(f"payload: {payload}")
         mqtt_msg_info = self.mqttc.publish(RPC_TOPIC, payload=payload)
+        rc, _ = mqtt_msg_info
+        if rc != MQTT_ERR_SUCCESS:
+            logger.error("Error on MQTT publish agent logs")
+            raise ConnectionError
+
+    def configure(self, instance_id: str, topic: str, config: str) -> None:
+        """
+        :param config: Configuration of the module instance.
+        """
+        config = base64.b64encode(config.encode("utf-8")).decode("utf-8")
+        message: dict = {f"configuration/{instance_id}/{topic}": config}
+        payload = json.dumps(message)
+        logger.debug(f"payload: {payload}")
+        mqtt_msg_info = self.mqttc.publish(self.DEPLOYMENT_TOPIC, payload=payload)
         rc, _ = mqtt_msg_info
         if rc != MQTT_ERR_SUCCESS:
             logger.error("Error on MQTT publish agent logs")
