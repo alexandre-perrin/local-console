@@ -37,6 +37,7 @@ class EVPParams(BaseModel):
 class MQTTParams(BaseModel):
     host: IPAddress
     port: int
+    device_id: Optional[str]
 
 
 class WebserverParams(BaseModel):

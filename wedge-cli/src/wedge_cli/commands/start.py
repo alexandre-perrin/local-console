@@ -37,6 +37,7 @@ def start_agent(connection_info: RemoteConnectionInfo, libraries: Libraries) -> 
         env[EVPEnvVars.EVP_MQTT_HOST] = config.mqtt.host.ip_value
         env[EVPEnvVars.EVP_MQTT_PORT] = str(config.mqtt.port)
         env[EVPEnvVars.EVP_DATA_DIR] = str(config_paths.evp_data_path)  # type:ignore
+        env[EVPEnvVars.EVP_MQTT_CLIENTID] = str(config.mqtt.device_id)
         env[EVPEnvVars.EVP_HTTPS_CA_CERT] = str(
             config_paths.https_ca_path
         )  # type:ignore

@@ -72,6 +72,7 @@ def test_start_agent(agent_config: AgentConfiguration) -> None:
             config_paths.https_ca_path
         )  # type:ignore
         env[EVPEnvVars.EVP_REPORT_STATUS_INTERVAL_MAX_SEC] = "3"
+        env[EVPEnvVars.EVP_MQTT_CLIENTID] = str(agent_config.mqtt.device_id)
         command = [Commands.EVP_AGENT.value]
         mock_run_agent.assert_called_once_with(command, env=env)
         mock_get_config.assert_called_once()
@@ -102,6 +103,7 @@ def test_start_agent_file_not_found(agent_config: AgentConfiguration) -> None:
             config_paths.https_ca_path
         )  # type:ignore
         env[EVPEnvVars.EVP_REPORT_STATUS_INTERVAL_MAX_SEC] = "3"
+        env[EVPEnvVars.EVP_MQTT_CLIENTID] = str(agent_config.mqtt.device_id)
         command = [Commands.EVP_AGENT.value]
         mock_run_agent.assert_called_once_with(command, env=env)
         mock_get_config.assert_called_once()
@@ -161,6 +163,7 @@ def test_start_agent_libraries(
             config_paths.https_ca_path
         )  # type:ignore
         env[EVPEnvVars.EVP_REPORT_STATUS_INTERVAL_MAX_SEC] = "3"
+        env[EVPEnvVars.EVP_MQTT_CLIENTID] = str(agent_config.mqtt.device_id)
         command += libraries_command
         mock_run_agent.assert_called_with(command, env=env)
         mock_get_config.assert_called_once()
