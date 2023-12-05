@@ -28,4 +28,4 @@ def rpc(
     try:
         agent.rpc(instance_id, method, params)
     except ConnectionError:
-        exit(1)
+        raise SystemExit(f"Could not send command {method} to device {instance_id}")

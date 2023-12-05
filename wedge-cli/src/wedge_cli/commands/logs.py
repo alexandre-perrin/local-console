@@ -28,4 +28,6 @@ def logs(
         agent.rpc(instance_id, "$agent/set", '{"log_enable": true}')
         agent.get_logs(instance_id, timeout)
     except ConnectionError:
-        exit(1)
+        raise SystemExit(
+            f"Could not send command for enabling logs to device {instance_id}"
+        )
