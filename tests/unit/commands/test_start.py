@@ -64,7 +64,6 @@ def test_start_agent(agent_config: AgentConfiguration) -> None:
         )
         env = os.environ.copy()
         env[EVPEnvVars.EVP_IOT_PLATFORM] = agent_config.evp.iot_platform
-        env[EVPEnvVars.EVP_VERSION] = agent_config.evp.version
         env[EVPEnvVars.EVP_MQTT_HOST] = agent_config.mqtt.host.ip_value
         env[EVPEnvVars.EVP_MQTT_PORT] = str(agent_config.mqtt.port)
         env[EVPEnvVars.EVP_DATA_DIR] = str(config_paths.evp_data_path)  # type:ignore
@@ -95,7 +94,6 @@ def test_start_agent_file_not_found(agent_config: AgentConfiguration) -> None:
             )
         env = os.environ.copy()
         env[EVPEnvVars.EVP_IOT_PLATFORM] = agent_config.evp.iot_platform
-        env[EVPEnvVars.EVP_VERSION] = agent_config.evp.version
         env[EVPEnvVars.EVP_MQTT_HOST] = agent_config.mqtt.host.ip_value
         env[EVPEnvVars.EVP_MQTT_PORT] = str(agent_config.mqtt.port)
         env[EVPEnvVars.EVP_DATA_DIR] = str(config_paths.evp_data_path)  # type:ignore
@@ -155,7 +153,6 @@ def test_start_agent_libraries(
             libraries_command.append(library)
         env = os.environ.copy()
         env[EVPEnvVars.EVP_IOT_PLATFORM] = agent_config.evp.iot_platform
-        env[EVPEnvVars.EVP_VERSION] = agent_config.evp.version
         env[EVPEnvVars.EVP_MQTT_HOST] = agent_config.mqtt.host.ip_value
         env[EVPEnvVars.EVP_MQTT_PORT] = str(agent_config.mqtt.port)
         env[EVPEnvVars.EVP_DATA_DIR] = str(config_paths.evp_data_path)  # type:ignore

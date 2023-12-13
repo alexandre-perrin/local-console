@@ -33,7 +33,6 @@ def start_agent(connection_info: RemoteConnectionInfo, libraries: Libraries) -> 
         config: AgentConfiguration = get_config()
         env = os.environ.copy()
         env[EVPEnvVars.EVP_IOT_PLATFORM] = config.evp.iot_platform
-        env[EVPEnvVars.EVP_VERSION] = config.evp.version
         env[EVPEnvVars.EVP_MQTT_HOST] = config.mqtt.host.ip_value
         env[EVPEnvVars.EVP_MQTT_PORT] = str(config.mqtt.port)
         env[EVPEnvVars.EVP_DATA_DIR] = str(config_paths.evp_data_path)  # type:ignore

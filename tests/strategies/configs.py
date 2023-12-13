@@ -18,7 +18,6 @@ def generate_agent_config(draw) -> AgentConfiguration:
     return AgentConfiguration(
         evp=EVPParams(
             iot_platform=draw(st.text(min_size=1, max_size=10)),
-            version=draw(st.text(min_size=1, max_size=10)),
         ),
         mqtt=MQTTParams(
             host=IPAddress(ip_value=draw(generate_valid_ip())),

@@ -31,7 +31,6 @@ class Libraries(BaseModel):
 
 class EVPParams(BaseModel):
     iot_platform: str
-    version: str
 
 
 class MQTTParams(BaseModel):
