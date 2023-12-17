@@ -123,7 +123,7 @@ def test_start_agent_remote(valid_ip: str, port: int) -> None:
         mock_listener.assert_called_once_with(
             ip=IPAddress(ip_value=valid_ip), port=port
         )
-        mock_listener.return_value.recieve_config.assert_called_once()
+        mock_listener.return_value.receive_config.assert_called_once()
         mock_listener.return_value.open_listener.assert_called_once()
         mock_run_agent.assert_called_once()
         mock_get_config.assert_called_once()

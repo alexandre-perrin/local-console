@@ -34,18 +34,20 @@ def send_config(config_dict: dict, connection_info: RemoteConnectionInfo) -> Non
             break
 
 
-@app.command("get", help="Gets the config key values requested or the whole config")
+@app.command(
+    "get", help="Gets the values for the requested config key, or the whole config"
+)
 def config_get(
     section: Annotated[
         Optional[str],
         typer.Argument(
-            help="Section to be retrieved if none is specified returns the whole config"
+            help="Section to be retrieved. If none specified, returns the whole config"
         ),
     ] = None,
     parameter: Annotated[
         Optional[str],
         typer.Argument(
-            help="Parameter from a specific section to be retrieved if none is specified returns the whole section"
+            help="Parameter from a specific section to be retrieved. If none specified, returns the whole section"
         ),
     ] = None,
 ) -> None:

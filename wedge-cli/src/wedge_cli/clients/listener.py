@@ -28,7 +28,7 @@ class Listener:
             exit(1)
         logger.info("Connected")
 
-    def recieve_config(self) -> None:
+    def receive_config(self) -> None:
         self.socket.listen()
         (self.conn, self.addr) = self.socket.accept()
         data: bytes = self.conn.recv(1024)  # preprocess config
@@ -44,5 +44,5 @@ class Listener:
             config_parse.write(f)
 
         # Sending reply
-        self.conn.send(bytes("Config recieved and applied", "utf-8"))
+        self.conn.send(bytes("Config received and applied", "utf-8"))
         self.conn.close()  # Close connections
