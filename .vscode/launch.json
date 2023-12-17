@@ -25,6 +25,16 @@
 			],
 			"cwd": "${workspaceFolder}/samples/rpc-example",
 			"justMyCode": true
+		},
+
+		{
+			"name": "Debug tests",
+			"type": "python",
+			"request": "launch",
+			"program": "${file}",
+			"purpose": ["debug-test"],
+			"console": "integratedTerminal",
+			"justMyCode": true
 		}
 	]
 }

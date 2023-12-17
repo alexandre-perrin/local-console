@@ -1,0 +1,10 @@
+{
+	"python.testing.pyTestEnabled": true,
+    "python.testing.pyTestArgs": [
+		"--no-cov",
+		"--hypothesis-seed=42",
+        "tests",
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.nosetestsEnabled": false,
+}
