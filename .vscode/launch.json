@@ -1,0 +1,40 @@
+{
+	// Use IntelliSense to learn about possible attributes.
+	// Hover to view descriptions of existing attributes.
+	// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "cli start agent",
+			"type": "python",
+			"request": "launch",
+			"module": "wedge_cli",
+			"args": [
+				"--debug", "start"
+			],
+			"justMyCode": true
+		},
+
+		{
+			"name": "cli build rpc-ex",
+			"type": "python",
+			"request": "launch",
+			"module": "wedge_cli",
+			"args": [
+				"--debug", "build"
+			],
+			"cwd": "${workspaceFolder}/samples/rpc-example",
+			"justMyCode": true
+		},
+
+		{
+			"name": "Debug tests",
+			"type": "python",
+			"request": "launch",
+			"program": "${file}",
+			"purpose": ["debug-test"],
+			"console": "integratedTerminal",
+			"justMyCode": true
+		}
+	]
+}

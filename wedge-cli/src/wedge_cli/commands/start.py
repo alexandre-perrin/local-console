@@ -17,7 +17,7 @@ from wedge_cli.utils.schemas import Libraries
 from wedge_cli.utils.schemas import RemoteConnectionInfo
 
 logger = logging.getLogger(__name__)
-app = typer.Typer(help="Command that start the agent")
+app = typer.Typer(help="Command that starts the agent up")
 
 
 def start_agent(connection_info: RemoteConnectionInfo, libraries: Libraries) -> None:
@@ -26,17 +26,17 @@ def start_agent(connection_info: RemoteConnectionInfo, libraries: Libraries) -> 
             ip=connection_info.host, port=connection_info.port  # type:ignore
         )
         server.open_listener()
-        server.recieve_config()
+        server.receive_config()
 
     try:
-        # this will be a avoided when all the commands are done
+        # this will be avoided when all the commands are done
         config: AgentConfiguration = get_config()
         env = os.environ.copy()
         env[EVPEnvVars.EVP_IOT_PLATFORM] = config.evp.iot_platform
-        env[EVPEnvVars.EVP_VERSION] = config.evp.version
         env[EVPEnvVars.EVP_MQTT_HOST] = config.mqtt.host.ip_value
         env[EVPEnvVars.EVP_MQTT_PORT] = str(config.mqtt.port)
         env[EVPEnvVars.EVP_DATA_DIR] = str(config_paths.evp_data_path)  # type:ignore
+        env[EVPEnvVars.EVP_MQTT_CLIENTID] = str(config.mqtt.device_id)
         env[EVPEnvVars.EVP_HTTPS_CA_CERT] = str(
             config_paths.https_ca_path
         )  # type:ignore

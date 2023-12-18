@@ -31,12 +31,12 @@ class Libraries(BaseModel):
 
 class EVPParams(BaseModel):
     iot_platform: str
-    version: str
 
 
 class MQTTParams(BaseModel):
     host: IPAddress
     port: int
+    device_id: Optional[str]
 
 
 class WebserverParams(BaseModel):

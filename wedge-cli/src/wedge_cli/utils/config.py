@@ -22,9 +22,8 @@ def get_default_config() -> configparser.ConfigParser:
     config = configparser.ConfigParser()
     config["evp"] = {
         "iot_platform": "tb",
-        "version": "EVP2",
     }
-    config["mqtt"] = {"host": "localhost", "port": "1883"}
+    config["mqtt"] = {"host": "localhost", "port": "1883", "device_id": ""}
     config["webserver"] = {"host": "localhost", "port": "8000"}
     return config
 
@@ -56,11 +55,11 @@ def config_to_schema(config: configparser.ConfigParser) -> AgentConfiguration:
         return AgentConfiguration(
             evp=EVPParams(
                 iot_platform=config["evp"]["iot_platform"],
-                version=config["evp"]["version"],
             ),
             mqtt=MQTTParams(
                 host=IPAddress(ip_value=config["mqtt"]["host"]),
                 port=int(config["mqtt"]["port"]),
+                device_id=config["mqtt"].get("device_id", None),
             ),
             webserver=WebserverParams(
                 host=IPAddress(ip_value=config["webserver"]["host"]),

@@ -34,18 +34,20 @@ def send_config(config_dict: dict, connection_info: RemoteConnectionInfo) -> Non
             break
 
 
-@app.command("get", help="Gets the config key values requested or the whole config")
+@app.command(
+    "get", help="Gets the values for the requested config key, or the whole config"
+)
 def config_get(
     section: Annotated[
         Optional[str],
         typer.Argument(
-            help="Section to be retrieved if none is specified returns the whole config"
+            help="Section to be retrieved. If none specified, returns the whole config"
         ),
     ] = None,
     parameter: Annotated[
         Optional[str],
         typer.Argument(
-            help="Parameter from a specific section to be retrieved if none is specified returns the whole section"
+            help="Parameter from a specific section to be retrieved. If none specified, returns the whole section"
         ),
     ] = None,
 ) -> None:
@@ -58,7 +60,9 @@ def config_get(
         try:
             check_section_and_params(agent_config, section, parameter)
         except ValueError:
-            exit(1)
+            raise SystemExit(
+                f"Error getting config param '{parameter}' at section {section}"
+            )
         parsed_section = parse_section_to_ini(
             agent_config.__dict__[f"{section}"], section, parameter
         )
@@ -88,7 +92,9 @@ def config_set(
         check_section_and_params(agent_config, section, parameter)
         config_parser = schema_to_parser(agent_config, section, parameter, new)
     except ValueError:
-        exit(1)
+        raise SystemExit(
+            f"Error setting config param '{parameter}' at section {section}"
+        )
 
     with open(
         config_paths.config_path, "w"  # type:ignore
@@ -143,7 +149,10 @@ def config_instance(
     ],
 ) -> None:
     agent = Agent()  # type: ignore
+
     try:
         agent.configure(instance_id, topic, config)
     except ConnectionError:
-        exit(1)
+        raise SystemExit(
+            f"Connection error while attempting to set configuration topic '{topic}' for instance {instance_id}"
+        )

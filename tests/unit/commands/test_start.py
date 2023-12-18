@@ -64,7 +64,6 @@ def test_start_agent(agent_config: AgentConfiguration) -> None:
         )
         env = os.environ.copy()
         env[EVPEnvVars.EVP_IOT_PLATFORM] = agent_config.evp.iot_platform
-        env[EVPEnvVars.EVP_VERSION] = agent_config.evp.version
         env[EVPEnvVars.EVP_MQTT_HOST] = agent_config.mqtt.host.ip_value
         env[EVPEnvVars.EVP_MQTT_PORT] = str(agent_config.mqtt.port)
         env[EVPEnvVars.EVP_DATA_DIR] = str(config_paths.evp_data_path)  # type:ignore
@@ -72,6 +71,7 @@ def test_start_agent(agent_config: AgentConfiguration) -> None:
             config_paths.https_ca_path
         )  # type:ignore
         env[EVPEnvVars.EVP_REPORT_STATUS_INTERVAL_MAX_SEC] = "3"
+        env[EVPEnvVars.EVP_MQTT_CLIENTID] = str(agent_config.mqtt.device_id)
         command = [Commands.EVP_AGENT.value]
         mock_run_agent.assert_called_once_with(command, env=env)
         mock_get_config.assert_called_once()
@@ -94,7 +94,6 @@ def test_start_agent_file_not_found(agent_config: AgentConfiguration) -> None:
             )
         env = os.environ.copy()
         env[EVPEnvVars.EVP_IOT_PLATFORM] = agent_config.evp.iot_platform
-        env[EVPEnvVars.EVP_VERSION] = agent_config.evp.version
         env[EVPEnvVars.EVP_MQTT_HOST] = agent_config.mqtt.host.ip_value
         env[EVPEnvVars.EVP_MQTT_PORT] = str(agent_config.mqtt.port)
         env[EVPEnvVars.EVP_DATA_DIR] = str(config_paths.evp_data_path)  # type:ignore
@@ -102,6 +101,7 @@ def test_start_agent_file_not_found(agent_config: AgentConfiguration) -> None:
             config_paths.https_ca_path
         )  # type:ignore
         env[EVPEnvVars.EVP_REPORT_STATUS_INTERVAL_MAX_SEC] = "3"
+        env[EVPEnvVars.EVP_MQTT_CLIENTID] = str(agent_config.mqtt.device_id)
         command = [Commands.EVP_AGENT.value]
         mock_run_agent.assert_called_once_with(command, env=env)
         mock_get_config.assert_called_once()
@@ -123,7 +123,7 @@ def test_start_agent_remote(valid_ip: str, port: int) -> None:
         mock_listener.assert_called_once_with(
             ip=IPAddress(ip_value=valid_ip), port=port
         )
-        mock_listener.return_value.recieve_config.assert_called_once()
+        mock_listener.return_value.receive_config.assert_called_once()
         mock_listener.return_value.open_listener.assert_called_once()
         mock_run_agent.assert_called_once()
         mock_get_config.assert_called_once()
@@ -153,7 +153,6 @@ def test_start_agent_libraries(
             libraries_command.append(library)
         env = os.environ.copy()
         env[EVPEnvVars.EVP_IOT_PLATFORM] = agent_config.evp.iot_platform
-        env[EVPEnvVars.EVP_VERSION] = agent_config.evp.version
         env[EVPEnvVars.EVP_MQTT_HOST] = agent_config.mqtt.host.ip_value
         env[EVPEnvVars.EVP_MQTT_PORT] = str(agent_config.mqtt.port)
         env[EVPEnvVars.EVP_DATA_DIR] = str(config_paths.evp_data_path)  # type:ignore
@@ -161,6 +160,7 @@ def test_start_agent_libraries(
             config_paths.https_ca_path
         )  # type:ignore
         env[EVPEnvVars.EVP_REPORT_STATUS_INTERVAL_MAX_SEC] = "3"
+        env[EVPEnvVars.EVP_MQTT_CLIENTID] = str(agent_config.mqtt.device_id)
         command += libraries_command
         mock_run_agent.assert_called_with(command, env=env)
         mock_get_config.assert_called_once()
