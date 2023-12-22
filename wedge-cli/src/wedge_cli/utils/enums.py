@@ -59,6 +59,7 @@ class GetObjects(Enum):
 class GetCommands(Enum):
     GET = "get"
     SET = "set"
+    UNSET = "unset"
     SEND = "send"
 
     def __str__(self) -> str:

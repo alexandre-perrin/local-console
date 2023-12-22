@@ -93,12 +93,37 @@ def config_set(
         config_parser = schema_to_parser(agent_config, section, parameter, new)
     except ValueError:
         raise SystemExit(
-            f"Error setting config param '{parameter}' at section {section}"
+            f"Error setting config param '{parameter}' at section '{section}'"
         )
 
     with open(
         config_paths.config_path, "w"  # type:ignore
     ) as f:
+        config_parser.write(f)
+
+
+@app.command("unset", help="Removes the value of a nullable configuration key")
+def config_unset(
+    section: Annotated[
+        str,
+        typer.Argument(help="Section of the configuration to be set"),
+    ],
+    parameter: Annotated[
+        str,
+        typer.Argument(help="Parameter of the section of the configuration to be set"),
+    ],
+) -> None:
+    agent_config: AgentConfiguration = get_config()  # type:ignore
+
+    try:
+        check_section_and_params(agent_config, section, parameter)
+        config_parser = schema_to_parser(agent_config, section, parameter, None)
+    except ValueError as e:
+        raise SystemExit(
+            f"Error unsetting config param '{parameter}' at section '{section}'. It is probably not a nullable parameter."
+        ) from e
+
+    with config_paths.config_path.open("w") as f:
         config_parser.write(f)
 
 
@@ -109,7 +134,7 @@ def config_send(
     config_file: Annotated[
         Path,
         typer.Option(
-            help="Path to a .ini file where the configuration to be sent is defined, it should have the same format as the on in ~/.config/wedge."
+            help="Path to a .ini file where the configuration to be sent is defined, it should have the same format as the one in ~/.config/wedge."
         ),
     ],
     ip: Annotated[str, typer.Option(help="IP where the configuration is send")],

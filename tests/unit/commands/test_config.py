@@ -156,6 +156,45 @@ def test_config_set_command_value_error(
                 assert result.exit_code == 1
 
 
+@given(
+    generate_agent_config(),
+)
+def test_config_unset_nullable_parameter(agent_config: AgentConfiguration):
+    with (
+        patch(
+            "wedge_cli.commands.config.get_config", return_value=agent_config
+        ) as mock_get_config,
+        patch("pathlib.PosixPath.open") as mock_open,
+    ):
+        result = runner.invoke(app, [GetCommands.UNSET.value, "mqtt", "device_id"])
+        assert result.exit_code == 0
+        mock_get_config.assert_called()
+        mock_open.assert_called_with("w")
+
+
+@given(
+    generate_agent_config(),
+)
+def test_config_unset_not_nullable_error(agent_config: AgentConfiguration):
+    with (
+        patch(
+            "wedge_cli.commands.config.get_config", return_value=agent_config
+        ) as mock_get_config,
+    ):
+        result = runner.invoke(
+            app,
+            [
+                GetCommands.UNSET.value,
+                "mqtt",
+                "host",
+            ],  # "mqtt.host" is not a nullable parameter
+        )
+        assert result.exit_code == 1
+        assert type(result.exception) is SystemExit
+        assert result.exception.args[0].startswith("Error unsetting config param")
+        mock_get_config.assert_called()
+
+
 @given(path_strategy(), generate_valid_ip(), st.integers(), generate_agent_config())
 def test_config_send_command(
     config_filepath: str, ip: str, port: int, agent_config: AgentConfiguration

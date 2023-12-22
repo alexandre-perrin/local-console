@@ -3,6 +3,9 @@ import json
 import logging
 import uuid
 from pathlib import Path
+from typing import Any
+from typing import get_args
+from typing import get_type_hints
 from typing import Optional
 
 from pydantic import BaseModel
@@ -148,21 +151,62 @@ def parse_section_to_ini(
     return "\n".join(ini_lines)
 
 
+def unwrap_class(cls: Any) -> Any:
+    """
+    This function will strip the Optional in an Optional[T]
+    type annotation, if the provided class object has been
+    annotated that way.
+    """
+    args = get_args(cls)
+    if args:
+        return args[0]
+    else:
+        return cls
+
+
+def cast_rawvalue_as_field(raw_value: Optional[str], field_class: Any) -> Any:
+    """
+    This function will cast a raw value (e.g. just read from a config file)
+    into a target field type.
+    """
+    if raw_value is None:
+        return None
+    if not issubclass(field_class, BaseModel):
+        value = field_class(raw_value)
+    else:
+        fields = field_class.model_fields
+        if len(fields) == 1:
+            field = next(iter(fields.keys()))
+            value = field_class(**{field: raw_value})
+        else:
+            raise ValueError
+    return value
+
+
 def schema_to_parser(
-    agent_config: AgentConfiguration, section: str, parameter: str, new: str
+    agent_config: AgentConfiguration, section: str, parameter: str, new: Optional[str]
 ) -> configparser.ConfigParser:
-    if parameter == "port":
-        try:
-            int(new)
-        except ValueError as e:
-            logger.error("Port specified not int number")
-            raise e
-    config_dict = agent_config.model_dump()
-    config_dict[section][parameter] = new
+    try:
+        sec_obj = getattr(agent_config, section)
+        field_types = get_type_hints(sec_obj, include_extras=False)
+        field_class = unwrap_class(field_types[parameter])
+        value = cast_rawvalue_as_field(new, field_class)
+        setattr(sec_obj, parameter, value)
+    except ValueError as e:
+        raise ValueError(f"Unable to validate value for '{section}.{parameter}'") from e
+    except ValidationError as e:
+        err = e.errors()[0]
+        if new is None:
+            # This happens when unsetting a value
+            msg = f"Parameter '{parameter}' in section '{section}' cannot be unset"
+        else:
+            # The most usual case: the input cannot be cast into the expected data type
+            msg = f"Setting parameter '{parameter}' in section '{section}': {err['msg']} (was '{new}')"
+        logger.error(msg)
+        raise e
+
+    config_dict = agent_config.model_dump(exclude_none=True)
     config_parser = configparser.ConfigParser()
     for section_names, values in config_dict.items():
-        if "host" in values.keys():
-            if isinstance(values["host"], dict):
-                values["host"] = values["host"]["ip_value"]
         config_parser[section_names] = values
     return config_parser

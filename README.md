@@ -182,14 +182,25 @@ Example below:
 ```
 
 #### Configuration
+
 If you have to configure parameters for the Wedge agent, the MQTT broker or the webserver used by the agent to
 download the modules you can use
 
 ```sh
-wedge-cli  config set <section>.<option>=<value>
+wedge-cli config set <section> <option> <value>
 ```
 and you can consult the values by using
 
 ```sh
-wedge-cli config get <section>.<option>
+wedge-cli config get <section> <option>
 ```
+
+##### Optional parameters
+
+Some parameters are nullable, such as `device_id` in the `mqtt` section. If you need to set such a parameter back to null (i.e. clear the parameter), you may use the `unset` action as follows:
+
+```sh
+wedge-cli config unset <section> <option>
+```
+
+Nullable parameters will show up in the output of `config get` as assigned with `= None`

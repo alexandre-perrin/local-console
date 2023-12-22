@@ -4,6 +4,8 @@ from typing import Optional
 
 from pydantic import BaseModel
 from pydantic import field_validator
+from pydantic import model_serializer
+from pydantic import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +18,12 @@ class IPAddress(BaseModel):
         pat = re.compile(r"^[\.\w-]+$")
         if value:
             if not pat.match(value):
-                raise ValueError
+                raise ValidationError
         return value
+
+    @model_serializer
+    def ser_model(self) -> str:
+        return self.ip_value
 
 
 class RemoteConnectionInfo(BaseModel):
@@ -33,7 +39,7 @@ class EVPParams(BaseModel):
     iot_platform: str
 
 
-class MQTTParams(BaseModel):
+class MQTTParams(BaseModel, validate_assignment=True):
     host: IPAddress
     port: int
     device_id: Optional[str]
