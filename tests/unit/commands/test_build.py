@@ -130,8 +130,8 @@ def test_build_command_secret(
         mock_compile_wasm.assert_called_once_with([])
         mock_os_listdir.assert_called_once_with("bin")
         mock_get_deployment.assert_called_once()
-        for module_name in deployment_manifest.deployment.modules.keys():
-            mock_sign_file.assert_any_call(module_name, Path(secret))
+        for file in wasm_files:
+            mock_sign_file.assert_any_call(file, Path(secret))
         assert result.exit_code == 0
 
 
@@ -192,7 +192,7 @@ def test_sign_file(module_name: str, secret_path: Path, bytes_mock: bytes):
     ):
         file = f"{module_name}.{ModuleExtension.WASM}"
         mock_open.return_value.__enter__.return_value.read.return_value = bytes_mock
-        sign_file(module_name, secret_path)
+        sign_file(file, secret_path)
         mock_exists.assert_called_once()
         mock_open.assert_any_call(secret_path, "rb")
         mock_open.assert_any_call(f"bin/{file}", "rb")
@@ -200,19 +200,20 @@ def test_sign_file(module_name: str, secret_path: Path, bytes_mock: bytes):
         mock_sign.assert_called_once_with(bytes_mock, bytes_mock)
 
 
-@given(st.text(min_size=1, max_size=5), path_strategy(), st.binary())
-def test_sign_file_exception(module_name: str, secret_path: Path, bytes_mock: bytes):
+@given(st.text(min_size=1, max_size=5), path_strategy())
+def test_sign_file_exception(module_name: str, secret_path: Path):
     with (
         patch("wedge_cli.commands.build.Path.exists", return_value=True) as mock_exists,
         patch("builtins.open") as mock_open,
         patch("wedge_cli.commands.build.sign", side_effect=Exception),
     ):
+        file = f"{module_name}.{ModuleExtension.WASM}"
         mock_open.return_value.__enter__.return_value.read.return_value = bytes
         with pytest.raises(SystemExit):
-            sign_file(module_name, secret_path)
+            sign_file(file, secret_path)
         mock_exists.assert_called_once()
         mock_open.assert_any_call(secret_path, "rb")
-        mock_open.assert_any_call(f"bin/{module_name}.{ModuleExtension.WASM}", "rb")
+        mock_open.assert_any_call(f"bin/{file}", "rb")
 
 
 @given(st.text(min_size=1, max_size=5), st.sampled_from(Target))

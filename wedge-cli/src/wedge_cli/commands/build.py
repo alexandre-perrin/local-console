@@ -37,8 +37,7 @@ def compile_wasm(flags: Optional[list[str]]) -> None:
         exit(1)
 
 
-def sign_file(module_name: str, secret_path: Path) -> None:
-    file = f"{module_name}.{ModuleExtension.WASM}"
+def sign_file(file: str, secret_path: Path) -> None:
     if not secret_path.exists():
         logger.error("Secret does not exist")
         exit(1)
@@ -59,7 +58,7 @@ def sign_file(module_name: str, secret_path: Path) -> None:
         f.write(signed_aot_bytes)
 
 
-def compile_aot(module_name: str, target: Target) -> None:
+def compile_aot(module_name: str, target: Target) -> str:
     options = COMPILATION_FLAGS[target]
     file = f"{module_name}.{target}.{ModuleExtension.AOT}"
     options += f" -o bin/{file} bin/{module_name}.{ModuleExtension.WASM}"
@@ -76,6 +75,7 @@ def compile_aot(module_name: str, target: Target) -> None:
     except FileNotFoundError:
         logger.error("wamrc not in PATH")
         exit(1)
+    return file
 
 
 @app.callback(invoke_without_command=True)
@@ -103,11 +103,11 @@ def build(
     deployment_manifest = get_deployment_schema()
     files = set(os.listdir(config_paths.bin))
     for module_name in deployment_manifest.deployment.modules.keys():
-        wasm_file = f"{module_name}.{ModuleExtension.WASM}"
-        if wasm_file not in files:
-            logger.error(f"{wasm_file} not found")
+        file = f"{module_name}.{ModuleExtension.WASM}"
+        if file not in files:
+            logger.error(f"{file} not found")
             exit(1)
         if target:
-            compile_aot(module_name, target)
+            file = compile_aot(module_name, target)
         if secret:
-            sign_file(module_name, secret)
+            sign_file(file, secret)
