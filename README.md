@@ -1,6 +1,6 @@
-# Wedge CLI
+# WEdge CLI
 
-Command line experience for *Wedge Agent*.
+Command line experience for *WEdge Agent*.
 
 This tool simplifies the development of applications in a local environment by providing commands to build and interact with the agent to deploy and get the status.
 
@@ -126,6 +126,7 @@ INFO: Downloaded module bin/sink.wasm
 The application will be deployed.
 
 #### Deployment status
+
 To retrieve the deployment status, use the following command:
 ```sh
 wedge-cli get deployment
@@ -167,6 +168,7 @@ This command will display information similar to:
 ```
 
 #### Telemetry
+
 If you're interested in telemetry data, you can retrieve it using the following command:
 ```sh
 wedge-cli get telemetry
