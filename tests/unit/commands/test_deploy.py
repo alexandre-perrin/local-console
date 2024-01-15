@@ -133,6 +133,7 @@ def test_deploy_manifest(
         patch("wedge_cli.commands.deploy.Agent") as mock_agent_client,
         patch("wedge_cli.commands.deploy._WebServer") as mock_webserver,
         patch("wedge_cli.commands.deploy.Path") as mock_path,
+        patch("wedge_cli.commands.deploy.make_unique_module_ids") as mock_unique,
     ):
         mock_path.exists.return_value = True
         deploy_manifest(
@@ -143,6 +144,7 @@ def test_deploy_manifest(
         mock_webserver.return_value.update_deployment_manifest.assert_called_once_with(
             deployment_manifest, target, signed
         )
+        mock_unique.assert_called_once_with(deployment_manifest)
         num_modules = len(deployment_manifest.deployment.modules.keys())
         mock_webserver.return_value.start.assert_called_once_with(num_modules, timeout)
         mock_agent_client.return_value.deploy.assert_called_once_with(

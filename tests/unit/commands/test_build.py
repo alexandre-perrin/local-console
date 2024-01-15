@@ -187,12 +187,19 @@ def test_compile_wasm(flags: Optional[list[str]]):
 
 
 def test_compile_wasm_file_not_found(flags=[]):
-    with patch(
-        "wedge_cli.commands.build.subprocess.run", side_effect=FileNotFoundError
-    ) as mock_run_agent:
+    with (
+        patch(
+            "wedge_cli.commands.build.subprocess.run", side_effect=FileNotFoundError
+        ) as mock_run_agent,
+        patch(
+            "wedge_cli.commands.build.get_clang_root",
+            return_value=Path("/opt/wasi-sdk"),
+        ) as mock_clang,
+    ):
         with pytest.raises(SystemExit):
             compile_wasm(flags)
         mock_run_agent.assert_called_once_with(["make", "clean"])
+        mock_clang.assert_called_once()
 
 
 @given(st.text(min_size=1, max_size=5), path_strategy(), st.binary())
