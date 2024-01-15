@@ -1,6 +1,6 @@
-# Wedge CLI
+# WEdge CLI
 
-Command line experience for *Wedge Agent*.
+Command line experience for *WEdge Agent*.
 
 This tool simplifies the development of applications in a local environment by providing commands to build and interact with the agent to deploy and get the status.
 
@@ -8,84 +8,103 @@ This tool simplifies the development of applications in a local environment by p
 
 ### Prerequisites
 
-Before you begin, ensure that you have the following prerequisites in place:
+#### 0. Language support
+
+Make sure your system has installed:
 
 * GNU make
-* wasi-sdk
-```sh
-curl -sL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-20/wasi-sdk-20.0-linux.tar.gz | \
-tar zxvf - -C /tmp && \
-sudo mv /tmp/wasi-sdk-20.0 /opt/wasi-sdk
-```
-* mosquitto, with `mosquitto.service` running with default configuration or with your desired configuration
-    * If you use a port that is not the default one, you can specify it by using `wedge config set mqtt.port=XXXX`
 * Python 3.9 (or higher)
 * pip
-* WEdge Agent 1.21.0 (or higher)
-    * Built and added to PATH (see next section)
 
-#### Build WEdge agent
+#### 1. WEdge Agent
 
-First clone the following repository
+In order to build the agent, first clone the following repository
+
 ```sh
 git clone git@github.com:midokura/evp-device-agent.git
 ```
 and update the wedge agent submodule in the repo.
+
 ```sh
 git submodule update --init
 ```
-
 Follow the instructions in `wedge-agent/BUILD.md` to build the WEdge agent. Once
-you have successfully built the agent the `build` folder will be created.
+you have successfully built the agent, the `build` folder will be created.
 
-Now it will only be left to add the agent to the path:
+Now, add the agent to the shell `$PATH`:
 
 ```sh
 export PATH=/path/to/evp-device-agent/build/:$PATH
 ```
 
-:warning: WARNING: Use version 1.21.0 or higher.
+> [!WARNING]
+> Use agent version 1.21.0 or higher.
+
+Depending on what WEdge Agent version you mean to manage, the next prerequisites to put in place have version constraints as summarized below:
+
+| Agent version | wasi-sdk version | wamrc version |
+| ------------- | ---------------- | ------------- |
+| older versions | Unsupported |
+| 1.21 - 1.22 | 19 | 1.1.2 |
+| 1.23 - 1.24 | 19 | 1.2.2 |
+| 1.25+ | 20 | 1.3.0 |
+
+We denote the versions required for wasi-sdk and wamrc as `$WASI_SDK_VER` and `$WAMRC_VER`, respectively.
+
+#### 2. wasi-sdk
+
+Download the software distribution and place it in a standard location:
+
+```sh
+curl -sL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-$WASI_SDK_VER/wasi-sdk-$WASI_SDK_VER.0-linux.tar.gz | \
+	tar zxvf - -C /tmp && \
+	sudo mv /tmp/wasi-sdk-$WASI_SDK_VER.0 /opt/wasi-sdk
+```
+Optionally, you may avoid installing in a system-wide location such as `/opt`. If you do so, make sure that the environment variable `WASI_SDK_PATH` is exported in the shell where you will run the `wedge build` command.
+
+#### 3. wamrc, the compiler from WAMR (WebAssembly Micro Runtime)
+
+It is to be built with support for the Xtensa target, so that modules can be deployed on Type 3 cameras:
+
+```sh
+git clone https://github.com/bytecodealliance/wasm-micro-runtime.git wamr
+git -C wamr checkout WAMR-$WAMRC_VER
+cd wamr/wamr-compiler/
+./build_llvm_xtensa.sh
+mkdir build
+(cd build; cmake .. && make)
+sudo install -o root -g root -m 0755 ./build/wamrc /opt/wamrc/bin/wamrc
+```
+
+Make sure that `/opt/wamrc/bin` is present in your `$PATH`. If it is not, you may change the destination of `sudo install` (the last argument) to be somewhere already included in your `$PATH`.
+
+#### 4. Mosquitto
+
+In order to provide a local MQTT broker, we use `mosquitto`. Install [the software](https://mosquitto.org/download/). After installation, you can check it by using
+
+```sh
+mosquitto -version
+```
+By default, the mosquitto service will be up and running in the 1883 port. You can check the status by using:
+
+```sh
+systemctl status mosquitto.service
+```
+In case you want to initiate another mosquitto instance in another port you can run the following command:
+
+```sh
+mosquitto -c mosquitto.conf
+```
+And specify the port that you want to use with the parameter `listener` in `mosquitto.conf`.
+
+> [!TIP]
+> If you configure the broker to listen on a port `XXXX` other than the default 1883, you can specify it in the WEdge CLI config by doing `wedge config set mqtt port XXXX`
 
 ### Installation
 
 ```sh
 pip install wedge-cli/
 ```
-
-## Mosquitto (MQTT broker)
-
-In order to use the MQTT protocol we use the mosquitto broker, for Ubuntu 22.04 you can install it by using:
-
-```sh
-sudo add-apt-repository ppa:mosquitto-dev/mosquitto-ppa &&
-sudo apt install mosquitto
-```
-after the installation you can check it by using
-```sh
-mosquitto -version
-```
-
-By default, the mosquitto service will be up and running in the 1883 port. You can check the status by using:
-
-```sh
-systemctl status mosquitto.service
-```
-
-In order to avoid having to use a username and a password (TLS) please run the following commands
-```sh
-sudo mv mosquitto.conf /etc/mosquitto/conf.d
-```
-```sh
-sudo service mosquitto restart
-```
-
-
-In case you want to initiate another mosquitto in another port you can run the following command
-```sh
-mosquitto -c mosquitto.conf
-```
-And specify the port that you want to use with the parameter `listener`
-
 
 ## Usage
 
@@ -126,6 +145,7 @@ INFO: Downloaded module bin/sink.wasm
 The application will be deployed.
 
 #### Deployment status
+
 To retrieve the deployment status, use the following command:
 ```sh
 wedge-cli get deployment
@@ -167,6 +187,7 @@ This command will display information similar to:
 ```
 
 #### Telemetry
+
 If you're interested in telemetry data, you can retrieve it using the following command:
 ```sh
 wedge-cli get telemetry

@@ -25,13 +25,16 @@ app = typer.Typer(help="Command for compiling the modules of the application")
 
 
 def compile_wasm(flags: Optional[list[str]]) -> None:
+    env = os.environ.copy()
+    wasi_sdk_root = get_clang_root(env)
+    env["WASI_SDK_PATH"] = str(wasi_sdk_root)
     try:
-        # TODO: check process return code
         subprocess.run([Commands.MAKE, Commands.CLEAN])
+        cmd = [Commands.MAKE.value]
         if flags:
-            subprocess.run([Commands.MAKE, " ".join(flags)])  # type: ignore
-        else:
-            subprocess.run([Commands.MAKE])
+            cmd += flags
+        # TODO: check process return code
+        subprocess.run(cmd, env=env)  # type: ignore
     except FileNotFoundError:
         logger.error("Error when running")
         exit(1)
@@ -56,6 +59,23 @@ def sign_file(file: str, secret_path: Path) -> None:
     file = f"{file}.{ModuleExtension.SIGNED}"
     with open(f"bin/{file}", "wb") as f:
         f.write(signed_aot_bytes)
+
+
+def get_clang_root(env: dict[str, str], compiler_program: str = "clang") -> Path:
+    """
+    See https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/build_wasm_app.md#aot-compilation-with-3rd-party-toolchains
+    """
+    wasi_sdk_root = Path(env.get("WASI_SDK_PATH", "/opt/wasi-sdk"))
+    clang_bin = wasi_sdk_root / "bin" / compiler_program
+
+    if not clang_bin.is_file():
+        raise SystemExit(
+            f"Could not find clang (checked for {clang_bin}).\n"
+            "If necessary, export the environment variable "
+            "WASI_SDK_PATH to the parent of the bin/ directory "
+            f"that contains the {compiler_program} executable."
+        )
+    return wasi_sdk_root
 
 
 def compile_aot(module_name: str, target: Target) -> str:

@@ -1,5 +1,6 @@
-CC = /opt/wasi-sdk/bin/clang
-CXX = /opt/wasi-sdk/bin/clang++
+WASI_SDK_PATH ?= /opt/wasi-sdk
+CC = $(WASI_SDK_PATH)/bin/clang
+CXX = $(WASI_SDK_PATH)/bin/clang++
 
 PROJ_LDFLAGS = \
 	-Wl,-allow-undefined \
