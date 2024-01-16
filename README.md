@@ -142,7 +142,7 @@ INFO: Downloaded module bin/source.wasm
 INFO: Downloaded module bin/sink.wasm
 ```
 
-The application will be deployed.
+The application will be deployed. Note that the final module identifiers to be used for the deployment, will be composed by suffixing the original module identifiers with a portion of the hash of the module binary. This is done to make sure that the agent's caching of downloaded modules will not inadvertenly skip downloading a newer version of a module, without you needing to change the module identifier by hand. Regarding the module instances, their identifiers remain unchanged, since there is no caching mechanism to beware.
 
 #### Deployment status
 

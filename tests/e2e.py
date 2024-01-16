@@ -60,6 +60,7 @@ def start_deploy_build() -> None:
         text=True,
     )
     assert "WARNING" not in deploy.stdout
+    assert deploy.returncode == 0, f"Error during deploy: {deploy.stderr}"
 
 
 def main() -> None:
