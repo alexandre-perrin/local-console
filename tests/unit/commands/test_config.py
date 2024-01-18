@@ -13,6 +13,7 @@ from wedge_cli.utils.schemas import RemoteConnectionInfo
 
 from tests.strategies.configs import generate_agent_config
 from tests.strategies.configs import generate_valid_ip
+from tests.strategies.configs import generate_valid_port_number
 from tests.strategies.path import path_strategy
 
 runner = CliRunner()
@@ -195,7 +196,12 @@ def test_config_unset_not_nullable_error(agent_config: AgentConfiguration):
         mock_get_config.assert_called()
 
 
-@given(path_strategy(), generate_valid_ip(), st.integers(), generate_agent_config())
+@given(
+    path_strategy(),
+    generate_valid_ip(),
+    generate_valid_port_number(),
+    generate_agent_config(),
+)
 def test_config_send_command(
     config_filepath: str, ip: str, port: int, agent_config: AgentConfiguration
 ):
@@ -228,7 +234,7 @@ def test_config_send_command(
 @given(
     path_strategy(),
     generate_valid_ip(),
-    st.integers(),
+    generate_valid_port_number(),
 )
 def test_config_send_command_no_ini(config_filepath: str, ip: str, port: int):
     result = runner.invoke(
@@ -246,7 +252,7 @@ def test_config_send_command_no_ini(config_filepath: str, ip: str, port: int):
     assert result.exit_code == 1
 
 
-@given(path_strategy(), st.text(), st.integers())
+@given(path_strategy(), st.text(), generate_valid_port_number())
 def test_config_send_command_invalid_ip(
     config_filepath: str, invalid_ip: str, port: int
 ):

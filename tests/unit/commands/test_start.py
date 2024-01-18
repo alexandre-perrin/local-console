@@ -18,11 +18,12 @@ from wedge_cli.utils.schemas import RemoteConnectionInfo
 
 from tests.strategies.configs import generate_agent_config
 from tests.strategies.configs import generate_valid_ip
+from tests.strategies.configs import generate_valid_port_number
 
 runner = CliRunner()
 
 
-@given(st.from_regex(re.compile(r"^[\.\w-]+$")), st.integers())
+@given(st.from_regex(re.compile(r"^[\.\w-]+$")), generate_valid_port_number())
 def test_start_remote(remote_host, remote_port) -> None:
     with patch("wedge_cli.commands.start.start_agent") as mock_start_agent:
         result = runner.invoke(app, ["--remote", remote_host, remote_port])
@@ -107,7 +108,7 @@ def test_start_agent_file_not_found(agent_config: AgentConfiguration) -> None:
         mock_get_config.assert_called_once()
 
 
-@given(generate_valid_ip(), st.integers())
+@given(generate_valid_ip(), generate_valid_port_number())
 def test_start_agent_remote(valid_ip: str, port: int) -> None:
     with (
         patch("wedge_cli.commands.start.Listener") as mock_listener,

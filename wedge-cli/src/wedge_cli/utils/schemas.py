@@ -1,8 +1,10 @@
 import logging
 import re
+from typing import Annotated
 from typing import Optional
 
 from pydantic import BaseModel
+from pydantic import Field
 from pydantic import field_validator
 from pydantic import model_serializer
 from pydantic import ValidationError
@@ -26,9 +28,12 @@ class IPAddress(BaseModel):
         return self.ip_value
 
 
+IPPortNumber = Field(ge=0, le=65535)
+
+
 class RemoteConnectionInfo(BaseModel):
     host: Optional[IPAddress]
-    port: Optional[int]
+    port: Optional[Annotated[int, IPPortNumber]]
 
 
 class Libraries(BaseModel):
@@ -41,13 +46,13 @@ class EVPParams(BaseModel):
 
 class MQTTParams(BaseModel, validate_assignment=True):
     host: IPAddress
-    port: int
+    port: int = IPPortNumber
     device_id: Optional[str]
 
 
 class WebserverParams(BaseModel):
     host: IPAddress
-    port: int
+    port: int = IPPortNumber
 
 
 class AgentConfiguration(BaseModel):

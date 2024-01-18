@@ -14,6 +14,11 @@ def generate_valid_ip(draw) -> str:
 
 
 @st.composite
+def generate_valid_port_number(draw: st.DrawFn) -> int:
+    return draw(st.integers(min_value=0, max_value=65535))
+
+
+@st.composite
 def generate_agent_config(draw) -> AgentConfiguration:
     return AgentConfiguration(
         evp=EVPParams(
@@ -27,10 +32,11 @@ def generate_agent_config(draw) -> AgentConfiguration:
         ),
         mqtt=MQTTParams(
             host=IPAddress(ip_value=draw(generate_valid_ip())),
-            port=draw(st.integers()),
+            port=draw(generate_valid_port_number()),
             device_id=draw(st.text(min_size=1, max_size=10)),
         ),
         webserver=WebserverParams(
-            host=IPAddress(ip_value=draw(generate_valid_ip())), port=draw(st.integers())
+            host=IPAddress(ip_value=draw(generate_valid_ip())),
+            port=draw(generate_valid_port_number()),
         ),
     )
