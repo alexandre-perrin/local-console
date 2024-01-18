@@ -1,27 +1,16 @@
 import logging
-import re
 from typing import Annotated
 from typing import Optional
 
 from pydantic import BaseModel
 from pydantic import Field
-from pydantic import field_validator
 from pydantic import model_serializer
-from pydantic import ValidationError
 
 logger = logging.getLogger(__name__)
 
 
 class IPAddress(BaseModel):
-    ip_value: str
-
-    @field_validator("ip_value")
-    def host_port_entry(cls, value: Optional[str]) -> Optional[str]:
-        pat = re.compile(r"^[\.\w-]+$")
-        if value:
-            if not pat.match(value):
-                raise ValidationError
-        return value
+    ip_value: str = Field(pattern=r"^[\w.-]+$")
 
     @model_serializer
     def ser_model(self) -> str:

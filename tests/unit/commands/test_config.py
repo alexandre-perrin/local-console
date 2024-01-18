@@ -12,6 +12,7 @@ from wedge_cli.utils.schemas import IPAddress
 from wedge_cli.utils.schemas import RemoteConnectionInfo
 
 from tests.strategies.configs import generate_agent_config
+from tests.strategies.configs import generate_identifiers
 from tests.strategies.configs import generate_valid_ip
 from tests.strategies.configs import generate_valid_port_number
 from tests.strategies.path import path_strategy
@@ -272,9 +273,9 @@ def test_config_send_command_invalid_ip(
 
 
 @given(
-    st.text(min_size=1, max_size=5),
-    st.text(min_size=1, max_size=5),
-    st.text(min_size=1, max_size=5),
+    generate_identifiers(max_size=5),
+    generate_identifiers(max_size=5),
+    generate_identifiers(max_size=5),
 )
 def test_config_instance_command(instance_id: str, method: str, params: str):
     with (patch("wedge_cli.commands.config.Agent") as mock_agent,):
@@ -286,9 +287,9 @@ def test_config_instance_command(instance_id: str, method: str, params: str):
 
 
 @given(
-    st.text(min_size=1, max_size=5),
-    st.text(min_size=1, max_size=5),
-    st.text(min_size=1, max_size=5),
+    generate_identifiers(max_size=5),
+    generate_identifiers(max_size=5),
+    generate_identifiers(max_size=5),
 )
 def test_config_instance_command_exception(instance_id: str, method: str, params: str):
     with patch("wedge_cli.commands.config.Agent") as mock_agent:
