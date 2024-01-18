@@ -30,13 +30,13 @@ class Libraries(BaseModel):
 
 
 class EVPParams(BaseModel):
-    iot_platform: str
+    iot_platform: str = Field(pattern=r"^[a-zA-Z][\w]*$")
 
 
 class MQTTParams(BaseModel, validate_assignment=True):
     host: IPAddress
     port: int = IPPortNumber
-    device_id: Optional[str]
+    device_id: Optional[Annotated[str, Field(pattern=r"^[_a-zA-Z][\w_.-]*$")]]
 
 
 class WebserverParams(BaseModel):
