@@ -26,7 +26,7 @@ def get_default_config() -> configparser.ConfigParser:
     config["evp"] = {
         "iot_platform": "tb",
     }
-    config["mqtt"] = {"host": "localhost", "port": "1883", "device_id": ""}
+    config["mqtt"] = {"host": "localhost", "port": "1883"}
     config["webserver"] = {"host": "localhost", "port": "8000"}
     return config
 
