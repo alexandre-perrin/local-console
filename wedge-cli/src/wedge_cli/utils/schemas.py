@@ -1,34 +1,28 @@
 import logging
-import re
+from typing import Annotated
 from typing import Optional
 
 from pydantic import BaseModel
-from pydantic import field_validator
+from pydantic import Field
 from pydantic import model_serializer
-from pydantic import ValidationError
 
 logger = logging.getLogger(__name__)
 
 
 class IPAddress(BaseModel):
-    ip_value: str
-
-    @field_validator("ip_value")
-    def host_port_entry(cls, value: Optional[str]) -> Optional[str]:
-        pat = re.compile(r"^[\.\w-]+$")
-        if value:
-            if not pat.match(value):
-                raise ValidationError
-        return value
+    ip_value: str = Field(pattern=r"^[\w.-]+$")
 
     @model_serializer
     def ser_model(self) -> str:
         return self.ip_value
 
 
+IPPortNumber = Field(ge=0, le=65535)
+
+
 class RemoteConnectionInfo(BaseModel):
     host: Optional[IPAddress]
-    port: Optional[int]
+    port: Optional[Annotated[int, IPPortNumber]]
 
 
 class Libraries(BaseModel):
@@ -36,18 +30,18 @@ class Libraries(BaseModel):
 
 
 class EVPParams(BaseModel):
-    iot_platform: str
+    iot_platform: str = Field(pattern=r"^[a-zA-Z][\w]*$")
 
 
 class MQTTParams(BaseModel, validate_assignment=True):
     host: IPAddress
-    port: int
-    device_id: Optional[str]
+    port: int = IPPortNumber
+    device_id: Optional[Annotated[str, Field(pattern=r"^[_a-zA-Z][\w_.-]*$")]]
 
 
 class WebserverParams(BaseModel):
     host: IPAddress
-    port: int
+    port: int = IPPortNumber
 
 
 class AgentConfiguration(BaseModel):
