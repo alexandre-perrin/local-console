@@ -120,13 +120,15 @@ def get_empty_deployment() -> str:
 def check_section_and_params(
     agent_config: AgentConfiguration, section: str, parameter: Optional[str] = None
 ) -> None:
-    if section not in agent_config.__dict__.keys():
+    if section not in agent_config.model_fields:
         logger.error(f"Invalid section. Valid ones are: {agent_config.__dict__.keys()}")
         raise ValueError
 
-    if parameter and parameter not in agent_config.model_dump()[f"{section}"].keys():
+    section_from_agent_spec = AgentConfiguration.model_fields[section]
+    section_model = unwrap_class(section_from_agent_spec.annotation)
+    if parameter and parameter not in section_model.model_fields:
         logger.error(
-            f"Invalid parameter of the {section} section. Valid ones are: {list(agent_config.model_dump()[f'{section}'].keys())}"
+            f"Invalid parameter of the {section} section. Valid ones are: {list(section_model.model_fields.keys())}"
         )
         raise ValueError
 
@@ -136,19 +138,17 @@ def parse_section_to_ini(
 ) -> str:
     ini_lines = [f"[{section_name}]"]
     if parameter:
-        parameter_value = section_model.__dict__[f"{parameter}"]
-        if parameter == "host":
-            ini_lines.append(f"{parameter} = {parameter_value.ip_value}")
-        else:
-            ini_lines.append(f"{parameter} = {parameter_value}")
+        ini_lines.append(parameter_render(parameter, section_model))
     else:
-        for field, value in section_model.__dict__.items():
-            if field == "host":
-                ini_lines.append(f"{field} = {value.ip_value}")
-            else:
-                ini_lines.append(f"{field} = {value}")
+        for parameter in section_model.model_fields.keys():
+            ini_lines.append(parameter_render(parameter, section_model))
 
     return "\n".join(ini_lines)
+
+
+def parameter_render(parameter: str, section_model: BaseModel) -> str:
+    param_value = getattr(section_model, parameter)
+    return f"{parameter} = {param_value}"
 
 
 def unwrap_class(cls: Any) -> Any:

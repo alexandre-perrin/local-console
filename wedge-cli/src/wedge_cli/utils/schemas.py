@@ -16,6 +16,9 @@ class IPAddress(BaseModel):
     def ser_model(self) -> str:
         return self.ip_value
 
+    def __str__(self) -> str:
+        return self.ip_value
+
 
 IPPortNumber = Field(ge=0, le=65535)
 
