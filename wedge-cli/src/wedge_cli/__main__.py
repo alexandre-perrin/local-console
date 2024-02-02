@@ -1,4 +1,5 @@
 import logging
+import shutil
 import signal
 import sys
 import urllib.request
@@ -17,6 +18,7 @@ from wedge_cli.commands import new
 from wedge_cli.commands import rpc
 from wedge_cli.commands import start
 from wedge_cli.utils.config import setup_default_config
+from wedge_cli.utils.enums import Config
 from wedge_cli.utils.enums import config_paths
 from wedge_cli.utils.logger import configure_logger
 
@@ -52,17 +54,24 @@ def setup_agent_filesystem() -> None:
 
 
 def setup_default_https_ca() -> None:
-    https_ca = config_paths.https_ca_path
-    if https_ca.exists():
-        return
-    try:
-        response = urllib.request.urlopen(config_paths.https_ca_url)
-        with open(https_ca, "wb") as f:
-            f.write(response.read())
-        response.close()
-    except Exception as e:
-        logger.error("Error while downloading HTTPS CA", e)
-        sys.exit(1)
+    default_config_home = Config()
+    target_https_ca = config_paths.https_ca_path
+    source_https_ca = default_config_home.https_ca_path
+
+    if not source_https_ca.is_file():
+        logger.debug("Downloading trusted CA bundle into cache")
+        try:
+            response = urllib.request.urlopen(config_paths.https_ca_url)
+            with open(source_https_ca, "wb") as f:
+                f.write(response.read())
+            response.close()
+        except Exception as e:
+            logger.error("Error while downloading HTTPS CA", e)
+            sys.exit(1)
+
+    if not target_https_ca.is_file():
+        logger.debug("Copying trusted CA bundle from cache")
+        shutil.copy(source_https_ca, target_https_ca)
 
 
 @app.callback(invoke_without_command=True)

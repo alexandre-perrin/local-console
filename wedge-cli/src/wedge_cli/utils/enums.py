@@ -1,10 +1,12 @@
 from enum import Enum
 from pathlib import Path
 
+default_home = "~/.config/wedge"
+
 
 class Config:
     def __init__(self) -> None:
-        self.home = "~/.config/wedge"  # type: ignore
+        self.home = default_home  # type: ignore
         self._config_file = "config.ini"
         self._https_ca_file = "mozilla-root-ca.pem"
         self._https_ca_url = "https://ccadb-public.secure.force.com/mozilla/IncludedRootsPEMTxt?TrustBitsInclude=Websites"
