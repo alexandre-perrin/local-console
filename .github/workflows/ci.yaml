@@ -15,6 +15,7 @@ jobs:
     name: Test
     runs-on: [self-hosted, X64]
     container: ubuntu:22.04
+    timeout-minutes: 20
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -27,7 +28,7 @@ jobs:
         apt-get -y update && apt install -y wget curl gcc python3-dev make cmake git software-properties-common
     - name: Download and install agent
       run: |
-        wget ${{  secrets.WEDGE_AGENT_SAS_URL  }} -k -O wedge-agent_amd64.deb
+        wget ${{ secrets.WEDGE_AGENT_SAS_URL }} -k -O wedge-agent_amd64.deb
         apt install -y libc6
         apt install -y ./wedge-agent_amd64.deb
         cp /usr/bin/wedge_agent /usr/bin/evp_agent
@@ -63,6 +64,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Run Pre-commit
         uses: pre-commit/action@v3.0.0
+
   publish:
     name: Publish and tag
     runs-on: [self-hosted, X64]
