@@ -7,7 +7,6 @@ from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-import psutil
 from process_handler import ProcessHandler
 from process_handler import SharedLogger
 from retry import retry
@@ -15,12 +14,6 @@ from retry import retry
 FORMAT = "%(asctime)s %(levelname)s %(message)s"
 logging.basicConfig(format=FORMAT, level=logging.DEBUG)
 log = logging.getLogger()
-
-
-def kill_agent() -> None:
-    for proc in psutil.process_iter(attrs=["pid", "name"]):
-        if "evp_agent" in proc.info["name"]:  # type: ignore
-            proc.kill()
 
 
 @retry(tries=5, exceptions=AssertionError)
@@ -130,6 +123,16 @@ class LocalBroker(ProcessHandler):
             sock.close()
 
 
+class LocalAgent(ProcessHandler):
+    def __init__(self, log_handler: logging.Logger, wedge_cli_pre: list[str]) -> None:
+        super().__init__(log_handler)
+        self.cmdline = wedge_cli_pre + ["start"]
+        self.options = {}
+
+    def start_check(self) -> None:
+        pass
+
+
 @contextmanager
 def wedge_area() -> None:
     with TemporaryDirectory() as _tempdir:
@@ -148,6 +151,7 @@ def main() -> None:
             wedge_area() as (tmp_dir, cmd_preamble),
             SharedLogger() as slog,
             LocalBroker(tmp_dir, slog, cmd_preamble),
+            LocalAgent(slog, cmd_preamble),
         ):
             build_and_deploy_app(app_dir, cmd_preamble)
             log.info("Deployed module successfully")
@@ -174,8 +178,6 @@ def main() -> None:
         log.error("Execution failed: %s", e)
     except KeyboardInterrupt:
         log.info("Cancelling")
-    finally:
-        kill_agent()
 
 
 if __name__ == "__main__":
