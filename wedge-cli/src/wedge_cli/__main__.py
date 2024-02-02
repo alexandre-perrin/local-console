@@ -1,8 +1,11 @@
 import logging
+import signal
 import sys
 import urllib.request
 from pathlib import Path
+from types import FrameType
 from typing import Annotated
+from typing import Optional
 
 import typer
 from wedge_cli.commands import build
@@ -32,6 +35,13 @@ app.add_typer(logs.app, name="logs")
 app.add_typer(rpc.app, name="rpc")
 app.add_typer(get.app, name="get")
 app.add_typer(config.app, name="config")
+
+
+def handle_exit(signal: int, frame: Optional[FrameType]) -> None:
+    raise SystemExit
+
+
+signal.signal(signal.SIGTERM, handle_exit)
 
 
 def setup_agent_filesystem() -> None:
