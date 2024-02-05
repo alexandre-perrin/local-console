@@ -20,8 +20,6 @@ from wedge_cli.utils.trio_paho_mqtt import AsyncClient
 
 logger = logging.getLogger(__name__)
 
-start_time: float
-
 
 class Agent:
     DEPLOYMENT_TOPIC = "v1/devices/me/attributes"
@@ -55,28 +53,27 @@ class Agent:
         return __task
 
     def _on_message_logs(self, instance_id: str, timeout: int) -> Callable:
-        global start_time
-        start_time = time.time()
+        async def __task(cs: trio.CancelScope) -> None:
+            assert self.client is not None
+            with trio.move_on_after(timeout) as time_cs:
+                async for msg in self.client.messages():
+                    payload = json.loads(msg.payload.decode())
+                    logs = defaultdict(list)
+                    if "device/log" in payload.keys():
+                        for log in payload["device/log"]:
+                            logs[log["app"]].append(log)
+                        if instance_id in logs.keys():
+                            time_cs.deadline += timeout
+                            for instance_log in logs[instance_id]:
+                                print(instance_log)
 
-        def __callback(
-            client: paho.Client, userdata: Any, msg: paho.MQTTMessage
-        ) -> None:
-            payload = json.loads(msg.payload)
-            logs = defaultdict(list)
-            if "device/log" in list(payload.keys()):
-                for log in payload["device/log"]:
-                    logs[log["app"]].append(log)
-                if instance_id in list(logs.keys()):
-                    globals()["start_time"] = time.time()
-                    for instance_log in logs[instance_id]:
-                        print(instance_log)
-            elif (time.time() - globals()["start_time"]) > timeout:
-                logger.info(
-                    f"No logs found for {instance_id}. Please check the instance id is correct"
+            if time_cs.cancelled_caught:
+                logger.error(
+                    f"No logs received for {instance_id} within {timeout} seconds. Please check the instance id is correct"
                 )
-                sys.exit()
+                cs.cancel()
 
-        return __callback
+        return __task
 
     def _on_message_telemetry(self) -> Callable:
         async def __task(cs: trio.CancelScope) -> None:
@@ -149,11 +146,6 @@ class Agent:
         logger.debug(f"payload: {payload}")
         await self.publish(self.DEPLOYMENT_TOPIC, payload=payload)
 
-    def get_logs(self, instance_id: str, timeout: int) -> None:
-        self._loop_client(
-            connect_callback=self._on_connect_subscribe_callback(topic=self.TELEMETRY),
-            message_callback=self._on_message_logs(instance_id, timeout),
-        )
 
     async def loop_client(
         self, subs_topics: list[str], driver_task: Callable, message_task: Callable
@@ -188,6 +180,17 @@ class Agent:
             await trio.sleep_forever()
 
         trio.run(self.loop_client, subs_topics, _driver_task, message_task)
+
+    async def request_instance_logs(self, instance_id: str) -> None:
+        async with self.mqtt_scope([]):
+            await self.rpc(instance_id, "$agent/set", '{"log_enable": true}')
+            self.async_done()
+
+    def get_instance_logs(self, instance_id: str, timeout: int) -> None:
+        self._loop_forever(
+            subs_topics=[self.TELEMETRY],
+            message_task=self._on_message_logs(instance_id, timeout),
+        )
 
     def get_deployment(self) -> None:
         self._loop_forever(

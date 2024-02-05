@@ -143,18 +143,17 @@ def test_get_logs(instance_id: str, timeout: int, agent_config: AgentConfigurati
     with (
         patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
         patch("wedge_cli.clients.agent.paho.Client"),
-        patch("wedge_cli.clients.agent.Agent._on_connect"),
+        patch("wedge_cli.clients.agent.AsyncClient"),
     ):
         agent = Agent()
-        agent._on_connect_subscribe_callback = Mock()
+        agent._loop_forever = Mock()
         agent._on_message_logs = Mock()
-        agent._loop_client = Mock()
-        agent.get_logs(instance_id, timeout)
-        agent._on_connect_subscribe_callback.assert_called_once_with(
-            topic=agent.TELEMETRY
+        agent.get_instance_logs(instance_id, timeout)
+        agent._loop_forever.assert_called_once_with(
+            subs_topics=[agent.TELEMETRY],
+            message_task=agent._on_message_logs.return_value,
         )
         agent._on_message_logs.assert_called_once_with(instance_id, timeout)
-        agent._loop_client.assert_called_once()
 
 
 @given(generate_agent_config())

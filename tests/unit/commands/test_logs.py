@@ -13,12 +13,17 @@ runner = CliRunner()
     st.integers(),
 )
 def test_logs_command(instance_id: str, timeout: int):
-    with (patch("wedge_cli.commands.logs.Agent") as mock_agent,):
+    with (
+        patch("wedge_cli.commands.logs.Agent") as mock_agent_client,
+        patch("trio.run") as mock_run,
+    ):
         result = runner.invoke(app, ["--timeout", timeout, instance_id])
-        mock_agent.return_value.rpc.assert_called_with(
-            instance_id, "$agent/set", '{"log_enable": true}'
+        mock_run.assert_called_with(
+            mock_agent_client.return_value.request_instance_logs, instance_id
         )
-        mock_agent.return_value.get_logs.assert_called_once_with(instance_id, timeout)
+        mock_agent_client.return_value.get_instance_logs.assert_called_once_with(
+            instance_id, timeout
+        )
         assert result.exit_code == 0
 
 
@@ -27,8 +32,12 @@ def test_logs_command(instance_id: str, timeout: int):
     st.integers(),
 )
 def test_logs_command_exception(instance_id: str, timeout: int):
-    with (patch("wedge_cli.commands.logs.Agent") as mock_agent,):
-        mock_agent.return_value.rpc.side_effect = ConnectionError
+    with (
+        patch("wedge_cli.commands.logs.Agent") as mock_agent_client,
+        patch("trio.run") as mock_run,
+    ):
+        mock_agent_client.return_value.get_instance_logs.side_effect = ConnectionError
         result = runner.invoke(app, ["--timeout", timeout, instance_id])
-        mock_agent.assert_called()
+        mock_agent_client.assert_called()
+        mock_run.assert_called_once()
         assert result.exit_code == 1
