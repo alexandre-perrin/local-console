@@ -57,6 +57,7 @@ def setup_default_https_ca() -> None:
 
 @app.callback(invoke_without_command=True)
 def main(
+    ctx: typer.Context,
     config_dir: Annotated[
         Path,
         typer.Option(help="Path for the file configs of the CLI and agent"),
@@ -73,6 +74,8 @@ def main(
     setup_default_config()
     setup_agent_filesystem()
     setup_default_https_ca()
+
+    ctx.obj = config_paths.config_path
 
 
 if __name__ == "__main__":
