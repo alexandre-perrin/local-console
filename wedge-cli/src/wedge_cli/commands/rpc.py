@@ -1,6 +1,7 @@
 import logging
 from typing import Annotated
 
+import trio
 import typer
 from wedge_cli.clients.agent import Agent
 
@@ -24,8 +25,14 @@ def rpc(
         typer.Argument(help="JSON representing the parameters."),
     ],
 ) -> None:
-    agent = Agent()  # type: ignore
     try:
-        agent.rpc(instance_id, method, params)
+        trio.run(rpc_task, instance_id, method, params)
     except ConnectionError:
         raise SystemExit(f"Could not send command {method} to device {instance_id}")
+
+
+async def rpc_task(instance_id: str, method: str, params: str) -> None:
+    agent = Agent()  # type: ignore
+    async with agent.mqtt_scope([]):
+        await agent.rpc(instance_id, method, params)
+        agent.async_done()

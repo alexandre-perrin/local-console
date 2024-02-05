@@ -122,7 +122,7 @@ class Agent:
         if rc != MQTT_ERR_SUCCESS:
             logger.error("Error on MQTT deploy to agent")
 
-    def rpc(self, instance_id: str, method: str, params: str) -> None:
+    async def rpc(self, instance_id: str, method: str, params: str) -> None:
         reqid = str(random.randint(0, 10**8))
         RPC_TOPIC = f"v1/devices/me/rpc/request/{reqid}"
         message: dict = {
@@ -138,11 +138,7 @@ class Agent:
         }
         payload = json.dumps(message)
         logger.debug(f"payload: {payload}")
-        mqtt_msg_info = self.mqttc.publish(RPC_TOPIC, payload=payload)
-        rc, _ = mqtt_msg_info
-        if rc != MQTT_ERR_SUCCESS:
-            logger.error("Error on MQTT publish agent logs")
-            raise ConnectionError
+        await self.publish(RPC_TOPIC, payload=payload)
 
     async def configure(self, instance_id: str, topic: str, config: str) -> None:
         """
