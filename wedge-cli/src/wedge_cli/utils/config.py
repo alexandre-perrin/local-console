@@ -1,7 +1,6 @@
 import configparser
 import json
 import logging
-import uuid
 from pathlib import Path
 from typing import Any
 from typing import get_args
@@ -102,19 +101,6 @@ def get_deployment_schema() -> DeploymentManifest:
         missing_field = list(e.errors()[0]["loc"])[1:]
         logger.warning(f"Missing field in the deployment manifest: {missing_field}")
         exit(1)
-
-
-def get_empty_deployment() -> str:
-    deployment = {
-        "deployment": {
-            "deploymentId": str(uuid.uuid4()),
-            "instanceSpecs": {},
-            "modules": {},
-            "publishTopics": {},
-            "subscribeTopics": {},
-        }
-    }
-    return json.dumps(deployment)
 
 
 def check_section_and_params(

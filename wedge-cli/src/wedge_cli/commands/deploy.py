@@ -8,7 +8,6 @@ import typer
 from wedge_cli.clients.agent import Agent
 from wedge_cli.clients.webserver import _WebServer
 from wedge_cli.utils.config import get_deployment_schema
-from wedge_cli.utils.config import get_empty_deployment
 from wedge_cli.utils.enums import config_paths
 from wedge_cli.utils.enums import Target
 from wedge_cli.utils.schemas import DeploymentManifest
@@ -112,3 +111,16 @@ def make_unique_module_ids(deploy_man: DeploymentManifest) -> None:
     instances = deploy_man.deployment.instanceSpecs
     for instance in instances.values():
         instance.moduleId = old_to_new[instance.moduleId]
+
+
+def get_empty_deployment() -> DeploymentManifest:
+    deployment = {
+        "deployment": {
+            "deploymentId": str(uuid.uuid4()),
+            "instanceSpecs": {},
+            "modules": {},
+            "publishTopics": {},
+            "subscribeTopics": {},
+        }
+    }
+    return DeploymentManifest.model_validate(deployment)

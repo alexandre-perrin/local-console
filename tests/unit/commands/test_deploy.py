@@ -8,13 +8,20 @@ from typer.testing import CliRunner
 from wedge_cli.commands.deploy import app
 from wedge_cli.commands.deploy import deploy_empty
 from wedge_cli.commands.deploy import deploy_manifest
-from wedge_cli.utils.config import get_empty_deployment
+from wedge_cli.commands.deploy import get_empty_deployment
 from wedge_cli.utils.enums import Target
 from wedge_cli.utils.schemas import DeploymentManifest
 
 from tests.strategies.deployment import deployment_manifest_strategy
 
 runner = CliRunner()
+
+
+def test_get_empty_deployment():
+    empty = get_empty_deployment()
+    assert len(empty.deployment.modules) == 0
+    assert len(empty.deployment.instanceSpecs) == 0
+    assert len(empty.deployment.deploymentId) != 0
 
 
 @given(st.booleans())
