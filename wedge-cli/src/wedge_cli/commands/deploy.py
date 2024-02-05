@@ -3,10 +3,14 @@ import hashlib
 import json
 import logging
 import re
+import sys
+import uuid
 from pathlib import Path
 from typing import Annotated
+from typing import Any
 from typing import Optional
 
+import trio
 import typer
 from wedge_cli.clients.agent import Agent
 from wedge_cli.clients.webserver import run_server
@@ -21,32 +25,6 @@ from wedge_cli.utils.schemas import DeploymentManifest
 logger = logging.getLogger(__name__)
 
 app = typer.Typer(help="Command for deploying application to the agent")
-
-
-def deploy_empty(agent: Agent) -> None:
-    deployment = get_empty_deployment()
-    agent.deploy(deployment=deployment)
-
-
-def deploy_manifest(
-    agent: Agent,
-    deployment_manifest: DeploymentManifest,
-    signed: bool,
-    timeout: int,
-    target: Optional[Target],
-) -> None:
-    bin_fp = Path(config_paths.bin)
-    if not bin_fp.exists():
-        logger.warning("bin folder does not exist")
-        exit(1)
-
-    webserver = _WebServer(agent)
-    webserver.update_deployment_manifest(deployment_manifest, target, signed)  # type: ignore
-    num_modules = len(deployment_manifest.deployment.modules.keys())
-    webserver.start(num_modules, timeout)  # type: ignore
-    make_unique_module_ids(deployment_manifest)
-    agent.deploy(json.dumps(deployment_manifest.model_dump()))
-    webserver.close()
 
 
 @app.callback(invoke_without_command=True)
@@ -82,20 +60,57 @@ def deploy(
         ),
     ] = None,
 ) -> None:
+    config: AgentConfiguration = get_config()  # type:ignore
+    port = config.webserver.port
+    host = config.webserver.host.ip_value
+
     agent = Agent()
     if empty:
-        deploy_empty(agent=agent)
-        return
+        deployment_manifest = get_empty_deployment()
+    else:
+        bin_fp = Path(config_paths.bin)
+        if not bin_fp.is_dir():
+            raise SystemExit(f"'bin' folder does not exist at {bin_fp.parent}")
 
-    deployment_manifest = get_deployment_schema()
+        deployment_manifest = get_deployment_schema()
+        update_deployment_manifest(deployment_manifest, host, port, bin_fp, target, signed)  # type: ignore
+        make_unique_module_ids(deployment_manifest)
 
-    deploy_manifest(
-        agent=agent,
-        deployment_manifest=deployment_manifest,
-        signed=signed,
-        timeout=timeout,
-        target=target,
-    )
+    success = False
+    try:
+        with run_server(Path.cwd(), port):
+            success = trio.run(
+                exec_deployment, agent, deployment_manifest, port, timeout
+            )
+    except Exception as e:
+        logger.exception("Deployment error", exc_info=e)
+    except KeyboardInterrupt:
+        logger.info("Cancelled by the user")
+    finally:
+        sys.exit(0 if success else 1)
+
+
+async def exec_deployment(
+    agent: Agent,
+    deploy_manifest: DeploymentManifest,
+    webserver_port: int,
+    timeout_secs: int,
+) -> bool:
+    success = False
+    subscription_topics = [Agent.REQUEST_TOPIC, Agent.DEPLOYMENT_TOPIC]
+    deploy_fsm = DeployFSM(agent, deploy_manifest)
+    with trio.move_on_after(timeout_secs) as timeout_scope:
+        async with agent.mqtt_scope(subscription_topics):
+            assert agent.nursery is not None  # make mypy happy
+            agent.nursery.start_soon(deploy_fsm.message_task)
+            await deploy_fsm.done.wait()
+            success = True
+            agent.async_done()
+
+    if timeout_scope.cancelled_caught:
+        logger.error("Timeout when sending modules.")
+
+    return success
 
 
 class DeployStage(enum.Enum):
