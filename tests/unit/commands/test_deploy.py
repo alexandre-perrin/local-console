@@ -27,12 +27,13 @@ def test_get_empty_deployment():
     assert len(empty.deployment.deploymentId) != 0
 
 
-@given(st.booleans())
-def test_deploy_empty_command(empty: bool) -> None:
+@given(st.booleans(), generate_agent_config())
+def test_deploy_empty_command(empty: bool, agent_config: AgentConfiguration) -> None:
     with (
         patch("wedge_cli.commands.deploy.Agent") as mock_agent_client,
         patch("wedge_cli.commands.deploy.get_empty_deployment") as mock_get_deployment,
         patch("wedge_cli.commands.deploy.run_server") as mock_webserver,
+        patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
         patch("wedge_cli.commands.deploy.exec_deployment") as mock_exec_deploy,
     ):
         if empty:
@@ -48,12 +49,15 @@ def test_deploy_empty_command(empty: bool) -> None:
             pass
 
 
-@given(deployment_manifest_strategy(), st.sampled_from(Target))
+@given(deployment_manifest_strategy(), st.sampled_from(Target), generate_agent_config())
 def test_deploy_command_target(
-    deployment_manifest: DeploymentManifest, target: Target
+    deployment_manifest: DeploymentManifest,
+    target: Target,
+    agent_config: AgentConfiguration,
 ) -> None:
     with (
         patch("wedge_cli.commands.deploy.Agent") as mock_agent_client,
+        patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
         patch("wedge_cli.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch("wedge_cli.commands.deploy.run_server") as mock_webserver,
         patch(
@@ -88,10 +92,16 @@ def test_deploy_command_target(
         assert result.exit_code == 0
 
 
-@given(deployment_manifest_strategy())
-def test_deploy_command_signed(deployment_manifest: DeploymentManifest) -> None:
+# @given(st.booleans(), generate_agent_config())
+# agent_config: AgentConfiguration) -> None:
+#        patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
+@given(deployment_manifest_strategy(), generate_agent_config())
+def test_deploy_command_signed(
+    deployment_manifest: DeploymentManifest, agent_config: AgentConfiguration
+) -> None:
     with (
         patch("wedge_cli.commands.deploy.Agent") as mock_agent_client,
+        patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
         patch("wedge_cli.commands.deploy.run_server") as mock_webserver,
         patch("wedge_cli.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
@@ -126,12 +136,15 @@ def test_deploy_command_signed(deployment_manifest: DeploymentManifest) -> None:
         assert result.exit_code == 0
 
 
-@given(deployment_manifest_strategy(), st.integers())
+@given(deployment_manifest_strategy(), st.integers(), generate_agent_config())
 def test_deploy_command_timeout(
-    deployment_manifest: DeploymentManifest, timeout: int
+    deployment_manifest: DeploymentManifest,
+    timeout: int,
+    agent_config: AgentConfiguration,
 ) -> None:
     with (
         patch("wedge_cli.commands.deploy.Agent") as mock_agent_client,
+        patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
         patch("wedge_cli.commands.deploy.run_server") as mock_webserver,
         patch("wedge_cli.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
@@ -171,12 +184,18 @@ def test_deploy_command_timeout(
     st.booleans(),
     st.integers(),
     st.sampled_from(Target),
+    generate_agent_config(),
 )
 def test_deploy_manifest_no_bin(
-    deployment_manifest: DeploymentManifest, signed: bool, timeout: int, target: Target
+    deployment_manifest: DeploymentManifest,
+    signed: bool,
+    timeout: int,
+    target: Target,
+    agent_config: AgentConfiguration,
 ):
     with (
         patch("wedge_cli.commands.deploy.Agent") as mock_agent_client,
+        patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
         patch(
             "wedge_cli.commands.deploy.Path.is_dir", return_value=False
         ) as mock_is_dir,
@@ -195,7 +214,7 @@ async def test_attributes_request_handling(
     mqtt_req_id: int, agent_config: AgentConfiguration
 ):
     with (
-        patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
+        patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
         patch("wedge_cli.clients.agent.paho.Client"),
         patch("wedge_cli.clients.agent.AsyncClient"),
     ):

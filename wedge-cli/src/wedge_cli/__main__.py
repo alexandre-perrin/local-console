@@ -58,6 +58,10 @@ def setup_default_https_ca() -> None:
     target_https_ca = config_paths.https_ca_path
     source_https_ca = default_config_home.https_ca_path
 
+    assert target_https_ca.parent.is_dir()
+    if not source_https_ca.parent.is_dir():
+        source_https_ca.parent.mkdir(parents=True, exist_ok=True)
+
     if not source_https_ca.is_file():
         logger.debug("Downloading trusted CA bundle into cache")
         try:
