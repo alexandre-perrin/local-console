@@ -23,8 +23,7 @@ logger = logging.getLogger(__name__)
 
 class Agent:
     DEPLOYMENT_TOPIC = "v1/devices/me/attributes"
-    # TODO: get reqid from mqtt
-    REQUEST_TOPIC = "v1/devices/me/attributes/response/10003"
+    REQUEST_TOPIC = "v1/devices/me/attributes/request/+"
     TELEMETRY = "v1/devices/me/telemetry"
 
     def __init__(self) -> None:
@@ -112,11 +111,8 @@ class Agent:
 
         return __task
 
-    def deploy(self, deployment: str) -> None:
-        mqtt_msg_info = self.mqttc.publish(self.DEPLOYMENT_TOPIC, deployment)
-        rc, _ = mqtt_msg_info
-        if rc != MQTT_ERR_SUCCESS:
-            logger.error("Error on MQTT deploy to agent")
+    async def deploy(self, deployment: str) -> None:
+        await self.publish(self.DEPLOYMENT_TOPIC, payload=deployment)
 
     async def rpc(self, instance_id: str, method: str, params: str) -> None:
         reqid = str(random.randint(0, 10**8))
@@ -145,7 +141,6 @@ class Agent:
         payload = json.dumps(message)
         logger.debug(f"payload: {payload}")
         await self.publish(self.DEPLOYMENT_TOPIC, payload=payload)
-
 
     async def loop_client(
         self, subs_topics: list[str], driver_task: Callable, message_task: Callable

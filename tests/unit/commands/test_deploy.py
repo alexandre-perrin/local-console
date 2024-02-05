@@ -1,17 +1,22 @@
 import json
+from unittest.mock import AsyncMock
 from unittest.mock import patch
 
 import hypothesis.strategies as st
 import pytest
 from hypothesis import given
 from typer.testing import CliRunner
+from wedge_cli.clients.agent import Agent
 from wedge_cli.commands.deploy import app
+from wedge_cli.commands.deploy import check_attributes_request
 from wedge_cli.commands.deploy import deploy_empty
 from wedge_cli.commands.deploy import deploy_manifest
 from wedge_cli.commands.deploy import get_empty_deployment
 from wedge_cli.utils.enums import Target
+from wedge_cli.utils.schemas import AgentConfiguration
 from wedge_cli.utils.schemas import DeploymentManifest
 
+from tests.strategies.configs import generate_agent_config
 from tests.strategies.deployment import deployment_manifest_strategy
 
 runner = CliRunner()
@@ -180,3 +185,26 @@ def test_deploy_manifest_no_bin(
                 mock_agent_client(), deployment_manifest, signed, timeout, target
             )
         mock_exists.assert_called_once()
+
+
+@given(st.integers(min_value=1), generate_agent_config())
+@pytest.mark.trio
+async def test_attributes_request_handling(
+    mqtt_req_id: int, agent_config: AgentConfiguration
+):
+    with (
+        patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
+        patch("wedge_cli.clients.agent.paho.Client"),
+        patch("wedge_cli.clients.agent.AsyncClient"),
+    ):
+        request_topic = Agent.REQUEST_TOPIC.replace("+", str(mqtt_req_id))
+
+        agent = Agent()
+        agent.publish = AsyncMock()
+        async with agent.mqtt_scope([Agent.REQUEST_TOPIC]):
+            check = await check_attributes_request(agent, request_topic, "{}")
+            agent.async_done()
+
+        response_topic = request_topic.replace("request", "response")
+        agent.publish.assert_called_once_with(response_topic, "{}")
+        assert check
