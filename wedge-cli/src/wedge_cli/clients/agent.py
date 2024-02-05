@@ -83,38 +83,41 @@ class Agent:
         return __callback
 
     def _on_message_telemetry(self) -> Callable:
-        def __callback(
-            client: paho.Client, userdata: Any, msg: paho.MQTTMessage
-        ) -> None:
-            payload = json.loads(msg.payload)
-            if "device/log" in list(payload.keys()):
-                pass
-            else:
-                print(payload, flush=True)
+        async def __task(cs: trio.CancelScope) -> None:
+            assert self.client is not None
+            async for msg in self.client.messages():
+                payload = json.loads(msg.payload.decode())
+                if payload:
+                    to_print = {
+                        key: val
+                        for key, val in payload.items()
+                        if "device/log" not in key
+                    }
+                    print(to_print, flush=True)
 
-        return __callback
+        return __task
 
     def _on_message_instance(self, instance_id: str) -> Callable:
-        def __callback(
-            client: paho.Client, userdata: Any, msg: paho.MQTTMessage
-        ) -> None:
-            payload = json.loads(msg.payload)
-            if (
-                "deploymentStatus" not in payload
-                or "instances" not in payload["deploymentStatus"]
-            ):
-                return
-            instances = payload["deploymentStatus"]["instances"]
+        async def __task(cs: trio.CancelScope) -> None:
+            assert self.client is not None
+            async for msg in self.client.messages():
+                payload = json.loads(msg.payload.decode())
+                if (
+                    "deploymentStatus" not in payload
+                    or "instances" not in payload["deploymentStatus"]
+                ):
+                    continue
 
-            if instance_id in list(instances.keys()):
-                print(instances[str(instance_id)])
-            else:
-                logger.info(
-                    f"Module instance not found. The available module instance are {list(instances.keys())}"
-                )
-                sys.exit()
+                instances = payload["deploymentStatus"]["instances"]
+                if instance_id in instances.keys():
+                    print(instances[instance_id])
+                else:
+                    logger.info(
+                        f"Module instance not found. The available module instance are {list(instances.keys())}"
+                    )
+                    cs.cancel()
 
-        return __callback
+        return __task
 
     def deploy(self, deployment: str) -> None:
         mqtt_msg_info = self.mqttc.publish(self.DEPLOYMENT_TOPIC, deployment)
@@ -199,17 +202,15 @@ class Agent:
         )
 
     def get_telemetry(self) -> None:
-        self._loop_client(
-            connect_callback=self._on_connect_subscribe_callback(topic=self.TELEMETRY),
-            message_callback=self._on_message_telemetry(),
+        self._loop_forever(
+            subs_topics=[self.TELEMETRY],
+            message_task=self._on_message_telemetry(),
         )
 
     def get_instance(self, instance_id: str) -> None:
-        self._loop_client(
-            connect_callback=self._on_connect_subscribe_callback(
-                topic=self.DEPLOYMENT_TOPIC
-            ),
-            message_callback=self._on_message_instance(instance_id),
+        self._loop_forever(
+            subs_topics=[self.DEPLOYMENT_TOPIC],
+            message_task=self._on_message_instance(instance_id),
         )
 
 
