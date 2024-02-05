@@ -1,8 +1,6 @@
-import os
 from unittest.mock import patch
 
 import hypothesis.strategies as st
-import pytest
 from hypothesis import given
 from typer.testing import CliRunner
 from wedge_cli.commands.start import app
@@ -24,7 +22,9 @@ runner = CliRunner()
 
 @given(generate_valid_ip(), generate_valid_port_number())
 def test_start_remote(remote_host, remote_port) -> None:
-    with patch("wedge_cli.commands.start.start_agent") as mock_start_agent:
+    with patch(
+        "wedge_cli.commands.start.start_agent", return_value=0
+    ) as mock_start_agent:
         result = runner.invoke(app, ["--remote", remote_host, remote_port])
         mock_start_agent.assert_called_once_with(
             connection_info=RemoteConnectionInfo(
@@ -37,7 +37,9 @@ def test_start_remote(remote_host, remote_port) -> None:
 
 @given(st.lists(st.text(min_size=1, max_size=10), max_size=5, min_size=1))
 def test_start_libraries(libraries_list) -> None:
-    with patch("wedge_cli.commands.start.start_agent") as mock_start_agent:
+    with patch(
+        "wedge_cli.commands.start.start_agent", return_value=0
+    ) as mock_start_agent:
         libraries_command = []
         for library in libraries_list:
             libraries_command.append("-l")
@@ -57,12 +59,17 @@ def test_start_agent(agent_config: AgentConfiguration) -> None:
         patch(
             "wedge_cli.commands.start.get_config", return_value=agent_config
         ) as mock_get_config,
+        patch("os.environ.copy", return_value=dict()),
+        patch("shutil.which", return_value=Commands.EVP_AGENT.value),
+        patch("wedge_cli.commands.start.get_random_identifier", return_value="123"),
     ):
-        start_agent(
+        rc = start_agent(
             connection_info=RemoteConnectionInfo(host=None, port=None),
             libraries=Libraries(libraries=[]),
         )
-        env = os.environ.copy()
+        command = [Commands.EVP_AGENT.value]
+
+        env = dict()
         env[EVPEnvVars.EVP_IOT_PLATFORM] = agent_config.evp.iot_platform
         env[EVPEnvVars.EVP_MQTT_HOST] = agent_config.mqtt.host.ip_value
         env[EVPEnvVars.EVP_MQTT_PORT] = str(agent_config.mqtt.port)
@@ -71,9 +78,11 @@ def test_start_agent(agent_config: AgentConfiguration) -> None:
             config_paths.https_ca_path
         )  # type:ignore
         env[EVPEnvVars.EVP_REPORT_STATUS_INTERVAL_MAX_SEC] = "3"
-        env[EVPEnvVars.EVP_MQTT_CLIENTID] = str(agent_config.mqtt.device_id)
-        command = [Commands.EVP_AGENT.value]
-        mock_run_agent.assert_called_once_with(command, env=env)
+        device_id = agent_config.mqtt.device_id
+        env[EVPEnvVars.EVP_MQTT_CLIENTID] = device_id if device_id else "agent-123"
+
+        assert rc == 0
+        mock_run_agent.assert_called_once_with(command, env=env, check=True)
         mock_get_config.assert_called_once()
 
 
@@ -86,13 +95,17 @@ def test_start_agent_file_not_found(agent_config: AgentConfiguration) -> None:
         patch(
             "wedge_cli.commands.start.get_config", return_value=agent_config
         ) as mock_get_config,
+        patch("os.environ.copy", return_value=dict()),
+        patch("shutil.which", return_value=Commands.EVP_AGENT.value),
+        patch("wedge_cli.commands.start.get_random_identifier", return_value="123"),
     ):
-        with pytest.raises(SystemExit):
-            start_agent(
-                connection_info=RemoteConnectionInfo(host=None, port=None),
-                libraries=Libraries(libraries=[]),
-            )
-        env = os.environ.copy()
+        rc = start_agent(
+            connection_info=RemoteConnectionInfo(host=None, port=None),
+            libraries=Libraries(libraries=[]),
+        )
+        command = [Commands.EVP_AGENT.value]
+
+        env = dict()
         env[EVPEnvVars.EVP_IOT_PLATFORM] = agent_config.evp.iot_platform
         env[EVPEnvVars.EVP_MQTT_HOST] = agent_config.mqtt.host.ip_value
         env[EVPEnvVars.EVP_MQTT_PORT] = str(agent_config.mqtt.port)
@@ -101,10 +114,14 @@ def test_start_agent_file_not_found(agent_config: AgentConfiguration) -> None:
             config_paths.https_ca_path
         )  # type:ignore
         env[EVPEnvVars.EVP_REPORT_STATUS_INTERVAL_MAX_SEC] = "3"
-        env[EVPEnvVars.EVP_MQTT_CLIENTID] = str(agent_config.mqtt.device_id)
-        command = [Commands.EVP_AGENT.value]
-        mock_run_agent.assert_called_once_with(command, env=env)
+        device_id = agent_config.mqtt.device_id
+        env[EVPEnvVars.EVP_MQTT_CLIENTID] = device_id if device_id else "agent-123"
+
+        assert rc == 1
         mock_get_config.assert_called_once()
+        assert mock_run_agent.call_count == 1
+        assert mock_run_agent.call_args.args == (command,)
+        assert mock_run_agent.call_args.kwargs == dict(env=env, check=True)
 
 
 @given(generate_valid_ip(), generate_valid_port_number())
@@ -113,6 +130,7 @@ def test_start_agent_remote(valid_ip: str, port: int) -> None:
         patch("wedge_cli.commands.start.Listener") as mock_listener,
         patch("wedge_cli.commands.start.run") as mock_run_agent,
         patch("wedge_cli.commands.start.get_config") as mock_get_config,
+        patch("wedge_cli.commands.start.get_agent_environment") as mock_get_env,
     ):
         start_agent(
             connection_info=RemoteConnectionInfo(
@@ -127,6 +145,7 @@ def test_start_agent_remote(valid_ip: str, port: int) -> None:
         mock_listener.return_value.open_listener.assert_called_once()
         mock_run_agent.assert_called_once()
         mock_get_config.assert_called_once()
+        mock_get_env.assert_called_once()
 
 
 @given(
@@ -141,17 +160,20 @@ def test_start_agent_libraries(
         patch(
             "wedge_cli.commands.start.get_config", return_value=agent_config
         ) as mock_get_config,
+        patch("os.environ.copy", return_value=dict()),
+        patch("shutil.which", return_value=Commands.EVP_AGENT.value),
+        patch("wedge_cli.commands.start.get_random_identifier", return_value="123"),
     ):
-        start_agent(
+        rc = start_agent(
             connection_info=RemoteConnectionInfo(host=None, port=None),
             libraries=Libraries(libraries=libraries_list),
         )
         command = [Commands.EVP_AGENT.value]
-        libraries_command = []
         for library in libraries_list:
-            libraries_command.append("-l")
-            libraries_command.append(library)
-        env = os.environ.copy()
+            command.append("-l")
+            command.append(library)
+
+        env = dict()
         env[EVPEnvVars.EVP_IOT_PLATFORM] = agent_config.evp.iot_platform
         env[EVPEnvVars.EVP_MQTT_HOST] = agent_config.mqtt.host.ip_value
         env[EVPEnvVars.EVP_MQTT_PORT] = str(agent_config.mqtt.port)
@@ -160,7 +182,9 @@ def test_start_agent_libraries(
             config_paths.https_ca_path
         )  # type:ignore
         env[EVPEnvVars.EVP_REPORT_STATUS_INTERVAL_MAX_SEC] = "3"
-        env[EVPEnvVars.EVP_MQTT_CLIENTID] = str(agent_config.mqtt.device_id)
-        command += libraries_command
-        mock_run_agent.assert_called_with(command, env=env)
+        device_id = agent_config.mqtt.device_id
+        env[EVPEnvVars.EVP_MQTT_CLIENTID] = device_id if device_id else "agent-123"
+
+        assert rc == 0
+        mock_run_agent.assert_called_with(command, env=env, check=True)
         mock_get_config.assert_called_once()
