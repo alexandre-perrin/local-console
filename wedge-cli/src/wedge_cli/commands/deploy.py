@@ -9,7 +9,7 @@ from typing import Optional
 
 import typer
 from wedge_cli.clients.agent import Agent
-from wedge_cli.clients.webserver import _WebServer
+from wedge_cli.clients.webserver import run_server
 from wedge_cli.utils.config import get_config
 from wedge_cli.utils.config import get_deployment_schema
 from wedge_cli.utils.enums import config_paths
