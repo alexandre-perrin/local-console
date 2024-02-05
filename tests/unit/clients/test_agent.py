@@ -89,18 +89,17 @@ def test_get_deployment(agent_config: AgentConfiguration):
     with (
         patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
         patch("wedge_cli.clients.agent.paho.Client"),
-        patch("wedge_cli.clients.agent.Agent._on_connect"),
+        patch("wedge_cli.clients.agent.AsyncClient"),
     ):
         agent = Agent()
-        agent._on_connect_subscribe_callback = Mock()
-        agent._on_message_return_payload = Mock()
-        agent._loop_client = Mock()
+        agent._loop_forever = Mock()
+        agent._on_message_print_payload = Mock()
         agent.get_deployment()
-        agent._on_connect_subscribe_callback.assert_called_once_with(
-            topic=agent.DEPLOYMENT_TOPIC
+        agent._loop_forever.assert_called_once_with(
+            subs_topics=[agent.DEPLOYMENT_TOPIC],
+            message_task=agent._on_message_print_payload.return_value,
         )
-        agent._on_message_return_payload.assert_called_once()
-        agent._loop_client.assert_called_once()
+        agent._on_message_print_payload.assert_called_once()
 
 
 @given(generate_agent_config())

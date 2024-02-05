@@ -42,21 +42,17 @@ class Agent:
         assert self.nursery
         self.nursery.cancel_scope.cancel()
 
-
-    def _on_message_return_payload(self) -> Callable:
-        def __callback(
-            client: paho.Client, userdata: Any, msg: paho.MQTTMessage
-        ) -> None:
-            payload = json.loads(msg.payload)
-            if payload:
-                try:
+    def _on_message_print_payload(self) -> Callable:
+        async def __task(cs: trio.CancelScope) -> None:
+            assert self.client is not None
+            async for msg in self.client.messages():
+                payload = json.loads(msg.payload.decode())
+                if payload:
                     print(payload, flush=True)
-                except (BrokenPipeError, OSError):
-                    pass
-            else:
-                logger.debug("Empty message arrived")
+                else:
+                    logger.debug("Empty message arrived")
 
-        return __callback
+        return __task
 
     def _on_message_logs(self, instance_id: str, timeout: int) -> Callable:
         global start_time
@@ -194,11 +190,9 @@ class Agent:
         trio.run(self.loop_client, subs_topics, _driver_task, message_task)
 
     def get_deployment(self) -> None:
-        self._loop_client(
-            connect_callback=self._on_connect_subscribe_callback(
-                topic=self.DEPLOYMENT_TOPIC
-            ),
-            message_callback=self._on_message_return_payload(),
+        self._loop_forever(
+            subs_topics=[self.DEPLOYMENT_TOPIC],
+            message_task=self._on_message_print_payload(),
         )
 
     def get_telemetry(self) -> None:
