@@ -286,11 +286,12 @@ def test_config_send_command_invalid_ip(
     generate_identifiers(max_size=5),
 )
 def test_config_instance_command(instance_id: str, method: str, params: str):
-    with (patch("wedge_cli.commands.config.Agent") as mock_agent,):
+    with (
+        patch("wedge_cli.commands.config.Agent"),
+        patch("wedge_cli.commands.config.configure_task") as mock_configure,
+    ):
         result = runner.invoke(app, ["instance", instance_id, method, params])
-        mock_agent.return_value.configure.assert_called_with(
-            instance_id, method, params
-        )
+        mock_configure.assert_called_with(instance_id, method, params)
         assert result.exit_code == 0
 
 
@@ -300,9 +301,11 @@ def test_config_instance_command(instance_id: str, method: str, params: str):
     generate_identifiers(max_size=5),
 )
 def test_config_instance_command_exception(instance_id: str, method: str, params: str):
-    with patch("wedge_cli.commands.config.Agent") as mock_agent:
-        mock_agent.return_value.configure.side_effect = ConnectionError
-
+    with (
+        patch("wedge_cli.commands.config.Agent") as mock_agent,
+        patch("wedge_cli.commands.config.Agent.mqtt_scope") as mock_mqtt,
+    ):
+        mock_mqtt.side_effect = ConnectionError
         result = runner.invoke(app, ["instance", instance_id, method, params])
         mock_agent.assert_called()
         assert result.exit_code == 1

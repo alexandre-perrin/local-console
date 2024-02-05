@@ -15,17 +15,20 @@ from tests.strategies.configs import generate_agent_config
 
 
 @given(st.text(), st.text(), st.text(), generate_agent_config())
-def test_configure_instance(
+@pytest.mark.trio
+async def test_configure_instance(
     instance_id: str, topic: str, config: str, agent_config: AgentConfiguration
 ):
     with (
         patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
         patch("wedge_cli.clients.agent.paho.Client"),
-        patch("wedge_cli.clients.agent.Agent._on_connect"),
+        patch("wedge_cli.clients.agent.AsyncClient"),
+        patch("wedge_cli.clients.agent.Agent.publish"),
     ):
         agent = Agent()
-        agent.mqttc.publish = Mock(return_value=(MQTT_ERR_SUCCESS, None))
-        agent.configure(instance_id, topic, config)
+        async with agent.mqtt_scope([]):
+            await agent.configure(instance_id, topic, config)
+            agent.async_done()
 
         payload = json.dumps(
             {
@@ -34,9 +37,7 @@ def test_configure_instance(
                 ).decode("utf-8")
             }
         )
-        agent.mqttc.publish.assert_called_once_with(
-            agent.DEPLOYMENT_TOPIC, payload=payload
-        )
+        agent.publish.assert_called_once_with(agent.DEPLOYMENT_TOPIC, payload=payload)
 
 
 @given(st.text(), generate_agent_config())
