@@ -75,10 +75,10 @@ def config_to_schema(config: configparser.ConfigParser) -> AgentConfiguration:
         exit(1)
 
 
-def get_config(config_file: Path = config_paths.config_path) -> AgentConfiguration:
+def get_config(config_file: Optional[Path] = None) -> AgentConfiguration:
     config_parser: configparser.ConfigParser = configparser.ConfigParser()
     try:
-        config_parser.read(config_file)
+        config_parser.read(config_paths.config_path if not config_file else config_file)
     except FileNotFoundError:
         logger.error("Config file not found")
         exit(1)
@@ -93,7 +93,7 @@ def get_deployment_schema() -> DeploymentManifest:
         with open(config_paths.deployment_json) as f:
             deployment_data = json.load(f)
     except Exception:
-        logger.error("deployment.json does not exist or not well defined")
+        logger.error("deployment.json does not exist or is not well formed")
         exit(1)
     try:
         return DeploymentManifest(**deployment_data)
