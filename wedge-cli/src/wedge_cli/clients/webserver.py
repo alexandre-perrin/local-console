@@ -21,13 +21,6 @@ from wedge_cli.utils.schemas import DeploymentManifest
 logger = logging.getLogger(__name__)
 
 
-def _calculate_sha256(filename: str) -> str:
-    sha256_hash = hashlib.sha256()
-    with open(filename, "rb") as f:
-        sha256_hash.update(f.read())
-    return sha256_hash.hexdigest()
-
-
 class _WebServer:
     def __init__(self, agent: Agent):
         config: AgentConfiguration = get_config()  # type:ignore
@@ -129,38 +122,3 @@ class _WebServer:
         listing += "</ul></body></html>"
         return listing
 
-    def update_deployment_manifest(
-        self,
-        deployment_manifest: DeploymentManifest,
-        target_arch: Optional[Target],
-        use_signed: bool,
-    ) -> None:
-        agent_config: AgentConfiguration = get_config()  # type: ignore
-        files = set(os.listdir("bin"))
-        for module in deployment_manifest.deployment.modules.keys():
-            wasm_file = f"{module}.{ModuleExtension.WASM}"
-            if wasm_file not in files:
-                logger.error(
-                    f"{wasm_file} not found. Please build the modules before deployment"
-                )
-                exit(1)
-
-            file = wasm_file
-            if target_arch:
-                file = f"{module}.{target_arch}.{ModuleExtension.AOT}"
-                if use_signed:
-                    file = f"{file}.{ModuleExtension.SIGNED}"
-            else:
-                if use_signed:
-                    logger.warning(
-                        f"There is no target architecture, the {file} module to be deployed is not signed"
-                    )
-            deployment_manifest.deployment.modules[module].hash = _calculate_sha256(
-                str(Path("bin") / file)
-            )
-            deployment_manifest.deployment.modules[
-                module
-            ].downloadUrl = f"http://{agent_config.webserver.host.ip_value}:{agent_config.webserver.port}/bin/{file}"
-
-        with open(config_paths.deployment_json, "w") as f:
-            json.dump(deployment_manifest.model_dump(), f, indent=2)

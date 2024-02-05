@@ -1,3 +1,5 @@
+import enum
+import hashlib
 import json
 import logging
 from pathlib import Path
@@ -7,8 +9,10 @@ from typing import Optional
 import typer
 from wedge_cli.clients.agent import Agent
 from wedge_cli.clients.webserver import _WebServer
+from wedge_cli.utils.config import get_config
 from wedge_cli.utils.config import get_deployment_schema
 from wedge_cli.utils.enums import config_paths
+from wedge_cli.utils.enums import ModuleExtension
 from wedge_cli.utils.enums import Target
 from wedge_cli.utils.schemas import DeploymentManifest
 
@@ -124,3 +128,51 @@ def get_empty_deployment() -> DeploymentManifest:
         }
     }
     return DeploymentManifest.model_validate(deployment)
+
+
+def update_deployment_manifest(
+    deployment_manifest: DeploymentManifest,
+    host: str,
+    port: int,
+    files_dir: Path,
+    target_arch: Optional[Target],
+    use_signed: bool,
+) -> None:
+    for module in deployment_manifest.deployment.modules.keys():
+        wasm_file = files_dir / f"{module}.{ModuleExtension.WASM}"
+        if not wasm_file.is_file():
+            logger.error(
+                f"{wasm_file} not found. Please build the modules before deployment"
+            )
+            exit(1)
+
+        name_parts = [module]
+        if target_arch:
+            name_parts += [target_arch.value, ModuleExtension.AOT.value]
+        else:
+            name_parts.append(ModuleExtension.WASM.value)
+
+        if use_signed:
+            if target_arch:
+                name_parts.append(ModuleExtension.SIGNED.value)
+
+        file = files_dir / ".".join(name_parts)
+
+        if use_signed and not target_arch:
+            logger.warning(
+                f"There is no target architecture, the {file} module to be deployed is not signed"
+            )
+
+        deployment_manifest.deployment.modules[module].hash = calculate_sha256(file)
+        deployment_manifest.deployment.modules[
+            module
+        ].downloadUrl = f"http://{host}:{port}/{file}"
+
+    with open(config_paths.deployment_json, "w") as f:
+        json.dump(deployment_manifest.model_dump(), f, indent=2)
+
+
+def calculate_sha256(path: Path) -> str:
+    sha256_hash = hashlib.sha256()
+    sha256_hash.update(path.read_bytes())
+    return sha256_hash.hexdigest()
