@@ -33,15 +33,18 @@ def test_config_get_command(parser_return: str, agent_config: AgentConfiguration
             "wedge_cli.commands.config.check_section_and_params"
         ) as mock_checks_section_and_params,
     ):
-        for section in agent_config.__dict__.keys():
-            for parameter in agent_config.__dict__[f"{section}"].__dict__.keys():
-                result = runner.invoke(app, [GetCommands.GET.value, section, parameter])
+        for section_name in agent_config.model_fields.keys():
+            section_value = getattr(agent_config, section_name)
+            for parameter in section_value.model_fields.keys():
+                result = runner.invoke(
+                    app, [GetCommands.GET.value, section_name, parameter]
+                )
                 mock_parse_to_ini.assert_called_with(
-                    agent_config.__dict__[f"{section}"], section, parameter
+                    section_value, section_name, parameter
                 )
                 mock_get_config.assert_called()
                 mock_checks_section_and_params.assert_called_with(
-                    agent_config, section, parameter
+                    agent_config, section_name, parameter
                 )
                 assert result.exit_code == 0
 
@@ -59,7 +62,9 @@ def test_config_get_command_section_none(
         ) as mock_parse_to_ini,
     ):
         result = runner.invoke(app, [GetCommands.GET.value])
-        for section_name, section_value in agent_config.__dict__.items():
+
+        for section_name in agent_config.model_fields.keys():
+            section_value = getattr(agent_config, section_name)
             mock_parse_to_ini.assert_any_call(section_value, section_name)
             mock_get_config.assert_called()
             assert result.exit_code == 0
@@ -75,9 +80,12 @@ def test_config_get_command_value_error(agent_config: AgentConfiguration):
             "wedge_cli.commands.config.check_section_and_params", side_effect=ValueError
         ) as mock_checks_section_and_params,
     ):
-        for section in agent_config.__dict__.keys():
-            for parameter in agent_config.__dict__[f"{section}"].__dict__.keys():
-                result = runner.invoke(app, [GetCommands.GET.value, section, parameter])
+        for section_name in agent_config.model_fields.keys():
+            section_value = getattr(agent_config, section_name)
+            for parameter in section_value.model_fields.keys():
+                result = runner.invoke(
+                    app, [GetCommands.GET.value, section_name, parameter]
+                )
                 mock_get_config.assert_called()
                 mock_checks_section_and_params.assert_called()
                 assert result.exit_code == 1
@@ -95,29 +103,28 @@ def test_config_set_command(new_value: str, agent_config: AgentConfiguration):
         ) as mock_checks_section_and_params,
         patch("builtins.open") as mock_open,
     ):
-        for section in agent_config.__dict__.keys():
-            for parameter in agent_config.__dict__[f"{section}"].__dict__.keys():
-                if parameter == "port":
-                    try:
-                        int(new_value)
-                    except ValueError:
-                        continue
+        for section_name in agent_config.model_fields.keys():
+            section_value = getattr(agent_config, section_name)
+            if "host" in section_value.model_fields.keys():
                 config_dict = agent_config.model_dump()
-                config_dict[section][parameter] = new_value
+                config_dict[section_name]["host"] = new_value
+
                 config_parser = ConfigParser()
                 for section_names, values in config_dict.items():
                     if "host" in values.keys():
                         if isinstance(values["host"], dict):
                             values["host"] = values["host"]["ip_value"]
-                config_parser[section_names] = values
+                    # Replace null values with empty strings, for the config_parser
+                    values = {key: val if val else "" for key, val in values.items()}
+                    config_parser[section_names] = values
                 mock_schema_to_parser.return_value = config_parser
 
                 result = runner.invoke(
-                    app, [GetCommands.SET.value, section, parameter, new_value]
+                    app, [GetCommands.SET.value, section_name, "host", new_value]
                 )
                 mock_get_config.assert_called()
                 mock_schema_to_parser.assert_called_with(
-                    agent_config, section, parameter, new_value
+                    agent_config, section_name, "host", new_value
                 )
                 mock_open.assert_called_with(config_paths.config_path, "w")
                 mock_checks_section_and_params.assert_called()
@@ -148,8 +155,9 @@ def test_config_set_command_value_error(
             "wedge_cli.commands.config.check_section_and_params", side_effect=ValueError
         ) as mock_checks_section_and_params,
     ):
-        for section in agent_config.__dict__.keys():
-            for parameter in agent_config.__dict__[f"{section}"].__dict__.keys():
+        for section_name in agent_config.model_fields.keys():
+            section_value = getattr(agent_config, section_name)
+            for parameter in section_value.model_fields.keys():
                 result = runner.invoke(
                     app, [GetCommands.SET.value, section_miss, parameter, new_value]
                 )
