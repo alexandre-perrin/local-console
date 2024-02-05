@@ -219,6 +219,7 @@ def generate_self_signed_ca(
         export_cert_pair_as_pem(
             ca_certificate, ca_private_key, ca_cert_path, ca_key_path
         )
+        logger.info("Created self-signed CA at %s", str(ca_cert_path))
 
     return ca_cert_path, ca_key_path, ca_certificate, ca_private_key
 

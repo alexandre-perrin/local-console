@@ -33,6 +33,7 @@ class ProcessHandler(threading.Thread, ABC):
         pass
 
     def run(self):
+        self.log.info(f"About to run: {self.cmdline} with opts: {self.options}")
         self.proc = sp.Popen(
             self.cmdline, text=True, stdout=sp.PIPE, stderr=sp.STDOUT, **self.options
         )
@@ -59,6 +60,8 @@ class ProcessHandler(threading.Thread, ABC):
 
         rc = self.proc.poll()
         self.log.info("finished process %snormally", "ab" if rc else "")
+        if rc:
+            raise ValueError
 
 
 class SharedLogger:

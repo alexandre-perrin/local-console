@@ -12,10 +12,14 @@ env:
 
 jobs:
   test:
-    name: Test
+    name: Test (E2E with${{ matrix.with-tls == false && 'out' || '' }} TLS)
     runs-on: [self-hosted, X64]
     container: ubuntu:22.04
     timeout-minutes: 20
+    strategy:
+      fail-fast: true
+      matrix:
+        with-tls: [true, false]
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -25,7 +29,7 @@ jobs:
         python-version: ${{ env.PYTHON_VERSION }}
     - name: Install test requirements
       run: |
-        apt-get -y update && apt install -y wget curl gcc python3-dev make cmake git software-properties-common mosquitto
+        apt-get -y update && apt install -y wget curl gcc python3-dev make cmake git software-properties-common mosquitto libnss-wrapper
     - name: Download and install agent
       run: |
         wget ${{ secrets.WEDGE_AGENT_SAS_URL }} -k -O wedge-agent_amd64.deb
@@ -42,12 +46,30 @@ jobs:
         pip install -r tests/requirements.txt
     - name: Run Unit Test
       id: unit-test
+      # The unit test suites test E2E independently of the environment,
+      # so we don't need to run them more than once.
+      if: ${{ matrix.with-tls }}
       run: |
         python -m pytest tests --cov --cov-report=xml --cov-report=html --hypothesis-seed=42
-    - name: Run E2E
+
+    - name: Create unprivileged user
+      # It seems that mosquitto will not load a self-signed CA
+      # as root, so it needs to be launched unprivileged.
+      # However...
+      run: |
+        useradd -m testbot
+        echo 'testbot:password' | chpasswd
+
+    - name: Chown samples directory
+      # ... in order for the module build to succeed, the
+      # samples directory must be accessible by the new user
+      run: chown -R testbot samples/
+
+    - name: Run E2E with${{ matrix.with-tls == false && 'out' || '' }} TLS
       id: e2e
       run: |
-        python tests/e2e.py
+        runuser -u testbot -- python tests/e2e.py ${{ matrix.with-tls == true && '--with-tls' || '' }}
+
   pre-commit:
     name: Pre-commit
     runs-on: [self-hosted, X64]
