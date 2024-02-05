@@ -15,6 +15,7 @@ from wedge_cli.utils.schemas import DeploymentManifest
 from wedge_cli.utils.schemas import EVPParams
 from wedge_cli.utils.schemas import IPAddress
 from wedge_cli.utils.schemas import MQTTParams
+from wedge_cli.utils.schemas import TLSConfiguration
 from wedge_cli.utils.schemas import WebserverParams
 
 logger = logging.getLogger(__name__)
@@ -67,12 +68,22 @@ def config_to_schema(config: configparser.ConfigParser) -> AgentConfiguration:
                 host=IPAddress(ip_value=config["webserver"]["host"]),
                 port=int(config["webserver"]["port"]),
             ),
+            tls=TLSConfiguration(
+                ca_certificate=optional_path(
+                    config.get("tls", "ca_certificate", fallback=None)
+                ),
+                ca_key=optional_path(config.get("tls", "ca_key", fallback=None)),
+            ),
         )
     except KeyError as e:
         logger.error(
             f"Config file not correct. Section or parameter missing is {e}. \n The file should have the following sections and parameters {parse_ini(get_default_config())}"
         )
         exit(1)
+
+
+def optional_path(path: Optional[str]) -> Optional[Path]:
+    return Path(path) if path else None
 
 
 def get_config(config_file: Optional[Path] = None) -> AgentConfiguration:
