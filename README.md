@@ -225,3 +225,18 @@ wedge-cli config unset <section> <option>
 ```
 
 Nullable parameters will show up in the output of `config get` as assigned with `= None`
+
+### Using TLS for MQTT
+
+The CLI supports connecting to the broker (and issuing a client certificate for the device) when the paths to a CA certificate and its private key are registered, by doing:
+
+```sh
+wedge-cli config set tls ca_certificate path/to/ca/certificate_file
+wedge-cli config set tls ca_key path/to/ca/private_key_file
+```
+
+> [!TIP]
+> Don't forget to also update the `mqtt port` setting, as the default `1883` is for unsecured MQTT connections, whereas it is customary to use `8883` for TLS connections.
+
+> [!WARNING]
+> If you will be running the MQTT broker in the same machine as the CLI and agent are running, then you will need to install [nss_wrapper](https://cwrap.org/nss_wrapper.html), so that the agent can verify the local server certificate when doing the TLS handshake.
