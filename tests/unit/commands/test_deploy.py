@@ -11,8 +11,8 @@ from wedge_cli.commands.deploy import app
 from wedge_cli.commands.deploy import check_attributes_request
 from wedge_cli.commands.deploy import get_empty_deployment
 from wedge_cli.utils.enums import Target
-from wedge_cli.utils.schemas import AgentConfiguration
-from wedge_cli.utils.schemas import DeploymentManifest
+from wedge_cli.core.schemas import AgentConfiguration
+from wedge_cli.core.schemas import DeploymentManifest
 
 from tests.strategies.configs import generate_agent_config
 from tests.strategies.deployment import deployment_manifest_strategy

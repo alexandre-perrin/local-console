@@ -16,7 +16,7 @@ from wedge_cli.commands.build import sign_file
 from wedge_cli.utils.enums import Commands
 from wedge_cli.utils.enums import ModuleExtension
 from wedge_cli.utils.enums import Target
-from wedge_cli.utils.schemas import DeploymentManifest
+from wedge_cli.core.schemas import DeploymentManifest
 
 from tests.strategies.deployment import deployment_manifest_strategy
 from tests.strategies.path import path_strategy

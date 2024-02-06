@@ -4,7 +4,7 @@ import logging
 import socket
 
 from wedge_cli.utils.enums import config_paths
-from wedge_cli.utils.schemas import IPAddress
+from wedge_cli.core.schemas import IPAddress
 
 logger = logging.getLogger(__name__)
 

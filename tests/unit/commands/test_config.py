@@ -7,9 +7,9 @@ from typer.testing import CliRunner
 from wedge_cli.commands.config import app
 from wedge_cli.utils.enums import config_paths
 from wedge_cli.utils.enums import GetCommands
-from wedge_cli.utils.schemas import AgentConfiguration
-from wedge_cli.utils.schemas import IPAddress
-from wedge_cli.utils.schemas import RemoteConnectionInfo
+from wedge_cli.core.schemas import AgentConfiguration
+from wedge_cli.core.schemas import IPAddress
+from wedge_cli.core.schemas import RemoteConnectionInfo
 
 from tests.strategies.configs import generate_agent_config
 from tests.strategies.configs import generate_identifiers

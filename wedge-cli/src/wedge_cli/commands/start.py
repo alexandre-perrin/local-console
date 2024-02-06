@@ -17,11 +17,11 @@ from wedge_cli.utils.config import get_config
 from wedge_cli.utils.enums import Commands
 from wedge_cli.utils.enums import config_paths
 from wedge_cli.utils.enums import EVPEnvVars
-from wedge_cli.utils.schemas import AgentConfiguration
-from wedge_cli.utils.schemas import IPAddress
-from wedge_cli.utils.schemas import Libraries
-from wedge_cli.utils.schemas import RemoteConnectionInfo
-from wedge_cli.utils.schemas import TLSConfiguration
+from wedge_cli.core.schemas import AgentConfiguration
+from wedge_cli.core.schemas import IPAddress
+from wedge_cli.core.schemas import Libraries
+from wedge_cli.core.schemas import RemoteConnectionInfo
+from wedge_cli.core.schemas import TLSConfiguration
 from wedge_cli.utils.tls import ensure_certificate_pair_exists
 from wedge_cli.utils.tls import get_certificate_cn
 from wedge_cli.utils.tls import get_random_identifier

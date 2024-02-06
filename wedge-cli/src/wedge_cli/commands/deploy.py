@@ -19,7 +19,7 @@ from wedge_cli.utils.config import get_deployment_schema
 from wedge_cli.utils.enums import config_paths
 from wedge_cli.utils.enums import ModuleExtension
 from wedge_cli.utils.enums import Target
-from wedge_cli.utils.schemas import DeploymentManifest
+from wedge_cli.core.schemas import DeploymentManifest
 
 
 logger = logging.getLogger(__name__)

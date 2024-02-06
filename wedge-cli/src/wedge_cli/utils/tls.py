@@ -16,8 +16,8 @@ from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from cryptography.x509 import Name
 from cryptography.x509.oid import NameOID
 from retry import retry
-from wedge_cli.utils.schemas import IPAddress
-from wedge_cli.utils.schemas import TLSConfiguration
+from wedge_cli.core.schemas import IPAddress
+from wedge_cli.core.schemas import TLSConfiguration
 
 logger = logging.getLogger(__name__)
 
