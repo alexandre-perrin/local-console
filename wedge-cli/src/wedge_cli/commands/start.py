@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 from subprocess import run
 from typing import Annotated
 from typing import Optional
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 app = typer.Typer(help="Command that starts the agent up")
 
 
-def start_agent(connection_info: RemoteConnectionInfo, libraries: Libraries) -> None:
+def start_agent(connection_info: RemoteConnectionInfo, libraries: Libraries) -> int:
     if not None in connection_info.__dict__.values():
         server = Listener(
             ip=connection_info.host, port=connection_info.port  # type:ignore
@@ -28,32 +29,65 @@ def start_agent(connection_info: RemoteConnectionInfo, libraries: Libraries) -> 
         server.open_listener()
         server.receive_config()
 
+    retcode = 1
     try:
-        # this will be avoided when all the commands are done
         config: AgentConfiguration = get_config()
-        env = os.environ.copy()
-        env[EVPEnvVars.EVP_IOT_PLATFORM] = config.evp.iot_platform
-        env[EVPEnvVars.EVP_MQTT_HOST] = config.mqtt.host.ip_value
-        env[EVPEnvVars.EVP_MQTT_PORT] = str(config.mqtt.port)
-        env[EVPEnvVars.EVP_DATA_DIR] = str(config_paths.evp_data_path)  # type:ignore
-        env[EVPEnvVars.EVP_MQTT_CLIENTID] = str(config.mqtt.device_id)
-        env[EVPEnvVars.EVP_HTTPS_CA_CERT] = str(
-            config_paths.https_ca_path
-        )  # type:ignore
-        env[EVPEnvVars.EVP_REPORT_STATUS_INTERVAL_MAX_SEC] = "3"
-        # TODO: check process return code
-        command = [Commands.EVP_AGENT.value]
-        if libraries.libraries:
-            libraries_command = []
-            for l in libraries.libraries:
-                libraries_command.append("-l")
-                libraries_command.append(l)  # type:ignore
-            command += libraries_command  # type: ignore
-        logger.debug(f"Running: {' '.join(command)}")
-        run(command, env=env)
+        agent_env = get_agent_environment(config)
+        agent_command = get_agent_command_parts(libraries)
+        logger.debug(f"Running: {' '.join(agent_command)}")
+        run(agent_command, env=agent_env, check=True)
+        retcode = 0
     except FileNotFoundError:
-        logger.warning("evp_agent not in PATH")
-        exit(1)
+        logger.error("evp_agent not in PATH")
+    except ConnectionError as e:
+        logger.error(f"Connection error: {e}")
+    except KeyboardInterrupt:
+        logger.debug("Terminated by SIGTERM")
+        retcode = 0
+    except SystemExit:
+        logger.debug("Terminated by SIGINT")
+        retcode = 0
+
+    return retcode
+
+
+def get_agent_command_parts(libraries: Libraries) -> list[str]:
+    agent_path = shutil.which(Commands.EVP_AGENT.value)
+    if not agent_path:
+        raise FileNotFoundError("evp_agent not in PATH")
+
+    command = [
+        str(agent_path),
+    ]
+
+    if libraries.libraries:
+        for l in libraries.libraries:
+            command.append("-l")
+            command.append(l)  # type:ignore
+
+    return command
+
+
+def get_agent_environment(config: AgentConfiguration) -> dict[str, str]:
+    env = os.environ.copy()
+    env.update(
+        {
+            EVPEnvVars.EVP_IOT_PLATFORM: config.evp.iot_platform,
+            EVPEnvVars.EVP_MQTT_HOST: config.mqtt.host.ip_value,
+            EVPEnvVars.EVP_MQTT_PORT: str(config.mqtt.port),
+            EVPEnvVars.EVP_DATA_DIR: str(config_paths.evp_data_path),  # type:ignore
+            EVPEnvVars.EVP_HTTPS_CA_CERT: str(
+                config_paths.https_ca_path
+            ),  # type:ignore
+            EVPEnvVars.EVP_REPORT_STATUS_INTERVAL_MAX_SEC: "3",
+        }
+    )
+    device_id: Optional[str] = config.mqtt.device_id
+    env[EVPEnvVars.EVP_MQTT_CLIENTID] = (
+        device_id if device_id else get_random_identifier("agent-", 7)
+    )
+
+    return env
 
 
 @app.callback(invoke_without_command=True)
@@ -86,11 +120,18 @@ def start(
     else:
         ip_value = None
     try:
-        start_agent(
+        rc = start_agent(
             connection_info=RemoteConnectionInfo(host=ip_value, port=remote[1]),  # type: ignore
             libraries=Libraries(libraries=libraries),  # type: ignore
         )  # type:ignore
+        exit(rc)
     except ValidationError as e:
         logger.warning(
             f"Error with parameter {e.errors()[0]['loc'][0]}. {e.errors()[0]['msg']}"
         )
+
+
+def get_random_identifier(prefix: str = "", max_length: int = 36) -> str:
+    random_serial = int.from_bytes(os.urandom(20), "big") >> 1
+    full = prefix + str(random_serial)
+    return full[:max_length]

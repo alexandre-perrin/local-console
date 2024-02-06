@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Annotated
 from typing import Optional
 
+import trio
 import typer
 from wedge_cli.clients.agent import Agent
 from wedge_cli.utils.config import check_section_and_params
@@ -173,11 +174,16 @@ def config_instance(
         typer.Argument(help="Data of the configuration."),
     ],
 ) -> None:
-    agent = Agent()  # type: ignore
-
     try:
-        agent.configure(instance_id, topic, config)
+        trio.run(configure_task, instance_id, topic, config)
     except ConnectionError:
         raise SystemExit(
             f"Connection error while attempting to set configuration topic '{topic}' for instance {instance_id}"
         )
+
+
+async def configure_task(instance_id: str, topic: str, config: str) -> None:
+    agent = Agent()  # type: ignore
+    async with agent.mqtt_scope([]):
+        await agent.configure(instance_id, topic, config)
+        agent.async_done()

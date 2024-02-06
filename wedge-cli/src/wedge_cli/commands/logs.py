@@ -1,5 +1,6 @@
 from typing import Annotated
 
+import trio
 import typer
 from wedge_cli.clients.agent import Agent
 
@@ -19,14 +20,14 @@ def logs(
         typer.Option(
             "-t",
             "--timeout",
-            help="Max time to wait for a module instance log to be reported",
+            help="Max seconds to wait for a module instance log to be reported",
         ),
     ] = 10,
 ) -> None:
     agent = Agent()  # type: ignore
     try:
-        agent.rpc(instance_id, "$agent/set", '{"log_enable": true}')
-        agent.get_logs(instance_id, timeout)
+        trio.run(agent.request_instance_logs, instance_id)
+        agent.get_instance_logs(instance_id, timeout)
     except ConnectionError:
         raise SystemExit(
             f"Could not send command for enabling logs to device {instance_id}"
