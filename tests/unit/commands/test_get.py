@@ -4,7 +4,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 from typer.testing import CliRunner
 from wedge_cli.commands.get import app
-from wedge_cli.utils.enums import GetObjects
+from wedge_cli.core.enums import GetObjects
 
 runner = CliRunner()
 

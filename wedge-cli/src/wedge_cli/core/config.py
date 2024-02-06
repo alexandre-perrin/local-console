@@ -9,7 +9,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 from pydantic import ValidationError
-from wedge_cli.utils.enums import config_paths
+from wedge_cli.core.enums import config_paths
 from wedge_cli.core.schemas import AgentConfiguration
 from wedge_cli.core.schemas import DeploymentManifest
 from wedge_cli.core.schemas import EVPParams

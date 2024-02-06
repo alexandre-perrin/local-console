@@ -7,10 +7,10 @@ from typing import Optional
 
 import typer
 from wedge_cli.core.config import get_deployment_schema
-from wedge_cli.utils.enums import Commands
-from wedge_cli.utils.enums import config_paths
-from wedge_cli.utils.enums import ModuleExtension
-from wedge_cli.utils.enums import Target
+from wedge_cli.core.enums import Commands
+from wedge_cli.core.enums import config_paths
+from wedge_cli.core.enums import ModuleExtension
+from wedge_cli.core.enums import Target
 from wedge_cli.utils.signature import sign
 
 COMPILATION_FLAGS = {

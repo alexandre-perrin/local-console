@@ -10,7 +10,7 @@ from wedge_cli.clients.agent import Agent
 from wedge_cli.commands.deploy import app
 from wedge_cli.commands.deploy import check_attributes_request
 from wedge_cli.commands.deploy import get_empty_deployment
-from wedge_cli.utils.enums import Target
+from wedge_cli.core.enums import Target
 from wedge_cli.core.schemas import AgentConfiguration
 from wedge_cli.core.schemas import DeploymentManifest
 

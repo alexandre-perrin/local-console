@@ -12,7 +12,7 @@ from wedge_cli.core.config import check_section_and_params
 from wedge_cli.core.config import get_config
 from wedge_cli.core.config import parse_section_to_ini
 from wedge_cli.core.config import schema_to_parser
-from wedge_cli.utils.enums import config_paths
+from wedge_cli.core.enums import config_paths
 from wedge_cli.core.schemas import AgentConfiguration
 from wedge_cli.core.schemas import IPAddress
 from wedge_cli.core.schemas import RemoteConnectionInfo
