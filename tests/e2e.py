@@ -1,3 +1,4 @@
+import argparse
 import json
 import logging
 import socket
@@ -10,10 +11,24 @@ from tempfile import TemporaryDirectory
 from process_handler import ProcessHandler
 from process_handler import SharedLogger
 from retry import retry
+from wedge_cli.utils.tls import export_cert_pair_as_pem
+from wedge_cli.utils.tls import generate_self_signed_ca
+from wedge_cli.utils.tls import generate_signed_certificate_pair
 
 FORMAT = "%(asctime)s %(levelname)s %(message)s"
 logging.basicConfig(format=FORMAT, level=logging.DEBUG)
 log = logging.getLogger()
+
+
+def parse_test_arguments() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--with-tls",
+        action="store_true",
+        help="Whether to exercise the TLS infrastructure",
+    )
+
+    return parser.parse_args()
 
 
 @retry(tries=5, exceptions=AssertionError)
@@ -69,9 +84,71 @@ def build_and_deploy_app(app_dir: Path, wedge_cli_pre: list[str]) -> None:
     assert deploy.returncode == 0, f"Error during deploy: {deploy.stderr}"
 
 
+def setup_tls(tls_files_dir: Path, wedge_cli_pre: list[str]) -> None:
+    """
+    The file paths of files generated here are relative
+    to the directory where the MQTT broker configuration
+    file expects to find them.
+    """
+    # Generate a dummy CA
+    ca_dir = tls_files_dir / "ca"
+    ca_dir.mkdir(exist_ok=True, parents=True)
+    ca_cert_path, ca_key_path, ca_cert, ca_key = generate_self_signed_ca(ca_dir)
+
+    # Generate broker TLS pair
+    broker_dir = tls_files_dir / "broker"
+    broker_cert_path = broker_dir / "broker.crt"
+    broker_key_path = broker_dir / "broker.key"
+    if not (broker_cert_path.is_file() and broker_key_path.is_file()):
+        broker_cert, broker_key = generate_signed_certificate_pair(
+            "mqtt_broker", ca_cert, ca_key, is_server=True
+        )
+        broker_dir.mkdir(exist_ok=True, parents=True)
+        export_cert_pair_as_pem(
+            broker_cert, broker_key, broker_cert_path, broker_key_path
+        )
+
+    # Configure the CLI with updated TLS parameters
+    subprocess.run(
+        wedge_cli_pre
+        + [
+            "config",
+            "set",
+            "tls",
+            "ca_certificate",
+            str(ca_cert_path.resolve()),
+        ],
+        check=True,
+    )
+    subprocess.run(
+        wedge_cli_pre + ["config", "set", "tls", "ca_key", str(ca_key_path.resolve())],
+        check=True,
+    )
+    # TCP port is configured by the broker preparation
+
+
+def setup_no_tls(wedge_cli_pre: list[str]):
+    # Configure the CLI to avoid TLS
+    subprocess.run(
+        wedge_cli_pre
+        + [
+            "config",
+            "unset",
+            "tls",
+            "ca_certificate",
+        ],
+        check=True,
+    )
+    subprocess.run(
+        wedge_cli_pre + ["config", "unset", "tls", "ca_key"],
+        check=True,
+    )
+
+
 class LocalBroker(ProcessHandler):
     def __init__(
         self,
+        with_tls: bool,
         tmp_dir: Path,
         log_handler: logging.Logger,
         wedge_cli_pre: list[str],
@@ -79,18 +156,18 @@ class LocalBroker(ProcessHandler):
         super().__init__(log_handler)
 
         mosquitto_dir = Path(__file__).parents[1] / ".devcontainer"
-        conf_file_name = "mosquitto.conf"
+        conf_file_name = "mosquitto.tls.conf" if with_tls else "mosquitto.conf"
         conf_file = mosquitto_dir / conf_file_name
         assert conf_file.is_file()
 
         self.cmdline = ["mosquitto", "-c", str(conf_file.resolve())]
         self.options = {"cwd": tmp_dir}
 
-        self.prepare(wedge_cli_pre)
+        self.prepare(with_tls, wedge_cli_pre)
 
-    def prepare(self, wedge_cli_pre: list[str]) -> None:
+    def prepare(self, with_tls: bool, wedge_cli_pre: list[str]) -> None:
         # Configure TCP port
-        self._port = 1883
+        self._port = 8883 if with_tls else 1883
         subprocess.run(
             wedge_cli_pre + ["config", "set", "mqtt", "port", str(self._port)],
             check=True,
@@ -134,23 +211,31 @@ class LocalAgent(ProcessHandler):
 
 
 @contextmanager
-def wedge_area() -> None:
+def wedge_area(with_tls: bool) -> None:
     with TemporaryDirectory() as _tempdir:
         tmp_dir = Path(_tempdir)
         config_dir = tmp_dir / "config"
         cmd_preamble = ["wedge-cli", "-d", "--config-dir", str(config_dir)]
 
+        if with_tls:
+            tls_dir = tmp_dir / "tls"
+            setup_tls(tls_dir, cmd_preamble)
+        else:
+            setup_no_tls(cmd_preamble)
+
         yield tmp_dir, cmd_preamble
 
 
 def main() -> None:
+    args = parse_test_arguments()
     app_dir = Path("samples/rpc-example")
+    with_tls = args.with_tls
 
     try:
         with (
-            wedge_area() as (tmp_dir, cmd_preamble),
+            wedge_area(with_tls) as (tmp_dir, cmd_preamble),
             SharedLogger() as slog,
-            LocalBroker(tmp_dir, slog, cmd_preamble),
+            LocalBroker(with_tls, tmp_dir, slog, cmd_preamble),
             LocalAgent(slog, cmd_preamble),
         ):
             build_and_deploy_app(app_dir, cmd_preamble)
@@ -174,8 +259,9 @@ def main() -> None:
 
         log.info("Test successful!")
 
-    except subprocess.CalledProcessError as e:
+    except (subprocess.CalledProcessError, ValueError) as e:
         log.error("Execution failed: %s", e)
+
     except KeyboardInterrupt:
         log.info("Cancelling")
 

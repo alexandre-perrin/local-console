@@ -14,8 +14,12 @@ import paho.mqtt.client as paho
 import trio
 from exceptiongroup import catch
 from paho.mqtt.client import MQTT_ERR_SUCCESS
+from wedge_cli.utils.config import config_paths
 from wedge_cli.utils.config import get_config
 from wedge_cli.utils.schemas import AgentConfiguration
+from wedge_cli.utils.tls import ensure_certificate_pair_exists
+from wedge_cli.utils.tls import get_random_identifier
+from wedge_cli.utils.tls import is_localhost
 from wedge_cli.utils.trio_paho_mqtt import AsyncClient
 
 logger = logging.getLogger(__name__)
@@ -34,6 +38,29 @@ class Agent:
         config_parse: AgentConfiguration = get_config()
         self._host = config_parse.mqtt.host.ip_value
         self._port = config_parse.mqtt.port
+
+        self.configure_tls(config_parse)
+
+    def configure_tls(self, agent_config: AgentConfiguration) -> None:
+        tls_conf = agent_config.tls
+        if not (tls_conf.ca_certificate and tls_conf.ca_key):
+            return
+
+        cli_cert_path, cli_key_path = config_paths.cli_cert_pair
+        ensure_certificate_pair_exists(
+            get_random_identifier("wedge-cli-"), cli_cert_path, cli_key_path, tls_conf
+        )
+
+        self.mqttc.tls_set(
+            ca_certs=str(tls_conf.ca_certificate),
+            certfile=str(cli_cert_path),
+            keyfile=str(cli_key_path),
+        )
+
+        # No server validation is necessary if the server is localhost
+        # This spares us from needing to setup custom name resolution for
+        # complying with TLS' Subject Common Name matching.
+        self.mqttc.tls_insecure_set(is_localhost(agent_config.mqtt.host.ip_value))
 
     def async_done(self) -> None:
         assert self.nursery

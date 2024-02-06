@@ -31,6 +31,21 @@ class Config:
         return self.home / self._evp_data
 
     @property
+    def tls_cert_root(self) -> Path:
+        return self.home / "tls_client_certs"
+
+    @property
+    def cli_cert_pair(self) -> tuple[Path, Path]:
+        return self.tls_cert_root / "cli.crt.pem", self.tls_cert_root / "cli.key.pem"
+
+    @property
+    def agent_cert_pair(self) -> tuple[Path, Path]:
+        return (
+            self.tls_cert_root / "agent.crt.pem",
+            self.tls_cert_root / "agent.key.pem",
+        )
+
+    @property
     def home(self) -> Path:
         return self._home
 
@@ -75,7 +90,11 @@ class EVPEnvVars:
     EVP_MQTT_CLIENTID = "EVP_MQTT_CLIENTID"
     EVP_DATA_DIR = "EVP_DATA_DIR"
     EVP_HTTPS_CA_CERT = "EVP_HTTPS_CA_CERT"
+    EVP_REPORT_STATUS_INTERVAL_MIN_SEC = "EVP_REPORT_STATUS_INTERVAL_MIN_SEC"
     EVP_REPORT_STATUS_INTERVAL_MAX_SEC = "EVP_REPORT_STATUS_INTERVAL_MAX_SEC"
+    EVP_MQTT_TLS_CA_CERT = "EVP_MQTT_TLS_CA_CERT"
+    EVP_MQTT_TLS_CLIENT_CERT = "EVP_MQTT_TLS_CLIENT_CERT"
+    EVP_MQTT_TLS_CLIENT_KEY = "EVP_MQTT_TLS_CLIENT_KEY"
 
 
 class Target(Enum):
