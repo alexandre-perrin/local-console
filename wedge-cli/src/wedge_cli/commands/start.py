@@ -13,7 +13,7 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.x509 import load_pem_x509_certificate
 from pydantic import ValidationError
 from wedge_cli.clients.listener import Listener
-from wedge_cli.utils.config import get_config
+from wedge_cli.core.config import get_config
 from wedge_cli.utils.enums import Commands
 from wedge_cli.utils.enums import config_paths
 from wedge_cli.utils.enums import EVPEnvVars

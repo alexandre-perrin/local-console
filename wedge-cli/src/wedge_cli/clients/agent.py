@@ -14,8 +14,8 @@ import paho.mqtt.client as paho
 import trio
 from exceptiongroup import catch
 from paho.mqtt.client import MQTT_ERR_SUCCESS
-from wedge_cli.utils.config import config_paths
-from wedge_cli.utils.config import get_config
+from wedge_cli.core.config import config_paths
+from wedge_cli.core.config import get_config
 from wedge_cli.core.schemas import AgentConfiguration
 from wedge_cli.utils.tls import ensure_certificate_pair_exists
 from wedge_cli.utils.tls import get_random_identifier
