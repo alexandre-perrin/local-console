@@ -81,7 +81,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Run Pre-commit
-        uses: pre-commit/action@v3.0.0
+        uses: pre-commit/action@v3.0.1
 
   publish:
     name: Publish and tag
