@@ -100,7 +100,7 @@ jobs:
             package_version=$(awk -F' = ' '/^version/ {print $2}' wedge-cli/setup.cfg | tr -d "'")
             echo "PACKAGE_VERSION=$package_version" >> "$GITHUB_ENV"
     - name: Check
-      uses: mukunku/tag-exists-action@v1.4.0
+      uses: mukunku/tag-exists-action@v1.6.0
       id: check-tag
       with:
         tag: v${{ env.PACKAGE_VERSION }}
