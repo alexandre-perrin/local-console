@@ -13,10 +13,10 @@ from wedge_cli.commands.build import COMPILATION_FLAGS
 from wedge_cli.commands.build import compile_aot
 from wedge_cli.commands.build import compile_wasm
 from wedge_cli.commands.build import sign_file
-from wedge_cli.utils.enums import Commands
-from wedge_cli.utils.enums import ModuleExtension
-from wedge_cli.utils.enums import Target
-from wedge_cli.utils.schemas import DeploymentManifest
+from wedge_cli.core.enums import Commands
+from wedge_cli.core.enums import ModuleExtension
+from wedge_cli.core.enums import Target
+from wedge_cli.core.schemas import DeploymentManifest
 
 from tests.strategies.deployment import deployment_manifest_strategy
 from tests.strategies.path import path_strategy

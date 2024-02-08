@@ -1,12 +1,12 @@
 from pathlib import Path
 
 from hypothesis import strategies as st
-from wedge_cli.utils.schemas import AgentConfiguration
-from wedge_cli.utils.schemas import EVPParams
-from wedge_cli.utils.schemas import IPAddress
-from wedge_cli.utils.schemas import MQTTParams
-from wedge_cli.utils.schemas import TLSConfiguration
-from wedge_cli.utils.schemas import WebserverParams
+from wedge_cli.core.schemas import AgentConfiguration
+from wedge_cli.core.schemas import EVPParams
+from wedge_cli.core.schemas import IPAddress
+from wedge_cli.core.schemas import MQTTParams
+from wedge_cli.core.schemas import TLSConfiguration
+from wedge_cli.core.schemas import WebserverParams
 
 
 @st.composite

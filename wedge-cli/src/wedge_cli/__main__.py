@@ -17,9 +17,9 @@ from wedge_cli.commands import logs
 from wedge_cli.commands import new
 from wedge_cli.commands import rpc
 from wedge_cli.commands import start
-from wedge_cli.utils.config import setup_default_config
-from wedge_cli.utils.enums import Config
-from wedge_cli.utils.enums import config_paths
+from wedge_cli.core.config import setup_default_config
+from wedge_cli.core.enums import Config
+from wedge_cli.core.enums import config_paths
 from wedge_cli.utils.logger import configure_logger
 
 logger = logging.getLogger(__name__)

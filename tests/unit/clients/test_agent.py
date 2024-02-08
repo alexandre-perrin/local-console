@@ -10,7 +10,7 @@ from hypothesis import strategies as st
 from paho.mqtt.client import MQTT_ERR_ERRNO
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 from wedge_cli.clients.agent import Agent
-from wedge_cli.utils.schemas import AgentConfiguration
+from wedge_cli.core.schemas import AgentConfiguration
 
 from tests.strategies.configs import generate_agent_config
 

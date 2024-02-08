@@ -14,12 +14,12 @@ import trio
 import typer
 from wedge_cli.clients.agent import Agent
 from wedge_cli.clients.webserver import run_server
-from wedge_cli.utils.config import get_config
-from wedge_cli.utils.config import get_deployment_schema
-from wedge_cli.utils.enums import config_paths
-from wedge_cli.utils.enums import ModuleExtension
-from wedge_cli.utils.enums import Target
-from wedge_cli.utils.schemas import DeploymentManifest
+from wedge_cli.core.config import get_config
+from wedge_cli.core.config import get_deployment_schema
+from wedge_cli.core.enums import config_paths
+from wedge_cli.core.enums import ModuleExtension
+from wedge_cli.core.enums import Target
+from wedge_cli.core.schemas import DeploymentManifest
 
 
 logger = logging.getLogger(__name__)

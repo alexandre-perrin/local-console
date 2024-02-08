@@ -1,9 +1,9 @@
 from hypothesis import strategies as st
-from wedge_cli.utils.schemas import Deployment
-from wedge_cli.utils.schemas import DeploymentManifest
-from wedge_cli.utils.schemas import InstanceSpec
-from wedge_cli.utils.schemas import Module
-from wedge_cli.utils.schemas import Topics
+from wedge_cli.core.schemas import Deployment
+from wedge_cli.core.schemas import DeploymentManifest
+from wedge_cli.core.schemas import InstanceSpec
+from wedge_cli.core.schemas import Module
+from wedge_cli.core.schemas import Topics
 
 
 @st.composite

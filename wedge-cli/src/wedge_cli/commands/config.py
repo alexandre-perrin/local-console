@@ -8,14 +8,14 @@ from typing import Optional
 import trio
 import typer
 from wedge_cli.clients.agent import Agent
-from wedge_cli.utils.config import check_section_and_params
-from wedge_cli.utils.config import get_config
-from wedge_cli.utils.config import parse_section_to_ini
-from wedge_cli.utils.config import schema_to_parser
-from wedge_cli.utils.enums import config_paths
-from wedge_cli.utils.schemas import AgentConfiguration
-from wedge_cli.utils.schemas import IPAddress
-from wedge_cli.utils.schemas import RemoteConnectionInfo
+from wedge_cli.core.config import check_section_and_params
+from wedge_cli.core.config import get_config
+from wedge_cli.core.config import parse_section_to_ini
+from wedge_cli.core.config import schema_to_parser
+from wedge_cli.core.enums import config_paths
+from wedge_cli.core.schemas import AgentConfiguration
+from wedge_cli.core.schemas import IPAddress
+from wedge_cli.core.schemas import RemoteConnectionInfo
 
 logger = logging.getLogger(__name__)
 app = typer.Typer(help="Commands that interact with the configuration of the agent")
