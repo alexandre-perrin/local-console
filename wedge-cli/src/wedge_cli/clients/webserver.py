@@ -51,3 +51,22 @@ class SyncWebserver:
         # Shutdown the server after exiting the context
         self.server.shutdown()
         self.server.server_close()
+
+
+class AsyncWebserver(SyncWebserver):
+    """
+    This class wraps the synchronous context manager methods
+    from SyncWebserver, as they are not really blocking. This
+    enables managing the webserver from async contexts.
+    """
+
+    async def __aenter__(self) -> None:
+        return self.__enter__()
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
+        return self.__exit__(exc_type, exc_val, exc_tb)

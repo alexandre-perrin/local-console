@@ -13,7 +13,7 @@ from typing import Optional
 import trio
 import typer
 from wedge_cli.clients.agent import Agent
-from wedge_cli.clients.webserver import run_server
+from wedge_cli.clients.webserver import AsyncWebserver
 from wedge_cli.core.config import get_config
 from wedge_cli.core.config import get_deployment_schema
 from wedge_cli.core.enums import config_paths
@@ -84,10 +84,7 @@ def deploy(
 
     success = False
     try:
-        with run_server(Path.cwd(), port):
-            success = trio.run(
-                exec_deployment, agent, deployment_manifest, port, timeout
-            )
+        success = trio.run(exec_deployment, agent, deployment_manifest, port, timeout)
     except Exception as e:
         logger.exception("Deployment error", exc_info=e)
     except KeyboardInterrupt:
@@ -106,7 +103,10 @@ async def exec_deployment(
     subscription_topics = [Agent.REQUEST_TOPIC, Agent.DEPLOYMENT_TOPIC]
     deploy_fsm = DeployFSM(agent, deploy_manifest)
     with trio.move_on_after(timeout_secs) as timeout_scope:
-        async with agent.mqtt_scope(subscription_topics):
+        async with (
+            agent.mqtt_scope(subscription_topics),
+            AsyncWebserver(Path.cwd(), webserver_port),
+        ):
             assert agent.nursery is not None  # make mypy happy
             agent.nursery.start_soon(deploy_fsm.message_task)
             await deploy_fsm.done.wait()
