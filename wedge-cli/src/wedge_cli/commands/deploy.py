@@ -20,6 +20,7 @@ from wedge_cli.core.enums import config_paths
 from wedge_cli.core.enums import ModuleExtension
 from wedge_cli.core.enums import Target
 from wedge_cli.core.schemas import DeploymentManifest
+from wedge_cli.utils.tls import is_localhost
 
 
 logger = logging.getLogger(__name__)
@@ -63,6 +64,11 @@ def deploy(
     config: AgentConfiguration = get_config()  # type:ignore
     port = config.webserver.port
     host = config.webserver.host.ip_value
+    if not is_localhost(host):
+        logger.error(
+            "Cannot deploy webserver anywhere else than localhost (given %s)", host
+        )
+        exit(1)
 
     agent = Agent()
     if empty:

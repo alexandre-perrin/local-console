@@ -34,6 +34,7 @@ def test_deploy_empty_command(empty: bool, agent_config: AgentConfiguration) -> 
         patch("wedge_cli.commands.deploy.get_empty_deployment") as mock_get_deployment,
         patch("wedge_cli.commands.deploy.run_server") as mock_webserver,
         patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
+        patch("wedge_cli.commands.deploy.is_localhost", return_value=True),
         patch("wedge_cli.commands.deploy.exec_deployment") as mock_exec_deploy,
     ):
         if empty:
@@ -58,6 +59,7 @@ def test_deploy_command_target(
     with (
         patch("wedge_cli.commands.deploy.Agent") as mock_agent_client,
         patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
+        patch("wedge_cli.commands.deploy.is_localhost", return_value=True),
         patch("wedge_cli.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch("wedge_cli.commands.deploy.run_server") as mock_webserver,
         patch(
@@ -102,6 +104,7 @@ def test_deploy_command_signed(
     with (
         patch("wedge_cli.commands.deploy.Agent") as mock_agent_client,
         patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
+        patch("wedge_cli.commands.deploy.is_localhost", return_value=True),
         patch("wedge_cli.commands.deploy.run_server") as mock_webserver,
         patch("wedge_cli.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
@@ -145,6 +148,7 @@ def test_deploy_command_timeout(
     with (
         patch("wedge_cli.commands.deploy.Agent") as mock_agent_client,
         patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
+        patch("wedge_cli.commands.deploy.is_localhost", return_value=True),
         patch("wedge_cli.commands.deploy.run_server") as mock_webserver,
         patch("wedge_cli.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
@@ -194,6 +198,7 @@ def test_deploy_manifest_no_bin(
     agent_config: AgentConfiguration,
 ):
     with (
+        patch("wedge_cli.commands.deploy.is_localhost", return_value=True),
         patch("wedge_cli.commands.deploy.Agent") as mock_agent_client,
         patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
         patch(
