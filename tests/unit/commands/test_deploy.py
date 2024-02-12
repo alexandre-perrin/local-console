@@ -32,15 +32,14 @@ def test_deploy_empty_command(empty: bool, agent_config: AgentConfiguration) -> 
     with (
         patch("wedge_cli.commands.deploy.Agent") as mock_agent_client,
         patch("wedge_cli.commands.deploy.get_empty_deployment") as mock_get_deployment,
-        patch("wedge_cli.commands.deploy.run_server") as mock_webserver,
         patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
+        patch("wedge_cli.commands.deploy.is_localhost", return_value=True),
         patch("wedge_cli.commands.deploy.exec_deployment") as mock_exec_deploy,
     ):
         if empty:
             result = runner.invoke(app, ["-e"])
             mock_agent_client.assert_called_once()
             mock_get_deployment.assert_called_once()
-            mock_webserver.assert_called_once()
             mock_exec_deploy.assert_called_once_with(
                 mock_agent_client(), mock_get_deployment.return_value, ANY, ANY
             )
@@ -58,8 +57,8 @@ def test_deploy_command_target(
     with (
         patch("wedge_cli.commands.deploy.Agent") as mock_agent_client,
         patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
+        patch("wedge_cli.commands.deploy.is_localhost", return_value=True),
         patch("wedge_cli.commands.deploy.exec_deployment") as mock_exec_deploy,
-        patch("wedge_cli.commands.deploy.run_server") as mock_webserver,
         patch(
             "wedge_cli.commands.deploy.update_deployment_manifest"
         ) as mock_update_manifest,
@@ -85,7 +84,6 @@ def test_deploy_command_target(
             False,
         )
         mock_make_unique_ids.assert_called_once()
-        mock_webserver.assert_called_once()
         mock_exec_deploy.assert_called_once_with(
             mock_agent_client(), deployment_manifest, ANY, ANY
         )
@@ -102,7 +100,7 @@ def test_deploy_command_signed(
     with (
         patch("wedge_cli.commands.deploy.Agent") as mock_agent_client,
         patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
-        patch("wedge_cli.commands.deploy.run_server") as mock_webserver,
+        patch("wedge_cli.commands.deploy.is_localhost", return_value=True),
         patch("wedge_cli.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
             "wedge_cli.commands.deploy.update_deployment_manifest"
@@ -129,7 +127,6 @@ def test_deploy_command_signed(
             True,
         )
         mock_make_unique_ids.assert_called_once()
-        mock_webserver.assert_called_once()
         mock_exec_deploy.assert_called_once_with(
             mock_agent_client(), deployment_manifest, ANY, ANY
         )
@@ -145,7 +142,7 @@ def test_deploy_command_timeout(
     with (
         patch("wedge_cli.commands.deploy.Agent") as mock_agent_client,
         patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
-        patch("wedge_cli.commands.deploy.run_server") as mock_webserver,
+        patch("wedge_cli.commands.deploy.is_localhost", return_value=True),
         patch("wedge_cli.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
             "wedge_cli.commands.deploy.update_deployment_manifest"
@@ -172,7 +169,6 @@ def test_deploy_command_timeout(
             False,
         )
         mock_make_unique_ids.assert_called_once()
-        mock_webserver.assert_called_once()
         mock_exec_deploy.assert_called_once_with(
             mock_agent_client(), deployment_manifest, ANY, timeout
         )
@@ -194,6 +190,7 @@ def test_deploy_manifest_no_bin(
     agent_config: AgentConfiguration,
 ):
     with (
+        patch("wedge_cli.commands.deploy.is_localhost", return_value=True),
         patch("wedge_cli.commands.deploy.Agent") as mock_agent_client,
         patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
         patch(
