@@ -16,8 +16,18 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
 
 class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, _format: str, *args: Sequence[str]) -> None:
-        request, code, size = args
-        logger.debug("%s %s %s", request, code, size)
+        logger.debug(" ".join(str(arg) for arg in args))
+
+    def do_PUT(self) -> None:
+        content_length = int(self.headers["Content-Length"])
+        data = self.rfile.read(content_length)
+        dest_path = Path(self.directory) / self.path.lstrip("/")
+        dest_path.write_bytes(data)
+
+        self.send_response(200)
+        self.end_headers()
+
+    do_POST = do_PUT
 
 
 class SyncWebserver:
