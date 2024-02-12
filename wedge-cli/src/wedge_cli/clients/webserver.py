@@ -2,11 +2,10 @@ import http.server
 import logging
 import socketserver
 import threading
-from collections.abc import Iterator
 from collections.abc import Sequence
-from contextlib import contextmanager
 from pathlib import Path
-
+from types import TracebackType
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -21,21 +20,34 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         logger.debug("%s %s %s", request, code, size)
 
 
-@contextmanager
-def run_server(directory: Path, port: int) -> Iterator[None]:
-    # Create the server object
-    handler = lambda *args, **kwargs: CustomHTTPRequestHandler(
-        *args, directory=str(directory), **kwargs
-    )
-    server = ThreadedHTTPServer(("0.0.0.0", port), handler)
+class SyncWebserver:
+    """
+    This class exposes the HTTP server classes defined above
+    as a convenient context manager.
+    """
 
-    # Start the server in a new thread
-    thread = threading.Thread(target=server.serve_forever)
-    thread.start()
-    logger.debug("Serving at port %d", port)
-    try:
-        yield
-    finally:
+    def __init__(self, directory: Path, port: int) -> None:
+        self.dir = directory
+        self.port = port
+
+    def __enter__(self) -> None:
+        # Create the server object
+        handler = lambda *args, **kwargs: CustomHTTPRequestHandler(
+            *args, directory=str(self.dir), **kwargs
+        )
+        self.server = ThreadedHTTPServer(("0.0.0.0", self.port), handler)
+
+        # Start the server in a new thread
+        self.thread = threading.Thread(target=self.server.serve_forever)
+        self.thread.start()
+        logger.debug("Serving at port %d", self.port)
+
+    def __exit__(
+        self,
+        _exc_type: Optional[type[BaseException]],
+        _exc_val: Optional[BaseException],
+        _exc_tb: Optional[TracebackType],
+    ) -> None:
         # Shutdown the server after exiting the context
-        server.shutdown()
-        server.server_close()
+        self.server.shutdown()
+        self.server.server_close()
