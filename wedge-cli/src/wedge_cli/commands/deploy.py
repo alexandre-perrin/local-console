@@ -283,6 +283,13 @@ def update_deployment_manifest(
             module
         ].downloadUrl = f"http://{host}:{port}/{file}"
 
+    # DeploymentId based on deployment manifest contect
+    deployment_manifest.deployment.deploymentId = ""
+    deployment_manifest_hash = hashlib.sha256(
+        str(deployment_manifest.model_dump()).encode("utf-8")
+    )
+    deployment_manifest.deployment.deploymentId = deployment_manifest_hash.hexdigest()
+
     with open(config_paths.deployment_json, "w") as f:
         json.dump(deployment_manifest.model_dump(), f, indent=2)
 
