@@ -32,13 +32,15 @@ class Agent:
     TELEMETRY = "v1/devices/me/telemetry"
 
     def __init__(self) -> None:
-        self.mqttc = paho.Client()
         self.client: Optional[AsyncClient] = None
         self.nursery: Optional[trio.Nursery] = None
 
         config_parse: AgentConfiguration = get_config()
         self._host = config_parse.mqtt.host.ip_value
         self._port = config_parse.mqtt.port
+
+        client_id = f"cli-client-{random.randint(0, 10**7)}"
+        self.mqttc = paho.Client(clean_session=True, client_id=client_id)
 
         self.configure_tls(config_parse)
 

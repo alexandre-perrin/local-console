@@ -9,6 +9,7 @@ from typing import Annotated
 from typing import Optional
 
 import typer
+from wedge_cli.commands import broker
 from wedge_cli.commands import build
 from wedge_cli.commands import config
 from wedge_cli.commands import deploy
@@ -37,6 +38,7 @@ app.add_typer(logs.app, name="logs")
 app.add_typer(rpc.app, name="rpc")
 app.add_typer(get.app, name="get")
 app.add_typer(config.app, name="config")
+app.add_typer(broker.app, name="broker")
 
 
 def handle_exit(signal: int, frame: Optional[FrameType]) -> None:
