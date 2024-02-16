@@ -13,13 +13,13 @@ from typing import Optional
 import trio
 import typer
 from wedge_cli.clients.agent import Agent
-from wedge_cli.clients.webserver import AsyncWebserver
 from wedge_cli.core.config import get_config
 from wedge_cli.core.config import get_deployment_schema
 from wedge_cli.core.enums import config_paths
 from wedge_cli.core.enums import ModuleExtension
 from wedge_cli.core.enums import Target
 from wedge_cli.core.schemas import DeploymentManifest
+from wedge_cli.servers.webserver import AsyncWebserver
 from wedge_cli.utils.tls import is_localhost
 
 
