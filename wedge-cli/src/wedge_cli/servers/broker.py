@@ -10,6 +10,7 @@ from tempfile import TemporaryDirectory
 import trio
 from wedge_cli.core.enums import config_paths
 from wedge_cli.core.schemas import AgentConfiguration
+from wedge_cli.utils.tls import ensure_certificate_pair_exists
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +19,13 @@ broker_assets = Path(__file__).parents[1] / "assets" / "broker"
 
 @asynccontextmanager
 async def spawn_broker(
-    config: AgentConfiguration, nursery: trio.Nursery
+    config: AgentConfiguration, server_name: str, nursery: trio.Nursery
 ) -> AsyncIterator[None]:
+    if config.is_tls_enabled:
+        broker_cert_path, broker_key_path = config_paths.broker_cert_pair
+        ensure_certificate_pair_exists(
+            server_name, broker_cert_path, broker_key_path, config.tls, is_server=True
+        )
 
     with TemporaryDirectory() as tmp_dir:
         broker_bin = broker_assets / platform.system() / f"rumqttd{exe_ext()}"
@@ -40,7 +46,21 @@ def exe_ext() -> str:
 
 def populate_broker_conf(config: AgentConfiguration, config_file: Path) -> None:
     data = {"mqtt_port": str(config.mqtt.port)}
-    template_file = broker_assets / f"config.no-tls.toml.tpl"
+
+    if config.is_tls_enabled:
+        broker_cert_path, broker_key_path = config_paths.broker_cert_pair
+        variant = "tls"
+        data.update(
+            {
+                "ca_crt": str(config.tls.ca_certificate),
+                "server_crt": str(broker_cert_path),
+                "server_key": str(broker_key_path),
+            }
+        )
+    else:
+        variant = "no-tls"
+
+    template_file = broker_assets / f"config.{variant}.toml.tpl"
     template = Template(template_file.read_text())
     rendered = template.substitute(data)
     config_file.write_text(rendered)

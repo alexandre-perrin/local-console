@@ -53,7 +53,7 @@ def deploy(
             "--timeout",
             help="Set timeout to wait for the modules to be downloaded by the agent",
         ),
-    ] = 10,
+    ] = 15,
     target: Annotated[
         Optional[Target],
         typer.Argument(

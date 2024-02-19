@@ -1,4 +1,5 @@
 import logging
+from typing import Annotated
 
 import trio
 import typer
@@ -12,22 +13,26 @@ logger = logging.getLogger(__name__)
 
 
 @app.callback(invoke_without_command=True)
-def broker() -> None:
+def broker(
+    server_name: Annotated[
+        str,
+        typer.Argument(
+            help="Server name to assign for TLS server verification, if TLS is enabled"
+        ),
+    ] = "localhost",
+) -> None:
     try:
         config = get_config()
-        if not config.is_tls_enabled:
-            trio.run(broker_task, config)
-        else:
-            logger.error("TLS mode not supported. Aborting.")
+        trio.run(broker_task, config, server_name)
     except KeyboardInterrupt:
         logger.warning("Cancelled by the user.")
 
 
-async def broker_task(config: AgentConfiguration) -> None:
+async def broker_task(config: AgentConfiguration, server_name: str) -> None:
     logger.setLevel(logging.INFO)
     async with (
         trio.open_nursery() as nursery,
-        spawn_broker(config, nursery),
+        spawn_broker(config, server_name, nursery),
     ):
         logger.info(f"MQTT broker listening on port {config.mqtt.port}")
         await trio.sleep_forever()
