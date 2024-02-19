@@ -64,8 +64,10 @@ def deploy(
     config: AgentConfiguration = get_config()  # type:ignore
     port = config.webserver.port
     host = config.webserver.host.ip_value
+    deploy_webserver = False
     if is_localhost(host):
         host = get_my_ip_by_routing()
+        deploy_webserver = True
 
     agent = Agent()
     if empty:
@@ -81,7 +83,9 @@ def deploy(
 
     success = False
     try:
-        success = trio.run(exec_deployment, agent, deployment_manifest, port, timeout)
+        success = trio.run(
+            exec_deployment, agent, deployment_manifest, deploy_webserver, port, timeout
+        )
     except Exception as e:
         logger.exception("Deployment error", exc_info=e)
     except KeyboardInterrupt:
@@ -93,6 +97,7 @@ def deploy(
 async def exec_deployment(
     agent: Agent,
     deploy_manifest: DeploymentManifest,
+    deploy_webserver: bool,
     webserver_port: int,
     timeout_secs: int,
 ) -> bool:
@@ -102,7 +107,7 @@ async def exec_deployment(
     with trio.move_on_after(timeout_secs) as timeout_scope:
         async with (
             agent.mqtt_scope(subscription_topics),
-            AsyncWebserver(Path.cwd(), webserver_port),
+            AsyncWebserver(Path.cwd(), webserver_port, deploy_webserver),
         ):
             assert agent.nursery is not None  # make mypy happy
             agent.nursery.start_soon(deploy_fsm.message_task)

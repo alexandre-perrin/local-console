@@ -36,11 +36,15 @@ class SyncWebserver:
     as a convenient context manager.
     """
 
-    def __init__(self, directory: Path, port: int) -> None:
+    def __init__(self, directory: Path, port: int, deploy: bool = True) -> None:
         self.dir = directory
         self.port = port
+        self.deploy = deploy
 
     def __enter__(self) -> None:
+        if not self.deploy:
+            return
+
         # Create the server object
         handler = lambda *args, **kwargs: CustomHTTPRequestHandler(
             *args, directory=str(self.dir), **kwargs
@@ -58,6 +62,9 @@ class SyncWebserver:
         _exc_val: Optional[BaseException],
         _exc_tb: Optional[TracebackType],
     ) -> None:
+        if not self.deploy:
+            return
+
         # Shutdown the server after exiting the context
         self.server.shutdown()
         self.server.server_close()
