@@ -129,3 +129,8 @@ class Deployment(BaseModel):
 
 class DeploymentManifest(BaseModel):
     deployment: Deployment
+
+
+class DesiredDeviceConfig(BaseModel):
+    reportStatusIntervalMax: Annotated[int, Field(ge=0, le=65535)]
+    reportStatusIntervalMin: Annotated[int, Field(ge=0, le=65535)]

@@ -18,6 +18,7 @@ from wedge_cli.clients.trio_paho_mqtt import AsyncClient
 from wedge_cli.core.config import config_paths
 from wedge_cli.core.config import get_config
 from wedge_cli.core.schemas import AgentConfiguration
+from wedge_cli.core.schemas import DesiredDeviceConfig
 from wedge_cli.utils.tls import ensure_certificate_pair_exists
 from wedge_cli.utils.tls import get_random_identifier
 from wedge_cli.utils.tls import is_localhost
@@ -165,6 +166,26 @@ class Agent:
         """
         config = base64.b64encode(config.encode("utf-8")).decode("utf-8")
         message: dict = {f"configuration/{instance_id}/{topic}": config}
+        payload = json.dumps(message)
+        logger.debug(f"payload: {payload}")
+        await self.publish(self.DEPLOYMENT_TOPIC, payload=payload)
+
+    async def device_configure(
+        self, desired_device_config: DesiredDeviceConfig
+    ) -> None:
+        """
+        :param config: Configuration of the module instance.
+        """
+        message: dict = {
+            "desiredDeviceConfig": {
+                "desiredDeviceConfig": {
+                    "configuration/$agent/report-status-interval-max": desired_device_config.reportStatusIntervalMax,
+                    "configuration/$agent/report-status-interval-min": desired_device_config.reportStatusIntervalMin,
+                    "configuration/$agent/configuration-id": "",
+                    "configuration/$agent/registry-auth": {},
+                }
+            }
+        }
         payload = json.dumps(message)
         logger.debug(f"payload: {payload}")
         await self.publish(self.DEPLOYMENT_TOPIC, payload=payload)

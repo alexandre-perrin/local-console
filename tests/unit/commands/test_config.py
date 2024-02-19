@@ -8,6 +8,7 @@ from wedge_cli.commands.config import app
 from wedge_cli.core.enums import config_paths
 from wedge_cli.core.enums import GetCommands
 from wedge_cli.core.schemas import AgentConfiguration
+from wedge_cli.core.schemas import DesiredDeviceConfig
 from wedge_cli.core.schemas import IPAddress
 from wedge_cli.core.schemas import RemoteConnectionInfo
 
@@ -308,4 +309,28 @@ def test_config_instance_command_exception(instance_id: str, method: str, params
         mock_mqtt.side_effect = ConnectionError
         result = runner.invoke(app, ["instance", instance_id, method, params])
         mock_agent.assert_called()
+        assert result.exit_code == 1
+
+
+@given(st.integers(min_value=0, max_value=300), st.integers(min_value=0, max_value=300))
+def test_config_device_command(interval_max: int, interval_min: int):
+    with (
+        patch("wedge_cli.commands.config.Agent"),
+        patch("wedge_cli.commands.config.config_device_task") as mock_configure,
+    ):
+        result = runner.invoke(app, ["device", f"{interval_max}", f"{interval_min}"])
+        desired_device_config = DesiredDeviceConfig(
+            reportStatusIntervalMax=interval_max, reportStatusIntervalMin=interval_min
+        )
+        mock_configure.assert_awaited_with(desired_device_config)
+        assert result.exit_code == 0
+
+
+@given(
+    st.integers(min_value=-100, max_value=-1), st.integers(min_value=-100, max_value=-1)
+)
+def test_config_device_command_invalid_range(interval_max: int, interval_min: int):
+    with (patch("wedge_cli.commands.config.config_device_task") as mock_configure,):
+        result = runner.invoke(app, ["device", interval_max, interval_min])
+        mock_configure.assert_not_awaited()
         assert result.exit_code == 1

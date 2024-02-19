@@ -14,6 +14,7 @@ from wedge_cli.core.config import parse_section_to_ini
 from wedge_cli.core.config import schema_to_parser
 from wedge_cli.core.enums import config_paths
 from wedge_cli.core.schemas import AgentConfiguration
+from wedge_cli.core.schemas import DesiredDeviceConfig
 from wedge_cli.core.schemas import IPAddress
 from wedge_cli.core.schemas import RemoteConnectionInfo
 
@@ -186,4 +187,37 @@ async def configure_task(instance_id: str, topic: str, config: str) -> None:
     agent = Agent()  # type: ignore
     async with agent.mqtt_scope([]):
         await agent.configure(instance_id, topic, config)
+        agent.async_done()
+
+
+@app.command("device", help="Configure the device")
+def config_device(
+    interval_max: Annotated[
+        int,
+        typer.Argument(help="Max interval to report."),
+    ],
+    interval_min: Annotated[
+        int,
+        typer.Argument(help="Min interval to report."),
+    ],
+) -> None:
+    try:
+        desired_device_config = DesiredDeviceConfig(
+            reportStatusIntervalMax=interval_max, reportStatusIntervalMin=interval_min
+        )
+    except ValueError:
+        logger.warning("Report status interval out of range.")
+        exit(1)
+    try:
+        trio.run(config_device_task, desired_device_config)
+    except ConnectionError:
+        raise SystemExit(
+            "Connection error while attempting to set device configuration"
+        )
+
+
+async def config_device_task(desired_device_config: DesiredDeviceConfig) -> None:
+    agent = Agent()  # type: ignore
+    async with agent.mqtt_scope([]):
+        await agent.device_configure(desired_device_config)
         agent.async_done()
