@@ -16,7 +16,7 @@ from wedge_cli.utils.signature import sign
 COMPILATION_FLAGS = {
     Target.AMD64: "--target=x86_64 --cpu=skylake --disable-simd --size-level=1",
     Target.ARM64: "--target=aarch64",
-    Target.XTENSA: "--target=xtensa --enable-multi-thread",
+    Target.XTENSA: "--target=xtensa --enable-multi-thread --size-level=0",
 }
 
 logger = logging.getLogger(__name__)
