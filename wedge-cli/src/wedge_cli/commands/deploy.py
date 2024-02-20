@@ -109,7 +109,7 @@ async def exec_deployment(
     with trio.move_on_after(timeout_secs) as timeout_scope:
         async with (
             agent.mqtt_scope(subscription_topics),
-            AsyncWebserver(Path.cwd(), webserver_port, deploy_webserver),
+            AsyncWebserver(Path.cwd(), webserver_port, None, deploy_webserver),
         ):
             assert agent.nursery is not None  # make mypy happy
             agent.nursery.start_soon(deploy_fsm.message_task)
