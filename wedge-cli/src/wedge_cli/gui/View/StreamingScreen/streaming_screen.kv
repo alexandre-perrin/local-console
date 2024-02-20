@@ -1,0 +1,85 @@
+#:import JsonLexer pygments.lexers.JsonLexer
+
+<StreamingScreenView>
+    md_bg_color: self.theme_cls.backgroundColor
+    streamed_image: self.streamed_image
+    inference_data: self.inference_data
+
+    MDBoxLayout:
+        orientation: "vertical"
+
+        MDBoxLayout:
+        # Top bar
+            orientation: "horizontal"
+            size_hint_y: 0.1
+
+            MDBoxLayout:
+            # Controls half
+                orientation: "horizontal"
+                padding: "5dp"
+
+                MDButton:
+                    on_release: root.manager.current = 'home screen'
+                    style: "elevated"
+                    pos_hint: {"center_y": 0.5}
+                    size_hint_x: "60dp"
+                    MDButtonIcon:
+                        icon: "home"
+                        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+                MDWidget:
+
+                MDButton:
+                    on_release: root.toggle_stream_status()
+                    style: "elevated"
+                    pos_hint: {"center_y": 0.5}
+                    MDButtonText:
+                        text: "Set Streaming"
+
+                MDButton:
+                    on_release: root.capture_roi()
+                    style: "elevated"
+                    pos_hint: {"center_y": 0.5}
+                    MDButtonText:
+                        text: "Set ROI"
+
+                MDWidget:
+
+            MDBoxLayout:
+            # Status readout half
+                orientation: "horizontal"
+                padding: "5dp"
+
+                MDIcon:
+                    icon: "video-outline"
+                    pos_hint: {'center_y': .5}
+
+                MDWidget:
+
+                MDLabel:
+                    text: 'Streaming:'
+                MDLabel:
+                    id: stream_flag
+                    text: "Inactive"
+
+        MDBoxLayout:
+        # Image view half
+            orientation: "horizontal"
+            size_hint_y: 0.9
+            padding: "5dp"
+
+            ImageWithROI:
+                id: stream_image
+                source: root.streamed_image
+                radius: "10dp"
+                fit_mode: "contain"
+                on_ROI: root.set_roi(args[0])
+                size_hint_x: 0.7
+
+            MDScrollView:
+                size_hint_x: 0.3
+
+                CodeInput:
+                    id: inference_field
+                    lexer: JsonLexer()
+                    font_size: "12sp"

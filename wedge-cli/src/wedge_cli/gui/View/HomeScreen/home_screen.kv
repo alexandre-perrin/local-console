@@ -23,6 +23,16 @@
                 MDExtendedFabButtonText:
                     text: "Settings"
 
+            MDExtendedFabButton:
+                size_hint_x: .7
+                fab_state: "expand"
+                valign: "center"
+                on_press: root.manager.current = 'streaming screen'
+                MDExtendedFabButtonIcon:
+                    icon: "animation-play"
+                MDExtendedFabButtonText:
+                    text: "Streaming"
+
             MDWidget:
 
         MDBoxLayout:

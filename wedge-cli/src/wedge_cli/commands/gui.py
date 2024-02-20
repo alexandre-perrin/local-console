@@ -10,7 +10,6 @@ app = typer.Typer(help="Command to start the GUI mode")
 
 @app.callback(invoke_without_command=True)
 def gui() -> None:
-
     os.environ["KIVY_LOG_MODE"] = "PYTHON"
     os.environ["KIVY_NO_ARGS"] = "1"
     os.environ["KIVY_NO_CONSOLELOG"] = "1"

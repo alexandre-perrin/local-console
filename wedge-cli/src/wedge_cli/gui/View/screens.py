@@ -2,13 +2,19 @@
 # of the screens of the application.
 from wedge_cli.gui.Controller.home_screen import HomeScreenController
 from wedge_cli.gui.Controller.settings_screen import SettingsScreenController
+from wedge_cli.gui.Controller.streaming_screen import StreamingScreenController
 from wedge_cli.gui.Model.home_screen import HomeScreenModel
 from wedge_cli.gui.Model.settings_screen import SettingsScreenModel
+from wedge_cli.gui.Model.streaming_screen import StreamingScreenModel
 
 screens = {
     "home screen": {
         "model": HomeScreenModel,
         "controller": HomeScreenController,
+    },
+    "streaming screen": {
+        "model": StreamingScreenModel,
+        "controller": StreamingScreenController,
     },
     "settings screen": {
         "model": SettingsScreenModel,
