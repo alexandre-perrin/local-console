@@ -28,7 +28,10 @@ async def spawn_broker(
         )
 
     with TemporaryDirectory() as tmp_dir:
-        broker_bin = broker_assets / platform.system() / f"rumqttd{exe_ext()}"
+        if platform.system() == "Linux":
+            broker_bin = "mosquitto"
+        elif platform.system() == "Windows":
+            broker_bin = "C:\\Program Files\\mosquitto\\mosquitto.exe"
 
         config_file = Path(tmp_dir) / "broker.toml"
         populate_broker_conf(config, config_file)
@@ -37,6 +40,9 @@ async def spawn_broker(
         invocation = partial(trio.run_process, command=cmd)
 
         broker_proc = await nursery.start(invocation)
+        # This is a margin to let the broker start up.
+        # A (minor) enhancement would be to poll the broker.
+        await trio.sleep(2)
         yield broker_proc
         broker_proc.kill()
 
