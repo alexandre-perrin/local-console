@@ -23,7 +23,6 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         data = self.rfile.read(content_length)
         dest_path = Path(self.directory) / self.path.lstrip("/")
         dest_path.write_bytes(data)
-
         self.send_response(200)
         self.end_headers()
 
@@ -36,25 +35,32 @@ class SyncWebserver:
     as a convenient context manager.
     """
 
-    def __init__(self, directory: Path, port: int, deploy: bool = True) -> None:
+    def __init__(
+        self,
+        directory: Path,
+        port: int = 0,
+        deploy: bool = True,
+    ) -> None:
         self.dir = directory
         self.port = port
         self.deploy = deploy
 
-    def __enter__(self) -> None:
-        if not self.deploy:
-            return
+    def __enter__(self) -> "SyncWebserver":
+        if self.deploy:
+            # Create the server object
+            handler = lambda *args, **kwargs: CustomHTTPRequestHandler(
+                *args, directory=str(self.dir), **kwargs
+            )
+            self.server = ThreadedHTTPServer(("0.0.0.0", self.port), handler)
 
-        # Create the server object
-        handler = lambda *args, **kwargs: CustomHTTPRequestHandler(
-            *args, directory=str(self.dir), **kwargs
-        )
-        self.server = ThreadedHTTPServer(("0.0.0.0", self.port), handler)
+            # Start the server in a new thread
+            self.thread = threading.Thread(target=self.server.serve_forever)
+            self.thread.start()
 
-        # Start the server in a new thread
-        self.thread = threading.Thread(target=self.server.serve_forever)
-        self.thread.start()
-        logger.debug("Serving at port %d", self.port)
+            self.port = self.server.server_port
+            logger.debug("Serving at port %d", self.port)
+
+        return self
 
     def __exit__(
         self,
@@ -77,7 +83,7 @@ class AsyncWebserver(SyncWebserver):
     enables managing the webserver from async contexts.
     """
 
-    async def __aenter__(self) -> None:
+    async def __aenter__(self) -> "SyncWebserver":
         return self.__enter__()
 
     async def __aexit__(
