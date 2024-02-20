@@ -37,11 +37,11 @@ def setup_default_config() -> None:
         logger.info("Generating default config_paths")
         try:
             config_file.parent.mkdir(parents=True, exist_ok=True)
-        except Exception:
-            logger.error(f"Error while generating folder {config_file.parent}")
-            exit(1)
-        with open(config_paths.config_path, "w") as f:
-            get_default_config().write(f)
+            with open(config_paths.config_path, "w") as f:
+                get_default_config().write(f)
+        except OSError as e:
+            logger.error(f"Error while generating folder {config_file.parent}: {e}")
+            raise SystemExit()
 
 
 def parse_ini(config_parser: configparser.ConfigParser) -> str:
@@ -79,7 +79,7 @@ def config_to_schema(config: configparser.ConfigParser) -> AgentConfiguration:
         logger.error(
             f"Config file not correct. Section or parameter missing is {e}. \n The file should have the following sections and parameters {parse_ini(get_default_config())}"
         )
-        exit(1)
+        raise SystemExit()
 
 
 def optional_path(path: Optional[str]) -> Optional[Path]:
