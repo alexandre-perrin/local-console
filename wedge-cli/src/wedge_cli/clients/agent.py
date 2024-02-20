@@ -29,7 +29,8 @@ logger = logging.getLogger(__name__)
 class Agent:
     DEPLOYMENT_TOPIC = "v1/devices/me/attributes"
     REQUEST_TOPIC = "v1/devices/me/attributes/request/+"
-    TELEMETRY = "v1/devices/me/telemetry"
+    RPC_RESPONSES_TOPIC = "v1/devices/me/rpc/response/+"
+    TELEMETRY_TOPIC = "v1/devices/me/telemetry"
 
     def __init__(self) -> None:
         self.client: Optional[AsyncClient] = None
@@ -233,7 +234,7 @@ class Agent:
 
     def get_instance_logs(self, instance_id: str, timeout: int) -> None:
         self._loop_forever(
-            subs_topics=[self.TELEMETRY],
+            subs_topics=[self.TELEMETRY_TOPIC],
             message_task=self._on_message_logs(instance_id, timeout),
         )
 
@@ -245,7 +246,7 @@ class Agent:
 
     def get_telemetry(self) -> None:
         self._loop_forever(
-            subs_topics=[self.TELEMETRY],
+            subs_topics=[self.TELEMETRY_TOPIC],
             message_task=self._on_message_telemetry(),
         )
 
