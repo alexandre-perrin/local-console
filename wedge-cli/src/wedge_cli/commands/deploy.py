@@ -65,8 +65,10 @@ def deploy(
     port = config.webserver.port
     host = config.webserver.host.ip_value
     deploy_webserver = False
-    if is_localhost(host):
-        host = get_my_ip_by_routing()
+
+    local_ip = get_my_ip_by_routing()
+    if is_localhost(host) or host == local_ip:
+        host = local_ip
         deploy_webserver = True
 
     agent = Agent()
