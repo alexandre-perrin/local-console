@@ -19,8 +19,8 @@ broker_assets = Path(__file__).parents[1] / "assets" / "broker"
 
 @asynccontextmanager
 async def spawn_broker(
-    config: AgentConfiguration, server_name: str, nursery: trio.Nursery
-) -> AsyncIterator[None]:
+    config: AgentConfiguration, nursery: trio.Nursery, verbose: bool, server_name: str
+) -> AsyncIterator[trio.Process]:
     if config.is_tls_enabled:
         broker_cert_path, broker_key_path = config_paths.broker_cert_pair
         ensure_certificate_pair_exists(
@@ -33,8 +33,9 @@ async def spawn_broker(
         config_file = Path(tmp_dir) / "broker.toml"
         populate_broker_conf(config, config_file)
 
-        cmd = [str(broker_bin.resolve()), "--config", str(config_file)]
+        cmd = [broker_bin, *(("-v",) if verbose else ()), "-c", str(config_file)]
         invocation = partial(trio.run_process, command=cmd)
+
         broker_proc = await nursery.start(invocation)
         yield broker_proc
         broker_proc.kill()
@@ -60,6 +61,7 @@ def populate_broker_conf(config: AgentConfiguration, config_file: Path) -> None:
     else:
         variant = "no-tls"
 
+    logger.info(f"MQTT broker in {variant} mode")
     template_file = broker_assets / f"config.{variant}.toml.tpl"
     template = Template(template_file.read_text())
     rendered = template.substitute(data)
