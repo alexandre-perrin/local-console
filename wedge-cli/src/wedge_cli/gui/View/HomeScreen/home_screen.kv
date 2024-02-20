@@ -1,0 +1,24 @@
+#:import res_path wedge_cli.gui.main.resource_path
+
+<HomeScreenView>
+    md_bg_color: self.theme_cls.backgroundColor
+
+    MDBoxLayout:
+        orientation: "horizontal"
+        adaptive_height: False
+        padding: "30dp"
+
+        MDBoxLayout:
+            orientation: "vertical"
+            size_hint_x: .35
+            adaptive_height: False
+
+            MDWidget:
+
+        MDBoxLayout:
+            orientation: "vertical"
+            adaptive_height: False
+            FitImage:
+                source: res_path("assets/images/midokura-color-isotype.png")
+                radius: "36dp"
+                fit_mode: "contain"

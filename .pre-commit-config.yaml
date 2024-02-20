@@ -44,6 +44,7 @@ repos:
           - hypothesis
           - pytest
           - trio-typing
+          - types-Pygments
         exclude: tests
   - repo: https://github.com/psf/black-pre-commit-mirror
     rev: 23.7.0
