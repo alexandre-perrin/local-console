@@ -84,6 +84,7 @@ def ensure_certificate_pair_exists(
     certificate_path: Path,
     key_path: Path,
     tls_configuration: TLSConfiguration,
+    is_server: bool = False,
 ) -> None:
     if not (certificate_path.is_file() and key_path.is_file()):
         assert tls_configuration.ca_certificate
@@ -91,7 +92,9 @@ def ensure_certificate_pair_exists(
         ca_cert, ca_key = load_certificate_pair(
             tls_configuration.ca_certificate, tls_configuration.ca_key
         )
-        certificate, key = generate_signed_certificate_pair(identifier, ca_cert, ca_key)
+        certificate, key = generate_signed_certificate_pair(
+            identifier, ca_cert, ca_key, is_server=is_server
+        )
         if not certificate_path.parent.is_dir():
             certificate_path.parent.mkdir()
         if not key_path.parent.is_dir():
@@ -113,6 +116,7 @@ def export_cert_pair_as_pem(
     certificate_file: Path,
     key_file: Path,
 ) -> None:
+    logger.info(f"Writing private key {key_file}")
     with key_file.open("wb") as f:
         f.write(
             client_private_key.private_bytes(
@@ -123,6 +127,7 @@ def export_cert_pair_as_pem(
         )
 
     # Write the client's certificate to a file
+    logger.info(f"Writing certificate {certificate_file}")
     with certificate_file.open("wb") as f:
         f.write(certificate.public_bytes(serialization.Encoding.PEM))
 

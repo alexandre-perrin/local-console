@@ -11,9 +11,7 @@ from tempfile import TemporaryDirectory
 from process_handler import ProcessHandler
 from process_handler import SharedLogger
 from retry import retry
-from wedge_cli.utils.tls import export_cert_pair_as_pem
 from wedge_cli.utils.tls import generate_self_signed_ca
-from wedge_cli.utils.tls import generate_signed_certificate_pair
 
 FORMAT = "%(asctime)s %(levelname)s %(message)s"
 logging.basicConfig(format=FORMAT, level=logging.DEBUG)
@@ -95,19 +93,6 @@ def setup_tls(tls_files_dir: Path, wedge_cli_pre: list[str]) -> None:
     ca_dir.mkdir(exist_ok=True, parents=True)
     ca_cert_path, ca_key_path, ca_cert, ca_key = generate_self_signed_ca(ca_dir)
 
-    # Generate broker TLS pair
-    broker_dir = tls_files_dir / "broker"
-    broker_cert_path = broker_dir / "broker.crt"
-    broker_key_path = broker_dir / "broker.key"
-    if not (broker_cert_path.is_file() and broker_key_path.is_file()):
-        broker_cert, broker_key = generate_signed_certificate_pair(
-            "mqtt_broker", ca_cert, ca_key, is_server=True
-        )
-        broker_dir.mkdir(exist_ok=True, parents=True)
-        export_cert_pair_as_pem(
-            broker_cert, broker_key, broker_cert_path, broker_key_path
-        )
-
     # Configure the CLI with updated TLS parameters
     subprocess.run(
         wedge_cli_pre
@@ -155,14 +140,7 @@ class LocalBroker(ProcessHandler):
     ) -> None:
         super().__init__(log_handler)
 
-        mosquitto_dir = Path(__file__).parents[1] / ".devcontainer"
-        conf_file_name = "mosquitto.tls.conf" if with_tls else "mosquitto.conf"
-        conf_file = mosquitto_dir / conf_file_name
-        assert conf_file.is_file()
-
-        self.cmdline = ["mosquitto", "-c", str(conf_file.resolve())]
-        self.options = {"cwd": tmp_dir}
-
+        self.cmdline = wedge_cli_pre + ["broker", "cool_mqtt_broker"]
         self.prepare(with_tls, wedge_cli_pre)
 
     def prepare(self, with_tls: bool, wedge_cli_pre: list[str]) -> None:
@@ -257,7 +235,9 @@ def main() -> None:
             check_deploy_empty(deployment, cmd_preamble)
             log.info("Deployment emptied successfully")
 
-        log.info("Test successful!")
+        log.info("######################")
+        log.info("#  Test successful!  #")
+        log.info("######################")
 
     except (subprocess.CalledProcessError, ValueError) as e:
         log.error("Execution failed: %s", e)

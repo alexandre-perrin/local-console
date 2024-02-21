@@ -114,7 +114,7 @@ def test_get_telemetry(agent_config: AgentConfiguration):
         agent._on_message_telemetry = Mock()
         agent.get_telemetry()
         agent._loop_forever.assert_called_once_with(
-            subs_topics=[agent.TELEMETRY],
+            subs_topics=[agent.TELEMETRY_TOPIC],
             message_task=agent._on_message_telemetry.return_value,
         )
         agent._on_message_telemetry.assert_called_once()
@@ -150,7 +150,7 @@ def test_get_logs(instance_id: str, timeout: int, agent_config: AgentConfigurati
         agent._on_message_logs = Mock()
         agent.get_instance_logs(instance_id, timeout)
         agent._loop_forever.assert_called_once_with(
-            subs_topics=[agent.TELEMETRY],
+            subs_topics=[agent.TELEMETRY_TOPIC],
             message_task=agent._on_message_logs.return_value,
         )
         agent._on_message_logs.assert_called_once_with(instance_id, timeout)
