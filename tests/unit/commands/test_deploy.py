@@ -41,7 +41,7 @@ def test_deploy_empty_command(empty: bool, agent_config: AgentConfiguration) -> 
             mock_agent_client.assert_called_once()
             mock_get_deployment.assert_called_once()
             mock_exec_deploy.assert_called_once_with(
-                mock_agent_client(), mock_get_deployment.return_value, ANY, ANY
+                mock_agent_client(), mock_get_deployment.return_value, ANY, ANY, ANY
             )
             assert result.exit_code == 0
         else:
@@ -85,7 +85,7 @@ def test_deploy_command_target(
         )
         mock_make_unique_ids.assert_called_once()
         mock_exec_deploy.assert_called_once_with(
-            mock_agent_client(), deployment_manifest, ANY, ANY
+            mock_agent_client(), deployment_manifest, ANY, ANY, ANY
         )
         assert result.exit_code == 0
 
@@ -128,7 +128,7 @@ def test_deploy_command_signed(
         )
         mock_make_unique_ids.assert_called_once()
         mock_exec_deploy.assert_called_once_with(
-            mock_agent_client(), deployment_manifest, ANY, ANY
+            mock_agent_client(), deployment_manifest, ANY, ANY, ANY
         )
         assert result.exit_code == 0
 
@@ -170,7 +170,7 @@ def test_deploy_command_timeout(
         )
         mock_make_unique_ids.assert_called_once()
         mock_exec_deploy.assert_called_once_with(
-            mock_agent_client(), deployment_manifest, ANY, timeout
+            mock_agent_client(), deployment_manifest, ANY, ANY, timeout
         )
         assert result.exit_code == 0
 

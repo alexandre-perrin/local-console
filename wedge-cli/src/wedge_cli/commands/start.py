@@ -22,11 +22,11 @@ from wedge_cli.core.schemas import IPAddress
 from wedge_cli.core.schemas import Libraries
 from wedge_cli.core.schemas import RemoteConnectionInfo
 from wedge_cli.core.schemas import TLSConfiguration
+from wedge_cli.utils.local_network import is_localhost
 from wedge_cli.utils.tls import ensure_certificate_pair_exists
 from wedge_cli.utils.tls import get_certificate_cn
 from wedge_cli.utils.tls import get_random_identifier
 from wedge_cli.utils.tls import get_remote_server_certificate
-from wedge_cli.utils.tls import is_localhost
 from wedge_cli.utils.tls import verify_certificate_against_ca
 
 logger = logging.getLogger(__name__)

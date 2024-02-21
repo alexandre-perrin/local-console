@@ -13,15 +13,15 @@ from typing import Optional
 import trio
 import typer
 from wedge_cli.clients.agent import Agent
-from wedge_cli.clients.webserver import AsyncWebserver
 from wedge_cli.core.config import get_config
 from wedge_cli.core.config import get_deployment_schema
 from wedge_cli.core.enums import config_paths
 from wedge_cli.core.enums import ModuleExtension
 from wedge_cli.core.enums import Target
 from wedge_cli.core.schemas import DeploymentManifest
-from wedge_cli.utils.tls import is_localhost
-
+from wedge_cli.servers.webserver import AsyncWebserver
+from wedge_cli.utils.local_network import get_my_ip_by_routing
+from wedge_cli.utils.local_network import is_localhost
 
 logger = logging.getLogger(__name__)
 
@@ -64,11 +64,12 @@ def deploy(
     config: AgentConfiguration = get_config()  # type:ignore
     port = config.webserver.port
     host = config.webserver.host.ip_value
-    if not is_localhost(host):
-        logger.error(
-            "Cannot deploy webserver anywhere else than localhost (given %s)", host
-        )
-        exit(1)
+    deploy_webserver = False
+
+    local_ip = get_my_ip_by_routing()
+    if is_localhost(host) or host == local_ip:
+        host = local_ip
+        deploy_webserver = True
 
     agent = Agent()
     if empty:
@@ -84,7 +85,9 @@ def deploy(
 
     success = False
     try:
-        success = trio.run(exec_deployment, agent, deployment_manifest, port, timeout)
+        success = trio.run(
+            exec_deployment, agent, deployment_manifest, deploy_webserver, port, timeout
+        )
     except Exception as e:
         logger.exception("Deployment error", exc_info=e)
     except KeyboardInterrupt:
@@ -96,6 +99,7 @@ def deploy(
 async def exec_deployment(
     agent: Agent,
     deploy_manifest: DeploymentManifest,
+    deploy_webserver: bool,
     webserver_port: int,
     timeout_secs: int,
 ) -> bool:
@@ -105,7 +109,7 @@ async def exec_deployment(
     with trio.move_on_after(timeout_secs) as timeout_scope:
         async with (
             agent.mqtt_scope(subscription_topics),
-            AsyncWebserver(Path.cwd(), webserver_port),
+            AsyncWebserver(Path.cwd(), webserver_port, deploy_webserver),
         ):
             assert agent.nursery is not None  # make mypy happy
             agent.nursery.start_soon(deploy_fsm.message_task)

@@ -1,4 +1,3 @@
-import ipaddress
 import logging
 import socket
 import ssl
@@ -131,11 +130,6 @@ def export_cert_pair_as_pem(
 def get_random_identifier(prefix: str = "", max_length: int = 36) -> str:
     full = prefix + str(x509.random_serial_number())
     return full[:max_length]
-
-
-def is_localhost(hostname: str) -> bool:
-    resolved_ip = socket.gethostbyname(hostname)
-    return ipaddress.ip_address(resolved_ip).is_loopback
 
 
 @retry(tries=5, delay=0.3, exceptions=(ConnectionError, ssl.SSLError))
