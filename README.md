@@ -241,7 +241,6 @@ wedge-cli config set tls ca_key path/to/ca/private_key_file
 > [!WARNING]
 > If you will be running the MQTT broker in the same machine as the CLI and agent are running, then you will need to install [nss_wrapper](https://cwrap.org/nss_wrapper.html), so that the agent can verify the local server certificate when doing the TLS handshake.
 
-
 ### GUI mode
 
 The CLI includes a graphical interface that you may start with
@@ -259,3 +258,13 @@ The GUI supports running on Linux and Windows.
 - For Linux:
    - The `xclip` clipboard client.
    - The `mosquitto` MQTT broker.
+
+### Configuring the camera via QR code
+
+The CLI can generate a QR code for camera onboarding, so that the camera can connect to its broker:
+
+```sh
+wedge-cli qr
+```
+
+By default, it will use the settings of the CLI. If the MQTT host is set to localhost, it will produce the QR code with the IP address of the externally-accessible interface to the local machine. For other settings, try the `--help` flag.
