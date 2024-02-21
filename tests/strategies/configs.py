@@ -55,6 +55,15 @@ def generate_valid_ip(draw: st.DrawFn) -> str:
 
 
 @st.composite
+def generate_invalid_ip(draw: st.DrawFn) -> str:
+    return draw(
+        generate_identifiers(
+            max_size=10, categories_first_char=("S", "Z"), include_in_first_char=" +"
+        )
+    )
+
+
+@st.composite
 def generate_valid_port_number(draw: st.DrawFn) -> int:
     return draw(st.integers(min_value=0, max_value=65535))
 
