@@ -240,3 +240,22 @@ wedge-cli config set tls ca_key path/to/ca/private_key_file
 
 > [!WARNING]
 > If you will be running the MQTT broker in the same machine as the CLI and agent are running, then you will need to install [nss_wrapper](https://cwrap.org/nss_wrapper.html), so that the agent can verify the local server certificate when doing the TLS handshake.
+
+
+### GUI mode
+
+The CLI includes a graphical interface that you may start with
+
+```sh
+wedge-cli gui
+```
+
+On start up, it spawns a MQTT broker instance listening on the configured port. Then a camera can connect to this broker, so that the GUI can provide access to camera actions such as image streaming.
+
+#### Additional Dependencies
+
+The GUI supports running on Linux and Windows.
+- For Windows, an installer will be provided separately, which shall take care of dependencies.
+- For Linux:
+   - The `xclip` clipboard client.
+   - The `mosquitto` MQTT broker.
