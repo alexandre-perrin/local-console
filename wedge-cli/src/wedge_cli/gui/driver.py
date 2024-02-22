@@ -11,8 +11,8 @@ from kivy.core.clipboard import Clipboard
 from kivymd.app import MDApp
 from wedge_cli.clients.agent import Agent
 from wedge_cli.core.config import get_config
-from wedge_cli.gui.utils import run_on_ui_thread
-from wedge_cli.gui.utils import SyncAsyncBridge
+from wedge_cli.gui.Utility.sync_async import run_on_ui_thread
+from wedge_cli.gui.Utility.sync_async import SyncAsyncBridge
 from wedge_cli.servers.broker import spawn_broker
 from wedge_cli.servers.webserver import AsyncWebserver
 from wedge_cli.utils.local_network import LOCAL_IP
