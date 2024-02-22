@@ -1,0 +1,44 @@
+#:import res_path wedge_cli.gui.main.resource_path
+
+<HomeScreenView>
+    md_bg_color: self.theme_cls.backgroundColor
+
+    MDBoxLayout:
+        orientation: "horizontal"
+        adaptive_height: False
+        padding: "30dp"
+
+        MDBoxLayout:
+            orientation: "vertical"
+            size_hint_x: .35
+            adaptive_height: False
+
+            MDExtendedFabButton:
+                size_hint_x: .7
+                fab_state: "expand"
+                valign: "center"
+                on_press: root.manager.current = 'settings screen'
+                MDExtendedFabButtonIcon:
+                    icon: "cog"
+                MDExtendedFabButtonText:
+                    text: "Settings"
+
+            MDExtendedFabButton:
+                size_hint_x: .7
+                fab_state: "expand"
+                valign: "center"
+                on_press: root.manager.current = 'streaming screen'
+                MDExtendedFabButtonIcon:
+                    icon: "animation-play"
+                MDExtendedFabButtonText:
+                    text: "Streaming"
+
+            MDWidget:
+
+        MDBoxLayout:
+            orientation: "vertical"
+            adaptive_height: False
+            FitImage:
+                source: res_path("assets/images/midokura-color-isotype.png")
+                radius: "36dp"
+                fit_mode: "contain"

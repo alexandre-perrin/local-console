@@ -14,6 +14,7 @@ from wedge_cli.commands import build
 from wedge_cli.commands import config
 from wedge_cli.commands import deploy
 from wedge_cli.commands import get
+from wedge_cli.commands import gui
 from wedge_cli.commands import logs
 from wedge_cli.commands import new
 from wedge_cli.commands import rpc
@@ -39,6 +40,7 @@ app.add_typer(rpc.app, name="rpc")
 app.add_typer(get.app, name="get")
 app.add_typer(config.app, name="config")
 app.add_typer(broker.app, name="broker")
+app.add_typer(gui.app, name="gui")
 
 
 def handle_exit(signal: int, frame: Optional[FrameType]) -> None:
@@ -94,6 +96,10 @@ def main(
         bool, typer.Option("--verbose", "-v", help="Set log level to verbose")
     ] = False,
 ) -> None:
+    if not ctx.invoked_subcommand:
+        print(ctx.get_help())
+        return
+
     config_paths.home = config_dir
     configure_logger(debug, verbose)
     setup_default_config()

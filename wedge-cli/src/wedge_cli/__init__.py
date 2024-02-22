@@ -1,1 +1,1 @@
-from .__main__ import app
+from wedge_cli.__main__ import app

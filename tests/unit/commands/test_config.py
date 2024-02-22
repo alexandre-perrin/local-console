@@ -14,6 +14,7 @@ from wedge_cli.core.schemas import RemoteConnectionInfo
 
 from tests.strategies.configs import generate_agent_config
 from tests.strategies.configs import generate_identifiers
+from tests.strategies.configs import generate_invalid_ip
 from tests.strategies.configs import generate_valid_ip
 from tests.strategies.configs import generate_valid_port_number
 from tests.strategies.path import path_strategy
@@ -262,7 +263,7 @@ def test_config_send_command_no_ini(config_filepath: str, ip: str, port: int):
     assert result.exit_code == 1
 
 
-@given(path_strategy(), st.text(), generate_valid_port_number())
+@given(path_strategy(), generate_invalid_ip(), generate_valid_port_number())
 def test_config_send_command_invalid_ip(
     config_filepath: str, invalid_ip: str, port: int
 ):
