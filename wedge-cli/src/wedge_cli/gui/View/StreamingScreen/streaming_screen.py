@@ -1,4 +1,3 @@
-from kivy.properties import StringProperty
 from kivy.uix.codeinput import (
     CodeInput,
 )  # nopycln: import # Required by the screen's KV spec file
@@ -10,8 +9,6 @@ from wedge_cli.gui.View.common import (
 
 
 class StreamingScreenView(BaseScreenView):
-    streamed_image = StringProperty("")
-
     def toggle_stream_status(self) -> None:
         self.controller.set_stream_status(not self.model.stream_status)
 

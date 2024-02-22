@@ -1,6 +1,7 @@
 import enum
 import logging
 from math import fabs
+from pathlib import Path
 from typing import Optional
 
 from kivy.core.window import Window
@@ -8,12 +9,12 @@ from kivy.graphics import Color
 from kivy.graphics import Line
 from kivy.input import MotionEvent
 from kivy.properties import ObjectProperty
-from kivymd.uix.fitimage import FitImage
+from kivy.uix.image import Image
 
 logger = logging.getLogger(__name__)
 
 
-class ImageWithROI(FitImage):
+class ImageWithROI(Image):
     ROI = ObjectProperty()
 
     class DrawState(enum.Enum):
@@ -105,4 +106,7 @@ class ImageWithROI(FitImage):
             self.rect_line = Line(
                 rectangle=[*r_start, rect_size[0], rect_size[1]], width=1.5
             )
+
+    def update_image_data(self, incoming_file: Path) -> None:
+        self.source = str(incoming_file)
 

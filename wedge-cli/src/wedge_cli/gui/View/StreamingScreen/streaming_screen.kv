@@ -2,7 +2,6 @@
 
 <StreamingScreenView>
     md_bg_color: self.theme_cls.backgroundColor
-    streamed_image: self.streamed_image
     inference_data: self.inference_data
 
     MDBoxLayout:
@@ -70,7 +69,6 @@
 
             ImageWithROI:
                 id: stream_image
-                source: root.streamed_image
                 radius: "10dp"
                 fit_mode: "contain"
                 on_ROI: root.set_roi(args[0])

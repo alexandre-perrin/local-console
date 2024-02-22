@@ -99,9 +99,15 @@ class Driver:
 
     def process_camera_upload(self, incoming_file: Path) -> None:
         if incoming_file.parent == self.image_directory:
-            self.gui.views["streaming screen"].streamed_image = str(incoming_file)
+            self.update_image_data(incoming_file)
         elif incoming_file.parent == self.inferences_directory:
             self.update_inference_data(incoming_file.read_text())
+
+    @run_on_ui_thread
+    def update_image_data(self, incoming_file: Path) -> None:
+        self.gui.views["streaming screen"].ids.stream_image.update_image_data(
+            incoming_file
+        )
 
     @run_on_ui_thread
     def update_inference_data(self, inference_data: str) -> None:
