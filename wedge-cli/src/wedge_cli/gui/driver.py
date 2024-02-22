@@ -81,7 +81,7 @@ class Driver:
         with (
             TemporaryDirectory(prefix="WEdgeGUI_") as tempdir,
             AsyncWebserver(
-                Path(tempdir), port=0, on_incoming=self.view_streamed_image
+                Path(tempdir), port=0, on_incoming=self.process_camera_upload
             ) as image_serve,
         ):
             logger.info(f"Uploading data into {tempdir}")
@@ -97,7 +97,7 @@ class Driver:
             self.start_flags["webserver"].set()
             await trio.sleep_forever()
 
-    def view_streamed_image(self, incoming_file: Path) -> None:
+    def process_camera_upload(self, incoming_file: Path) -> None:
         if incoming_file.parent == self.image_directory:
             self.gui.views["streaming screen"].streamed_image = str(incoming_file)
         elif incoming_file.parent == self.inferences_directory:
