@@ -1,5 +1,7 @@
 import enum
+import logging
 from math import fabs
+from typing import Optional
 
 from kivy.core.window import Window
 from kivy.graphics import Color
@@ -7,6 +9,8 @@ from kivy.graphics import Line
 from kivy.input import MotionEvent
 from kivy.properties import ObjectProperty
 from kivymd.uix.fitimage import FitImage
+
+logger = logging.getLogger(__name__)
 
 
 class ImageWithROI(FitImage):
@@ -24,14 +28,24 @@ class ImageWithROI(FitImage):
         self.rect_start: tuple[int, int] = (0, 0)
         self.rect_end: tuple[int, int] = (0, 0)
         self.rect_size: tuple[int, int] = (0, 0)
+        self.rect_line: Optional[Line] = None
         Window.bind(mouse_pos=self.on_mouse_pos)
 
     def activate_select_mode(self) -> None:
         self.user_state = self.DrawState.PickingStartPoint
-        with self.canvas:
-            self.canvas.clear()
-        # Change mouse cursor to crosshair
-        Window.cursor = "crosshair"
+        self.clear_roi()
+
+    def clear_roi(self) -> None:
+        self._clear_rect()
+        self.roi_start = (0, 0)
+        self.rect_start = (0, 0)
+        self.rect_end = (0, 0)
+        self.rect_size = (0, 0)
+
+    def _clear_rect(self) -> None:
+        if self.rect_line:
+            self.canvas.remove(self.rect_line)
+            self.rect_line = None
 
     def on_touch_down(self, touch: MotionEvent) -> bool:
         if self.user_state == self.DrawState.PickingStartPoint and self.collide_point(
@@ -47,7 +61,6 @@ class ImageWithROI(FitImage):
         ):
             self.rect_end = touch.pos
             self.user_state = self.DrawState.Viewing
-            Window.cursor = "default"  # Reset cursor
             roi_min = (
                 min(self.roi_start[0], touch.sx),
                 min(self.roi_start[1], touch.sy),
@@ -63,12 +76,19 @@ class ImageWithROI(FitImage):
 
         return bool(super().on_touch_down(touch))
 
-    def on_mouse_pos(self, _window: Window, pos: tuple[int, int]) -> None:
-        if self.user_state == self.DrawState.PickingEndPoint and self.collide_point(
-            *pos
-        ):
-            self.rect_end = pos
-            self.draw_rectangle()
+    def on_mouse_pos(self, window: Window, pos: tuple[int, int]) -> None:
+        if self.collide_point(*pos):
+            if self.user_state == self.DrawState.Viewing:
+                window.set_system_cursor("arrow")
+            else:
+                window.set_system_cursor("crosshair")
+
+            if self.user_state == self.DrawState.PickingEndPoint:
+                self.rect_end = pos
+                self.draw_rectangle()
+
+        else:
+            window.set_system_cursor("arrow")
 
     def draw_rectangle(self) -> None:
         rect_size = (
@@ -79,7 +99,10 @@ class ImageWithROI(FitImage):
             min(self.rect_end[0], self.rect_start[0]),
             min(self.rect_end[1], self.rect_start[1]),
         )
+        self._clear_rect()
         with self.canvas:
-            self.canvas.clear()
             Color(1, 0, 0, 1)
-            Line(rectangle=[*r_start, rect_size[0], rect_size[1]], width=1.5)
+            self.rect_line = Line(
+                rectangle=[*r_start, rect_size[0], rect_size[1]], width=1.5
+            )
+
