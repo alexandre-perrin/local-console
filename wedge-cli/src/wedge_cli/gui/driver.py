@@ -79,7 +79,7 @@ class Driver:
         :return:
         """
         with (
-            TemporaryDirectory() as tempdir,
+            TemporaryDirectory(prefix="WEdgeGUI_") as tempdir,
             AsyncWebserver(
                 Path(tempdir), port=0, on_incoming=self.view_streamed_image
             ) as image_serve,
