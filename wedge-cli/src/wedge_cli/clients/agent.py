@@ -90,6 +90,8 @@ class Agent:
                 async for msg in self.client.messages():
                     payload = json.loads(msg.payload.decode())
                     logs = defaultdict(list)
+                    if "values" in payload:
+                        payload = payload["values"]
                     if "device/log" in payload.keys():
                         for log in payload["device/log"]:
                             logs[log["app"]].append(log)
