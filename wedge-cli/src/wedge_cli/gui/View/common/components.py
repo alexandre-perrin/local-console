@@ -12,10 +12,10 @@ from kivy.properties import ObjectProperty
 from kivy.uix.image import Image
 from wedge_cli.gui.Utility.axis_mapping import as_normal_in_set
 from wedge_cli.gui.Utility.axis_mapping import DEFAULT_ROI
+from wedge_cli.gui.Utility.axis_mapping import delta
+from wedge_cli.gui.Utility.axis_mapping import denormalize_in_set
 
 logger = logging.getLogger(__name__)
-
-
 
 
 class ROIState(enum.Enum):
@@ -122,23 +122,49 @@ class ImageWithROI(Image):
             window.set_system_cursor("arrow")
 
     def draw_rectangle(self) -> None:
-        rect_size = (
-            int(fabs(self.rect_end[0] - self.rect_start[0])),
-            int(fabs(self.rect_end[1] - self.rect_start[1])),
-        )
-        r_start = (
+        start = (
             min(self.rect_end[0], self.rect_start[0]),
             min(self.rect_end[1], self.rect_start[1]),
         )
+        size = (
+            int(fabs(self.rect_end[0] - self.rect_start[0])),
+            int(fabs(self.rect_end[1] - self.rect_start[1])),
+        )
+        self.refresh_rectangle(start, size)
+
+    def refresh_rectangle(self, start: tuple[int, int], size: tuple[int, int]) -> None:
         self._clear_rect()
         with self.canvas:
             Color(1, 0, 0, 1)
-            self.rect_line = Line(
-                rectangle=[*r_start, rect_size[0], rect_size[1]], width=1.5
-            )
+            self.rect_line = Line(rectangle=[*start, size[0], size[1]], width=1.5)
 
     def update_image_data(self, incoming_file: Path) -> None:
         self.source = str(incoming_file)
+
+    def update_roi(self) -> None:
+        self.update_norm_subregion()
+        i_start, i_size = self.roi
+        if sum(i_size) > 0:
+            # denormalize to widget's unit coordinates
+            w_start: tuple[float, float] = (
+                denormalize_in_set(i_start[0], self._active_subregion[0]),
+                denormalize_in_set(i_start[1], self._active_subregion[1]),
+            )
+            w_size: tuple[float, float] = (
+                denormalize_in_set(i_size[0], (0, delta(self._active_subregion[0]))),
+                denormalize_in_set(i_size[1], (0, delta(self._active_subregion[1]))),
+            )
+            # denormalize to pixel coordinates
+            new_width, new_height = self.size
+            start = (
+                int(denormalize_in_set(w_start[0], (0, new_width))),
+                int(denormalize_in_set(w_start[1], (0, new_height))),
+            )
+            size = (
+                int(denormalize_in_set(w_size[0], (0, new_width))),
+                int(denormalize_in_set(w_size[1], (0, new_height))),
+            )
+            self.refresh_rectangle(start, size)
 
     def update_norm_subregion(self) -> None:
         if self.state == ROIState.Disabled:
