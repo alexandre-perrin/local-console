@@ -10,6 +10,9 @@ UnitROI = tuple[tuple[float, float], tuple[float, float]]
 # Fundamental constant: IMX500 pixel matrix dimensions
 SENSOR_SIZE = 4056, 3040
 
+# Default Unit ROI
+DEFAULT_ROI: UnitROI = ((0, 0), (1, 1))
+
 
 def pixel_roi_from_normals(normal_roi: Optional[UnitROI]) -> PixelROI:
     """

@@ -11,6 +11,7 @@ from kivy.input import MotionEvent
 from kivy.properties import ObjectProperty
 from kivy.uix.image import Image
 from wedge_cli.gui.Utility.axis_mapping import as_normal_in_set
+from wedge_cli.gui.Utility.axis_mapping import DEFAULT_ROI
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,7 @@ class ROIState(enum.Enum):
 
 
 class ImageWithROI(Image):
+    roi = ObjectProperty(DEFAULT_ROI)
     state = ObjectProperty(ROIState.Disabled)
 
     def __init__(self, **kwargs: str) -> None:
@@ -32,7 +34,6 @@ class ImageWithROI(Image):
         self.roi_start: tuple[float, float] = (0, 0)
         self.rect_start: tuple[int, int] = (0, 0)
         self.rect_end: tuple[int, int] = (0, 0)
-        self.rect_size: tuple[int, int] = (0, 0)
         self.rect_line: Optional[Line] = None
         # Should be of type UnitROI but Python tuples are immutable
         # and we need to assign to the tuple elements.
@@ -52,7 +53,6 @@ class ImageWithROI(Image):
         self.roi_start = (0, 0)
         self.rect_start = (0, 0)
         self.rect_end = (0, 0)
-        self.rect_size = (0, 0)
 
     def _clear_rect(self) -> None:
         if self.rect_line:
@@ -64,25 +64,47 @@ class ImageWithROI(Image):
             touch.pos
         ):
             self.rect_start = touch.pos
-            self.roi_start = touch.spos
+            # normalize coordinate within the widget space
+            w_roi_start: tuple[float, float] = (
+                as_normal_in_set(touch.x, (0, self.size[0])),
+                as_normal_in_set(touch.y, (0, self.size[1])),
+            )
+            # normalize coordinate within the image space
+            self.roi_start = (
+                as_normal_in_set(w_roi_start[0], self._active_subregion[0]),
+                as_normal_in_set(w_roi_start[1], self._active_subregion[1]),
+            )
+            self.state = ROIState.PickingEndPoint
             return True  # to consume the event and not propagate it further
 
         elif self.state == ROIState.PickingEndPoint and self.point_is_in_subregion(
             touch.pos
         ):
             self.rect_end = touch.pos
-            roi_min = (
-                min(self.roi_start[0], touch.sx),
-                min(self.roi_start[1], touch.sy),
-            self.state = ROIState.Viewing
-            )
-            self.rect_size = (
-                int(fabs(self.roi_start[0] - touch.sx)),
-                int(fabs(self.roi_start[1] - touch.sy)),
-            )
-            self.roi_start = roi_min
-            self.ROI = (self.roi_start, self.rect_size)
             self.draw_rectangle()
+            self.state = ROIState.Viewing
+            # normalize coordinate within the widget space
+            w_roi_end: tuple[float, float] = (
+                as_normal_in_set(touch.x, (0, self.size[0])),
+                as_normal_in_set(touch.y, (0, self.size[1])),
+            )
+            # normalize coordinate within the image space
+            roi_end = (
+                as_normal_in_set(w_roi_end[0], self._active_subregion[0]),
+                as_normal_in_set(w_roi_end[1], self._active_subregion[1]),
+            )
+
+            # these are in the image's unit coordinate system
+            i_roi_min = (
+                min(self.roi_start[0], roi_end[0]),
+                min(self.roi_start[1], roi_end[1]),
+            )
+            i_rect_size = (
+                fabs(self.roi_start[0] - roi_end[0]),
+                fabs(self.roi_start[1] - roi_end[1]),
+            )
+            self.roi_start = i_roi_min
+            self.roi = (self.roi_start, i_rect_size)
             return True  # to consume the event and not propagate it further
 
         return bool(super().on_touch_down(touch))
