@@ -1,6 +1,6 @@
 from wedge_cli.gui.Model.base_model import BaseScreenModel
-
-ROI = tuple[tuple[int, int], tuple[int, int]]
+from wedge_cli.gui.Utility.axis_mapping import DEFAULT_ROI
+from wedge_cli.gui.Utility.axis_mapping import UnitROI
 
 
 class StreamingScreenModel(BaseScreenModel):
@@ -12,7 +12,7 @@ class StreamingScreenModel(BaseScreenModel):
 
     def __init__(self) -> None:
         self._stream_status: bool = False
-        self._image_roi: ROI = ((0, 0), (0, 0))
+        self._image_roi: UnitROI = DEFAULT_ROI
 
     @property
     def stream_status(self) -> bool:
@@ -24,10 +24,14 @@ class StreamingScreenModel(BaseScreenModel):
         self.notify_observers()
 
     @property
-    def image_roi(self) -> ROI:
+    def image_roi(self) -> UnitROI:
         return self._image_roi
 
     @image_roi.setter
-    def image_roi(self, value: ROI) -> None:
+    def image_roi(self, value: UnitROI) -> None:
         self._image_roi = value
         self.notify_observers()
+
+    @property
+    def has_default_roi(self) -> bool:
+        return self.image_roi == DEFAULT_ROI

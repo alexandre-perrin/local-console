@@ -74,7 +74,8 @@
                 id: stream_image
                 radius: "10dp"
                 fit_mode: "contain"
-                on_ROI: root.set_roi(args[0])
+                on_roi: root.controller.set_roi(args[1])
+                on_size: self.update_roi()
                 size_hint_x: 0.7
 
             MDBoxLayout:

@@ -14,17 +14,20 @@ from kivy.uix.image import Image
 logger = logging.getLogger(__name__)
 
 
-class ImageWithROI(Image):
-    ROI = ObjectProperty()
 
-    class DrawState(enum.Enum):
-        Viewing = enum.auto()
-        PickingStartPoint = enum.auto()
-        PickingEndPoint = enum.auto()
+
+class ROIState(enum.Enum):
+    Disabled = enum.auto()
+    Viewing = enum.auto()
+    PickingStartPoint = enum.auto()
+    PickingEndPoint = enum.auto()
+
+
+class ImageWithROI(Image):
+    state = ObjectProperty(ROIState.Disabled)
 
     def __init__(self, **kwargs: str) -> None:
         super().__init__(**kwargs)
-        self.user_state = self.DrawState.Viewing
         self.roi_start: tuple[float, float] = (0, 0)
         self.rect_start: tuple[int, int] = (0, 0)
         self.rect_end: tuple[int, int] = (0, 0)
@@ -33,7 +36,11 @@ class ImageWithROI(Image):
         Window.bind(mouse_pos=self.on_mouse_pos)
 
     def activate_select_mode(self) -> None:
-        self.user_state = self.DrawState.PickingStartPoint
+        if self.state == ROIState.Disabled:
+            logger.critical("Image not yet loaded! Aborting ROI")
+            return
+
+        self.state = ROIState.PickingStartPoint
         self.clear_roi()
 
     def clear_roi(self) -> None:
@@ -49,22 +56,21 @@ class ImageWithROI(Image):
             self.rect_line = None
 
     def on_touch_down(self, touch: MotionEvent) -> bool:
-        if self.user_state == self.DrawState.PickingStartPoint and self.collide_point(
-            *touch.pos
+        if self.state == ROIState.PickingStartPoint and self.point_is_in_subregion(
+            touch.pos
         ):
             self.rect_start = touch.pos
             self.roi_start = touch.spos
-            self.user_state = self.DrawState.PickingEndPoint
             return True  # to consume the event and not propagate it further
 
-        elif self.user_state == self.DrawState.PickingEndPoint and self.collide_point(
-            *touch.pos
+        elif self.state == ROIState.PickingEndPoint and self.point_is_in_subregion(
+            touch.pos
         ):
             self.rect_end = touch.pos
-            self.user_state = self.DrawState.Viewing
             roi_min = (
                 min(self.roi_start[0], touch.sx),
                 min(self.roi_start[1], touch.sy),
+            self.state = ROIState.Viewing
             )
             self.rect_size = (
                 int(fabs(self.roi_start[0] - touch.sx)),
@@ -78,16 +84,14 @@ class ImageWithROI(Image):
         return bool(super().on_touch_down(touch))
 
     def on_mouse_pos(self, window: Window, pos: tuple[int, int]) -> None:
-        if self.collide_point(*pos):
-            if self.user_state == self.DrawState.Viewing:
-                window.set_system_cursor("arrow")
-            else:
-                window.set_system_cursor("crosshair")
-
-            if self.user_state == self.DrawState.PickingEndPoint:
+        if self.state in (
+            ROIState.PickingStartPoint,
+            ROIState.PickingEndPoint,
+        ) and self.point_is_in_subregion(pos):
+            window.set_system_cursor("crosshair")
+            if self.state == ROIState.PickingEndPoint:
                 self.rect_end = pos
                 self.draw_rectangle()
-
         else:
             window.set_system_cursor("arrow")
 
