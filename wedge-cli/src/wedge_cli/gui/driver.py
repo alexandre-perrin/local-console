@@ -35,6 +35,8 @@ class Driver:
         self.config = get_config()
 
         self.camera_state = Camera()
+        self._reports_flag = trio.Event()
+
         self.start_flags = {
             "mqtt": trio.Event(),
             "webserver": trio.Event(),
@@ -75,6 +77,9 @@ class Driver:
                 payload = json.loads(msg.payload)
                 self.camera_state.process_incoming(msg.topic, payload)
                 self.update_camera_status()
+
+                if self.camera_state.is_ready:
+                    self._reports_flag.set()
                 logger.debug("Incoming on %s: %s", msg.topic, str(payload))
 
     def from_sync(self, async_fn: Callable, *args: Any) -> None:
@@ -82,6 +87,7 @@ class Driver:
 
     @run_on_ui_thread
     def update_camera_status(self) -> None:
+        self.gui.is_ready = self.camera_state.is_ready
         self.gui.views[
             "streaming screen"
         ].model.stream_status = self.camera_state.sensor_state

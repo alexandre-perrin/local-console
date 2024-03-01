@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import trio
+from kivy.properties import BooleanProperty
 from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.screenmanager import MDScreenManager
@@ -28,6 +29,9 @@ logger = logging.getLogger(__name__)
 class WedgeGUIApp(MDApp):
     nursery = None
     driver = None
+
+    # Proxy object leveraged for using Kivy's event dispatching
+    is_ready = BooleanProperty(False)
 
     async def app_main(self) -> None:
         async with trio.open_nursery() as nursery:
