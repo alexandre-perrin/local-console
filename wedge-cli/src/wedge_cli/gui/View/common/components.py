@@ -10,6 +10,7 @@ from kivy.graphics import Line
 from kivy.input import MotionEvent
 from kivy.properties import ObjectProperty
 from kivy.uix.image import Image
+from wedge_cli.gui.Utility.axis_mapping import as_normal_in_set
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,9 @@ class ImageWithROI(Image):
         self.rect_end: tuple[int, int] = (0, 0)
         self.rect_size: tuple[int, int] = (0, 0)
         self.rect_line: Optional[Line] = None
+        # Should be of type UnitROI but Python tuples are immutable
+        # and we need to assign to the tuple elements.
+        self._active_subregion: list[tuple[float, float]] = [(0, 0), (0, 0)]
         Window.bind(mouse_pos=self.on_mouse_pos)
 
     def activate_select_mode(self) -> None:
@@ -113,3 +117,21 @@ class ImageWithROI(Image):
 
     def update_image_data(self, incoming_file: Path) -> None:
         self.source = str(incoming_file)
+
+    def update_norm_subregion(self) -> None:
+        if self.state == ROIState.Disabled:
+            return
+
+        image_size_map = self.get_norm_image_size()
+        widget_size = self.size
+        limits = [(0.0, 0.0), (0.0, 0.0)]
+        for dim in (0, 1):
+            min_dim = as_normal_in_set(
+                (widget_size[dim] - image_size_map[dim]) / 2, (0, widget_size[dim])
+            )
+            max_dim = as_normal_in_set(
+                (widget_size[dim] + image_size_map[dim]) / 2, (0, widget_size[dim])
+            )
+            limits[dim] = (min_dim, max_dim)
+
+        self._active_subregion = limits
