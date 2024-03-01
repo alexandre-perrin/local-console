@@ -10,7 +10,9 @@ import trio
 from kivy.core.clipboard import Clipboard
 from kivymd.app import MDApp
 from wedge_cli.clients.agent import Agent
+from wedge_cli.clients.agent import check_attributes_request
 from wedge_cli.core.config import get_config
+from wedge_cli.core.schemas import DesiredDeviceConfig
 from wedge_cli.gui.camera import Camera
 from wedge_cli.gui.Utility.axis_mapping import pixel_roi_from_normals
 from wedge_cli.gui.Utility.axis_mapping import UnitROI
@@ -19,6 +21,7 @@ from wedge_cli.gui.Utility.sync_async import SyncAsyncBridge
 from wedge_cli.servers.broker import spawn_broker
 from wedge_cli.servers.webserver import AsyncWebserver
 from wedge_cli.utils.local_network import LOCAL_IP
+from wedge_cli.utils.timing import TimeoutBehavior
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +38,10 @@ class Driver:
         self.config = get_config()
 
         self.camera_state = Camera()
-        self._reports_flag = trio.Event()
+
+        # This takes care of ensuring the device reports its state
+        # with bounded periodicity (expect to receive a message within 6 seconds)
+        self.periodic_reports = TimeoutBehavior(6, self.set_periodic_reports)
 
         self.start_flags = {
             "mqtt": trio.Event(),
@@ -64,6 +70,7 @@ class Driver:
             spawn_broker(self.config, self.nursery, False, "nicebroker"),
             self.mqtt_client.mqtt_scope(
                 [
+                    Agent.REQUEST_TOPIC,
                     Agent.TELEMETRY_TOPIC,
                     Agent.RPC_RESPONSES_TOPIC,
                     Agent.ATTRIBUTES_TOPIC,
@@ -73,14 +80,20 @@ class Driver:
             self.start_flags["mqtt"].set()
 
             assert self.mqtt_client.client  # appease mypy
+            self.periodic_reports.spawn_in(self.nursery)
             async for msg in self.mqtt_client.client.messages():
+                attributes_available = await check_attributes_request(
+                    self.mqtt_client, msg.topic, msg.payload.decode()
+                )
+                if attributes_available:
+                    self.camera_state.attributes_available = True
+
                 payload = json.loads(msg.payload)
                 self.camera_state.process_incoming(msg.topic, payload)
                 self.update_camera_status()
 
                 if self.camera_state.is_ready:
-                    self._reports_flag.set()
-                logger.debug("Incoming on %s: %s", msg.topic, str(payload))
+                    self.periodic_reports.tap()
 
     def from_sync(self, async_fn: Callable, *args: Any) -> None:
         self.bridge.enqueue_task(async_fn, *args)
@@ -166,3 +179,16 @@ class Driver:
         instance_id = "backdoor-EA_Main"
         method = "StopUploadInferenceData"
         await self.mqtt_client.rpc(instance_id, method, "{}")
+
+    async def set_periodic_reports(self) -> None:
+        # Configure the device to emit status reports twice
+        # as often as the timeout expiration, to ensure that
+        # random deviations in report perioding make the timer
+        # to expire unnecessarily.
+        timeout = int(0.5 * self.periodic_reports.timeout_secs)
+        await self.mqtt_client.device_configure(
+            DesiredDeviceConfig(
+                reportStatusIntervalMax=timeout,
+                reportStatusIntervalMin=min(timeout, 1),
+            )
+        )
