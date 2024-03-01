@@ -104,7 +104,7 @@ async def exec_deployment(
     timeout_secs: int,
 ) -> bool:
     success = False
-    subscription_topics = [Agent.REQUEST_TOPIC, Agent.DEPLOYMENT_TOPIC]
+    subscription_topics = [Agent.REQUEST_TOPIC, Agent.ATTRIBUTES_TOPIC]
     deploy_fsm = DeployFSM(agent, deploy_manifest)
     with trio.move_on_after(timeout_secs) as timeout_scope:
         async with (
@@ -197,7 +197,7 @@ class DeployFSM:
             got_request = await check_attributes_request(self.agent, msg.topic, payload)
 
             deploy_status = {}
-            if payload and msg.topic == Agent.DEPLOYMENT_TOPIC:
+            if payload and msg.topic == Agent.ATTRIBUTES_TOPIC:
                 deploy_status = payload.get("deploymentStatus", {})
 
             if deploy_status or got_request:

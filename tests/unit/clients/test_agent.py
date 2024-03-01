@@ -38,7 +38,7 @@ async def test_configure_instance(
                 ).decode("utf-8")
             }
         )
-        agent.publish.assert_called_once_with(agent.DEPLOYMENT_TOPIC, payload=payload)
+        agent.publish.assert_called_once_with(agent.ATTRIBUTES_TOPIC, payload=payload)
 
 
 @given(st.text(), generate_agent_config())
@@ -96,7 +96,7 @@ def test_get_deployment(agent_config: AgentConfiguration):
         agent._on_message_print_payload = Mock()
         agent.get_deployment()
         agent._loop_forever.assert_called_once_with(
-            subs_topics=[agent.DEPLOYMENT_TOPIC],
+            subs_topics=[agent.ATTRIBUTES_TOPIC],
             message_task=agent._on_message_print_payload.return_value,
         )
         agent._on_message_print_payload.assert_called_once()
@@ -132,7 +132,7 @@ def test_get_instance(instance_id: str, agent_config: AgentConfiguration):
         agent._on_message_instance = Mock()
         agent.get_instance(instance_id)
         agent._loop_forever.assert_called_once_with(
-            subs_topics=[agent.DEPLOYMENT_TOPIC],
+            subs_topics=[agent.ATTRIBUTES_TOPIC],
             message_task=agent._on_message_instance.return_value,
         )
         agent._on_message_instance.assert_called_once_with(instance_id)

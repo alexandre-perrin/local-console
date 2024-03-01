@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 class Agent:
-    DEPLOYMENT_TOPIC = "v1/devices/me/attributes"
+    ATTRIBUTES_TOPIC = "v1/devices/me/attributes"
     REQUEST_TOPIC = "v1/devices/me/attributes/request/+"
     RPC_RESPONSES_TOPIC = "v1/devices/me/rpc/response/+"
     TELEMETRY_TOPIC = "v1/devices/me/telemetry"
@@ -143,7 +143,7 @@ class Agent:
         return __task
 
     async def deploy(self, deployment: str) -> None:
-        await self.publish(self.DEPLOYMENT_TOPIC, payload=deployment)
+        await self.publish(self.ATTRIBUTES_TOPIC, payload=deployment)
 
     async def rpc(self, instance_id: str, method: str, params: str) -> None:
         reqid = str(random.randint(0, 10**8))
@@ -171,7 +171,7 @@ class Agent:
         message: dict = {f"configuration/{instance_id}/{topic}": config}
         payload = json.dumps(message)
         logger.debug(f"payload: {payload}")
-        await self.publish(self.DEPLOYMENT_TOPIC, payload=payload)
+        await self.publish(self.ATTRIBUTES_TOPIC, payload=payload)
 
     async def device_configure(
         self, desired_device_config: DesiredDeviceConfig
@@ -191,7 +191,7 @@ class Agent:
         }
         payload = json.dumps(message)
         logger.debug(f"payload: {payload}")
-        await self.publish(self.DEPLOYMENT_TOPIC, payload=payload)
+        await self.publish(self.ATTRIBUTES_TOPIC, payload=payload)
 
     async def loop_client(
         self, subs_topics: list[str], driver_task: Callable, message_task: Callable
@@ -240,7 +240,7 @@ class Agent:
 
     def get_deployment(self) -> None:
         self._loop_forever(
-            subs_topics=[self.DEPLOYMENT_TOPIC],
+            subs_topics=[self.ATTRIBUTES_TOPIC],
             message_task=self._on_message_print_payload(),
         )
 
@@ -252,7 +252,7 @@ class Agent:
 
     def get_instance(self, instance_id: str) -> None:
         self._loop_forever(
-            subs_topics=[self.DEPLOYMENT_TOPIC],
+            subs_topics=[self.ATTRIBUTES_TOPIC],
             message_task=self._on_message_instance(instance_id),
         )
 
