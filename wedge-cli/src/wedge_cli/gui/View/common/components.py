@@ -157,3 +157,21 @@ class ImageWithROI(Image):
             limits[dim] = (min_dim, max_dim)
 
         self._active_subregion = limits
+
+    def point_is_in_subregion(self, pos: tuple[int, int]) -> bool:
+        if all(coord == 0 for axis in self._active_subregion for coord in axis):
+            return False
+        if self.collide_point(*pos):
+            # Not only must the cursor be within the widget,
+            # it must also be within the subregion of the image
+            normalized = [
+                as_normal_in_set(pos[dim], (0, self.size[dim])) for dim in (0, 1)
+            ]
+            if all(
+                self._active_subregion[dim][0]
+                <= normalized[dim]
+                <= self._active_subregion[dim][1]
+                for dim in (0, 1)
+            ):
+                return True
+        return False
