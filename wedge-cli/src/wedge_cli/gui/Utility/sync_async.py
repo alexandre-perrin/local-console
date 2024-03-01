@@ -15,30 +15,28 @@ class SyncAsyncBridge:
     """
 
     def __init__(self) -> None:
-        self.tasks_queue: Queue[
-            tuple[Optional[Callable], Optional[tuple[Any]]]
-        ] = Queue()
+        self.tasks_queue: Queue[Optional[tuple[Callable, tuple[Any]]]] = Queue()
 
     # Function to post tasks to the Trio thread from Kivy
-    def enqueue_task(
-        self, func: Optional[Callable], args: Optional[tuple[Any]] = None
-    ) -> None:
+    def enqueue_task(self, func: Callable, *args: Any) -> None:
         self.tasks_queue.put((func, args))
+
+    def close_task_queue(self) -> None:
+        self.tasks_queue.put(None)
 
     # Async task listener
     async def bridge_listener(self) -> None:
         while True:
             # Wait for tasks from the queue
             assert self.tasks_queue
-            func, *args = await trio.to_thread.run_sync(self.tasks_queue.get)
-            if func is None:
+            items = await trio.to_thread.run_sync(self.tasks_queue.get)
+            if items is None:
                 # FIXME handle SIGTERM appropriately
                 return
             else:
-                if args == [None]:
-                    await func()
-                else:
-                    await func(*args)
+                func = items[0]
+                args = items[1]
+                await func(*args)
 
 
 def run_on_ui_thread(func: Callable) -> Callable:

@@ -50,7 +50,7 @@ class Driver:
 
     async def gui_run(self) -> None:
         await self.gui.async_run(async_lib="trio")
-        self.bridge.enqueue_task(None)
+        self.bridge.close_task_queue()
         self.nursery.cancel_scope.cancel()
 
     async def mqtt_setup(self) -> None:
