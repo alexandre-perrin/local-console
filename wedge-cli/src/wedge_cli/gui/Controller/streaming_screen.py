@@ -1,6 +1,7 @@
 from pygments.lexers import (
     JsonLexer,
 )  # nopycln: import # Required by the screen's KV spec file
+from wedge_cli.gui.camera import StreamStatus
 from wedge_cli.gui.driver import Driver
 from wedge_cli.gui.Model.streaming_screen import StreamingScreenModel
 from wedge_cli.gui.Utility.axis_mapping import UnitROI
@@ -23,14 +24,23 @@ class StreamingScreenController:
     def get_view(self) -> StreamingScreenView:
         return self.view
 
-    def set_stream_status(self, value: bool) -> None:
-        if value:
-            self.driver.from_sync(self.driver.streaming_rpc_start)
-        else:
+    def toggle_stream_status(self) -> None:
+        camera_status = self.model.stream_status
+        if camera_status == StreamStatus.Inactive:
+            self.driver.from_sync(self.driver.streaming_rpc_start, self.model.image_roi)
+            self.view.ids.stream_image.cancel_roi_draw()
+        elif camera_status == StreamStatus.Active:
             self.driver.from_sync(self.driver.streaming_rpc_stop)
 
-        # TODO do this based on some event emitted by the camera
-        self.model.stream_status = value
+        self.model.stream_status = StreamStatus.Transitioning
 
     def set_roi(self, roi: UnitROI) -> None:
         self.model.image_roi = roi
+
+        camera_status = self.driver.camera_state.sensor_state
+        if camera_status == StreamStatus.Transitioning:
+            return
+
+        self.model.stream_status = StreamStatus.Transitioning
+        if camera_status == StreamStatus.Active:
+            self.driver.from_sync(self.driver.streaming_rpc_stop)

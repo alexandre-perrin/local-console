@@ -12,6 +12,8 @@ from kivymd.app import MDApp
 from wedge_cli.clients.agent import Agent
 from wedge_cli.core.config import get_config
 from wedge_cli.gui.camera import Camera
+from wedge_cli.gui.Utility.axis_mapping import pixel_roi_from_normals
+from wedge_cli.gui.Utility.axis_mapping import UnitROI
 from wedge_cli.gui.Utility.sync_async import run_on_ui_thread
 from wedge_cli.gui.Utility.sync_async import SyncAsyncBridge
 from wedge_cli.servers.broker import spawn_broker
@@ -126,12 +128,14 @@ class Driver:
     def update_inference_data(self, inference_data: str) -> None:
         self.gui.views["streaming screen"].ids.inference_field.text = inference_data
 
-    async def streaming_rpc_start(self) -> None:
+    async def streaming_rpc_start(self, roi: Optional[UnitROI] = None) -> None:
         instance_id = "backdoor-EA_Main"
         method = "StartUploadInferenceData"
         upload_url = f"http://{LOCAL_IP}:{self.upload_port}/"
         assert self.image_directory  # appease mypy
         assert self.inferences_directory  # appease mypy
+
+        (h_offset, v_offset), (h_size, v_size) = pixel_roi_from_normals(roi)
         params = {
             "Mode": 1,
             "UploadMethod": "HttpStorage",
@@ -141,6 +145,10 @@ class Driver:
             "StorageNameIR": upload_url,
             "UploadInterval": 30,
             "StorageSubDirectoryPathIR": self.inferences_directory.name,
+            "CropHOffset": h_offset,
+            "CropVOffset": v_offset,
+            "CropHSize": h_size,
+            "CropVSize": v_size,
         }
         await self.mqtt_client.rpc(instance_id, method, json.dumps(params))
 
