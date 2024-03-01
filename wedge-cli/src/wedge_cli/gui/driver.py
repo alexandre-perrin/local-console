@@ -11,6 +11,7 @@ from kivy.core.clipboard import Clipboard
 from kivymd.app import MDApp
 from wedge_cli.clients.agent import Agent
 from wedge_cli.core.config import get_config
+from wedge_cli.gui.camera import Camera
 from wedge_cli.gui.Utility.sync_async import run_on_ui_thread
 from wedge_cli.gui.Utility.sync_async import SyncAsyncBridge
 from wedge_cli.servers.broker import spawn_broker
@@ -31,6 +32,7 @@ class Driver:
         self.inferences_directory: Optional[Path] = None
         self.config = get_config()
 
+        self.camera_state = Camera()
         self.start_flags = {
             "mqtt": trio.Event(),
             "webserver": trio.Event(),
@@ -57,7 +59,11 @@ class Driver:
         async with (
             spawn_broker(self.config, self.nursery, False, "nicebroker"),
             self.mqtt_client.mqtt_scope(
-                [Agent.TELEMETRY_TOPIC, Agent.RPC_RESPONSES_TOPIC]
+                [
+                    Agent.TELEMETRY_TOPIC,
+                    Agent.RPC_RESPONSES_TOPIC,
+                    Agent.ATTRIBUTES_TOPIC,
+                ]
             ),
         ):
             self.start_flags["mqtt"].set()
@@ -65,11 +71,18 @@ class Driver:
             assert self.mqtt_client.client  # appease mypy
             async for msg in self.mqtt_client.client.messages():
                 payload = json.loads(msg.payload)
+                self.camera_state.process_incoming(msg.topic, payload)
+                self.update_camera_status()
                 logger.debug("Incoming on %s: %s", msg.topic, str(payload))
 
     def from_sync(self, async_fn: Callable, *args: Any) -> None:
         self.bridge.enqueue_task(async_fn, *args)
 
+    @run_on_ui_thread
+    def update_camera_status(self) -> None:
+        self.gui.views[
+            "streaming screen"
+        ].model.stream_status = self.camera_state.sensor_state
     async def image_webserver_task(self) -> None:
         """
         Spawn a webserver on an arbitrary available port for receiving

@@ -1,3 +1,4 @@
+from wedge_cli.gui.camera import StreamStatus
 from wedge_cli.gui.Model.base_model import BaseScreenModel
 from wedge_cli.gui.Utility.axis_mapping import DEFAULT_ROI
 from wedge_cli.gui.Utility.axis_mapping import UnitROI
@@ -11,15 +12,15 @@ class StreamingScreenModel(BaseScreenModel):
     """
 
     def __init__(self) -> None:
-        self._stream_status: bool = False
+        self._stream_status = StreamStatus.Inactive
         self._image_roi: UnitROI = DEFAULT_ROI
 
     @property
-    def stream_status(self) -> bool:
+    def stream_status(self) -> StreamStatus:
         return self._stream_status
 
     @stream_status.setter
-    def stream_status(self, value: bool) -> None:
+    def stream_status(self, value: StreamStatus) -> None:
         self._stream_status = value
         self.notify_observers()
 

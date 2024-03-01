@@ -12,4 +12,9 @@ class StreamingScreenView(BaseScreenView):
         self.controller.set_stream_status(not self.model.stream_status)
 
     def model_is_changed(self) -> None:
-        self.ids.stream_flag.text = "Active" if self.model.stream_status else "Inactive"
+        stream_active = self.model.stream_status == StreamStatus.Active
+
+        self.ids.stream_flag.text = self.model.stream_status.value
+        self.ids.btn_stream_control.style = (
+            "elevated" if not stream_active else "filled"
+        )
