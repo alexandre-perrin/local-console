@@ -2,7 +2,6 @@ import enum
 import hashlib
 import json
 import logging
-import re
 import sys
 import uuid
 from pathlib import Path
@@ -13,6 +12,7 @@ from typing import Optional
 import trio
 import typer
 from wedge_cli.clients.agent import Agent
+from wedge_cli.clients.agent import check_attributes_request
 from wedge_cli.core.config import get_config
 from wedge_cli.core.config import get_deployment_schema
 from wedge_cli.core.enums import config_paths
@@ -202,24 +202,6 @@ class DeployFSM:
 
             if deploy_status or got_request:
                 await self.update(deploy_status, got_request)
-
-
-async def check_attributes_request(agent: Agent, topic: str, payload: str) -> bool:
-    got_request = False
-    result = re.search(r"^v1/devices/me/attributes/request/(\d+)$", topic)
-    if result:
-        got_request = True
-        req_id = result.group(1)
-        logger.debug(
-            "Got attribute request (id=%s) with payload: '%s'",
-            req_id,
-            payload,
-        )
-        await agent.publish(
-            f"v1/devices/me/attributes/response/{req_id}",
-            "{}",
-        )
-    return got_request
 
 
 def make_unique_module_ids(deploy_man: DeploymentManifest) -> None:

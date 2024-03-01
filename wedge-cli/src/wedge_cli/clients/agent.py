@@ -2,6 +2,7 @@ import base64
 import json
 import logging
 import random
+import re
 import traceback
 from collections import defaultdict
 from collections.abc import AsyncIterator
@@ -281,3 +282,26 @@ def handle_task_exceptions(excgroup: Any) -> None:
         exc_desc_lines = traceback.format_exception_only(type(e), e)
         exc_desc = "".join(exc_desc_lines).rstrip()
         logger.error("Exception: %s", exc_desc)
+
+
+async def check_attributes_request(agent: Agent, topic: str, payload: str) -> bool:
+    """
+    Checks that a given MQTT message (as provided by its topic and payload)
+    conveys a request from the device's agent for data attributes set in the
+    MQTT broker.
+    """
+    got_request = False
+    result = re.search(r"^v1/devices/me/attributes/request/(\d+)$", topic)
+    if result:
+        got_request = True
+        req_id = result.group(1)
+        logger.debug(
+            "Got attribute request (id=%s) with payload: '%s'",
+            req_id,
+            payload,
+        )
+        await agent.publish(
+            f"v1/devices/me/attributes/response/{req_id}",
+            "{}",
+        )
+    return got_request
