@@ -100,3 +100,34 @@
                     id: inference_field
                     lexer: JsonLexer()
                     font_size: "12sp"
+                    size_hint_y: 0.65
+
+                MDGridLayout:
+                    size_hint_y: 0.35
+                    cols: 3
+                    padding: "10sp"
+                    spacing: "2sp"
+
+                    MDLabel:
+                        text: 'ROI'
+                        font_style: "Title"
+                    MDLabel:
+                        text: 'Offset'
+                        font_style: "Body"
+                    MDLabel:
+                        text: 'Size'
+                        font_style: "Body"
+                    MDLabel:
+                        text: 'H:'
+                        font_style: "Body"
+                    MDLabel:
+                        id: lbl_roi_h_offset
+                    MDLabel:
+                        id: lbl_roi_h_size
+                    MDLabel:
+                        text: 'V:'
+                        font_style: "Body"
+                    MDLabel:
+                        id: lbl_roi_v_offset
+                    MDLabel:
+                        id: lbl_roi_v_size

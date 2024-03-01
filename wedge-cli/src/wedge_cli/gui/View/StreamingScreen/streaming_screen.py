@@ -2,6 +2,7 @@ from kivy.uix.codeinput import (
     CodeInput,
 )  # nopycln: import # Required by the screen's KV spec file
 from wedge_cli.gui.camera import StreamStatus
+from wedge_cli.gui.Utility.axis_mapping import pixel_roi_from_normals
 from wedge_cli.gui.View.base_screen import BaseScreenView
 from wedge_cli.gui.View.common.components import (
     ImageWithROI,
@@ -52,3 +53,11 @@ class StreamingScreenView(BaseScreenView):
         self.ids.btn_stream_control.style = (
             "elevated" if not stream_active else "filled"
         )
+
+        (h_offset, v_offset), (h_size, v_size) = pixel_roi_from_normals(
+            self.model.image_roi
+        )
+        self.ids.lbl_roi_h_offset.text = str(h_offset)
+        self.ids.lbl_roi_h_size.text = str(h_size)
+        self.ids.lbl_roi_v_offset.text = str(v_offset)
+        self.ids.lbl_roi_v_size.text = str(v_size)
