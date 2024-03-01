@@ -14,12 +14,15 @@ class Camera:
     This class is a live, read-only interface to most status
     information that the Camera Firmware reports.
     """
+
     EA_STATE_TOPIC = "state/backdoor-EA_Main/placeholder"
     SYSINFO_TOPIC = "systemInfo"
+    DEPLOY_STATUS_TOPIC = "deploymentStatus"
 
     def __init__(self) -> None:
         self.sensor_state = StreamStatus.Inactive
         self.app_state = ""
+        self.deploy_status: dict[str, str] = {}
         self.onwire_protocol = OnWireProtocol.UNKNOWN
 
     @property
@@ -40,6 +43,8 @@ class Camera:
                 sys_info = payload[self.SYSINFO_TOPIC]
                 self.onwire_protocol = OnWireProtocol(sys_info["protocolVersion"])
 
+            if self.DEPLOY_STATUS_TOPIC in payload:
+                self.deploy_status = payload[self.DEPLOY_STATUS_TOPIC]
         logger.critical("Incoming on %s: %s", topic, str(payload))
 
 

@@ -91,6 +91,10 @@ class Driver:
         self.gui.views[
             "streaming screen"
         ].model.stream_status = self.camera_state.sensor_state
+        self.gui.views[
+            "applications screen"
+        ].model.deploy_status = self.camera_state.deploy_status
+
     async def image_webserver_task(self) -> None:
         """
         Spawn a webserver on an arbitrary available port for receiving
