@@ -81,6 +81,9 @@ def deploy(
 
         deployment_manifest = get_deployment_schema()
         update_deployment_manifest(deployment_manifest, host, port, bin_fp, target, signed)  # type: ignore
+        with open(config_paths.deployment_json, "w") as f:
+            json.dump(deployment_manifest.model_dump(), f, indent=2)
+
         make_unique_module_ids(deployment_manifest)
 
     success = False
@@ -270,23 +273,34 @@ def update_deployment_manifest(
                 f"There is no target architecture, the {file} module to be deployed is not signed"
             )
 
-        deployment_manifest.deployment.modules[module].hash = calculate_sha256(file)
-        deployment_manifest.deployment.modules[
-            module
-        ].downloadUrl = f"http://{host}:{port}/{file}"
+        # use the downloadUrl field as placeholder, read from the function below
+        deployment_manifest.deployment.modules[module].downloadUrl = str(file)
 
-    # DeploymentId based on deployment manifest contect
-    deployment_manifest.deployment.deploymentId = ""
-    deployment_manifest_hash = hashlib.sha256(
-        str(deployment_manifest.model_dump()).encode("utf-8")
-    )
-    deployment_manifest.deployment.deploymentId = deployment_manifest_hash.hexdigest()
-
-    with open(config_paths.deployment_json, "w") as f:
-        json.dump(deployment_manifest.model_dump(), f, indent=2)
+    populate_urls_and_hashes(deployment_manifest, host, port, files_dir.parent)
 
 
 def calculate_sha256(path: Path) -> str:
     sha256_hash = hashlib.sha256()
     sha256_hash.update(path.read_bytes())
     return sha256_hash.hexdigest()
+
+
+def populate_urls_and_hashes(
+    deployment_manifest: DeploymentManifest,
+    host: str,
+    port: int,
+    root_path: Path,
+) -> None:
+    for module in deployment_manifest.deployment.modules.keys():
+        file = Path(deployment_manifest.deployment.modules[module].downloadUrl)
+        deployment_manifest.deployment.modules[module].hash = calculate_sha256(file)
+        deployment_manifest.deployment.modules[
+            module
+        ].downloadUrl = f"http://{host}:{port}/{file.relative_to(root_path)}"
+
+    # DeploymentId based on deployment manifest content
+    deployment_manifest.deployment.deploymentId = ""
+    deployment_manifest_hash = hashlib.sha256(
+        str(deployment_manifest.model_dump()).encode("utf-8")
+    )
+    deployment_manifest.deployment.deploymentId = deployment_manifest_hash.hexdigest()
