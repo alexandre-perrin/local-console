@@ -176,7 +176,7 @@ def test_config_unset_nullable_parameter(agent_config: AgentConfiguration):
         patch(
             "wedge_cli.commands.config.get_config", return_value=agent_config
         ) as mock_get_config,
-        patch("pathlib.PosixPath.open") as mock_open,
+        patch("pathlib.Path.open") as mock_open,
     ):
         result = runner.invoke(app, [GetCommands.UNSET.value, "mqtt", "device_id"])
         assert result.exit_code == 0
