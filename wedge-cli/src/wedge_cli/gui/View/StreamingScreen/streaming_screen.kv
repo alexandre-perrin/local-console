@@ -76,6 +76,7 @@
                 fit_mode: "contain"
                 on_roi: root.controller.set_roi(args[1])
                 on_size: self.update_roi()
+                on_texture: self.prime_for_roi(args[1])
                 size_hint_x: 0.7
 
             MDBoxLayout:

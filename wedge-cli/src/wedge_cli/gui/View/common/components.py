@@ -7,6 +7,7 @@ from typing import Optional
 from kivy.core.window import Window
 from kivy.graphics import Color
 from kivy.graphics import Line
+from kivy.graphics.texture import Texture
 from kivy.input import MotionEvent
 from kivy.properties import ObjectProperty
 from kivy.uix.image import Image
@@ -140,6 +141,11 @@ class ImageWithROI(Image):
 
     def update_image_data(self, incoming_file: Path) -> None:
         self.source = str(incoming_file)
+
+    def prime_for_roi(self, _texture: Texture) -> None:
+        if self.state == ROIState.Disabled:
+            self.state = ROIState.Viewing
+        self.update_norm_subregion()
 
     def update_roi(self) -> None:
         self.update_norm_subregion()
