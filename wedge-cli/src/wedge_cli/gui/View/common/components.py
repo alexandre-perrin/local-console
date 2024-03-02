@@ -109,4 +109,3 @@ class ImageWithROI(Image):
 
     def update_image_data(self, incoming_file: Path) -> None:
         self.source = str(incoming_file)
-
