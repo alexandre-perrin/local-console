@@ -1,7 +1,7 @@
 from pygments.lexers import (
     JsonLexer,
 )  # nopycln: import # Required by the screen's KV spec file
-from wedge_cli.gui.camera import StreamStatus
+from wedge_cli.core.camera import StreamStatus
 from wedge_cli.gui.driver import Driver
 from wedge_cli.gui.Model.streaming_screen import StreamingScreenModel
 from wedge_cli.gui.Utility.axis_mapping import UnitROI

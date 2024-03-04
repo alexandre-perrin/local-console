@@ -1,4 +1,4 @@
-from wedge_cli.gui.camera import StreamStatus
+from wedge_cli.core.camera import StreamStatus
 from wedge_cli.gui.Model.base_model import BaseScreenModel
 from wedge_cli.gui.Utility.axis_mapping import DEFAULT_ROI
 from wedge_cli.gui.Utility.axis_mapping import UnitROI

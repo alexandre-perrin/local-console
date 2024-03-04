@@ -10,6 +10,7 @@ from hypothesis import strategies as st
 from paho.mqtt.client import MQTT_ERR_ERRNO
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 from wedge_cli.clients.agent import Agent
+from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.schemas import AgentConfiguration
 
 from tests.strategies.configs import generate_agent_config
@@ -38,7 +39,9 @@ async def test_configure_instance(
                 ).decode("utf-8")
             }
         )
-        agent.publish.assert_called_once_with(agent.ATTRIBUTES_TOPIC, payload=payload)
+        agent.publish.assert_called_once_with(
+            MQTTTopics.ATTRIBUTES.value, payload=payload
+        )
 
 
 @given(st.text(), generate_agent_config())
@@ -96,7 +99,7 @@ def test_get_deployment(agent_config: AgentConfiguration):
         agent._on_message_print_payload = Mock()
         agent.get_deployment()
         agent._loop_forever.assert_called_once_with(
-            subs_topics=[agent.ATTRIBUTES_TOPIC],
+            subs_topics=[MQTTTopics.ATTRIBUTES.value],
             message_task=agent._on_message_print_payload.return_value,
         )
         agent._on_message_print_payload.assert_called_once()
@@ -114,7 +117,7 @@ def test_get_telemetry(agent_config: AgentConfiguration):
         agent._on_message_telemetry = Mock()
         agent.get_telemetry()
         agent._loop_forever.assert_called_once_with(
-            subs_topics=[agent.TELEMETRY_TOPIC],
+            subs_topics=[MQTTTopics.TELEMETRY.value],
             message_task=agent._on_message_telemetry.return_value,
         )
         agent._on_message_telemetry.assert_called_once()
@@ -132,7 +135,7 @@ def test_get_instance(instance_id: str, agent_config: AgentConfiguration):
         agent._on_message_instance = Mock()
         agent.get_instance(instance_id)
         agent._loop_forever.assert_called_once_with(
-            subs_topics=[agent.ATTRIBUTES_TOPIC],
+            subs_topics=[MQTTTopics.ATTRIBUTES.value],
             message_task=agent._on_message_instance.return_value,
         )
         agent._on_message_instance.assert_called_once_with(instance_id)
@@ -150,7 +153,7 @@ def test_get_logs(instance_id: str, timeout: int, agent_config: AgentConfigurati
         agent._on_message_logs = Mock()
         agent.get_instance_logs(instance_id, timeout)
         agent._loop_forever.assert_called_once_with(
-            subs_topics=[agent.TELEMETRY_TOPIC],
+            subs_topics=[MQTTTopics.TELEMETRY.value],
             message_task=agent._on_message_logs.return_value,
         )
         agent._on_message_logs.assert_called_once_with(instance_id, timeout)
