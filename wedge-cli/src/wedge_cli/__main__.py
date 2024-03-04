@@ -17,6 +17,7 @@ from wedge_cli.commands import get
 from wedge_cli.commands import gui
 from wedge_cli.commands import logs
 from wedge_cli.commands import new
+from wedge_cli.commands import qr
 from wedge_cli.commands import rpc
 from wedge_cli.commands import start
 from wedge_cli.core.config import setup_default_config
@@ -41,6 +42,7 @@ app.add_typer(get.app, name="get")
 app.add_typer(config.app, name="config")
 app.add_typer(broker.app, name="broker")
 app.add_typer(gui.app, name="gui")
+app.add_typer(qr.app, name="qr")
 
 
 def handle_exit(signal: int, frame: Optional[FrameType]) -> None:
