@@ -2,8 +2,8 @@ from pygments.lexers import (
     JsonLexer,
 )  # nopycln: import # Required by the screen's KV spec file
 from wedge_cli.gui.driver import Driver
-from wedge_cli.gui.Model.streaming_screen import ROI
 from wedge_cli.gui.Model.streaming_screen import StreamingScreenModel
+from wedge_cli.gui.Utility.axis_mapping import UnitROI
 from wedge_cli.gui.View.StreamingScreen.streaming_screen import StreamingScreenView
 
 
@@ -16,7 +16,7 @@ class StreamingScreenController:
     """
 
     def __init__(self, model: StreamingScreenModel, driver: Driver) -> None:
-        self.model = model  # Model.Streaming_screen.StreamingScreenModel
+        self.model = model
         self.driver = driver
         self.view = StreamingScreenView(controller=self, model=self.model)
 
@@ -32,5 +32,5 @@ class StreamingScreenController:
         # TODO do this based on some event emitted by the camera
         self.model.stream_status = value
 
-    def set_image_roi(self, value: ROI) -> None:
-        self.model.image_roi = value
+    def set_roi(self, roi: UnitROI) -> None:
+        self.model.image_roi = roi
