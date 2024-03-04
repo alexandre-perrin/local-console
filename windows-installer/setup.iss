@@ -28,6 +28,9 @@ WizardStyle=modern
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
+[Tasks]
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: checked
+
 [Files]
 Source: "..\dist\offline_tool\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion; Components: OfflineTool
 Source: "..\dist\offline_tool\_internal\*"; DestDir: "{app}\_internal"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: OfflineTool
@@ -36,6 +39,7 @@ Source: "mosquitto-2.0.18-install-windows-x64.exe"; DestDir: "{app}"; Components
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Parameters: "gui"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\mosquitto-2.0.18-install-windows-x64.exe"; Description: "Install Mosquitto"; Components: Mosquitto; Flags: shellexec hidewizard;
