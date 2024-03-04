@@ -1,10 +1,9 @@
+---
 name: generate-oss-license-report
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
+  pull_request:
 
 env:
   PYTHON_VERSION: '3.11'
@@ -27,11 +26,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - name: Install test requirements
+      - name: Install requirements
         run: |
-          apt-get update
-          apt-get install -y make cmake git curl wget software-properties-common
-          apt-get update && apt-get install -y mosquitto
+          apt-get update && apt-get install -y wget curl software-properties-common
       - name: Docker Setup Buildx
         uses: docker/setup-buildx-action@v3
         with:
@@ -46,7 +43,7 @@ jobs:
       - name: Generate SBOM report for wedge-cli container
         uses: anchore/sbom-action@v0
         with:
-          image: "localhost:5000/wedge-cli-image:latest"
+          image: localhost:5000/wedge-cli-image:latest
           artifact-name: wedge-cli-container-sbom.json
           output-file: wedge-cli-container-sbom.json
           format: json
@@ -61,6 +58,6 @@ jobs:
       - name: Upload report
         uses: actions/upload-artifact@v4
         with:
-          name: "wedge-cli-container-sbom-report.csv"
+          name: wedge-cli-container-sbom-report.csv
           retention-days: 21
           path: target/wedge-cli-container-sbom-report.csv
