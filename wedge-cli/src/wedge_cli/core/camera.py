@@ -29,7 +29,7 @@ class Camera:
 
     @property
     def is_ready(self) -> bool:
-        return self.onwire_protocol is not None and self.attributes_available
+        return self.onwire_schema is not None and self.attributes_available
 
     def process_incoming(self, topic: str, payload: dict[str, Any]) -> None:
         if topic == MQTTTopics.ATTRIBUTES.value:
@@ -43,7 +43,7 @@ class Camera:
 
             if self.SYSINFO_TOPIC in payload:
                 sys_info = payload[self.SYSINFO_TOPIC]
-                self.onwire_protocol = OnWireProtocol(sys_info["protocolVersion"])
+                self.onwire_schema = OnWireProtocol(sys_info["protocolVersion"])
                 self.attributes_available = True
 
             if self.DEPLOY_STATUS_TOPIC in payload:
