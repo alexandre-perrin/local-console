@@ -1,0 +1,111 @@
+#:import res_path wedge_cli.gui.main.resource_path
+#:import get_my_ip wedge_cli.utils.local_network.get_my_ip_by_routing
+
+
+<ApplicationsScreenView>
+    md_bg_color: self.theme_cls.backgroundColor
+
+    MDBoxLayout:
+        orientation: "vertical"
+
+        MDBoxLayout:
+        # Top bar
+            orientation: "horizontal"
+            size_hint_y: 0.1
+
+            MDBoxLayout:
+            # Controls half
+                orientation: "horizontal"
+                spacing: "10dp"
+                padding: "10dp"
+
+                MDButton:
+                    on_release: root.manager.current = 'home screen'
+                    style: "elevated"
+                    pos_hint: {"center_y": 0.5}
+                    size_hint_x: "60dp"
+                    MDButtonIcon:
+                        icon: "home"
+                        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+                MDWidget:
+                    size_hint_x: 3
+
+        MDBoxLayout:
+        # Top bar
+            orientation: "horizontal"
+            size_hint_y: 0.1
+
+            MDBoxLayout:
+                orientation: "horizontal"
+                spacing: "10dp"
+                padding: "10dp"
+
+                MDLabel:
+                    text: 'App location:'
+                    adaptive_width: True
+
+                MDLabel:
+                    id: lbl_app_path
+                    size_hint_x: 3
+                    padding: "5sp"
+                    canvas.before:
+                        Color:
+                            rgb: 0, 0, 0
+                        Line:
+                            rounded_rectangle: self.x, self.y, self.width, self.height, 8
+                            width: 1
+
+                MDButton:
+                    id: btn_pick_file
+                    on_release: root.file_manager_open()
+                    style: "elevated"
+                    pos_hint: {"center_y": 0.5}
+                    size_hint_x: "60dp"
+                    MDButtonIcon:
+                        icon: "file-cog"
+                        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+                MDButton:
+                    id: btn_deploy_file
+                    on_release: root.controller.deploy()
+                    pos_hint: {"center_y": 0.5}
+                    disabled: True
+                    MDButtonText:
+                        text: "Deploy"
+
+        MDBoxLayout:
+        # Title
+            orientation: "horizontal"
+            size_hint_y: 0.1
+
+            MDWidget:
+
+            MDLabel:
+                text: "Deployment Status"
+                font_style: 'Title'
+                adaptive_height: True
+
+            MDWidget:
+
+        MDBoxLayout:
+        # Readout block
+            orientation: "horizontal"
+            size_hint_y: 0.8
+            spacing: "10dp"
+            padding: "20dp"
+
+            CodeInput:
+                id: txt_deployment_data
+                lexer: JsonLexer()
+                font_size: "12sp"
+                size_hint_x: 0.7
+
+            MDBoxLayout:
+                orientation: "vertical"
+                size_hint_x: 0.25
+
+                MDLabel:
+                    id: lbl_deployment_status
+                    text: "N/A"
+                    font_style: 'Body'

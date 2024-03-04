@@ -41,12 +41,16 @@ class ImageWithROI(Image):
         self._active_subregion: list[tuple[float, float]] = [(0, 0), (0, 0)]
         Window.bind(mouse_pos=self.on_mouse_pos)
 
-    def activate_select_mode(self) -> None:
+    def start_roi_draw(self) -> None:
         if self.state == ROIState.Disabled:
             logger.critical("Image not yet loaded! Aborting ROI")
             return
 
         self.state = ROIState.PickingStartPoint
+        self.clear_roi()
+
+    def cancel_roi_draw(self) -> None:
+        self.state = ROIState.Viewing
         self.clear_roi()
 
     def clear_roi(self) -> None:

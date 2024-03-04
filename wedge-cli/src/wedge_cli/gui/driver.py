@@ -10,12 +10,18 @@ import trio
 from kivy.core.clipboard import Clipboard
 from kivymd.app import MDApp
 from wedge_cli.clients.agent import Agent
+from wedge_cli.clients.agent import check_attributes_request
 from wedge_cli.core.config import get_config
+from wedge_cli.core.schemas import DesiredDeviceConfig
+from wedge_cli.gui.camera import Camera
+from wedge_cli.gui.Utility.axis_mapping import pixel_roi_from_normals
+from wedge_cli.gui.Utility.axis_mapping import UnitROI
 from wedge_cli.gui.Utility.sync_async import run_on_ui_thread
 from wedge_cli.gui.Utility.sync_async import SyncAsyncBridge
 from wedge_cli.servers.broker import spawn_broker
 from wedge_cli.servers.webserver import AsyncWebserver
 from wedge_cli.utils.local_network import LOCAL_IP
+from wedge_cli.utils.timing import TimeoutBehavior
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +36,12 @@ class Driver:
         self.image_directory: Optional[Path] = None
         self.inferences_directory: Optional[Path] = None
         self.config = get_config()
+
+        self.camera_state = Camera()
+
+        # This takes care of ensuring the device reports its state
+        # with bounded periodicity (expect to receive a message within 6 seconds)
+        self.periodic_reports = TimeoutBehavior(6, self.set_periodic_reports)
 
         self.start_flags = {
             "mqtt": trio.Event(),
@@ -57,18 +69,44 @@ class Driver:
         async with (
             spawn_broker(self.config, self.nursery, False, "nicebroker"),
             self.mqtt_client.mqtt_scope(
-                [Agent.TELEMETRY_TOPIC, Agent.RPC_RESPONSES_TOPIC]
+                [
+                    Agent.REQUEST_TOPIC,
+                    Agent.TELEMETRY_TOPIC,
+                    Agent.RPC_RESPONSES_TOPIC,
+                    Agent.ATTRIBUTES_TOPIC,
+                ]
             ),
         ):
             self.start_flags["mqtt"].set()
 
             assert self.mqtt_client.client  # appease mypy
+            self.periodic_reports.spawn_in(self.nursery)
             async for msg in self.mqtt_client.client.messages():
+                attributes_available = await check_attributes_request(
+                    self.mqtt_client, msg.topic, msg.payload.decode()
+                )
+                if attributes_available:
+                    self.camera_state.attributes_available = True
+
                 payload = json.loads(msg.payload)
-                logger.debug("Incoming on %s: %s", msg.topic, str(payload))
+                self.camera_state.process_incoming(msg.topic, payload)
+                self.update_camera_status()
+
+                if self.camera_state.is_ready:
+                    self.periodic_reports.tap()
 
     def from_sync(self, async_fn: Callable, *args: Any) -> None:
         self.bridge.enqueue_task(async_fn, *args)
+
+    @run_on_ui_thread
+    def update_camera_status(self) -> None:
+        self.gui.is_ready = self.camera_state.is_ready
+        self.gui.views[
+            "streaming screen"
+        ].model.stream_status = self.camera_state.sensor_state
+        self.gui.views[
+            "applications screen"
+        ].model.deploy_status = self.camera_state.deploy_status
 
     async def image_webserver_task(self) -> None:
         """
@@ -113,12 +151,14 @@ class Driver:
     def update_inference_data(self, inference_data: str) -> None:
         self.gui.views["streaming screen"].ids.inference_field.text = inference_data
 
-    async def streaming_rpc_start(self) -> None:
+    async def streaming_rpc_start(self, roi: Optional[UnitROI] = None) -> None:
         instance_id = "backdoor-EA_Main"
         method = "StartUploadInferenceData"
         upload_url = f"http://{LOCAL_IP}:{self.upload_port}/"
         assert self.image_directory  # appease mypy
         assert self.inferences_directory  # appease mypy
+
+        (h_offset, v_offset), (h_size, v_size) = pixel_roi_from_normals(roi)
         params = {
             "Mode": 1,
             "UploadMethod": "HttpStorage",
@@ -128,6 +168,10 @@ class Driver:
             "StorageNameIR": upload_url,
             "UploadInterval": 30,
             "StorageSubDirectoryPathIR": self.inferences_directory.name,
+            "CropHOffset": h_offset,
+            "CropVOffset": v_offset,
+            "CropHSize": h_size,
+            "CropVSize": v_size,
         }
         await self.mqtt_client.rpc(instance_id, method, json.dumps(params))
 
@@ -135,3 +179,16 @@ class Driver:
         instance_id = "backdoor-EA_Main"
         method = "StopUploadInferenceData"
         await self.mqtt_client.rpc(instance_id, method, "{}")
+
+    async def set_periodic_reports(self) -> None:
+        # Configure the device to emit status reports twice
+        # as often as the timeout expiration, to ensure that
+        # random deviations in report perioding make the timer
+        # to expire unnecessarily.
+        timeout = int(0.5 * self.periodic_reports.timeout_secs)
+        await self.mqtt_client.device_configure(
+            DesiredDeviceConfig(
+                reportStatusIntervalMax=timeout,
+                reportStatusIntervalMin=min(timeout, 1),
+            )
+        )
