@@ -2,7 +2,6 @@
 
 <StreamingScreenView>
     md_bg_color: self.theme_cls.backgroundColor
-    streamed_image: self.streamed_image
     inference_data: self.inference_data
 
     MDBoxLayout:
@@ -16,6 +15,7 @@
             MDBoxLayout:
             # Controls half
                 orientation: "horizontal"
+                size_hint_x: 3
                 padding: "5dp"
 
                 MDButton:
@@ -28,6 +28,7 @@
                         pos_hint: {"center_x": 0.5, "center_y": 0.5}
 
                 MDWidget:
+                    size_hint_x: 0.1
 
                 MDButton:
                     on_release: root.toggle_stream_status()
@@ -48,6 +49,7 @@
             MDBoxLayout:
             # Status readout half
                 orientation: "horizontal"
+                size_hint_x: 1.5
                 padding: "5dp"
 
                 MDIcon:
@@ -70,14 +72,14 @@
 
             ImageWithROI:
                 id: stream_image
-                source: root.streamed_image
                 radius: "10dp"
                 fit_mode: "contain"
                 on_ROI: root.set_roi(args[0])
                 size_hint_x: 0.7
 
-            MDScrollView:
+            MDBoxLayout:
                 size_hint_x: 0.3
+                orientation: "vertical"
 
                 CodeInput:
                     id: inference_field

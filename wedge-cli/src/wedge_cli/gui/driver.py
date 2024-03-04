@@ -11,8 +11,8 @@ from kivy.core.clipboard import Clipboard
 from kivymd.app import MDApp
 from wedge_cli.clients.agent import Agent
 from wedge_cli.core.config import get_config
-from wedge_cli.gui.utils import run_on_ui_thread
-from wedge_cli.gui.utils import SyncAsyncBridge
+from wedge_cli.gui.Utility.sync_async import run_on_ui_thread
+from wedge_cli.gui.Utility.sync_async import SyncAsyncBridge
 from wedge_cli.servers.broker import spawn_broker
 from wedge_cli.servers.webserver import AsyncWebserver
 from wedge_cli.utils.local_network import LOCAL_IP
@@ -50,7 +50,7 @@ class Driver:
 
     async def gui_run(self) -> None:
         await self.gui.async_run(async_lib="trio")
-        self.bridge.enqueue_task(None)
+        self.bridge.close_task_queue()
         self.nursery.cancel_scope.cancel()
 
     async def mqtt_setup(self) -> None:
@@ -79,9 +79,9 @@ class Driver:
         :return:
         """
         with (
-            TemporaryDirectory() as tempdir,
+            TemporaryDirectory(prefix="WEdgeGUI_") as tempdir,
             AsyncWebserver(
-                Path(tempdir), port=0, on_incoming=self.view_streamed_image
+                Path(tempdir), port=0, on_incoming=self.process_camera_upload
             ) as image_serve,
         ):
             logger.info(f"Uploading data into {tempdir}")
@@ -97,11 +97,17 @@ class Driver:
             self.start_flags["webserver"].set()
             await trio.sleep_forever()
 
-    def view_streamed_image(self, incoming_file: Path) -> None:
+    def process_camera_upload(self, incoming_file: Path) -> None:
         if incoming_file.parent == self.image_directory:
-            self.gui.views["streaming screen"].streamed_image = str(incoming_file)
+            self.update_image_data(incoming_file)
         elif incoming_file.parent == self.inferences_directory:
             self.update_inference_data(incoming_file.read_text())
+
+    @run_on_ui_thread
+    def update_image_data(self, incoming_file: Path) -> None:
+        self.gui.views["streaming screen"].ids.stream_image.update_image_data(
+            incoming_file
+        )
 
     @run_on_ui_thread
     def update_inference_data(self, inference_data: str) -> None:
