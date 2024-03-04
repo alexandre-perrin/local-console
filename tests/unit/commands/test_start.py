@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import patch
 from uuid import UUID
 
@@ -190,7 +191,7 @@ def test_start_agent_with_tls(
         )
         env[EVPEnvVars.EVP_MQTT_TLS_CA_CERT] = str(agent_config.tls.ca_certificate)
         env["LD_PRELOAD"] = "libnss_wrapper.so"
-        env["NSS_WRAPPER_HOSTS"] = f"/tmp/{random_name}/hosts"
+        env["NSS_WRAPPER_HOSTS"] = str(Path(f"/tmp/{random_name}/hosts"))
         env[EVPEnvVars.EVP_MQTT_HOST] = "brokerhost"
 
         assert rc == 0
@@ -207,6 +208,7 @@ def test_start_agent_remote(valid_ip: str, port: int) -> None:
         patch("wedge_cli.commands.start.get_config") as mock_get_config,
         patch("wedge_cli.commands.start.is_localhost", return_value=False),
         patch("wedge_cli.commands.start.get_agent_environment") as mock_get_env,
+        patch("shutil.which", return_value=Commands.EVP_AGENT.value),
     ):
         start_agent(
             connection_info=RemoteConnectionInfo(

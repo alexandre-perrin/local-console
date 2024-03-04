@@ -2,7 +2,6 @@ import enum
 import hashlib
 import json
 import logging
-import re
 import sys
 import uuid
 from pathlib import Path
@@ -13,6 +12,7 @@ from typing import Optional
 import trio
 import typer
 from wedge_cli.clients.agent import Agent
+from wedge_cli.clients.agent import check_attributes_request
 from wedge_cli.core.config import get_config
 from wedge_cli.core.config import get_deployment_schema
 from wedge_cli.core.enums import config_paths
@@ -81,6 +81,9 @@ def deploy(
 
         deployment_manifest = get_deployment_schema()
         update_deployment_manifest(deployment_manifest, host, port, bin_fp, target, signed)  # type: ignore
+        with open(config_paths.deployment_json, "w") as f:
+            json.dump(deployment_manifest.model_dump(), f, indent=2)
+
         make_unique_module_ids(deployment_manifest)
 
     success = False
@@ -104,7 +107,7 @@ async def exec_deployment(
     timeout_secs: int,
 ) -> bool:
     success = False
-    subscription_topics = [Agent.REQUEST_TOPIC, Agent.DEPLOYMENT_TOPIC]
+    subscription_topics = [Agent.REQUEST_TOPIC, Agent.ATTRIBUTES_TOPIC]
     deploy_fsm = DeployFSM(agent, deploy_manifest)
     with trio.move_on_after(timeout_secs) as timeout_scope:
         async with (
@@ -197,29 +200,11 @@ class DeployFSM:
             got_request = await check_attributes_request(self.agent, msg.topic, payload)
 
             deploy_status = {}
-            if payload and msg.topic == Agent.DEPLOYMENT_TOPIC:
+            if payload and msg.topic == Agent.ATTRIBUTES_TOPIC:
                 deploy_status = payload.get("deploymentStatus", {})
 
             if deploy_status or got_request:
                 await self.update(deploy_status, got_request)
-
-
-async def check_attributes_request(agent: Agent, topic: str, payload: str) -> bool:
-    got_request = False
-    result = re.search(r"^v1/devices/me/attributes/request/(\d+)$", topic)
-    if result:
-        got_request = True
-        req_id = result.group(1)
-        logger.debug(
-            "Got attribute request (id=%s) with payload: '%s'",
-            req_id,
-            payload,
-        )
-        await agent.publish(
-            f"v1/devices/me/attributes/response/{req_id}",
-            "{}",
-        )
-    return got_request
 
 
 def make_unique_module_ids(deploy_man: DeploymentManifest) -> None:
@@ -288,23 +273,34 @@ def update_deployment_manifest(
                 f"There is no target architecture, the {file} module to be deployed is not signed"
             )
 
-        deployment_manifest.deployment.modules[module].hash = calculate_sha256(file)
-        deployment_manifest.deployment.modules[
-            module
-        ].downloadUrl = f"http://{host}:{port}/{file}"
+        # use the downloadUrl field as placeholder, read from the function below
+        deployment_manifest.deployment.modules[module].downloadUrl = str(file)
 
-    # DeploymentId based on deployment manifest contect
-    deployment_manifest.deployment.deploymentId = ""
-    deployment_manifest_hash = hashlib.sha256(
-        str(deployment_manifest.model_dump()).encode("utf-8")
-    )
-    deployment_manifest.deployment.deploymentId = deployment_manifest_hash.hexdigest()
-
-    with open(config_paths.deployment_json, "w") as f:
-        json.dump(deployment_manifest.model_dump(), f, indent=2)
+    populate_urls_and_hashes(deployment_manifest, host, port, files_dir.parent)
 
 
 def calculate_sha256(path: Path) -> str:
     sha256_hash = hashlib.sha256()
     sha256_hash.update(path.read_bytes())
     return sha256_hash.hexdigest()
+
+
+def populate_urls_and_hashes(
+    deployment_manifest: DeploymentManifest,
+    host: str,
+    port: int,
+    root_path: Path,
+) -> None:
+    for module in deployment_manifest.deployment.modules.keys():
+        file = Path(deployment_manifest.deployment.modules[module].downloadUrl)
+        deployment_manifest.deployment.modules[module].hash = calculate_sha256(file)
+        deployment_manifest.deployment.modules[
+            module
+        ].downloadUrl = f"http://{host}:{port}/{file.relative_to(root_path)}"
+
+    # DeploymentId based on deployment manifest content
+    deployment_manifest.deployment.deploymentId = ""
+    deployment_manifest_hash = hashlib.sha256(
+        str(deployment_manifest.model_dump()).encode("utf-8")
+    )
+    deployment_manifest.deployment.deploymentId = deployment_manifest_hash.hexdigest()

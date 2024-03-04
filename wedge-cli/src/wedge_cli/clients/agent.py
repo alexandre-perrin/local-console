@@ -2,6 +2,7 @@ import base64
 import json
 import logging
 import random
+import re
 import traceback
 from collections import defaultdict
 from collections.abc import AsyncIterator
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 class Agent:
-    DEPLOYMENT_TOPIC = "v1/devices/me/attributes"
+    ATTRIBUTES_TOPIC = "v1/devices/me/attributes"
     REQUEST_TOPIC = "v1/devices/me/attributes/request/+"
     RPC_RESPONSES_TOPIC = "v1/devices/me/rpc/response/+"
     TELEMETRY_TOPIC = "v1/devices/me/telemetry"
@@ -89,6 +90,8 @@ class Agent:
                 async for msg in self.client.messages():
                     payload = json.loads(msg.payload.decode())
                     logs = defaultdict(list)
+                    if "values" in payload:
+                        payload = payload["values"]
                     if "device/log" in payload.keys():
                         for log in payload["device/log"]:
                             logs[log["app"]].append(log)
@@ -143,7 +146,7 @@ class Agent:
         return __task
 
     async def deploy(self, deployment: str) -> None:
-        await self.publish(self.DEPLOYMENT_TOPIC, payload=deployment)
+        await self.publish(self.ATTRIBUTES_TOPIC, payload=deployment)
 
     async def rpc(self, instance_id: str, method: str, params: str) -> None:
         reqid = str(random.randint(0, 10**8))
@@ -171,7 +174,7 @@ class Agent:
         message: dict = {f"configuration/{instance_id}/{topic}": config}
         payload = json.dumps(message)
         logger.debug(f"payload: {payload}")
-        await self.publish(self.DEPLOYMENT_TOPIC, payload=payload)
+        await self.publish(self.ATTRIBUTES_TOPIC, payload=payload)
 
     async def device_configure(
         self, desired_device_config: DesiredDeviceConfig
@@ -191,7 +194,7 @@ class Agent:
         }
         payload = json.dumps(message)
         logger.debug(f"payload: {payload}")
-        await self.publish(self.DEPLOYMENT_TOPIC, payload=payload)
+        await self.publish(self.ATTRIBUTES_TOPIC, payload=payload)
 
     async def loop_client(
         self, subs_topics: list[str], driver_task: Callable, message_task: Callable
@@ -240,7 +243,7 @@ class Agent:
 
     def get_deployment(self) -> None:
         self._loop_forever(
-            subs_topics=[self.DEPLOYMENT_TOPIC],
+            subs_topics=[self.ATTRIBUTES_TOPIC],
             message_task=self._on_message_print_payload(),
         )
 
@@ -252,7 +255,7 @@ class Agent:
 
     def get_instance(self, instance_id: str) -> None:
         self._loop_forever(
-            subs_topics=[self.DEPLOYMENT_TOPIC],
+            subs_topics=[self.ATTRIBUTES_TOPIC],
             message_task=self._on_message_instance(instance_id),
         )
 
@@ -281,3 +284,26 @@ def handle_task_exceptions(excgroup: Any) -> None:
         exc_desc_lines = traceback.format_exception_only(type(e), e)
         exc_desc = "".join(exc_desc_lines).rstrip()
         logger.error("Exception: %s", exc_desc)
+
+
+async def check_attributes_request(agent: Agent, topic: str, payload: str) -> bool:
+    """
+    Checks that a given MQTT message (as provided by its topic and payload)
+    conveys a request from the device's agent for data attributes set in the
+    MQTT broker.
+    """
+    got_request = False
+    result = re.search(r"^v1/devices/me/attributes/request/(\d+)$", topic)
+    if result:
+        got_request = True
+        req_id = result.group(1)
+        logger.debug(
+            "Got attribute request (id=%s) with payload: '%s'",
+            req_id,
+            payload,
+        )
+        await agent.publish(
+            f"v1/devices/me/attributes/response/{req_id}",
+            "{}",
+        )
+    return got_request

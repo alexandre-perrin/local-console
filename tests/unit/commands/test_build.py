@@ -180,7 +180,7 @@ def test_compile_wasm(flags: Optional[list[str]]):
         if flags:
             cmd += flags
 
-        env = {"WASI_SDK_PATH": "/opt/wasi-sdk"}
+        env = {"WASI_SDK_PATH": str(Path("/opt/wasi-sdk"))}
         mock_run_agent.assert_called_with(cmd, env=env)
         mock_clang.assert_called_once()
         mock_environ.assert_called_once()
