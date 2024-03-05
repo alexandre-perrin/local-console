@@ -72,6 +72,8 @@ class Agent:
 
     def async_done(self) -> None:
         assert self.nursery
+        assert self.client
+        self.client.disconnect()
         self.nursery.cancel_scope.cancel()
 
     def _on_message_print_payload(self) -> Callable:
