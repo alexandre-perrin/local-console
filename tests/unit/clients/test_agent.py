@@ -12,13 +12,14 @@ from paho.mqtt.client import MQTT_ERR_SUCCESS
 from wedge_cli.clients.agent import Agent
 from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.schemas import AgentConfiguration
+from wedge_cli.core.schemas import OnWireProtocol
 
 from tests.strategies.configs import generate_agent_config
 
 
 @given(st.text(), st.text(), st.text(), generate_agent_config())
 @pytest.mark.trio
-async def test_configure_instance(
+async def test_configure_instance_evp1(
     instance_id: str, topic: str, config: str, agent_config: AgentConfiguration
 ):
     with (
@@ -28,6 +29,7 @@ async def test_configure_instance(
         patch("wedge_cli.clients.agent.Agent.publish"),
     ):
         agent = Agent()
+        agent.onwire_schema = OnWireProtocol.EVP1
         async with agent.mqtt_scope([]):
             await agent.configure(instance_id, topic, config)
             agent.async_done()
@@ -39,6 +41,27 @@ async def test_configure_instance(
                 ).decode("utf-8")
             }
         )
+        agent.publish.assert_called_once_with(
+            MQTTTopics.ATTRIBUTES.value, payload=payload
+        )
+
+
+@given(st.text(), st.text(), st.text(), generate_agent_config())
+@pytest.mark.trio
+async def test_configure_instance_evp2(
+    instance_id: str, topic: str, config: str, agent_config: AgentConfiguration
+):
+    with (
+        patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
+        patch("wedge_cli.clients.agent.paho.Client"),
+        patch("wedge_cli.clients.agent.AsyncClient"),
+        patch("wedge_cli.clients.agent.Agent.publish"),
+    ):
+        agent = Agent()
+        agent.onwire_schema = OnWireProtocol.EVP2
+        async with agent.mqtt_scope([]):
+            await agent.configure(instance_id, topic, config)
+        payload = json.dumps({f"configuration/{instance_id}/{topic}": config})
         agent.publish.assert_called_once_with(
             MQTTTopics.ATTRIBUTES.value, payload=payload
         )
