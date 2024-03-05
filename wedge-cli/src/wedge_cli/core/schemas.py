@@ -1,4 +1,5 @@
 import enum
+import json
 import logging
 from pathlib import Path
 from typing import Annotated
@@ -130,6 +131,23 @@ class Deployment(BaseModel):
 
 class DeploymentManifest(BaseModel):
     deployment: Deployment
+
+    def render_for_evp1(self) -> str:
+        # The actual manifest, which is the value of the "deployment" key, is stringified. See:
+        # https://github.com/midokura/wedge-agent/blob/fa3d4840c37978938084cbc70612fdb8ea8dbf9f/src/libwedge-agent/manifest.c#L1151
+        # Also, the fields differ and EVP1 has two mandatory fields in the instanceSpecs:
+        # https://github.com/midokura/wedge-agent/blob/fa3d4840c37978938084cbc70612fdb8ea8dbf9f/src/libwedge-agent/manifest.c#L842
+        body = self.deployment
+        difference_hack = body.model_dump()
+        for instance in difference_hack["instanceSpecs"].values():
+            instance.update({"version": 1, "entryPoint": "main"})
+        as_json = json.dumps(difference_hack)
+        return json.dumps({"deployment": as_json})
+
+    def render_for_evp2(self) -> str:
+        # A direct JSON serialization, see:
+        # https://github.com/midokura/wedge-agent/blob/fa3d4840c37978938084cbc70612fdb8ea8dbf9f/src/libwedge-agent/manifest.c#L1168
+        return json.dumps(self.model_dump())
 
 
 class DesiredDeviceConfig(BaseModel):

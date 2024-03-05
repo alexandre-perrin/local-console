@@ -21,6 +21,7 @@ from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.config import config_paths
 from wedge_cli.core.config import get_config
 from wedge_cli.core.schemas import AgentConfiguration
+from wedge_cli.core.schemas import DeploymentManifest
 from wedge_cli.core.schemas import DesiredDeviceConfig
 from wedge_cli.core.schemas import OnWireProtocol
 from wedge_cli.utils.local_network import is_localhost
@@ -125,10 +126,22 @@ class Agent:
             )
         )
 
-    async def deploy(self, deployment: str) -> None:
+    async def deploy(self, to_deploy: DeploymentManifest) -> None:
+        if self.onwire_schema is None:
+            logger.error(
+                "Cannot send a configuration message without determining the camera's on-wire protocol version"
+            )
+            raise SystemExit()
+
+        if self.onwire_schema == OnWireProtocol.EVP2:
+            deployment = to_deploy.render_for_evp2()
+        elif self.onwire_schema == OnWireProtocol.EVP1:
+            deployment = to_deploy.render_for_evp1()
+
         await self.publish(MQTTTopics.ATTRIBUTES.value, payload=deployment)
 
     async def rpc(self, instance_id: str, method: str, params: str) -> None:
+        # assert self.onwire_schema != OnWireProtocol.UNKNOWN
         reqid = str(random.randint(0, 10**8))
         RPC_TOPIC = f"v1/devices/me/rpc/request/{reqid}"
         message: dict = {
@@ -151,7 +164,7 @@ class Agent:
             logger.error(
                 "Cannot send a configuration message without determining the camera's on-wire protocol version"
             )
-            raise SystemExit
+            raise SystemExit()
 
         # The following stanza matches the implementation at:
         # https://github.com/midokura/wedge-agent/blob/ee08d254658177ddfa3f75b7d1f09922104a2427/src/libwedge-agent/instance_config.c#L324

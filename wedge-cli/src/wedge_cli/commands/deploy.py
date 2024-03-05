@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Annotated
 from typing import Any
 from typing import Optional
+from typing import Union
 
 import trio
 import typer
@@ -20,6 +21,7 @@ from wedge_cli.core.enums import config_paths
 from wedge_cli.core.enums import ModuleExtension
 from wedge_cli.core.enums import Target
 from wedge_cli.core.schemas import DeploymentManifest
+from wedge_cli.core.schemas import OnWireProtocol
 from wedge_cli.servers.webserver import AsyncWebserver
 from wedge_cli.utils.local_network import get_my_ip_by_routing
 from wedge_cli.utils.local_network import is_localhost
@@ -111,6 +113,8 @@ async def exec_deployment(
     subscription_topics = [MQTTTopics.ATTRIBUTES_REQ.value, MQTTTopics.ATTRIBUTES.value]
     deploy_fsm = DeployFSM(agent, deploy_manifest)
     with trio.move_on_after(timeout_secs) as timeout_scope:
+        await agent.determine_onwire_schema()
+        assert agent.onwire_schema  # make mypy happy
         async with (
             agent.mqtt_scope(subscription_topics),
             AsyncWebserver(Path.cwd(), webserver_port, None, deploy_webserver),
@@ -143,12 +147,15 @@ class DeployFSM:
         self.stage = DeployStage.MaybeAttributesResponse
         self.done = trio.Event()
 
-    async def update(self, deploy_status: dict[str, Any], got_request: bool) -> None:
+    async def update(
+        self, deploy_status: Optional[Union[str, dict[str, Any]]], got_request: bool
+    ) -> None:
         next_stage = self.stage
 
         if got_request:
             next_stage = DeployStage.SentAttributesResponse
         else:
+            assert isinstance(deploy_status, dict)
             is_finished, matches = self.verify_report(deploy_status)
             if is_finished and matches:
                 next_stage = DeployStage.Done
@@ -163,8 +170,7 @@ class DeployFSM:
 
                 elif self.stage == DeployStage.WaitFirstStatus:
                     logger.info("Agent can receive deployments. Pushing manifest now.")
-                    to_push = json.dumps(self.to_deploy.model_dump())
-                    await self.agent.deploy(to_push)
+                    await self.agent.deploy(self.to_deploy)
                     next_stage = DeployStage.WaitAppliedConfirmation
 
                 elif self.stage == DeployStage.WaitAppliedConfirmation:
@@ -203,9 +209,16 @@ class DeployFSM:
                     self.agent, msg.topic, payload
                 )
 
-                deploy_status = {}
+                deploy_status: Optional[Union[str, dict[str, Any]]] = None
                 if payload and msg.topic == MQTTTopics.ATTRIBUTES.value:
-                    deploy_status = payload.get("deploymentStatus", {})
+                    deploy_status = payload.get("deploymentStatus")
+                    if (
+                        deploy_status is not None
+                        and self.agent.onwire_schema == OnWireProtocol.EVP1
+                    ):
+                        # it comes stringified, see:
+                        # https://github.com/midokura/wedge-agent/blob/fa3d4840c37978938084cbc70612fdb8ea8dbf9f/src/libwedge-agent/report.c#L192
+                        deploy_status = json.loads(str(deploy_status))
 
                 if deploy_status or got_request:
                     await self.update(deploy_status, got_request)
