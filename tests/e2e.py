@@ -62,8 +62,8 @@ def check_deploy_empty(deployment: subprocess.Popen, wedge_cli_pre: list[str]) -
     for i, line in enumerate(deployment.stdout):  # type: ignore
         if "'instances': {}, 'modules': {}" in line:
             deployment.kill()
-            break
-    assert i < 10, "Deployment status not empty yet"
+            return
+        assert i < 10, "Deployment status not empty yet"
 
 
 def build_and_deploy_app(app_dir: Path, wedge_cli_pre: list[str]) -> None:
