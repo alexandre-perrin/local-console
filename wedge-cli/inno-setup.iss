@@ -38,7 +38,7 @@ Source: "offline_tool\_internal\*"; DestDir: "{app}\_internal"; Flags: ignorever
 Source: "mosquitto-2.0.18-install-windows-x64.exe"; DestDir: "{app}"; Components: Mosquitto
 
 [Icons]
-Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
+Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Parameters: "gui"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Parameters: "gui"; Tasks: desktopicon
 
 [Run]
