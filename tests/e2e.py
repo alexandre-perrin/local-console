@@ -3,6 +3,7 @@ import json
 import logging
 import socket
 import subprocess
+import sys
 import time
 from contextlib import contextmanager
 from pathlib import Path
@@ -62,8 +63,8 @@ def check_deploy_empty(deployment: subprocess.Popen, wedge_cli_pre: list[str]) -
     for i, line in enumerate(deployment.stdout):  # type: ignore
         if "'instances': {}, 'modules': {}" in line:
             deployment.kill()
-            break
-    assert i < 10, "Deployment status not empty yet"
+            return
+        assert i < 10, "Deployment status not empty yet"
 
 
 def build_and_deploy_app(app_dir: Path, wedge_cli_pre: list[str]) -> None:
@@ -209,6 +210,7 @@ def main() -> None:
     app_dir = Path("samples/rpc-example")
     with_tls = args.with_tls
 
+    retcode = 1
     try:
         with (
             wedge_area(with_tls) as (tmp_dir, cmd_preamble),
@@ -238,6 +240,7 @@ def main() -> None:
         log.info("######################")
         log.info("#  Test successful!  #")
         log.info("######################")
+        retcode = 0
 
     except (subprocess.CalledProcessError, ValueError) as e:
         log.error("Execution failed: %s", e)
@@ -245,6 +248,8 @@ def main() -> None:
     except KeyboardInterrupt:
         log.info("Cancelling")
 
+    return retcode
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

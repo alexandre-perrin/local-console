@@ -8,6 +8,7 @@ from wedge_cli.clients.agent import Agent
 from wedge_cli.commands.deploy import DeployFSM
 from wedge_cli.commands.deploy import make_unique_module_ids
 from wedge_cli.commands.deploy import populate_urls_and_hashes
+from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.config import get_config
 from wedge_cli.core.schemas import Deployment
 from wedge_cli.core.schemas import DeploymentManifest
@@ -89,7 +90,7 @@ class ApplicationsScreenController:
             with trio.move_on_after(15) as timeout_scope:
                 async with (
                     ephemeral_agent.mqtt_scope(
-                        [Agent.REQUEST_TOPIC, Agent.ATTRIBUTES_TOPIC]
+                        [MQTTTopics.ATTRIBUTES_REQ.value, MQTTTopics.ATTRIBUTES.value]
                     ),
                     AsyncWebserver(tmpdir, webserver_port, None, True),
                 ):

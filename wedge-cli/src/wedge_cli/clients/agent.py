@@ -7,6 +7,7 @@ import traceback
 from collections import defaultdict
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from functools import partial
 from typing import Any
 from typing import Callable
 from typing import Optional
@@ -16,11 +17,15 @@ import trio
 from exceptiongroup import catch
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 from wedge_cli.clients.trio_paho_mqtt import AsyncClient
+from wedge_cli.core.camera import Camera
+from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.config import config_paths
 from wedge_cli.core.config import get_config
 from wedge_cli.core.schemas import AgentConfiguration
 from wedge_cli.core.schemas import DesiredDeviceConfig
+from wedge_cli.core.schemas import OnWireProtocol
 from wedge_cli.utils.local_network import is_localhost
+from wedge_cli.utils.timing import TimeoutBehavior
 from wedge_cli.utils.tls import ensure_certificate_pair_exists
 from wedge_cli.utils.tls import get_random_identifier
 
@@ -28,11 +33,6 @@ logger = logging.getLogger(__name__)
 
 
 class Agent:
-    ATTRIBUTES_TOPIC = "v1/devices/me/attributes"
-    REQUEST_TOPIC = "v1/devices/me/attributes/request/+"
-    RPC_RESPONSES_TOPIC = "v1/devices/me/rpc/response/+"
-    TELEMETRY_TOPIC = "v1/devices/me/telemetry"
-
     def __init__(self) -> None:
         self.client: Optional[AsyncClient] = None
         self.nursery: Optional[trio.Nursery] = None
@@ -43,6 +43,9 @@ class Agent:
 
         client_id = f"cli-client-{random.randint(0, 10**7)}"
         self.mqttc = paho.Client(clean_session=True, client_id=client_id)
+
+        # For initializing the camera, capturing the on-wire protocol
+        self.onwire_schema: Optional[OnWireProtocol] = None
 
         self.configure_tls(config_parse)
 
@@ -145,8 +148,57 @@ class Agent:
 
         return __task
 
+    async def determine_onwire_schema(self) -> None:
+        camera_state = Camera()
+        # This takes care of ensuring the device reports its state
+        # with bounded periodicity (expect to receive a message within 4 seconds)
+        timeout = 4
+        # Configure the device to emit status reports twice
+        # as often as the timeout expiration, to ensure that
+        # random deviations in report perioding make the timer
+        # to expire unnecessarily.
+        set_periodic_reports = partial(self.set_periodic_reports, int(timeout / 2))
+        periodic_reports = TimeoutBehavior(4, set_periodic_reports)
+
+        async with self.mqtt_scope(
+            [
+                MQTTTopics.ATTRIBUTES_REQ.value,
+                MQTTTopics.TELEMETRY.value,
+                MQTTTopics.RPC_RESPONSES.value,
+                MQTTTopics.ATTRIBUTES.value,
+            ]
+        ):
+            assert self.nursery
+            assert self.client  # appease mypy
+
+            periodic_reports.spawn_in(self.nursery)
+            async for msg in self.client.messages():
+                attributes_available = await check_attributes_request(
+                    self, msg.topic, msg.payload.decode()
+                )
+                if attributes_available:
+                    camera_state.attributes_available = True
+
+                payload = json.loads(msg.payload)
+                camera_state.process_incoming(msg.topic, payload)
+
+                if camera_state.is_ready:
+                    periodic_reports.tap()
+                    break
+            self.async_done()
+
+        self.onwire_schema = camera_state.onwire_schema
+
+    async def set_periodic_reports(self, report_interval: int) -> None:
+        await self.device_configure(
+            DesiredDeviceConfig(
+                reportStatusIntervalMax=report_interval,
+                reportStatusIntervalMin=min(report_interval, 1),
+            )
+        )
+
     async def deploy(self, deployment: str) -> None:
-        await self.publish(self.ATTRIBUTES_TOPIC, payload=deployment)
+        await self.publish(MQTTTopics.ATTRIBUTES.value, payload=deployment)
 
     async def rpc(self, instance_id: str, method: str, params: str) -> None:
         reqid = str(random.randint(0, 10**8))
@@ -167,14 +219,21 @@ class Agent:
         await self.publish(RPC_TOPIC, payload=payload)
 
     async def configure(self, instance_id: str, topic: str, config: str) -> None:
-        """
-        :param config: Configuration of the module instance.
-        """
-        config = base64.b64encode(config.encode("utf-8")).decode("utf-8")
+        if self.onwire_schema is None:
+            logger.error(
+                "Cannot send a configuration message without determining the camera's on-wire protocol version"
+            )
+            raise SystemExit
+
+        # The following stanza matches the implementation at:
+        # https://github.com/midokura/wedge-agent/blob/ee08d254658177ddfa3f75b7d1f09922104a2427/src/libwedge-agent/instance_config.c#L324
+        if self.onwire_schema == OnWireProtocol.EVP1:
+            config = base64.b64encode(config.encode("utf-8")).decode("utf-8")
+
         message: dict = {f"configuration/{instance_id}/{topic}": config}
         payload = json.dumps(message)
         logger.debug(f"payload: {payload}")
-        await self.publish(self.ATTRIBUTES_TOPIC, payload=payload)
+        await self.publish(MQTTTopics.ATTRIBUTES.value, payload=payload)
 
     async def device_configure(
         self, desired_device_config: DesiredDeviceConfig
@@ -194,7 +253,7 @@ class Agent:
         }
         payload = json.dumps(message)
         logger.debug(f"payload: {payload}")
-        await self.publish(self.ATTRIBUTES_TOPIC, payload=payload)
+        await self.publish(MQTTTopics.ATTRIBUTES.value, payload=payload)
 
     async def loop_client(
         self, subs_topics: list[str], driver_task: Callable, message_task: Callable
@@ -237,25 +296,25 @@ class Agent:
 
     def get_instance_logs(self, instance_id: str, timeout: int) -> None:
         self._loop_forever(
-            subs_topics=[self.TELEMETRY_TOPIC],
+            subs_topics=[MQTTTopics.TELEMETRY.value],
             message_task=self._on_message_logs(instance_id, timeout),
         )
 
     def get_deployment(self) -> None:
         self._loop_forever(
-            subs_topics=[self.ATTRIBUTES_TOPIC],
+            subs_topics=[MQTTTopics.ATTRIBUTES.value],
             message_task=self._on_message_print_payload(),
         )
 
     def get_telemetry(self) -> None:
         self._loop_forever(
-            subs_topics=[self.TELEMETRY_TOPIC],
+            subs_topics=[MQTTTopics.TELEMETRY.value],
             message_task=self._on_message_telemetry(),
         )
 
     def get_instance(self, instance_id: str) -> None:
         self._loop_forever(
-            subs_topics=[self.ATTRIBUTES_TOPIC],
+            subs_topics=[MQTTTopics.ATTRIBUTES.value],
             message_task=self._on_message_instance(instance_id),
         )
 

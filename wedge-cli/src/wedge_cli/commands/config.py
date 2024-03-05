@@ -16,6 +16,7 @@ from wedge_cli.core.enums import config_paths
 from wedge_cli.core.schemas import AgentConfiguration
 from wedge_cli.core.schemas import DesiredDeviceConfig
 from wedge_cli.core.schemas import IPAddress
+from wedge_cli.core.schemas import OnWireProtocol
 from wedge_cli.core.schemas import RemoteConnectionInfo
 
 logger = logging.getLogger(__name__)
@@ -144,7 +145,7 @@ def config_send(
 ) -> None:
     if config_file.suffix != ".ini":
         logger.error("Specified file is not a .ini file")
-        exit(1)
+        raise typer.Exit(code=1)
 
     else:
         try:
@@ -153,7 +154,7 @@ def config_send(
             )
         except ValueError:
             logger.warning("Invalid IP address used")
-            exit(1)
+            raise typer.Exit(code=1)
 
         agent_config: AgentConfiguration = get_config(config_file)
         config_dict: dict = agent_config.model_dump()
@@ -185,6 +186,7 @@ def config_instance(
 
 async def configure_task(instance_id: str, topic: str, config: str) -> None:
     agent = Agent()  # type: ignore
+    await agent.determine_onwire_schema()
     async with agent.mqtt_scope([]):
         await agent.configure(instance_id, topic, config)
         agent.async_done()
@@ -201,23 +203,32 @@ def config_device(
         typer.Argument(help="Min interval to report."),
     ],
 ) -> None:
+    retcode = 1
     try:
         desired_device_config = DesiredDeviceConfig(
             reportStatusIntervalMax=interval_max, reportStatusIntervalMin=interval_min
         )
+        retcode = trio.run(config_device_task, desired_device_config)
     except ValueError:
         logger.warning("Report status interval out of range.")
-        exit(1)
-    try:
-        trio.run(config_device_task, desired_device_config)
     except ConnectionError:
         raise SystemExit(
             "Connection error while attempting to set device configuration"
         )
+    raise typer.Exit(code=retcode)
 
 
-async def config_device_task(desired_device_config: DesiredDeviceConfig) -> None:
+async def config_device_task(desired_device_config: DesiredDeviceConfig) -> int:
+    retcode = 1
     agent = Agent()  # type: ignore
-    async with agent.mqtt_scope([]):
-        await agent.device_configure(desired_device_config)
-        agent.async_done()
+    await agent.determine_onwire_schema()
+    if agent.onwire_schema == OnWireProtocol.EVP2:
+        async with agent.mqtt_scope([]):
+            await agent.device_configure(desired_device_config)
+            agent.async_done()
+        retcode = 0
+    else:
+        logger.warning(
+            f"Unsupported on-wire schema {agent.onwire_schema} for this command."
+        )
+    return retcode

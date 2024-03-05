@@ -223,7 +223,7 @@ def start(
             ip_value = IPAddress(ip_value=remote[0])
         except ValueError:
             logger.warning(f"Invalid host {remote[0]}. Send a valid ip")
-            exit(1)
+            raise typer.Exit(code=1)
     else:
         ip_value = None
     try:

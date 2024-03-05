@@ -11,9 +11,10 @@ from kivy.core.clipboard import Clipboard
 from kivymd.app import MDApp
 from wedge_cli.clients.agent import Agent
 from wedge_cli.clients.agent import check_attributes_request
+from wedge_cli.core.camera import Camera
+from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.config import get_config
 from wedge_cli.core.schemas import DesiredDeviceConfig
-from wedge_cli.gui.camera import Camera
 from wedge_cli.gui.Utility.axis_mapping import pixel_roi_from_normals
 from wedge_cli.gui.Utility.axis_mapping import UnitROI
 from wedge_cli.gui.Utility.sync_async import run_on_ui_thread
@@ -70,10 +71,10 @@ class Driver:
             spawn_broker(self.config, self.nursery, False, "nicebroker"),
             self.mqtt_client.mqtt_scope(
                 [
-                    Agent.REQUEST_TOPIC,
-                    Agent.TELEMETRY_TOPIC,
-                    Agent.RPC_RESPONSES_TOPIC,
-                    Agent.ATTRIBUTES_TOPIC,
+                    MQTTTopics.ATTRIBUTES_REQ.value,
+                    MQTTTopics.TELEMETRY.value,
+                    MQTTTopics.RPC_RESPONSES.value,
+                    MQTTTopics.ATTRIBUTES.value,
                 ]
             ),
         ):

@@ -3,8 +3,9 @@ import json
 import logging
 from base64 import b64decode
 from typing import Any
+from typing import Optional
 
-from wedge_cli.clients.agent import Agent
+from wedge_cli.core.schemas import OnWireProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -23,17 +24,15 @@ class Camera:
         self.sensor_state = StreamStatus.Inactive
         self.app_state = ""
         self.deploy_status: dict[str, str] = {}
-        self.onwire_protocol = OnWireProtocol.UNKNOWN
+        self.onwire_schema: Optional[OnWireProtocol] = None
         self.attributes_available = False
 
     @property
     def is_ready(self) -> bool:
-        return (
-            self.onwire_protocol != OnWireProtocol.UNKNOWN and self.attributes_available
-        )
+        return self.onwire_schema is not None and self.attributes_available
 
     def process_incoming(self, topic: str, payload: dict[str, Any]) -> None:
-        if topic == Agent.ATTRIBUTES_TOPIC:
+        if topic == MQTTTopics.ATTRIBUTES.value:
             if self.EA_STATE_TOPIC in payload:
                 decoded = json.loads(b64decode(payload[self.EA_STATE_TOPIC]))
                 payload[self.EA_STATE_TOPIC] = decoded
@@ -44,7 +43,7 @@ class Camera:
 
             if self.SYSINFO_TOPIC in payload:
                 sys_info = payload[self.SYSINFO_TOPIC]
-                self.onwire_protocol = OnWireProtocol(sys_info["protocolVersion"])
+                self.onwire_schema = OnWireProtocol(sys_info["protocolVersion"])
                 self.attributes_available = True
 
             if self.DEPLOY_STATUS_TOPIC in payload:
@@ -52,16 +51,6 @@ class Camera:
                 self.attributes_available = True
 
         logger.critical("Incoming on %s: %s", topic, str(payload))
-
-
-class OnWireProtocol(enum.Enum):
-    # Values coming from
-    # https://github.com/midokura/evp-onwire-schema/blob/26441528ca76895e1c7e9569ba73092db71c5bc1/schema/systeminfo.schema.json#L42
-    # https://github.com/midokura/evp-onwire-schema/blob/1164987a620f34e142869f3979ca63b186c0a061/schema/systeminfo/systeminfo.schema.json#L19
-    UNKNOWN = "N/A"
-    EVP1 = "EVP1"
-    EVP2 = "EVP2-TB"
-    # EVP2 on C8Y not implemented at this time
 
 
 class StreamStatus(enum.Enum):
@@ -79,3 +68,10 @@ class StreamStatus(enum.Enum):
             return cls.Transitioning
 
         raise ValueError(value)
+
+
+class MQTTTopics(enum.Enum):
+    ATTRIBUTES = "v1/devices/me/attributes"
+    TELEMETRY = "v1/devices/me/telemetry"
+    ATTRIBUTES_REQ = "v1/devices/me/attributes/request/+"
+    RPC_RESPONSES = "v1/devices/me/rpc/response/+"

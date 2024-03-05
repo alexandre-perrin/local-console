@@ -10,6 +10,7 @@ from wedge_cli.clients.agent import Agent
 from wedge_cli.commands.deploy import app
 from wedge_cli.commands.deploy import check_attributes_request
 from wedge_cli.commands.deploy import get_empty_deployment
+from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.enums import Target
 from wedge_cli.core.schemas import AgentConfiguration
 from wedge_cli.core.schemas import DeploymentManifest
@@ -215,11 +216,11 @@ async def test_attributes_request_handling(
         patch("wedge_cli.clients.agent.paho.Client"),
         patch("wedge_cli.clients.agent.AsyncClient"),
     ):
-        request_topic = Agent.REQUEST_TOPIC.replace("+", str(mqtt_req_id))
+        request_topic = MQTTTopics.ATTRIBUTES_REQ.value.replace("+", str(mqtt_req_id))
 
         agent = Agent()
         agent.publish = AsyncMock()
-        async with agent.mqtt_scope([Agent.REQUEST_TOPIC]):
+        async with agent.mqtt_scope([MQTTTopics.ATTRIBUTES_REQ.value]):
             check = await check_attributes_request(agent, request_topic, "{}")
             agent.async_done()
 

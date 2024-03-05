@@ -13,6 +13,7 @@ import trio
 import typer
 from wedge_cli.clients.agent import Agent
 from wedge_cli.clients.agent import check_attributes_request
+from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.config import get_config
 from wedge_cli.core.config import get_deployment_schema
 from wedge_cli.core.enums import config_paths
@@ -107,7 +108,7 @@ async def exec_deployment(
     timeout_secs: int,
 ) -> bool:
     success = False
-    subscription_topics = [Agent.REQUEST_TOPIC, Agent.ATTRIBUTES_TOPIC]
+    subscription_topics = [MQTTTopics.ATTRIBUTES_REQ.value, MQTTTopics.ATTRIBUTES.value]
     deploy_fsm = DeployFSM(agent, deploy_manifest)
     with trio.move_on_after(timeout_secs) as timeout_scope:
         async with (
@@ -200,7 +201,7 @@ class DeployFSM:
             got_request = await check_attributes_request(self.agent, msg.topic, payload)
 
             deploy_status = {}
-            if payload and msg.topic == Agent.ATTRIBUTES_TOPIC:
+            if payload and msg.topic == MQTTTopics.ATTRIBUTES.value:
                 deploy_status = payload.get("deploymentStatus", {})
 
             if deploy_status or got_request:
@@ -254,7 +255,7 @@ def update_deployment_manifest(
             logger.error(
                 f"{wasm_file} not found. Please build the modules before deployment"
             )
-            exit(1)
+            raise typer.Exit(code=1)
 
         name_parts = [module]
         if target_arch:
