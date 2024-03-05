@@ -1,0 +1,15 @@
+cryptography==42.0.2
+paho-mqtt==1.6.1
+trio==0.24.0
+trio-typing==0.10.0
+types-paho-mqtt==1.6.0.20240106
+pycryptodome==3.20.0
+retry==0.9.2
+types-retry==0.9.9.4
+typer==0.9.0
+pydantic==2.6.1
+exceptiongroup==1.2.0
+kivy==2.3.0
+kivymd @ git+https://github.com/kivymd/KivyMD.git@06e5f0c3330170200918e712345a2b4be6290c65#egg=kivymd
+types-Pygments==2.17.0.20240106
+qrcode==7.4.2

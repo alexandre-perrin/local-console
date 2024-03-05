@@ -20,9 +20,9 @@ a = Analysis(
     noarchive=False,
 )
 a.datas += (
-    Tree('src\\wedge_cli\\gui\\assets', prefix='wedge_cli\\gui\\assets')
-    + Tree('src\\wedge_cli\\assets', prefix='wedge_cli\\assets', excludes=['tmp', '*.pyc', '*.py'])
-    + Tree('src\\wedge_cli\\gui\\View', prefix='wedge_cli\\gui\\View', excludes=['tmp', '*.pyc', '*.py'])
+    Tree('wedge-cli\\src\\wedge_cli\\gui\\assets', prefix='wedge_cli\\gui\\assets')
+    + Tree('wedge-cli\\src\\wedge_cli\\assets', prefix='wedge_cli\\assets', excludes=['tmp', '*.pyc', '*.py'])
+    + Tree('wedge-cli\\src\\wedge_cli\\gui\\View', prefix='wedge_cli\\gui\\View', excludes=['tmp', '*.pyc', '*.py'])
 )
 
 pyz = PYZ(a.pure)
@@ -36,7 +36,7 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    name="wedge_cli",
+    name="offline-tool",
     console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,
@@ -52,5 +52,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='wedge_cli',
+    name='offline_tool',
 )

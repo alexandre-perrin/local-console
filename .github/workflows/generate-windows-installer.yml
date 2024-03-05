@@ -1,0 +1,39 @@
+name: generate-windows-installer
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+env:
+  KIVY_GL_BACKEND: 'angle_sdl2'
+
+jobs:
+  win-installer-build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Create Executable by PyInstaller
+        uses: sayyid5416/pyinstaller@v1
+        with:
+          python_ver: '3.11'
+          spec: wedge-cli/pyinstaller.spec
+          requirements: wedge-cli/requirements.txt
+          exe_path: wedge-cli
+          upload_exe_with_name: offline-tool-windows-exe
+      - name: Download mosquitto installer
+        run: curl -o wedge-cli/mosquitto-2.0.18-install-windows-x64.exe https://mosquitto.org/files/binary/win64/mosquitto-2.0.18-install-windows-x64.exe
+      - name: Build the Inno Setup Installer
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+        with:
+          path: ./wedge-cli/inno-setup.iss
+          options: /O+
+      - name: Upload the Inno Setup Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: offline-tool-windows-installer
+          path: ./wedge-cli/Output/offline-tool-setup.exe
