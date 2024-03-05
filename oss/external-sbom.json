@@ -1,0 +1,116 @@
+{
+  "components": [
+    {
+      "name": "mosquitto",
+      "version": "2.0.18",
+      "description": "An open source MQTT broker",
+      "externalReferences": [
+        {
+          "comment": "License",
+          "type": "website",
+          "url": "https://github.com/eclipse/mosquitto/blob/v2.0.18/LICENSE.txt"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Eclipse Public License 2.0"
+          }
+        },
+        {
+          "license": {
+            "id": "Eclipse Distribution License 1.0"
+          }
+        }
+      ]
+    },
+    {
+      "name": "pyinstaller",
+      "version": "6.4.0",
+      "description": "Bundles a Python application and all its dependencies into a single package",
+      "externalReferences": [
+        {
+          "comment": "License",
+          "type": "website",
+          "url": "https://pyinstaller.org/en/v6.4.0/license.html"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "GPL 2.0 License"
+          }
+        },
+        {
+          "license": {
+            "id": "Apache License, version 2.0"
+          }
+        }
+      ]
+    },
+    {
+      "name": "sayyid5416/pyinstaller",
+      "version": "1.5.1",
+      "description": "Customisable GitHub Action to package python scripts into executables for different OS's ",
+      "externalReferences": [
+        {
+          "comment": "License",
+          "type": "website",
+          "url": "https://github.com/sayyid5416/pyinstaller/blob/main/LICENSE"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inno Setup",
+      "version": "6.4.0",
+      "description": "free installer for Windows programs by Jordan Russell and Martijn Laan.",
+      "externalReferences": [
+        {
+          "comment": "License",
+          "type": "website",
+          "url": "https://jrsoftware.org/files/is/license.txt"
+        }
+      ],
+      "licenses": []
+    },
+    {
+      "name": "Minionguyjpro/Inno-Setup-Action",
+      "version": "1.2.4",
+      "description": "GitHub action to compile .iss (Inno Setup Script) files.",
+      "externalReferences": [
+        {
+          "comment": "GitHub",
+          "type": "website",
+          "url": "https://github.com/Minionguyjpro/Inno-Setup-Action/tree/v1.2.4"
+        }
+      ],
+      "licenses": []
+    },
+    {
+      "name": "flatbuffers",
+      "version": "23.5.26",
+      "description": "FlatBuffers: Memory Efficient Serialization Library ",
+      "externalReferences": [
+        {
+          "comment": "License",
+          "type": "website",
+          "url": "https://github.com/google/flatbuffers/blob/v23.5.26/LICENSE"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache License, version 2.0"
+          }
+        }
+      ]
+    }
+  ]
+}

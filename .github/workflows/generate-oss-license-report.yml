@@ -3,14 +3,15 @@ name: generate-oss-license-report
 
 on:
   workflow_dispatch:
+  # TODO: remove
+  pull_request:
 
 env:
   PYTHON_VERSION: '3.11'
 
 jobs:
   generate-oss-license-report:
-    runs-on: [self-hosted, X64]
-    container: ubuntu:22.04
+    runs-on: windows-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,38 +21,18 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - name: Install requirements
+      - name: Install CycloneDX
+        run: pip3 install cyclonedx-bom
+      - name: Generate SBOM
         run: |
-          apt-get update && apt-get install -y wget curl software-properties-common
-      - name: Docker Setup Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          driver-opts: network=host
-      - name: Docker Build and Push
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./scripts/Dockerfile
-          load: true
-          tags: wedge-cli-image:latest
-      - name: Generate SBOM report for wedge-cli container
-        uses: anchore/sbom-action@v0
-        with:
-          image: wedge-cli-image:latest
-          artifact-name: wedge-cli-container-sbom.json
-          output-file: wedge-cli-container-sbom.json
-          format: json
-          upload-artifact: true
-      - name: Generate CSV report
-        run: |
-          mkdir target
-          apt-get update && apt-get install -y jq
-          cat wedge-cli-container-sbom.json | jq '.artifacts | .[] | {Name: .name, Version: .version, License: .licenses[0].value} ' | jq -s > target/syft-wedge-cli.json
-          python scripts/sbom2csv.py target/syft-wedge-cli
-          cat target/syft-wedge-cli.csv | sort --unique --ignore-case > target/wedge-cli-container-sbom-report.csv
+          python3 -m venv .venv
+          .venv\Scripts\activate
+          pip3 install wedge-cli/
+          cyclonedx-py environment .venv > oss/python-sbom.json
+          python oss/sbom2csv.py --python oss/python-sbom.json --external oss/external-sbom.json --output oss/wedge-cli-sbom-report.csv
       - name: Upload report
         uses: actions/upload-artifact@v4
         with:
-          name: wedge-cli-container-sbom-report.csv
+          name: wedge-cli-sbom-report.csv
           retention-days: 21
-          path: target/wedge-cli-container-sbom-report.csv
+          path: oss/wedge-cli-sbom-report.csv

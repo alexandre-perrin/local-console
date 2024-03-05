@@ -18,9 +18,10 @@ jobs:
         with:
           fetch-depth: 0
       - name: Create Executable by PyInstaller
-        uses: sayyid5416/pyinstaller@v1
+        uses: sayyid5416/pyinstaller@v1.5.1
         with:
           python_ver: '3.11'
+          pyinstaller_ver: '==6.4.0'
           spec: wedge-cli/pyinstaller.spec
           requirements: wedge-cli/requirements.txt
           exe_path: wedge-cli
@@ -28,7 +29,7 @@ jobs:
       - name: Download mosquitto installer
         run: curl -o wedge-cli/mosquitto-2.0.18-install-windows-x64.exe https://mosquitto.org/files/binary/win64/mosquitto-2.0.18-install-windows-x64.exe
       - name: Build the Inno Setup Installer
-        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.4
         with:
           path: ./wedge-cli/inno-setup.iss
           options: /O+
