@@ -37,7 +37,22 @@ async def on_message_print_payload(cs: trio.CancelScope, agent: Agent) -> None:
 @app.command(help="Get the telemetries")
 def telemetry() -> None:
     agent = Agent()
-    agent.get_telemetry()
+    agent.read_only_loop(
+        subs_topics=[MQTTTopics.TELEMETRY.value],
+        message_task=on_message_telemetry,
+    )
+
+
+async def on_message_telemetry(cs: trio.CancelScope, agent: Agent) -> None:
+    assert agent.client is not None
+    async with agent.client.messages() as mgen:
+        async for msg in mgen:
+            payload = json.loads(msg.payload.decode())
+            if payload:
+                to_print = {
+                    key: val for key, val in payload.items() if "device/log" not in key
+                }
+                print(to_print, flush=True)
 
 
 @app.command(help="Get the status of instance")

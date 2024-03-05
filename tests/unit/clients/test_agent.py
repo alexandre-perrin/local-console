@@ -110,24 +110,6 @@ async def test_rpc_error(instance_id: str, agent_config: AgentConfiguration):
         agent.client.publish_and_wait.assert_called_once()
 
 
-@given(generate_agent_config())
-def test_get_telemetry(agent_config: AgentConfiguration):
-    with (
-        patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
-        patch("wedge_cli.clients.agent.paho.Client"),
-        patch("wedge_cli.clients.agent.AsyncClient"),
-    ):
-        agent = Agent()
-        agent._loop_forever = Mock()
-        agent._on_message_telemetry = Mock()
-        agent.get_telemetry()
-        agent._loop_forever.assert_called_once_with(
-            subs_topics=[MQTTTopics.TELEMETRY.value],
-            message_task=agent._on_message_telemetry.return_value,
-        )
-        agent._on_message_telemetry.assert_called_once()
-
-
 @given(st.text(min_size=1, max_size=5), generate_agent_config())
 def test_get_instance(instance_id: str, agent_config: AgentConfiguration):
     with (

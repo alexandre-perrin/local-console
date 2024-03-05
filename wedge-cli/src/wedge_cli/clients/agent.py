@@ -101,21 +101,6 @@ class Agent:
 
         return __task
 
-    def _on_message_telemetry(self) -> Callable:
-        async def __task(cs: trio.CancelScope) -> None:
-            assert self.client is not None
-            async for msg in self.client.messages():
-                payload = json.loads(msg.payload.decode())
-                if payload:
-                    to_print = {
-                        key: val
-                        for key, val in payload.items()
-                        if "device/log" not in key
-                    }
-                    print(to_print, flush=True)
-
-        return __task
-
     def _on_message_instance(self, instance_id: str) -> Callable:
         async def __task(cs: trio.CancelScope) -> None:
             assert self.client is not None
@@ -288,12 +273,6 @@ class Agent:
         self._loop_forever(
             subs_topics=[MQTTTopics.TELEMETRY.value],
             message_task=self._on_message_logs(instance_id, timeout),
-        )
-
-    def get_telemetry(self) -> None:
-        self._loop_forever(
-            subs_topics=[MQTTTopics.TELEMETRY.value],
-            message_task=self._on_message_telemetry(),
         )
 
     def get_instance(self, instance_id: str) -> None:
