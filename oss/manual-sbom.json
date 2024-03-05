@@ -1,0 +1,206 @@
+{
+  "components": [
+    {
+      "bom-ref": "mosquitto==2.0.18",
+      "description": "An open source MQTT broker",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/eclipse/mosquitto/blob/v2.0.18/LICENSE.txt"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Eclipse Public License 2.0"
+          }
+        },
+        {
+          "license": {
+            "id": "Eclipse Distribution License 1.0"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pyinstaller==6.4.0",
+      "description": "Bundles a Python application and all its dependencies into a single package",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://pyinstaller.org/en/v6.4.0/license.html"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "GPL 2.0 License"
+          }
+        },
+        {
+          "license": {
+            "id": "Apache License, version 2.0"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "sayyid5416/pyinstaller==1.5.1",
+      "description": "Customisable GitHub Action to package python scripts into executables for different OS's ",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/sayyid5416/pyinstaller/blob/main/LICENSE"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "Inno Setup==6.4.0",
+      "description": "free installer for Windows programs by Jordan Russell and Martijn Laan.",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://jrsoftware.org/files/is/license.txt"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Permission is granted to anyone to use this software for any purpose, including commercial application"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "Minionguyjpro/Inno-Setup-Action==1.2.4",
+      "description": "GitHub action to compile .iss (Inno Setup Script) files.",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/Minionguyjpro/Inno-Setup-Action/tree/v1.2.4"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "No specified in github"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "flatbuffers==23.5.26",
+      "description": "FlatBuffers: Memory Efficient Serialization Library ",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/google/flatbuffers/blob/v23.5.26/LICENSE"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache License, version 2.0"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "colorama==0.4.6",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/tartley/colorama/blob/0.4.6/LICENSE.txt"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD 3-Clause New or Revised License"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "idna==3.6",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/kjd/idna/blob/v3.6/LICENSE.md"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD 3-Clause New or Revised License"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "importlib-metadata==7.0.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0 license"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "materialyoucolor==2.0.7",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/T-Dynamos/materialyoucolor-python/blob/v2.0.1/LICENSE"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT license"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "packaging==23.2",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/pypa/packaging/blob/23.2/LICENSE"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache 2 or BSD"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pypiwin32==223",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/pypa/packaging/blob/23.2/LICENSE"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache 2 or BSD"
+          }
+        }
+      ]
+    }
+  ]
+}
