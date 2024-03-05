@@ -194,18 +194,21 @@ class DeployFSM:
 
     async def message_task(self) -> None:
         assert self.agent.client is not None
-        async for msg in self.agent.client.messages():
-            payload = json.loads(msg.payload)
-            logger.debug("Incoming on %s: %s", msg.topic, str(payload))
+        async with self.agent.client.messages() as mgen:
+            async for msg in mgen:
+                payload = json.loads(msg.payload)
+                logger.debug("Incoming on %s: %s", msg.topic, str(payload))
 
-            got_request = await check_attributes_request(self.agent, msg.topic, payload)
+                got_request = await check_attributes_request(
+                    self.agent, msg.topic, payload
+                )
 
-            deploy_status = {}
-            if payload and msg.topic == MQTTTopics.ATTRIBUTES.value:
-                deploy_status = payload.get("deploymentStatus", {})
+                deploy_status = {}
+                if payload and msg.topic == MQTTTopics.ATTRIBUTES.value:
+                    deploy_status = payload.get("deploymentStatus", {})
 
-            if deploy_status or got_request:
-                await self.update(deploy_status, got_request)
+                if deploy_status or got_request:
+                    await self.update(deploy_status, got_request)
 
 
 def make_unique_module_ids(deploy_man: DeploymentManifest) -> None:
