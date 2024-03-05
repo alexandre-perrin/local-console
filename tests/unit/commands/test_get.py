@@ -4,6 +4,8 @@ from hypothesis import given
 from hypothesis import strategies as st
 from typer.testing import CliRunner
 from wedge_cli.commands.get import app
+from wedge_cli.commands.get import on_message_print_payload
+from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.enums import GetObjects
 
 runner = CliRunner()
@@ -12,7 +14,10 @@ runner = CliRunner()
 def test_get_deployment_command():
     with (patch("wedge_cli.commands.get.Agent") as mock_agent,):
         result = runner.invoke(app, [GetObjects.DEPLOYMENT.value])
-        mock_agent.return_value.get_deployment.assert_called_once()
+        mock_agent.return_value.read_only_loop.assert_called_once_with(
+            subs_topics=[MQTTTopics.ATTRIBUTES.value],
+            message_task=on_message_print_payload,
+        )
         assert result.exit_code == 0
 
 

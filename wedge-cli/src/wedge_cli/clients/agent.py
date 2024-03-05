@@ -76,18 +76,6 @@ class Agent:
         self.client.disconnect()
         self.nursery.cancel_scope.cancel()
 
-    def _on_message_print_payload(self) -> Callable:
-        async def __task(cs: trio.CancelScope) -> None:
-            assert self.client is not None
-            async for msg in self.client.messages():
-                payload = json.loads(msg.payload.decode())
-                if payload:
-                    print(payload, flush=True)
-                else:
-                    logger.debug("Empty message arrived")
-
-        return __task
-
     def _on_message_logs(self, instance_id: str, timeout: int) -> Callable:
         async def __task(cs: trio.CancelScope) -> None:
             assert self.client is not None
@@ -300,12 +288,6 @@ class Agent:
         self._loop_forever(
             subs_topics=[MQTTTopics.TELEMETRY.value],
             message_task=self._on_message_logs(instance_id, timeout),
-        )
-
-    def get_deployment(self) -> None:
-        self._loop_forever(
-            subs_topics=[MQTTTopics.ATTRIBUTES.value],
-            message_task=self._on_message_print_payload(),
         )
 
     def get_telemetry(self) -> None:
