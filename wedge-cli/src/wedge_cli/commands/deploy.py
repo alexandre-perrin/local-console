@@ -255,7 +255,7 @@ def update_deployment_manifest(
             logger.error(
                 f"{wasm_file} not found. Please build the modules before deployment"
             )
-            exit(1)
+            raise typer.Exit(code=1)
 
         name_parts = [module]
         if target_arch:

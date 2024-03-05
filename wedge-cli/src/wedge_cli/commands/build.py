@@ -37,13 +37,13 @@ def compile_wasm(flags: Optional[list[str]]) -> None:
         subprocess.run(cmd, env=env)  # type: ignore
     except FileNotFoundError:
         logger.error("Error when running")
-        exit(1)
+        raise typer.Exit(code=1)
 
 
 def sign_file(file: str, secret_path: Path) -> None:
     if not secret_path.exists():
         logger.error("Secret does not exist")
-        exit(1)
+        raise typer.Exit(code=1)
 
     logger.info(f"Signing {file}")
     with open(f"bin/{file}", "rb") as f:
@@ -54,7 +54,7 @@ def sign_file(file: str, secret_path: Path) -> None:
         signed_aot_bytes = sign(aot_bytes, secret_bytes)
     except Exception as e:
         logger.error(f"Error while signing the module {file}: {str(e)}")
-        exit(1)
+        raise typer.Exit(code=1)
 
     file = f"{file}.{ModuleExtension.SIGNED}"
     with open(f"bin/{file}", "wb") as f:
@@ -91,10 +91,10 @@ def compile_aot(module_name: str, target: Target) -> str:
         if result.returncode != 0:
             err_msg = result.stdout.rstrip("\n")
             logger.error(err_msg)
-            exit(1)
+            raise typer.Exit(code=1)
     except FileNotFoundError:
         logger.error("wamrc not in PATH")
-        exit(1)
+        raise typer.Exit(code=1)
     return file
 
 
@@ -126,7 +126,7 @@ def build(
         file = f"{module_name}.{ModuleExtension.WASM}"
         if file not in files:
             logger.error(f"{file} not found")
-            exit(1)
+            raise typer.Exit(code=1)
         if target:
             file = compile_aot(module_name, target)
         if secret:

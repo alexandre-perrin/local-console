@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import hypothesis.strategies as st
 import pytest
+import typer
 from hypothesis import given
 from typer.testing import CliRunner
 from wedge_cli.commands.build import app
@@ -196,7 +197,7 @@ def test_compile_wasm_file_not_found(flags=[]):
             return_value=Path("/opt/wasi-sdk"),
         ) as mock_clang,
     ):
-        with pytest.raises(SystemExit):
+        with pytest.raises(typer.Exit):
             compile_wasm(flags)
         mock_run_agent.assert_called_once_with(["make", "clean"])
         mock_clang.assert_called_once()
@@ -228,7 +229,7 @@ def test_sign_file_exception(module_name: str, secret_path: Path):
     ):
         file = f"{module_name}.{ModuleExtension.WASM}"
         mock_open.return_value.__enter__.return_value.read.return_value = bytes
-        with pytest.raises(SystemExit):
+        with pytest.raises(typer.Exit):
             sign_file(file, secret_path)
         mock_exists.assert_called_once()
         mock_open.assert_any_call(secret_path, "rb")
@@ -263,7 +264,7 @@ def test_compile_aot_wamrc_fail(module_name: str, target: Target):
     with patch(
         "wedge_cli.commands.build.subprocess.run", return_value=result
     ) as mock_wamrc:
-        with pytest.raises(SystemExit):
+        with pytest.raises(typer.Exit):
             compile_aot(module_name, target)
         mock_wamrc.assert_called_with(
             [Commands.WAMRC.value, *options.split(" ")],
@@ -277,5 +278,5 @@ def test_compile_aot_file_not_found(module_name: str, target: Target):
     with patch(
         "wedge_cli.commands.build.subprocess.run", side_effect=FileNotFoundError
     ):
-        with pytest.raises(SystemExit):
+        with pytest.raises(typer.Exit):
             compile_aot(module_name, target)

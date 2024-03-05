@@ -144,7 +144,7 @@ def config_send(
 ) -> None:
     if config_file.suffix != ".ini":
         logger.error("Specified file is not a .ini file")
-        exit(1)
+        raise typer.Exit(code=1)
 
     else:
         try:
@@ -153,7 +153,7 @@ def config_send(
             )
         except ValueError:
             logger.warning("Invalid IP address used")
-            exit(1)
+            raise typer.Exit(code=1)
 
         agent_config: AgentConfiguration = get_config(config_file)
         config_dict: dict = agent_config.model_dump()
