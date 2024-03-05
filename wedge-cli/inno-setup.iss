@@ -32,8 +32,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}";
 
 [Files]
-Source: "..\dist\offline_tool\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion; Components: OfflineTool
-Source: "..\dist\offline_tool\_internal\*"; DestDir: "{app}\_internal"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: OfflineTool
+Source: "offline_tool\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion; Components: OfflineTool
+Source: "offline_tool\_internal\*"; DestDir: "{app}\_internal"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: OfflineTool
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 Source: "mosquitto-2.0.18-install-windows-x64.exe"; DestDir: "{app}"; Components: Mosquitto
 

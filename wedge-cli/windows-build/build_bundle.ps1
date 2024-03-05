@@ -4,7 +4,8 @@ $RelativeVenvPath = ".\venv"
 # Construct the absolute path to the virtual environment
 $VenvPath = Join-Path -Path $PSScriptRoot -ChildPath $RelativeVenvPath
 $ActivateScriptPath = Join-Path -Path $VenvPath -ChildPath "Scripts\Activate.ps1"
-$WedgeCLIRootPath = Join-Path -Path $PSScriptRoot -ChildPath "..\..\wedge-cli" | Resolve-Path | select -ExpandProperty Path
+$WedgeCLIRootPath = Join-Path -Path $PSScriptRoot -ChildPath "..\..\wedge-cli" | Resolve-Path | Select-Object -ExpandProperty Path
+$WedgeCLIRepositoryRootPath = Join-Path -Path $PSScriptRoot -ChildPath "..\.." | Resolve-Path | Select-Object -ExpandProperty Path
 
 # Check if the virtual environment exists; if not, create it and install dependencies
 if (-not (Test-Path $VenvPath)) {
@@ -22,9 +23,9 @@ else {
     . $ActivateScriptPath
 }
 
-# Change the CWD to the PyInstaller spec dir
-Set-Location -Path $WedgeCLIRootPath
+# Change the CWD to the Repository root dir
+Set-Location -Path $WedgeCLIRepositoryRootPath
 
 # Run the PyInstaller build
-$CommandToRun = "pyinstaller --clean --noconfirm .\pyinstaller.spec"
+$CommandToRun = "pyinstaller --clean --noconfirm --distpath .\wedge-cli --workpath .\wedge-cli .\wedge-cli\pyinstaller.spec"
 Invoke-Expression $CommandToRun
