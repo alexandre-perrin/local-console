@@ -4,7 +4,6 @@ import logging
 import random
 import re
 import traceback
-from collections import defaultdict
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from functools import partial
@@ -75,31 +74,6 @@ class Agent:
         assert self.client
         self.client.disconnect()
         self.nursery.cancel_scope.cancel()
-
-    def _on_message_logs(self, instance_id: str, timeout: int) -> Callable:
-        async def __task(cs: trio.CancelScope) -> None:
-            assert self.client is not None
-            with trio.move_on_after(timeout) as time_cs:
-                async for msg in self.client.messages():
-                    payload = json.loads(msg.payload.decode())
-                    logs = defaultdict(list)
-                    if "values" in payload:
-                        payload = payload["values"]
-                    if "device/log" in payload.keys():
-                        for log in payload["device/log"]:
-                            logs[log["app"]].append(log)
-                        if instance_id in logs.keys():
-                            time_cs.deadline += timeout
-                            for instance_log in logs[instance_id]:
-                                print(instance_log)
-
-            if time_cs.cancelled_caught:
-                logger.error(
-                    f"No logs received for {instance_id} within {timeout} seconds. Please check the instance id is correct"
-                )
-                cs.cancel()
-
-        return __task
 
     async def determine_onwire_schema(self) -> None:
         camera_state = Camera()
@@ -246,12 +220,6 @@ class Agent:
         async with self.mqtt_scope([]):
             await self.rpc(instance_id, "$agent/set", '{"log_enable": true}')
             self.async_done()
-
-    def get_instance_logs(self, instance_id: str, timeout: int) -> None:
-        self._loop_forever(
-            subs_topics=[MQTTTopics.TELEMETRY.value],
-            message_task=self._on_message_logs(instance_id, timeout),
-        )
 
 
 @asynccontextmanager
