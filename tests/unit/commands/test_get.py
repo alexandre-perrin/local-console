@@ -34,7 +34,14 @@ def test_get_telemetry_command():
 
 @given(st.text(min_size=1, max_size=5))
 def test_get_instance_command(instance_id: str):
-    with (patch("wedge_cli.commands.get.Agent") as mock_agent,):
+    with (
+        patch("wedge_cli.commands.get.Agent") as mock_agent,
+        patch("wedge_cli.commands.get.on_message_instance") as mock_msg_inst,
+    ):
         result = runner.invoke(app, [GetObjects.INSTANCE.value, instance_id])
-        mock_agent.return_value.get_instance.assert_called_once_with(instance_id)
+        mock_agent.return_value.read_only_loop.assert_called_once_with(
+            subs_topics=[MQTTTopics.ATTRIBUTES.value],
+            message_task=mock_msg_inst.return_value,
+        )
         assert result.exit_code == 0
+        mock_msg_inst.assert_called_once_with(instance_id)

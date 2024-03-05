@@ -1,6 +1,7 @@
 import json
 import logging
 from typing import Annotated
+from typing import Callable
 
 import trio
 import typer
@@ -63,4 +64,31 @@ def instance(
     ]
 ) -> None:
     agent = Agent()
-    agent.get_instance(instance_id)
+    agent.read_only_loop(
+        subs_topics=[MQTTTopics.ATTRIBUTES.value],
+        message_task=on_message_instance(instance_id),
+    )
+
+
+def on_message_instance(instance_id: str) -> Callable:
+    async def __task(cs: trio.CancelScope, agent: Agent) -> None:
+        assert agent.client is not None
+        async with agent.client.messages() as mgen:
+            async for msg in mgen:
+                payload = json.loads(msg.payload.decode())
+                if (
+                    "deploymentStatus" not in payload
+                    or "instances" not in payload["deploymentStatus"]
+                ):
+                    continue
+
+                instances = payload["deploymentStatus"]["instances"]
+                if instance_id in instances.keys():
+                    print(instances[instance_id])
+                else:
+                    logger.warning(
+                        f"Module instance not found. The available module instances are {list(instances.keys())}"
+                    )
+                    cs.cancel()
+
+    return __task

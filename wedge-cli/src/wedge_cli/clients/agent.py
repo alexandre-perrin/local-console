@@ -101,28 +101,6 @@ class Agent:
 
         return __task
 
-    def _on_message_instance(self, instance_id: str) -> Callable:
-        async def __task(cs: trio.CancelScope) -> None:
-            assert self.client is not None
-            async for msg in self.client.messages():
-                payload = json.loads(msg.payload.decode())
-                if (
-                    "deploymentStatus" not in payload
-                    or "instances" not in payload["deploymentStatus"]
-                ):
-                    continue
-
-                instances = payload["deploymentStatus"]["instances"]
-                if instance_id in instances.keys():
-                    print(instances[instance_id])
-                else:
-                    logger.info(
-                        f"Module instance not found. The available module instance are {list(instances.keys())}"
-                    )
-                    cs.cancel()
-
-        return __task
-
     async def determine_onwire_schema(self) -> None:
         camera_state = Camera()
         # This takes care of ensuring the device reports its state
@@ -273,12 +251,6 @@ class Agent:
         self._loop_forever(
             subs_topics=[MQTTTopics.TELEMETRY.value],
             message_task=self._on_message_logs(instance_id, timeout),
-        )
-
-    def get_instance(self, instance_id: str) -> None:
-        self._loop_forever(
-            subs_topics=[MQTTTopics.ATTRIBUTES.value],
-            message_task=self._on_message_instance(instance_id),
         )
 
 
