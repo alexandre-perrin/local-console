@@ -11,11 +11,6 @@ jobs:
   generate-oss-license-report:
     runs-on: [self-hosted, X64]
     container: ubuntu:22.04
-    services:
-      registry:
-        image: registry:2
-        ports:
-          - 5000:5000
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,12 +32,12 @@ jobs:
         with:
           context: .
           file: ./scripts/Dockerfile
-          push: true
-          tags: localhost:5000/wedge-cli-image:latest
+          load: true
+          tags: wedge-cli-image:latest
       - name: Generate SBOM report for wedge-cli container
         uses: anchore/sbom-action@v0
         with:
-          image: localhost:5000/wedge-cli-image:latest
+          image: wedge-cli-image:latest
           artifact-name: wedge-cli-container-sbom.json
           output-file: wedge-cli-container-sbom.json
           format: json
