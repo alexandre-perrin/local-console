@@ -144,3 +144,12 @@ class OnWireProtocol(enum.Enum):
     EVP1 = "EVP1"
     EVP2 = "EVP2-TB"
     # EVP2 on C8Y not implemented at this time
+
+    def __str__(self) -> str:
+        return self.value
+
+    def for_agent_environ(self) -> str:
+        if self == self.EVP1:
+            return "evp1"
+
+        return "tb"

@@ -12,6 +12,7 @@ from tempfile import TemporaryDirectory
 from process_handler import ProcessHandler
 from process_handler import SharedLogger
 from retry import retry
+from wedge_cli.core.schemas import OnWireProtocol
 from wedge_cli.utils.tls import generate_self_signed_ca
 
 FORMAT = "%(asctime)s %(levelname)s %(message)s"
@@ -22,9 +23,17 @@ log = logging.getLogger()
 def parse_test_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "-t",
         "--with-tls",
         action="store_true",
         help="Whether to exercise the TLS infrastructure",
+    )
+    parser.add_argument(
+        "-s",
+        "--ows-version",
+        type=OnWireProtocol,
+        choices=list(OnWireProtocol),
+        help="Which on-wire schema version version to set the agent to",
     )
 
     return parser.parse_args()
@@ -131,6 +140,16 @@ def setup_no_tls(wedge_cli_pre: list[str]):
     )
 
 
+def set_onwire_schema_version(
+    onwire_schema: OnWireProtocol, wedge_cli_pre: list[str]
+) -> None:
+    subprocess.run(
+        wedge_cli_pre
+        + ["config", "set", "evp", "iot_platform", onwire_schema.for_agent_environ()],
+        check=True,
+    )
+
+
 class LocalBroker(ProcessHandler):
     def __init__(
         self,
@@ -190,7 +209,7 @@ class LocalAgent(ProcessHandler):
 
 
 @contextmanager
-def wedge_area(with_tls: bool) -> None:
+def wedge_area(with_tls: bool, onwire_schema: OnWireProtocol) -> None:
     with TemporaryDirectory() as _tempdir:
         tmp_dir = Path(_tempdir)
         config_dir = tmp_dir / "config"
@@ -202,6 +221,8 @@ def wedge_area(with_tls: bool) -> None:
         else:
             setup_no_tls(cmd_preamble)
 
+        set_onwire_schema_version(onwire_schema, cmd_preamble)
+
         yield tmp_dir, cmd_preamble
 
 
@@ -209,11 +230,12 @@ def main() -> None:
     args = parse_test_arguments()
     app_dir = Path("samples/rpc-example")
     with_tls = args.with_tls
+    ows_version = args.ows_version
 
     retcode = 1
     try:
         with (
-            wedge_area(with_tls) as (tmp_dir, cmd_preamble),
+            wedge_area(with_tls, ows_version) as (tmp_dir, cmd_preamble),
             SharedLogger() as slog,
             LocalBroker(with_tls, tmp_dir, slog, cmd_preamble),
             LocalAgent(slog, cmd_preamble),

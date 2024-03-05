@@ -12,7 +12,7 @@ env:
 
 jobs:
   test:
-    name: Test (E2E with${{ matrix.with-tls == false && 'out' || '' }} TLS)
+    name: Test (E2E for ${{ matrix.ows-version }} with${{ matrix.with-tls == false && 'out' || '' }} TLS)
     runs-on: [self-hosted, X64]
     container: ubuntu:22.04
     timeout-minutes: 20
@@ -20,6 +20,11 @@ jobs:
       fail-fast: true
       matrix:
         with-tls: [true, false]
+        ows-version: ["EVP1", "EVP2-TB"]
+        exclude:
+          # we don't need to run TLS test more than once
+          - ows-version: "EVP1"
+            with-tls: true
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -65,10 +70,10 @@ jobs:
       # samples directory must be accessible by the new user
       run: chown -R testbot samples/
 
-    - name: Run E2E with${{ matrix.with-tls == false && 'out' || '' }} TLS
+    - name: Run E2E with${{ matrix.with-tls == false && 'out' || '' }} TLS (for ${{ matrix.ows-version }})
       id: e2e
       run: |
-        runuser -u testbot -- python tests/e2e.py ${{ matrix.with-tls == true && '--with-tls' || '' }}
+        runuser -u testbot -- python tests/e2e.py ${{ matrix.with-tls == true && '--with-tls' || '' }} -s ${{ matrix.ows-version }}
 
   pre-commit:
     name: Pre-commit
