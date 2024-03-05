@@ -263,8 +263,8 @@ class Agent:
         async with self.mqtt_scope(subs_topics):
             assert self.nursery is not None
             cs = self.nursery.cancel_scope
-            self.nursery.start_soon(message_task, cs)
-            self.nursery.start_soon(driver_task, cs)
+            self.nursery.start_soon(message_task, cs, self)
+            self.nursery.start_soon(driver_task, cs, self)
 
     @asynccontextmanager
     async def mqtt_scope(self, subs_topics: list[str]) -> AsyncIterator[None]:
@@ -285,8 +285,8 @@ class Agent:
             logger.error("Error on MQTT publish agent logs")
             raise ConnectionError
 
-    def _loop_forever(self, subs_topics: list[str], message_task: Callable) -> None:
-        async def _driver_task(_cs: trio.CancelScope) -> None:
+    def read_only_loop(self, subs_topics: list[str], message_task: Callable) -> None:
+        async def _driver_task(_cs: trio.CancelScope, _agent: "Agent") -> None:
             await trio.sleep_forever()
 
         trio.run(self.loop_client, subs_topics, _driver_task, message_task)
