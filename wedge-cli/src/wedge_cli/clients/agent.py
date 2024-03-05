@@ -99,19 +99,20 @@ class Agent:
             assert self.client  # appease mypy
 
             periodic_reports.spawn_in(self.nursery)
-            async for msg in self.client.messages():
-                attributes_available = await check_attributes_request(
-                    self, msg.topic, msg.payload.decode()
-                )
-                if attributes_available:
-                    camera_state.attributes_available = True
+            async with self.client.messages() as mgen:
+                async for msg in mgen:
+                    attributes_available = await check_attributes_request(
+                        self, msg.topic, msg.payload.decode()
+                    )
+                    if attributes_available:
+                        camera_state.attributes_available = True
 
-                payload = json.loads(msg.payload)
-                camera_state.process_incoming(msg.topic, payload)
+                    payload = json.loads(msg.payload)
+                    camera_state.process_incoming(msg.topic, payload)
 
-                if camera_state.is_ready:
-                    periodic_reports.tap()
-                    break
+                    if camera_state.is_ready:
+                        periodic_reports.tap()
+                        break
             self.async_done()
 
         self.onwire_schema = camera_state.onwire_schema
