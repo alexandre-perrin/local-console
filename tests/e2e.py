@@ -56,8 +56,29 @@ def check_rpc_telemetry(telemetry: subprocess.Popen, wedge_cli_pre: list[str]) -
         )
 
         assert rgb == ("0", "15", "241")
-        telemetry.kill()
         break
+
+
+@retry(tries=5, exceptions=AssertionError)
+def check_configuration_telemetry(
+    telemetry: subprocess.Popen, wedge_cli_pre: list[str]
+) -> None:
+    # send configuration, expect loopback over telemetry
+    topic = "test-topic"
+    payload = "some-payload"
+
+    telemetry_topic = f"node/{topic}"
+
+    subprocess.run(wedge_cli_pre + ["config", "instance", "node", topic, payload])
+    for i, line in enumerate(telemetry.stdout):  # type: ignore
+        telemetry_out = json.loads(line.replace("'", '"'))
+        obj = telemetry_out.get(telemetry_topic)
+        if obj:
+            # Example: {'node/test-topic': {'data': 'some-payload'}}
+            assert "data" in obj
+            assert obj["data"] == payload
+            break
+        assert i < 30, "Telemetry echo has not arrived yet"
 
 
 @retry(tries=5, exceptions=AssertionError)
@@ -251,8 +272,13 @@ def main() -> None:
                 stdout=subprocess.PIPE,
                 text=True,
             )
+
             check_rpc_telemetry(telemetry, cmd_preamble)
-            log.info("Telemetry arrived succesfully")
+            log.info("Telemetry for RPC arrived succesfully")
+
+            check_configuration_telemetry(telemetry, cmd_preamble)
+            log.info("Telemetry for Configuration arrived succesfully")
+            telemetry.kill()
 
             deployment = subprocess.Popen(
                 cmd_preamble + ["get", "deployment"],

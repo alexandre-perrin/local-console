@@ -54,6 +54,36 @@ void rpc_cb(EVP_RPC_ID id, const char *methodName, const char *params, void *use
     LOG_INFO("r=%d g=%d b=%d", r, g, b);
 }
 
+/* The variables and the EVP configuration callback below implement
+ * a simple loopback (or "echo") of a configuration message as
+ * a telemetry message
+*/
+static char *g_topic = NULL;
+static char *g_blob = NULL;
+static size_t g_blob_len;
+
+static void
+config_cb(const char *topic, const void *config, size_t configlen,
+      void *userData)
+{
+    LOG_INFO("%s: Received Configuration (topic=%s, size=%zu)\n",
+             module_name, topic, configlen);
+
+    free(g_blob);
+    free(g_topic);
+
+    /* Note: +1 to avoid 0-sized malloc */
+    g_blob = malloc(configlen + 1);
+    assert(g_blob != NULL);
+    memcpy(g_blob, config, configlen);
+    g_blob[configlen] = 0;
+
+    g_topic = strdup(topic);
+    assert(g_topic != NULL);
+
+    g_blob_len = configlen;
+}
+
 long
 get_time_ms(void)
 {
@@ -71,6 +101,7 @@ int main() {
     h = EVP_initialize();
 
     EVP_setRpcCallback(h, rpc_cb, NULL);
+    EVP_setConfigurationCallback(h, config_cb, NULL);
 
     /* Will send a periodic telemetry message every 2 seconds */
     long tic = get_time_ms();
@@ -80,6 +111,10 @@ int main() {
         EVP_RESULT result = EVP_processEvent(h, 1000);
         if (result == EVP_SHOULDEXIT) {
             LOG_INFO("%s: exiting the main loop", module_name);
+            free(g_topic);
+            free(g_blob);
+            g_topic = NULL;
+            g_blob = NULL;
             break;
         }
 
@@ -88,6 +123,19 @@ int main() {
             toc += 2000;
             LOG_INFO("Sending telemetry...");
             send_telemetry();
+        }
+
+        if (g_blob_len) {
+            LOG_INFO("%s: Sending echoing telemetry (topic=%s, size=%zu)\n",
+                     module_name, g_topic, g_blob_len);
+            struct telemetry_data *d = malloc(sizeof(*d));
+            d->entries[0].key = strdup(g_topic);
+            char *buf = NULL;
+            asprintf(&buf, "{\"data\": \"%s\"}", g_blob);
+            d->entries[0].value = buf;
+            result = EVP_sendTelemetry(h, d->entries, 1, telemetry_cb, d);
+            g_blob_len = 0;
+            assert(result == EVP_OK);
         }
     }
     return 0;
