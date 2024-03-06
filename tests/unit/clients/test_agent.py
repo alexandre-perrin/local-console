@@ -66,9 +66,11 @@ async def test_configure_instance_evp2(
         )
 
 
-@given(st.text(), generate_agent_config())
+@given(st.text(), generate_agent_config(), st.sampled_from(OnWireProtocol))
 @pytest.mark.trio
-async def test_rpc(instance_id: str, agent_config: AgentConfiguration):
+async def test_rpc(
+    instance_id: str, agent_config: AgentConfiguration, onwire_schema: OnWireProtocol
+):
     with (
         patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
         patch("wedge_cli.clients.agent.paho.Client"),
@@ -77,6 +79,7 @@ async def test_rpc(instance_id: str, agent_config: AgentConfiguration):
         method = "$agent/set"
         params = '{"log_enable": true}'
         agent = Agent()
+        agent.onwire_schema = onwire_schema
         async with agent.mqtt_scope([]):
             agent.client.publish_and_wait = AsyncMock(
                 return_value=(MQTT_ERR_SUCCESS, None)
@@ -87,9 +90,11 @@ async def test_rpc(instance_id: str, agent_config: AgentConfiguration):
         agent.client.publish_and_wait.assert_called_once()
 
 
-@given(st.text(), generate_agent_config())
+@given(st.text(), generate_agent_config(), st.sampled_from(OnWireProtocol))
 @pytest.mark.trio
-async def test_rpc_error(instance_id: str, agent_config: AgentConfiguration):
+async def test_rpc_error(
+    instance_id: str, agent_config: AgentConfiguration, onwire_schema: OnWireProtocol
+):
     with (
         patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
         patch("wedge_cli.clients.agent.paho.Client"),
@@ -98,6 +103,7 @@ async def test_rpc_error(instance_id: str, agent_config: AgentConfiguration):
         method = "$agent/set"
         params = '{"log_enable": true}'
         agent = Agent()
+        agent.onwire_schema = onwire_schema
         async with agent.mqtt_scope([]):
             agent.client.publish_and_wait = AsyncMock(
                 return_value=(MQTT_ERR_ERRNO, None)
