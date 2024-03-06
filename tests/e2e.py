@@ -34,6 +34,7 @@ def parse_test_arguments() -> argparse.Namespace:
         "--ows-version",
         type=OnWireProtocol,
         choices=list(OnWireProtocol),
+        default=OnWireProtocol.EVP2,
         help="Which on-wire schema version version to set the agent to",
     )
 
