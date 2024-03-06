@@ -5,6 +5,7 @@ import logging
 import sys
 import uuid
 from pathlib import Path
+from pathlib import PurePosixPath
 from typing import Annotated
 from typing import Any
 from typing import Optional
@@ -313,7 +314,9 @@ def populate_urls_and_hashes(
         deployment_manifest.deployment.modules[module].hash = calculate_sha256(file)
         deployment_manifest.deployment.modules[
             module
-        ].downloadUrl = f"http://{host}:{port}/{file.relative_to(root_path)}"
+        ].downloadUrl = (
+            f"http://{host}:{port}/{PurePosixPath(file.relative_to(root_path))}"
+        )
 
     # DeploymentId based on deployment manifest content
     deployment_manifest.deployment.deploymentId = ""
