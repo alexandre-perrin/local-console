@@ -1,6 +1,7 @@
 import argparse
 import json
 import logging
+import re
 import socket
 import subprocess
 import sys
@@ -69,8 +70,9 @@ def check_deploy_empty(deployment: subprocess.Popen, wedge_cli_pre: list[str]) -
         raise e
 
     time.sleep(2)
+    empty_regex = re.compile(r"""['"]instances['"]:\s*{},\s*['"]modules['"]:\s*{}""")
     for i, line in enumerate(deployment.stdout):  # type: ignore
-        if "'instances': {}, 'modules': {}" in line:
+        if empty_regex.search(line):
             deployment.kill()
             return
         assert i < 10, "Deployment status not empty yet"
