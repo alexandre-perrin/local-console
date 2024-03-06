@@ -34,6 +34,7 @@ def parse_test_arguments() -> argparse.Namespace:
         "--ows-version",
         type=OnWireProtocol,
         choices=list(OnWireProtocol),
+        default=OnWireProtocol.EVP2,
         help="Which on-wire schema version version to set the agent to",
     )
 
@@ -55,8 +56,29 @@ def check_rpc_telemetry(telemetry: subprocess.Popen, wedge_cli_pre: list[str]) -
         )
 
         assert rgb == ("0", "15", "241")
-        telemetry.kill()
         break
+
+
+@retry(tries=5, exceptions=AssertionError)
+def check_configuration_telemetry(
+    telemetry: subprocess.Popen, wedge_cli_pre: list[str]
+) -> None:
+    # send configuration, expect loopback over telemetry
+    topic = "test-topic"
+    payload = "some-payload"
+
+    telemetry_topic = f"node/{topic}"
+
+    subprocess.run(wedge_cli_pre + ["config", "instance", "node", topic, payload])
+    for i, line in enumerate(telemetry.stdout):  # type: ignore
+        telemetry_out = json.loads(line.replace("'", '"'))
+        obj = telemetry_out.get(telemetry_topic)
+        if obj:
+            # Example: {'node/test-topic': {'data': 'some-payload'}}
+            assert "data" in obj
+            assert obj["data"] == payload
+            break
+        assert i < 30, "Telemetry echo has not arrived yet"
 
 
 @retry(tries=5, exceptions=AssertionError)
@@ -215,7 +237,7 @@ def wedge_area(with_tls: bool, onwire_schema: OnWireProtocol) -> None:
     with TemporaryDirectory() as _tempdir:
         tmp_dir = Path(_tempdir)
         config_dir = tmp_dir / "config"
-        cmd_preamble = ["wedge-cli", "-d", "--config-dir", str(config_dir)]
+        cmd_preamble = ["wedge-cli", "-v", "--config-dir", str(config_dir)]
 
         if with_tls:
             tls_dir = tmp_dir / "tls"
@@ -239,7 +261,7 @@ def main() -> None:
         with (
             wedge_area(with_tls, ows_version) as (tmp_dir, cmd_preamble),
             SharedLogger() as slog,
-            LocalBroker(with_tls, tmp_dir, slog, cmd_preamble),
+            LocalBroker(with_tls, tmp_dir, slog, cmd_preamble) as broker,
             LocalAgent(slog, cmd_preamble),
         ):
             build_and_deploy_app(app_dir, cmd_preamble)
@@ -250,8 +272,13 @@ def main() -> None:
                 stdout=subprocess.PIPE,
                 text=True,
             )
+
             check_rpc_telemetry(telemetry, cmd_preamble)
-            log.info("Telemetry arrived succesfully")
+            log.info("Telemetry for RPC arrived succesfully")
+
+            check_configuration_telemetry(telemetry, cmd_preamble)
+            log.info("Telemetry for Configuration arrived succesfully")
+            telemetry.kill()
 
             deployment = subprocess.Popen(
                 cmd_preamble + ["get", "deployment"],
@@ -260,6 +287,9 @@ def main() -> None:
             )
             check_deploy_empty(deployment, cmd_preamble)
             log.info("Deployment emptied successfully")
+
+            # At this stage, it is safe to ignore abnormal broker termination
+            broker.set_ignore_failure(True)
 
         log.info("######################")
         log.info("#  Test successful!  #")

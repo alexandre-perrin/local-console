@@ -196,8 +196,7 @@ class Agent:
 
         # The following stanza matches the implementation at:
         # https://github.com/midokura/wedge-agent/blob/ee08d254658177ddfa3f75b7d1f09922104a2427/src/libwedge-agent/instance_config.c#L324
-        if self.onwire_schema == OnWireProtocol.EVP1:
-            config = base64.b64encode(config.encode("utf-8")).decode("utf-8")
+        config = base64.b64encode(config.encode("utf-8")).decode("utf-8")
 
         message: dict = {f"configuration/{instance_id}/{topic}": config}
         payload = json.dumps(message)
@@ -221,7 +220,6 @@ class Agent:
             }
         }
         payload = json.dumps(message)
-        logger.debug(f"payload: {payload}")
         await self.publish(MQTTTopics.ATTRIBUTES.value, payload=payload)
 
     async def loop_client(
@@ -259,6 +257,7 @@ class Agent:
         trio.run(self.loop_client, subs_topics, _driver_task, message_task)
 
     async def request_instance_logs(self, instance_id: str) -> None:
+        await self.determine_onwire_schema()
         async with self.mqtt_scope([]):
             await self.rpc(instance_id, "$agent/set", '{"log_enable": true}')
             self.async_done()

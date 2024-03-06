@@ -27,13 +27,14 @@ class ProcessHandler(threading.Thread, ABC):
         self.log = log_handler
         self._signal = threading.Event()
         self._signal.set()
+        self._ignore_failure = False
 
     @abstractmethod
     def start_check(self) -> None:
         pass
 
     def run(self):
-        self.log.info(f"About to run: {self.cmdline} with opts: {self.options}")
+        self.log.debug(f"About to run: {self.cmdline} with opts: {self.options}")
         self.proc = sp.Popen(
             self.cmdline, text=True, stdout=sp.PIPE, stderr=sp.STDOUT, **self.options
         )
@@ -41,26 +42,30 @@ class ProcessHandler(threading.Thread, ABC):
         while self._signal.wait(0.02):
             rc = self.proc.poll()
             for line in self.proc.stdout.readlines(100):
-                self.log.info("IN> %s", line.rstrip())
+                self.log.debug("IN> %s", line.rstrip())
             if rc is not None:
                 self._signal.clear()
                 if rc != 0:
                     self.log.warning("Unexpectedly died (rc=%d)", rc)
                 break
 
-    def __enter__(self):
+    def set_ignore_failure(self, ignore: bool) -> None:
+        self._ignore_failure = ignore
+
+    def __enter__(self) -> "ProcessHandler":
         self.start()
         self.start_check()
-        self.log.info("%s: Yielding to 'with' body", self.name)
+        self.log.debug("%s: Yielding to 'with' body", self.name)
+        return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.proc.terminate()
         self._signal.clear()
         self.join()
 
         rc = self.proc.poll()
-        self.log.info("finished process %snormally", "ab" if rc else "")
-        if rc:
+        self.log.debug("finished process %snormally", "ab" if rc else "")
+        if rc and not self._ignore_failure:
             raise ValueError
 
 
