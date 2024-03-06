@@ -1,4 +1,4 @@
-FROM python:3.9.17-slim-bookworm
+FROM python:3.12.2-slim-bookworm
 
 RUN apt-get update && apt-get install -y \
         make cmake git curl wget software-properties-common
