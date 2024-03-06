@@ -54,11 +54,27 @@ void rpc_cb(EVP_RPC_ID id, const char *methodName, const char *params, void *use
     LOG_INFO("r=%d g=%d b=%d", r, g, b);
 }
 
+long
+get_time_ms(void)
+{
+    struct timespec t;
+    int ret;
+
+    ret = clock_gettime(CLOCK_REALTIME, &t);
+    assert(ret != -1);
+    long tms = t.tv_sec * 1000 + t.tv_nsec / 1000000;
+    return tms;
+}
+
 int main() {
     LOG_INFO("%s Started!", module_name);
     h = EVP_initialize();
 
     EVP_setRpcCallback(h, rpc_cb, NULL);
+
+    /* Will send a periodic telemetry message every 2 seconds */
+    long tic = get_time_ms();
+    long toc = tic + 2000;
 
     for (;;) {
         EVP_RESULT result = EVP_processEvent(h, 1000);
@@ -66,13 +82,12 @@ int main() {
             LOG_INFO("%s: exiting the main loop", module_name);
             break;
         }
-        sleep(2);
-        LOG_INFO("Sending telemetry...");
-        send_telemetry();
-        result = EVP_processEvent(h, 1000);
-        if (result == EVP_SHOULDEXIT) {
-            LOG_INFO("%s: exiting the main loop", module_name);
-            break;
+
+        tic = get_time_ms();
+        if (tic >= toc) {
+            toc += 2000;
+            LOG_INFO("Sending telemetry...");
+            send_telemetry();
         }
     }
     return 0;
