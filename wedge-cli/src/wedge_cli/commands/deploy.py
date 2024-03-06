@@ -170,7 +170,7 @@ class DeployFSM:
                     next_stage = DeployStage.WaitFirstStatus
 
                 elif self.stage == DeployStage.WaitFirstStatus:
-                    logger.info("Agent can receive deployments. Pushing manifest now.")
+                    logger.debug("Agent can receive deployments. Pushing manifest now.")
                     await self.agent.deploy(self.to_deploy)
                     next_stage = DeployStage.WaitAppliedConfirmation
 

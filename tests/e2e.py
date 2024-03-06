@@ -237,7 +237,7 @@ def wedge_area(with_tls: bool, onwire_schema: OnWireProtocol) -> None:
     with TemporaryDirectory() as _tempdir:
         tmp_dir = Path(_tempdir)
         config_dir = tmp_dir / "config"
-        cmd_preamble = ["wedge-cli", "-d", "--config-dir", str(config_dir)]
+        cmd_preamble = ["wedge-cli", "-v", "--config-dir", str(config_dir)]
 
         if with_tls:
             tls_dir = tmp_dir / "tls"

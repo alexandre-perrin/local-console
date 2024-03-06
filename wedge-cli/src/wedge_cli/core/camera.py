@@ -50,7 +50,7 @@ class Camera:
                 self.deploy_status = payload[self.DEPLOY_STATUS_TOPIC]
                 self.attributes_available = True
 
-        logger.critical("Incoming on %s: %s", topic, str(payload))
+        logger.debug("Incoming on %s: %s", topic, str(payload))
 
 
 class StreamStatus(enum.Enum):

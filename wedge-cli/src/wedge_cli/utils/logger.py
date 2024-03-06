@@ -1,10 +1,10 @@
 import logging
 
 
-def configure_logger(debug: bool, verbose: bool) -> None:
-    level = logging.WARNING
+def configure_logger(silent: bool, verbose: bool) -> None:
+    level = logging.INFO
     if verbose:
-        level = logging.INFO
-    if debug:
         level = logging.DEBUG
+    if silent:
+        level = logging.WARNING
     logging.basicConfig(format="%(levelname)s: %(message)s", level=level)

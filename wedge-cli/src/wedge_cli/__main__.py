@@ -91,11 +91,19 @@ def main(
         Path,
         typer.Option(help="Path for the file configs of the CLI and agent"),
     ] = config_paths.home,
-    debug: Annotated[
-        bool, typer.Option("--debug", "-d", help="Set log level to debug")
+    silent: Annotated[
+        bool,
+        typer.Option(
+            "--silent",
+            "-s",
+            help="Decrease log verbosity (only show warnings and errors)",
+        ),
     ] = False,
     verbose: Annotated[
-        bool, typer.Option("--verbose", "-v", help="Set log level to verbose")
+        bool,
+        typer.Option(
+            "--verbose", "-v", help="Increase log verbosity (show debug messages too)"
+        ),
     ] = False,
 ) -> None:
     if not ctx.invoked_subcommand:
@@ -103,7 +111,7 @@ def main(
         return
 
     config_paths.home = config_dir
-    configure_logger(debug, verbose)
+    configure_logger(silent, verbose)
     setup_default_config()
     setup_agent_filesystem()
     setup_default_https_ca()
