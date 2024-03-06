@@ -27,6 +27,7 @@ class ProcessHandler(threading.Thread, ABC):
         self.log = log_handler
         self._signal = threading.Event()
         self._signal.set()
+        self._ignore_failure = False
 
     @abstractmethod
     def start_check(self) -> None:
@@ -48,19 +49,23 @@ class ProcessHandler(threading.Thread, ABC):
                     self.log.warning("Unexpectedly died (rc=%d)", rc)
                 break
 
-    def __enter__(self):
+    def set_ignore_failure(self, ignore: bool) -> None:
+        self._ignore_failure = ignore
+
+    def __enter__(self) -> "ProcessHandler":
         self.start()
         self.start_check()
         self.log.info("%s: Yielding to 'with' body", self.name)
+        return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.proc.terminate()
         self._signal.clear()
         self.join()
 
         rc = self.proc.poll()
         self.log.info("finished process %snormally", "ab" if rc else "")
-        if rc:
+        if rc and not self._ignore_failure:
             raise ValueError
 
 

@@ -239,7 +239,7 @@ def main() -> None:
         with (
             wedge_area(with_tls, ows_version) as (tmp_dir, cmd_preamble),
             SharedLogger() as slog,
-            LocalBroker(with_tls, tmp_dir, slog, cmd_preamble),
+            LocalBroker(with_tls, tmp_dir, slog, cmd_preamble) as broker,
             LocalAgent(slog, cmd_preamble),
         ):
             build_and_deploy_app(app_dir, cmd_preamble)
@@ -260,6 +260,9 @@ def main() -> None:
             )
             check_deploy_empty(deployment, cmd_preamble)
             log.info("Deployment emptied successfully")
+
+            # At this stage, it is safe to ignore abnormal broker termination
+            broker.set_ignore_failure(True)
 
         log.info("######################")
         log.info("#  Test successful!  #")
