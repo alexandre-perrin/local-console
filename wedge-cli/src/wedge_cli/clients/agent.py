@@ -21,6 +21,7 @@ from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.config import config_paths
 from wedge_cli.core.config import get_config
 from wedge_cli.core.schemas import AgentConfiguration
+from wedge_cli.core.schemas import DeploymentManifest
 from wedge_cli.core.schemas import DesiredDeviceConfig
 from wedge_cli.core.schemas import OnWireProtocol
 from wedge_cli.utils.local_network import is_localhost
@@ -125,24 +126,64 @@ class Agent:
             )
         )
 
-    async def deploy(self, deployment: str) -> None:
+    async def deploy(self, to_deploy: DeploymentManifest) -> None:
+        if self.onwire_schema is None:
+            logger.error(
+                "Cannot send a configuration message without determining the camera's on-wire protocol version"
+            )
+            raise SystemExit()
+
+        if self.onwire_schema == OnWireProtocol.EVP2:
+            deployment = to_deploy.render_for_evp2()
+        elif self.onwire_schema == OnWireProtocol.EVP1:
+            deployment = to_deploy.render_for_evp1()
+
         await self.publish(MQTTTopics.ATTRIBUTES.value, payload=deployment)
 
     async def rpc(self, instance_id: str, method: str, params: str) -> None:
+        if self.onwire_schema is None:
+            logger.error(
+                "Cannot send a configuration message without determining the camera's on-wire protocol version"
+            )
+            raise SystemExit()
+
         reqid = str(random.randint(0, 10**8))
         RPC_TOPIC = f"v1/devices/me/rpc/request/{reqid}"
-        message: dict = {
-            "method": "ModuleMethodCall",
-            "params": {
+        if self.onwire_schema == OnWireProtocol.EVP2:
+            # Following the implementation at:
+            # https://github.com/midokura/wedge-agent/blob/fa3d4840c37978938084cbc70612fdb8ea8dbf9f/src/libwedge-agent/hub/tb/tb.c#L218
+            # https://github.com/midokura/wedge-agent/blob/fa3d4840c37978938084cbc70612fdb8ea8dbf9f/src/libwedge-agent/direct_command.c#L206
+            # https://github.com/midokura/evp-onwire-schema/blob/9a0a861a6518681ceda5749890d4322a56dfbc3e/schema/direct-command-request.example.json#L2
+            evp2_body = {
                 "direct-command-request": {
-                    "reqid": f"{reqid}",
-                    "method": f"{method}",
-                    "instance": f"{instance_id}",
-                    "params": f"{params}",
+                    "reqid": reqid,
+                    "method": method,
+                    "instance": instance_id,
+                    "params": params,
                 }
-            },
-        }
-        payload = json.dumps(message)
+            }
+            payload = json.dumps(
+                {
+                    "method": "ModuleMethodCall",
+                    "params": evp2_body,
+                }
+            )
+        elif self.onwire_schema == OnWireProtocol.EVP1:
+            # Following the implementation at:
+            # https://github.com/midokura/wedge-agent/blob/fa3d4840c37978938084cbc70612fdb8ea8dbf9f/src/libwedge-agent/hub/tb/tb.c#L179
+            # https://github.com/midokura/wedge-agent/blob/fa3d4840c37978938084cbc70612fdb8ea8dbf9f/src/libwedge-agent/direct_command.c#L158
+            # https://github.com/midokura/evp-onwire-schema/blob/1164987a620f34e142869f3979ca63b186c0a061/schema/directcommandrequest/direct-command-request.example.json#L2
+            evp1_body = {
+                "moduleMethod": method,
+                "moduleInstance": instance_id,
+                "params": json.loads(params),
+            }
+            payload = json.dumps(
+                {
+                    "method": "ModuleMethodCall",
+                    "params": evp1_body,
+                }
+            )
         logger.debug(f"payload: {payload}")
         await self.publish(RPC_TOPIC, payload=payload)
 
@@ -151,7 +192,7 @@ class Agent:
             logger.error(
                 "Cannot send a configuration message without determining the camera's on-wire protocol version"
             )
-            raise SystemExit
+            raise SystemExit()
 
         # The following stanza matches the implementation at:
         # https://github.com/midokura/wedge-agent/blob/ee08d254658177ddfa3f75b7d1f09922104a2427/src/libwedge-agent/instance_config.c#L324
