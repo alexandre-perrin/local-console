@@ -4,7 +4,6 @@ import logging
 import random
 import re
 import traceback
-from collections import defaultdict
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from functools import partial
@@ -72,81 +71,9 @@ class Agent:
 
     def async_done(self) -> None:
         assert self.nursery
+        assert self.client
+        self.client.disconnect()
         self.nursery.cancel_scope.cancel()
-
-    def _on_message_print_payload(self) -> Callable:
-        async def __task(cs: trio.CancelScope) -> None:
-            assert self.client is not None
-            async for msg in self.client.messages():
-                payload = json.loads(msg.payload.decode())
-                if payload:
-                    print(payload, flush=True)
-                else:
-                    logger.debug("Empty message arrived")
-
-        return __task
-
-    def _on_message_logs(self, instance_id: str, timeout: int) -> Callable:
-        async def __task(cs: trio.CancelScope) -> None:
-            assert self.client is not None
-            with trio.move_on_after(timeout) as time_cs:
-                async for msg in self.client.messages():
-                    payload = json.loads(msg.payload.decode())
-                    logs = defaultdict(list)
-                    if "values" in payload:
-                        payload = payload["values"]
-                    if "device/log" in payload.keys():
-                        for log in payload["device/log"]:
-                            logs[log["app"]].append(log)
-                        if instance_id in logs.keys():
-                            time_cs.deadline += timeout
-                            for instance_log in logs[instance_id]:
-                                print(instance_log)
-
-            if time_cs.cancelled_caught:
-                logger.error(
-                    f"No logs received for {instance_id} within {timeout} seconds. Please check the instance id is correct"
-                )
-                cs.cancel()
-
-        return __task
-
-    def _on_message_telemetry(self) -> Callable:
-        async def __task(cs: trio.CancelScope) -> None:
-            assert self.client is not None
-            async for msg in self.client.messages():
-                payload = json.loads(msg.payload.decode())
-                if payload:
-                    to_print = {
-                        key: val
-                        for key, val in payload.items()
-                        if "device/log" not in key
-                    }
-                    print(to_print, flush=True)
-
-        return __task
-
-    def _on_message_instance(self, instance_id: str) -> Callable:
-        async def __task(cs: trio.CancelScope) -> None:
-            assert self.client is not None
-            async for msg in self.client.messages():
-                payload = json.loads(msg.payload.decode())
-                if (
-                    "deploymentStatus" not in payload
-                    or "instances" not in payload["deploymentStatus"]
-                ):
-                    continue
-
-                instances = payload["deploymentStatus"]["instances"]
-                if instance_id in instances.keys():
-                    print(instances[instance_id])
-                else:
-                    logger.info(
-                        f"Module instance not found. The available module instance are {list(instances.keys())}"
-                    )
-                    cs.cancel()
-
-        return __task
 
     async def determine_onwire_schema(self) -> None:
         camera_state = Camera()
@@ -172,19 +99,20 @@ class Agent:
             assert self.client  # appease mypy
 
             periodic_reports.spawn_in(self.nursery)
-            async for msg in self.client.messages():
-                attributes_available = await check_attributes_request(
-                    self, msg.topic, msg.payload.decode()
-                )
-                if attributes_available:
-                    camera_state.attributes_available = True
+            async with self.client.messages() as mgen:
+                async for msg in mgen:
+                    attributes_available = await check_attributes_request(
+                        self, msg.topic, msg.payload.decode()
+                    )
+                    if attributes_available:
+                        camera_state.attributes_available = True
 
-                payload = json.loads(msg.payload)
-                camera_state.process_incoming(msg.topic, payload)
+                    payload = json.loads(msg.payload)
+                    camera_state.process_incoming(msg.topic, payload)
 
-                if camera_state.is_ready:
-                    periodic_reports.tap()
-                    break
+                    if camera_state.is_ready:
+                        periodic_reports.tap()
+                        break
             self.async_done()
 
         self.onwire_schema = camera_state.onwire_schema
@@ -261,8 +189,8 @@ class Agent:
         async with self.mqtt_scope(subs_topics):
             assert self.nursery is not None
             cs = self.nursery.cancel_scope
-            self.nursery.start_soon(message_task, cs)
-            self.nursery.start_soon(driver_task, cs)
+            self.nursery.start_soon(message_task, cs, self)
+            self.nursery.start_soon(driver_task, cs, self)
 
     @asynccontextmanager
     async def mqtt_scope(self, subs_topics: list[str]) -> AsyncIterator[None]:
@@ -283,8 +211,8 @@ class Agent:
             logger.error("Error on MQTT publish agent logs")
             raise ConnectionError
 
-    def _loop_forever(self, subs_topics: list[str], message_task: Callable) -> None:
-        async def _driver_task(_cs: trio.CancelScope) -> None:
+    def read_only_loop(self, subs_topics: list[str], message_task: Callable) -> None:
+        async def _driver_task(_cs: trio.CancelScope, _agent: "Agent") -> None:
             await trio.sleep_forever()
 
         trio.run(self.loop_client, subs_topics, _driver_task, message_task)
@@ -293,30 +221,6 @@ class Agent:
         async with self.mqtt_scope([]):
             await self.rpc(instance_id, "$agent/set", '{"log_enable": true}')
             self.async_done()
-
-    def get_instance_logs(self, instance_id: str, timeout: int) -> None:
-        self._loop_forever(
-            subs_topics=[MQTTTopics.TELEMETRY.value],
-            message_task=self._on_message_logs(instance_id, timeout),
-        )
-
-    def get_deployment(self) -> None:
-        self._loop_forever(
-            subs_topics=[MQTTTopics.ATTRIBUTES.value],
-            message_task=self._on_message_print_payload(),
-        )
-
-    def get_telemetry(self) -> None:
-        self._loop_forever(
-            subs_topics=[MQTTTopics.TELEMETRY.value],
-            message_task=self._on_message_telemetry(),
-        )
-
-    def get_instance(self, instance_id: str) -> None:
-        self._loop_forever(
-            subs_topics=[MQTTTopics.ATTRIBUTES.value],
-            message_task=self._on_message_instance(instance_id),
-        )
 
 
 @asynccontextmanager

@@ -7,6 +7,7 @@ from typing import Optional
 
 import paho.mqtt.client as mqtt
 import trio
+from trio_util import trio_async_generator
 
 
 class AsyncClient:
@@ -124,15 +125,13 @@ class AsyncClient:
     ) -> None:
         self._event_connect.set()
 
+    @trio_async_generator
     async def messages(self) -> AsyncIterator[mqtt.MQTTMessage]:
         self._event_should_read.set()
-        cs = trio.CancelScope()
-        self._cancel_scopes.append(cs)
-        with cs:
-            while True:
-                msg = await self._msg_receive_channel.receive()
-                yield msg
-                self._event_should_read.set()
+        while True:
+            msg = await self._msg_receive_channel.receive()
+            yield msg
+            self._event_should_read.set()
 
     def _on_message(
         self, client: mqtt.Client, userdata: Any, msg: mqtt.MQTTMessage

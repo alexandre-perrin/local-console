@@ -82,19 +82,20 @@ class Driver:
 
             assert self.mqtt_client.client  # appease mypy
             self.periodic_reports.spawn_in(self.nursery)
-            async for msg in self.mqtt_client.client.messages():
-                attributes_available = await check_attributes_request(
-                    self.mqtt_client, msg.topic, msg.payload.decode()
-                )
-                if attributes_available:
-                    self.camera_state.attributes_available = True
+            async with self.mqtt_client.client.messages() as mgen:
+                async for msg in mgen:
+                    attributes_available = await check_attributes_request(
+                        self.mqtt_client, msg.topic, msg.payload.decode()
+                    )
+                    if attributes_available:
+                        self.camera_state.attributes_available = True
 
-                payload = json.loads(msg.payload)
-                self.camera_state.process_incoming(msg.topic, payload)
-                self.update_camera_status()
+                    payload = json.loads(msg.payload)
+                    self.camera_state.process_incoming(msg.topic, payload)
+                    self.update_camera_status()
 
-                if self.camera_state.is_ready:
-                    self.periodic_reports.tap()
+                    if self.camera_state.is_ready:
+                        self.periodic_reports.tap()
 
     def from_sync(self, async_fn: Callable, *args: Any) -> None:
         self.bridge.enqueue_task(async_fn, *args)

@@ -1,7 +1,6 @@
 import base64
 import json
 from unittest.mock import AsyncMock
-from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
@@ -108,75 +107,3 @@ async def test_rpc_error(instance_id: str, agent_config: AgentConfiguration):
             agent.async_done()
 
         agent.client.publish_and_wait.assert_called_once()
-
-
-@given(generate_agent_config())
-def test_get_deployment(agent_config: AgentConfiguration):
-    with (
-        patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
-        patch("wedge_cli.clients.agent.paho.Client"),
-        patch("wedge_cli.clients.agent.AsyncClient"),
-    ):
-        agent = Agent()
-        agent._loop_forever = Mock()
-        agent._on_message_print_payload = Mock()
-        agent.get_deployment()
-        agent._loop_forever.assert_called_once_with(
-            subs_topics=[MQTTTopics.ATTRIBUTES.value],
-            message_task=agent._on_message_print_payload.return_value,
-        )
-        agent._on_message_print_payload.assert_called_once()
-
-
-@given(generate_agent_config())
-def test_get_telemetry(agent_config: AgentConfiguration):
-    with (
-        patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
-        patch("wedge_cli.clients.agent.paho.Client"),
-        patch("wedge_cli.clients.agent.AsyncClient"),
-    ):
-        agent = Agent()
-        agent._loop_forever = Mock()
-        agent._on_message_telemetry = Mock()
-        agent.get_telemetry()
-        agent._loop_forever.assert_called_once_with(
-            subs_topics=[MQTTTopics.TELEMETRY.value],
-            message_task=agent._on_message_telemetry.return_value,
-        )
-        agent._on_message_telemetry.assert_called_once()
-
-
-@given(st.text(min_size=1, max_size=5), generate_agent_config())
-def test_get_instance(instance_id: str, agent_config: AgentConfiguration):
-    with (
-        patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
-        patch("wedge_cli.clients.agent.paho.Client"),
-        patch("wedge_cli.clients.agent.AsyncClient"),
-    ):
-        agent = Agent()
-        agent._loop_forever = Mock()
-        agent._on_message_instance = Mock()
-        agent.get_instance(instance_id)
-        agent._loop_forever.assert_called_once_with(
-            subs_topics=[MQTTTopics.ATTRIBUTES.value],
-            message_task=agent._on_message_instance.return_value,
-        )
-        agent._on_message_instance.assert_called_once_with(instance_id)
-
-
-@given(st.text(min_size=1, max_size=5), st.integers(), generate_agent_config())
-def test_get_logs(instance_id: str, timeout: int, agent_config: AgentConfiguration):
-    with (
-        patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
-        patch("wedge_cli.clients.agent.paho.Client"),
-        patch("wedge_cli.clients.agent.AsyncClient"),
-    ):
-        agent = Agent()
-        agent._loop_forever = Mock()
-        agent._on_message_logs = Mock()
-        agent.get_instance_logs(instance_id, timeout)
-        agent._loop_forever.assert_called_once_with(
-            subs_topics=[MQTTTopics.TELEMETRY.value],
-            message_task=agent._on_message_logs.return_value,
-        )
-        agent._on_message_logs.assert_called_once_with(instance_id, timeout)
