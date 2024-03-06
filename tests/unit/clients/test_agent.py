@@ -16,10 +16,20 @@ from wedge_cli.core.schemas import OnWireProtocol
 from tests.strategies.configs import generate_agent_config
 
 
-@given(st.text(), st.text(), st.text(), generate_agent_config())
+@given(
+    st.text(),
+    st.text(),
+    st.text(),
+    generate_agent_config(),
+    st.sampled_from(OnWireProtocol),
+)
 @pytest.mark.trio
-async def test_configure_instance_evp1(
-    instance_id: str, topic: str, config: str, agent_config: AgentConfiguration
+async def test_configure_instance(
+    instance_id: str,
+    topic: str,
+    config: str,
+    agent_config: AgentConfiguration,
+    onwire_schema: OnWireProtocol,
 ):
     with (
         patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
@@ -28,7 +38,7 @@ async def test_configure_instance_evp1(
         patch("wedge_cli.clients.agent.Agent.publish"),
     ):
         agent = Agent()
-        agent.onwire_schema = OnWireProtocol.EVP1
+        agent.onwire_schema = onwire_schema
         async with agent.mqtt_scope([]):
             await agent.configure(instance_id, topic, config)
             agent.async_done()
@@ -40,27 +50,6 @@ async def test_configure_instance_evp1(
                 ).decode("utf-8")
             }
         )
-        agent.publish.assert_called_once_with(
-            MQTTTopics.ATTRIBUTES.value, payload=payload
-        )
-
-
-@given(st.text(), st.text(), st.text(), generate_agent_config())
-@pytest.mark.trio
-async def test_configure_instance_evp2(
-    instance_id: str, topic: str, config: str, agent_config: AgentConfiguration
-):
-    with (
-        patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
-        patch("wedge_cli.clients.agent.paho.Client"),
-        patch("wedge_cli.clients.agent.AsyncClient"),
-        patch("wedge_cli.clients.agent.Agent.publish"),
-    ):
-        agent = Agent()
-        agent.onwire_schema = OnWireProtocol.EVP2
-        async with agent.mqtt_scope([]):
-            await agent.configure(instance_id, topic, config)
-        payload = json.dumps({f"configuration/{instance_id}/{topic}": config})
         agent.publish.assert_called_once_with(
             MQTTTopics.ATTRIBUTES.value, payload=payload
         )
