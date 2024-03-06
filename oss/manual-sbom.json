@@ -1,6 +1,23 @@
 {
   "components": [
     {
+      "bom-ref": "cpython==3.11.8",
+      "description": "The Python programming language",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/python/cpython/blob/v3.11.8/LICENSE"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Python Software Foundation License Version 2"
+          }
+        }
+      ]
+    },
+    {
       "bom-ref": "mosquitto==2.0.18",
       "description": "An open source MQTT broker",
       "externalReferences": [
@@ -34,7 +51,7 @@
       "licenses": [
         {
           "license": {
-            "id": "GPL 2.0 License"
+            "id": "GPL 2.0 License, with an exception that allows you to use it to build commercial products"
           }
         },
         {
