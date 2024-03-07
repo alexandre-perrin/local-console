@@ -162,7 +162,13 @@
       ]
     },
     {
-      "bom-ref": "importlib-metadata==7.0.1",
+      "bom-ref": "importlib_metadata==7.0.2",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/python/importlib_metadata/blob/v7.0.2/LICENSE"
+        }
+      ],
       "licenses": [
         {
           "license": {

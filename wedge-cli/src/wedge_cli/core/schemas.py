@@ -171,3 +171,11 @@ class OnWireProtocol(enum.Enum):
             return "evp1"
 
         return "tb"
+
+    @classmethod
+    def from_iot_spec(cls, value: str) -> "OnWireProtocol":
+        if value.lower() == "tb":
+            return cls.EVP2
+        elif value.lower() == "evp1":
+            return cls.EVP1
+        raise ValueError(f"On-wire schema version unavailable for spec '{value}'")

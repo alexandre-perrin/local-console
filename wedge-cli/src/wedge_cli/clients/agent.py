@@ -6,7 +6,6 @@ import re
 import traceback
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from functools import partial
 from typing import Any
 from typing import Callable
 from typing import Optional
@@ -16,7 +15,6 @@ import trio
 from exceptiongroup import catch
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 from wedge_cli.clients.trio_paho_mqtt import AsyncClient
-from wedge_cli.core.camera import Camera
 from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.config import config_paths
 from wedge_cli.core.config import get_config
@@ -40,12 +38,11 @@ class Agent:
         config_parse: AgentConfiguration = get_config()
         self._host = config_parse.mqtt.host.ip_value
         self._port = config_parse.mqtt.port
+        # For initializing the camera, capturing the on-wire protocol
+        self.onwire_schema = OnWireProtocol.from_iot_spec(config_parse.evp.iot_platform)
 
         client_id = f"cli-client-{random.randint(0, 10**7)}"
         self.mqttc = paho.Client(clean_session=True, client_id=client_id)
-
-        # For initializing the camera, capturing the on-wire protocol
-        self.onwire_schema: Optional[OnWireProtocol] = None
 
         self.configure_tls(config_parse)
 
@@ -76,47 +73,26 @@ class Agent:
         self.client.disconnect()
         self.nursery.cancel_scope.cancel()
 
-    async def determine_onwire_schema(self) -> None:
-        camera_state = Camera()
-        # This takes care of ensuring the device reports its state
-        # with bounded periodicity (expect to receive a message within 4 seconds)
-        timeout = 4
-        # Configure the device to emit status reports twice
-        # as often as the timeout expiration, to ensure that
-        # random deviations in report perioding make the timer
-        # to expire unnecessarily.
-        set_periodic_reports = partial(self.set_periodic_reports, int(timeout / 2))
-        periodic_reports = TimeoutBehavior(4, set_periodic_reports)
-
+    async def initialize_handshake(self, timeout: int = 5) -> None:
         async with self.mqtt_scope(
             [
                 MQTTTopics.ATTRIBUTES_REQ.value,
-                MQTTTopics.TELEMETRY.value,
-                MQTTTopics.RPC_RESPONSES.value,
-                MQTTTopics.ATTRIBUTES.value,
             ]
         ):
             assert self.nursery
             assert self.client  # appease mypy
 
+            async def stop_handshake() -> None:
+                logger.info("Exiting initialized handshake")
+                self.async_done()
+
+            periodic_reports = TimeoutBehavior(timeout, stop_handshake)
             periodic_reports.spawn_in(self.nursery)
             async with self.client.messages() as mgen:
                 async for msg in mgen:
-                    attributes_available = await check_attributes_request(
+                    await check_attributes_request(
                         self, msg.topic, msg.payload.decode()
                     )
-                    if attributes_available:
-                        camera_state.attributes_available = True
-
-                    payload = json.loads(msg.payload)
-                    camera_state.process_incoming(msg.topic, payload)
-
-                    if camera_state.is_ready:
-                        periodic_reports.tap()
-                        break
-            self.async_done()
-
-        self.onwire_schema = camera_state.onwire_schema
 
     async def set_periodic_reports(self, report_interval: int) -> None:
         await self.device_configure(
@@ -127,12 +103,6 @@ class Agent:
         )
 
     async def deploy(self, to_deploy: DeploymentManifest) -> None:
-        if self.onwire_schema is None:
-            logger.error(
-                "Cannot send a configuration message without determining the camera's on-wire protocol version"
-            )
-            raise SystemExit()
-
         if self.onwire_schema == OnWireProtocol.EVP2:
             deployment = to_deploy.render_for_evp2()
         elif self.onwire_schema == OnWireProtocol.EVP1:
@@ -141,12 +111,6 @@ class Agent:
         await self.publish(MQTTTopics.ATTRIBUTES.value, payload=deployment)
 
     async def rpc(self, instance_id: str, method: str, params: str) -> None:
-        if self.onwire_schema is None:
-            logger.error(
-                "Cannot send a configuration message without determining the camera's on-wire protocol version"
-            )
-            raise SystemExit()
-
         reqid = str(random.randint(0, 10**8))
         RPC_TOPIC = f"v1/devices/me/rpc/request/{reqid}"
         if self.onwire_schema == OnWireProtocol.EVP2:
@@ -188,12 +152,6 @@ class Agent:
         await self.publish(RPC_TOPIC, payload=payload)
 
     async def configure(self, instance_id: str, topic: str, config: str) -> None:
-        if self.onwire_schema is None:
-            logger.error(
-                "Cannot send a configuration message without determining the camera's on-wire protocol version"
-            )
-            raise SystemExit()
-
         # The following stanza matches the implementation at:
         # https://github.com/midokura/wedge-agent/blob/ee08d254658177ddfa3f75b7d1f09922104a2427/src/libwedge-agent/instance_config.c#L324
         config = base64.b64encode(config.encode("utf-8")).decode("utf-8")
@@ -257,7 +215,6 @@ class Agent:
         trio.run(self.loop_client, subs_topics, _driver_task, message_task)
 
     async def request_instance_logs(self, instance_id: str) -> None:
-        await self.determine_onwire_schema()
         async with self.mqtt_scope([]):
             await self.rpc(instance_id, "$agent/set", '{"log_enable": true}')
             self.async_done()

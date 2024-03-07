@@ -43,7 +43,8 @@ class Camera:
 
             if self.SYSINFO_TOPIC in payload:
                 sys_info = payload[self.SYSINFO_TOPIC]
-                self.onwire_schema = OnWireProtocol(sys_info["protocolVersion"])
+                if "protocolVersion" in sys_info:
+                    self.onwire_schema = OnWireProtocol(sys_info["protocolVersion"])
                 self.attributes_available = True
 
             if self.DEPLOY_STATUS_TOPIC in payload:
