@@ -37,12 +37,11 @@ class Agent:
         config_parse: AgentConfiguration = get_config()
         self._host = config_parse.mqtt.host.ip_value
         self._port = config_parse.mqtt.port
+        # For initializing the camera, capturing the on-wire protocol
+        self.onwire_schema = OnWireProtocol.from_iot_spec(config_parse.evp.iot_platform)
 
         client_id = f"cli-client-{random.randint(0, 10**7)}"
         self.mqttc = paho.Client(clean_session=True, client_id=client_id)
-
-        # For initializing the camera, capturing the on-wire protocol
-        self.onwire_schema: Optional[OnWireProtocol] = None
 
         self.configure_tls(config_parse)
 
