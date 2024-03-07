@@ -45,7 +45,7 @@ def fill_name_and_version(data: dict) -> None:
         component["version"] = version
 
 
-def extract_licenses(licenses: dict) -> str:
+def extract_licenses(name: str, licenses: dict) -> str:
     ret = []
     for lic in licenses:
         if "license" in lic:
@@ -61,7 +61,7 @@ def extract_licenses(licenses: dict) -> str:
         else:
             raise Exception(f"Unknown format: {lic}")
     if not ret:
-        raise Exception("Dependency does not contain license information!")
+        raise Exception(f"Dependency {name} does not contain license information!")
 
     return " ".join(ret)
 
@@ -97,7 +97,9 @@ def main() -> None:
             if component["name"] == "wedge-cli":
                 continue
 
-            licenses = extract_licenses(component.get("licenses", {}))
+            licenses = extract_licenses(
+                component["name"], component.get("licenses", {})
+            )
             websites = extract_websites(component.get("externalReferences", []))
 
             row = [component["name"], component["version"], licenses, websites]
