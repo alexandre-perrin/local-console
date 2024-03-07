@@ -186,6 +186,7 @@ def config_instance(
 
 async def configure_task(instance_id: str, topic: str, config: str) -> None:
     agent = Agent()  # type: ignore
+    await agent.initialize_handshake()
     async with agent.mqtt_scope([]):
         await agent.configure(instance_id, topic, config)
         agent.async_done()

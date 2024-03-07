@@ -23,6 +23,7 @@ from wedge_cli.core.schemas import DeploymentManifest
 from wedge_cli.core.schemas import DesiredDeviceConfig
 from wedge_cli.core.schemas import OnWireProtocol
 from wedge_cli.utils.local_network import is_localhost
+from wedge_cli.utils.timing import TimeoutBehavior
 from wedge_cli.utils.tls import ensure_certificate_pair_exists
 from wedge_cli.utils.tls import get_random_identifier
 
@@ -71,6 +72,27 @@ class Agent:
         assert self.client
         self.client.disconnect()
         self.nursery.cancel_scope.cancel()
+
+    async def initialize_handshake(self, timeout: int = 5) -> None:
+        async with self.mqtt_scope(
+            [
+                MQTTTopics.ATTRIBUTES_REQ.value,
+            ]
+        ):
+            assert self.nursery
+            assert self.client  # appease mypy
+
+            async def stop_handshake() -> None:
+                logger.info("Exiting initialized handshake")
+                self.async_done()
+
+            periodic_reports = TimeoutBehavior(timeout, stop_handshake)
+            periodic_reports.spawn_in(self.nursery)
+            async with self.client.messages() as mgen:
+                async for msg in mgen:
+                    await check_attributes_request(
+                        self, msg.topic, msg.payload.decode()
+                    )
 
     async def set_periodic_reports(self, report_interval: int) -> None:
         await self.device_configure(

@@ -33,6 +33,7 @@ def rpc(
 
 async def rpc_task(instance_id: str, method: str, params: str) -> None:
     agent = Agent()  # type: ignore
+    await agent.initialize_handshake()
     async with agent.mqtt_scope([]):
         await agent.rpc(instance_id, method, params)
         agent.async_done()
