@@ -143,12 +143,6 @@ class Agent:
         await self.publish(RPC_TOPIC, payload=payload)
 
     async def configure(self, instance_id: str, topic: str, config: str) -> None:
-        if self.onwire_schema is None:
-            logger.error(
-                "Cannot send a configuration message without determining the camera's on-wire protocol version"
-            )
-            raise SystemExit()
-
         # The following stanza matches the implementation at:
         # https://github.com/midokura/wedge-agent/blob/ee08d254658177ddfa3f75b7d1f09922104a2427/src/libwedge-agent/instance_config.c#L324
         config = base64.b64encode(config.encode("utf-8")).decode("utf-8")

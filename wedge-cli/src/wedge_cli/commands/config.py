@@ -186,7 +186,6 @@ def config_instance(
 
 async def configure_task(instance_id: str, topic: str, config: str) -> None:
     agent = Agent()  # type: ignore
-    await agent.determine_onwire_schema()
     async with agent.mqtt_scope([]):
         await agent.configure(instance_id, topic, config)
         agent.async_done()
@@ -221,7 +220,6 @@ def config_device(
 async def config_device_task(desired_device_config: DesiredDeviceConfig) -> int:
     retcode = 1
     agent = Agent()  # type: ignore
-    await agent.determine_onwire_schema()
     if agent.onwire_schema == OnWireProtocol.EVP2:
         async with agent.mqtt_scope([]):
             await agent.device_configure(desired_device_config)
