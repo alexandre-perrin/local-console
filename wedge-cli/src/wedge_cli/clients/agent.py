@@ -206,7 +206,6 @@ class Agent:
         trio.run(self.loop_client, subs_topics, _driver_task, message_task)
 
     async def request_instance_logs(self, instance_id: str) -> None:
-        await self.determine_onwire_schema()
         async with self.mqtt_scope([]):
             await self.rpc(instance_id, "$agent/set", '{"log_enable": true}')
             self.async_done()

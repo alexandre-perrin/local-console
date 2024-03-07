@@ -5,6 +5,7 @@ from hypothesis import strategies as st
 from typer.testing import CliRunner
 from wedge_cli.commands.logs import app
 from wedge_cli.core.camera import MQTTTopics
+from wedge_cli.core.schemas import OnWireProtocol
 
 runner = CliRunner()
 
@@ -12,10 +13,19 @@ runner = CliRunner()
 @given(
     st.text(min_size=1, max_size=5),
     st.integers(),
+    st.sampled_from(OnWireProtocol),
 )
-def test_logs_command(instance_id: str, timeout: int):
+def test_logs_command(
+    instance_id: str,
+    timeout: int,
+    onwire_schema: OnWireProtocol,
+):
     with (
         patch("wedge_cli.commands.logs.Agent") as mock_agent_client,
+        patch(
+            "wedge_cli.clients.agent.OnWireProtocol.from_iot_spec",
+            return_value=onwire_schema,
+        ),
         patch("trio.run") as mock_run,
         patch("wedge_cli.commands.logs.on_message_logs") as mock_msg_logs,
     ):
