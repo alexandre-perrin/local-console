@@ -121,6 +121,7 @@ async def exec_deployment(
         ):
             assert agent.nursery is not None  # make mypy happy
             agent.nursery.start_soon(deploy_fsm.message_task)
+            agent.nursery.start_soon(deploy_fsm.initialization_timeout)
             await deploy_fsm.done.wait()
             success = True
             agent.async_done()
@@ -131,10 +132,10 @@ async def exec_deployment(
     return success
 
 
-class DeployStage(enum.Enum):
-    WaitFirstStatus = enum.auto()
+class DeployStage(enum.IntEnum):
     MaybeAttributesResponse = enum.auto()
     SentAttributesResponse = enum.auto()
+    WaitFirstStatus = enum.auto()
     WaitAppliedConfirmation = enum.auto()
     Done = enum.auto()
 
@@ -222,6 +223,21 @@ class DeployFSM:
 
                 if deploy_status or got_request:
                     await self.update(deploy_status, got_request)
+
+    async def initialization_timeout(self, timeout: int = 10) -> None:
+        # This check can be made early just because the agent object
+        # has .onwire_schema initialized during object construction
+        if self.agent.onwire_schema != OnWireProtocol.EVP1:
+            return
+
+        await trio.sleep(timeout)
+        if self.stage < DeployStage.WaitFirstStatus:
+            logger.warning(
+                "Device did not issue an update in the timeout period. Pushing the deployment anyways."
+            )
+            # Force start deployment push
+            self.stage = DeployStage.WaitFirstStatus
+            await self.update({}, False)
 
 
 def make_unique_module_ids(deploy_man: DeploymentManifest) -> None:
