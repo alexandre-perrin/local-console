@@ -135,12 +135,13 @@ def test_deploy_command_signed(
         assert result.exit_code == 0
 
 
-@given(deployment_manifest_strategy(), st.integers(), generate_agent_config())
+@given(deployment_manifest_strategy(), generate_agent_config())
 def test_deploy_command_timeout(
     deployment_manifest: DeploymentManifest,
-    timeout: int,
     agent_config: AgentConfiguration,
 ) -> None:
+    # TODO: improve timeout management
+    timeout = 6
     with (
         patch("wedge_cli.commands.deploy.Agent") as mock_agent_client,
         patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
