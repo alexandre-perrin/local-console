@@ -82,12 +82,6 @@ class Agent:
         )
 
     async def deploy(self, to_deploy: DeploymentManifest) -> None:
-        if self.onwire_schema is None:
-            logger.error(
-                "Cannot send a configuration message without determining the camera's on-wire protocol version"
-            )
-            raise SystemExit()
-
         if self.onwire_schema == OnWireProtocol.EVP2:
             deployment = to_deploy.render_for_evp2()
         elif self.onwire_schema == OnWireProtocol.EVP1:

@@ -114,7 +114,6 @@ async def exec_deployment(
     subscription_topics = [MQTTTopics.ATTRIBUTES_REQ.value, MQTTTopics.ATTRIBUTES.value]
     deploy_fsm = DeployFSM(agent, deploy_manifest)
     with trio.move_on_after(timeout_secs) as timeout_scope:
-        await agent.determine_onwire_schema()
         assert agent.onwire_schema  # make mypy happy
         async with (
             agent.mqtt_scope(subscription_topics),

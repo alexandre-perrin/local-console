@@ -14,6 +14,7 @@ from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.enums import Target
 from wedge_cli.core.schemas import AgentConfiguration
 from wedge_cli.core.schemas import DeploymentManifest
+from wedge_cli.core.schemas import OnWireProtocol
 
 from tests.strategies.configs import generate_agent_config
 from tests.strategies.deployment import deployment_manifest_strategy
@@ -206,13 +207,21 @@ def test_deploy_manifest_no_bin(
         mock_is_dir.assert_called_once()
 
 
-@given(st.integers(min_value=1), generate_agent_config())
+@given(
+    st.integers(min_value=1), generate_agent_config(), st.sampled_from(OnWireProtocol)
+)
 @pytest.mark.trio
 async def test_attributes_request_handling(
-    mqtt_req_id: int, agent_config: AgentConfiguration
+    mqtt_req_id: int,
+    agent_config: AgentConfiguration,
+    onwire_schema: OnWireProtocol,
 ):
     with (
         patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
+        patch(
+            "wedge_cli.clients.agent.OnWireProtocol.from_iot_spec",
+            return_value=onwire_schema,
+        ),
         patch("wedge_cli.clients.agent.paho.Client"),
         patch("wedge_cli.clients.agent.AsyncClient"),
     ):
