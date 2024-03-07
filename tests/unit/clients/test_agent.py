@@ -33,12 +33,15 @@ async def test_configure_instance(
 ):
     with (
         patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
+        patch(
+            "wedge_cli.clients.agent.OnWireProtocol.from_iot_spec",
+            return_value=onwire_schema,
+        ),
         patch("wedge_cli.clients.agent.paho.Client"),
         patch("wedge_cli.clients.agent.AsyncClient"),
         patch("wedge_cli.clients.agent.Agent.publish"),
     ):
         agent = Agent()
-        agent.onwire_schema = onwire_schema
         async with agent.mqtt_scope([]):
             await agent.configure(instance_id, topic, config)
             agent.async_done()
@@ -62,13 +65,16 @@ async def test_rpc(
 ):
     with (
         patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
+        patch(
+            "wedge_cli.clients.agent.OnWireProtocol.from_iot_spec",
+            return_value=onwire_schema,
+        ),
         patch("wedge_cli.clients.agent.paho.Client"),
         patch("wedge_cli.clients.agent.AsyncClient"),
     ):
         method = "$agent/set"
         params = '{"log_enable": true}'
         agent = Agent()
-        agent.onwire_schema = onwire_schema
         async with agent.mqtt_scope([]):
             agent.client.publish_and_wait = AsyncMock(
                 return_value=(MQTT_ERR_SUCCESS, None)
@@ -86,13 +92,16 @@ async def test_rpc_error(
 ):
     with (
         patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
+        patch(
+            "wedge_cli.clients.agent.OnWireProtocol.from_iot_spec",
+            return_value=onwire_schema,
+        ),
         patch("wedge_cli.clients.agent.paho.Client"),
         patch("wedge_cli.clients.agent.AsyncClient"),
     ):
         method = "$agent/set"
         params = '{"log_enable": true}'
         agent = Agent()
-        agent.onwire_schema = onwire_schema
         async with agent.mqtt_scope([]):
             agent.client.publish_and_wait = AsyncMock(
                 return_value=(MQTT_ERR_ERRNO, None)

@@ -6,7 +6,6 @@ import re
 import traceback
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from functools import partial
 from typing import Any
 from typing import Callable
 from typing import Optional
@@ -16,7 +15,6 @@ import trio
 from exceptiongroup import catch
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 from wedge_cli.clients.trio_paho_mqtt import AsyncClient
-from wedge_cli.core.camera import Camera
 from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.config import config_paths
 from wedge_cli.core.config import get_config
@@ -25,7 +23,6 @@ from wedge_cli.core.schemas import DeploymentManifest
 from wedge_cli.core.schemas import DesiredDeviceConfig
 from wedge_cli.core.schemas import OnWireProtocol
 from wedge_cli.utils.local_network import is_localhost
-from wedge_cli.utils.timing import TimeoutBehavior
 from wedge_cli.utils.tls import ensure_certificate_pair_exists
 from wedge_cli.utils.tls import get_random_identifier
 
@@ -75,48 +72,6 @@ class Agent:
         assert self.client
         self.client.disconnect()
         self.nursery.cancel_scope.cancel()
-
-    async def determine_onwire_schema(self) -> None:
-        camera_state = Camera()
-        # This takes care of ensuring the device reports its state
-        # with bounded periodicity (expect to receive a message within 4 seconds)
-        timeout = 4
-        # Configure the device to emit status reports twice
-        # as often as the timeout expiration, to ensure that
-        # random deviations in report perioding make the timer
-        # to expire unnecessarily.
-        set_periodic_reports = partial(self.set_periodic_reports, int(timeout / 2))
-        periodic_reports = TimeoutBehavior(4, set_periodic_reports)
-
-        async with self.mqtt_scope(
-            [
-                MQTTTopics.ATTRIBUTES_REQ.value,
-                MQTTTopics.TELEMETRY.value,
-                MQTTTopics.RPC_RESPONSES.value,
-                MQTTTopics.ATTRIBUTES.value,
-            ]
-        ):
-            assert self.nursery
-            assert self.client  # appease mypy
-
-            periodic_reports.spawn_in(self.nursery)
-            async with self.client.messages() as mgen:
-                async for msg in mgen:
-                    attributes_available = await check_attributes_request(
-                        self, msg.topic, msg.payload.decode()
-                    )
-                    if attributes_available:
-                        camera_state.attributes_available = True
-
-                    payload = json.loads(msg.payload)
-                    camera_state.process_incoming(msg.topic, payload)
-
-                    if camera_state.is_ready:
-                        periodic_reports.tap()
-                        break
-            self.async_done()
-
-        self.onwire_schema = camera_state.onwire_schema
 
     async def set_periodic_reports(self, report_interval: int) -> None:
         await self.device_configure(
