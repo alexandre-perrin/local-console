@@ -96,12 +96,6 @@ class Agent:
         await self.publish(MQTTTopics.ATTRIBUTES.value, payload=deployment)
 
     async def rpc(self, instance_id: str, method: str, params: str) -> None:
-        if self.onwire_schema is None:
-            logger.error(
-                "Cannot send a configuration message without determining the camera's on-wire protocol version"
-            )
-            raise SystemExit()
-
         reqid = str(random.randint(0, 10**8))
         RPC_TOPIC = f"v1/devices/me/rpc/request/{reqid}"
         if self.onwire_schema == OnWireProtocol.EVP2:
