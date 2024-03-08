@@ -1,0 +1,118 @@
+#:import JsonLexer pygments.lexers.JsonLexer
+
+<InferenceScreenView>
+    md_bg_color: self.theme_cls.backgroundColor
+    inference_data: self.inference_data
+
+    on_enter: self.entry_actions()
+
+    MDBoxLayout:
+        orientation: "vertical"
+
+        MDBoxLayout:
+        # Top bar
+            orientation: "horizontal"
+            size_hint_y: 0.1
+            padding: "5dp"
+            spacing: "5dp"
+
+            MDBoxLayout:
+            # Controls half
+                orientation: "horizontal"
+                size_hint_x: 3
+                padding: "10dp"
+                spacing: "10dp"
+
+                MDButton:
+                    on_release: root.manager.current = 'home screen'
+                    style: "elevated"
+                    pos_hint: {"center_y": 0.5}
+                    size_hint_x: "60dp"
+                    MDButtonIcon:
+                        icon: "home"
+                        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+                MDButton:
+                    id: btn_stream_control
+                    on_release: root.toggle_stream_status()
+                    style: "elevated"
+                    pos_hint: {"center_y": 0.5}
+                    MDButtonText:
+                        text: "Set Streaming"
+
+                MDWidget:
+
+            MDBoxLayout:
+            # Status readout half
+                orientation: "horizontal"
+                size_hint_x: 1.5
+                padding: "5dp"
+                spacing: "5dp"
+
+                MDIcon:
+                    icon: "video-outline"
+                    pos_hint: {'center_y': .5}
+
+                MDLabel:
+                    text: 'Streaming:'
+
+                MDLabel:
+                    id: stream_flag
+                    text: "Inactive"
+
+        GridLayout:
+        # File path
+            rows: 2
+            cols: 2
+            padding: "5dp"
+            spacing: "5dp"
+            size_hint_y: 0.1
+
+            MDLabel:
+                text: 'Image:'
+                adaptive_width: True
+
+            MDLabel:
+                id: lbl_image_path
+                padding: "5sp"
+                canvas.before:
+                    Color:
+                        rgb: 0, 0, 0
+                    Line:
+                        rounded_rectangle: self.x, self.y, self.width, self.height, 8
+                        width: 1
+            MDLabel:
+                text: 'Inference:'
+                adaptive_width: True
+
+            MDLabel:
+                id: lbl_inference_path
+                padding: "5sp"
+                canvas.before:
+                    Color:
+                        rgb: 0, 0, 0
+                    Line:
+                        rounded_rectangle: self.x, self.y, self.width, self.height, 8
+                        width: 1
+
+        MDBoxLayout:
+        # Image view half
+            orientation: "horizontal"
+            size_hint_y: 0.7
+            padding: "5dp"
+            spacing: "5dp"
+
+            ImageWithROI:
+                id: stream_image
+                radius: "10dp"
+                fit_mode: "contain"
+                size_hint_x: 0.7
+
+            MDBoxLayout:
+                size_hint_x: 0.3
+                orientation: "vertical"
+
+                CodeInput:
+                    id: inference_field
+                    lexer: JsonLexer()
+                    font_size: "12sp"

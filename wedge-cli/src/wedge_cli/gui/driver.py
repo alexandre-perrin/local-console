@@ -107,6 +107,9 @@ class Driver:
             "streaming screen"
         ].model.stream_status = self.camera_state.sensor_state
         self.gui.views[
+            "inference screen"
+        ].model.stream_status = self.camera_state.sensor_state
+        self.gui.views[
             "applications screen"
         ].model.deploy_status = self.camera_state.deploy_status
 
@@ -148,10 +151,23 @@ class Driver:
         self.gui.views["streaming screen"].ids.stream_image.update_image_data(
             incoming_file
         )
+        self.gui.views["inference screen"].ids.stream_image.update_image_data(
+            incoming_file
+        )
+        if self.image_directory is not None:
+            self.gui.views["inference screen"].ids.lbl_image_path.text = str(
+                self.image_directory.resolve()
+            )
 
     @run_on_ui_thread
     def update_inference_data(self, inference_data: str) -> None:
-        self.gui.views["streaming screen"].ids.inference_field.text = inference_data
+        current_view = self.gui.views["home screen"].manager_screens.current
+        if current_view == "inference screen":
+            self.gui.views["inference screen"].ids.inference_field.text = inference_data
+            if self.inferences_directory is not None:
+                self.gui.views["inference screen"].ids.lbl_inference_path.text = str(
+                    self.inferences_directory.resolve()
+                )
 
     async def streaming_rpc_start(self, roi: Optional[UnitROI] = None) -> None:
         instance_id = "backdoor-EA_Main"
