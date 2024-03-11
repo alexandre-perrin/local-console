@@ -194,11 +194,11 @@
       ]
     },
     {
-      "bom-ref": "packaging==23.2",
+      "bom-ref": "packaging==24.0",
       "externalReferences": [
         {
           "type": "license",
-          "url": "https://github.com/pypa/packaging/blob/23.2/LICENSE"
+          "url": "https://github.com/pypa/packaging/blob/24.0/LICENSE"
         }
       ],
       "licenses": [
