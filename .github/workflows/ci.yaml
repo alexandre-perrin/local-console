@@ -49,6 +49,7 @@ jobs:
       run: |
         pip install wedge-cli/
         pip install -r tests/requirements.txt
+        pip uninstall --yes docutils
     - name: Run Unit Test
       id: unit-test
       # The unit test suites test E2E independently of the environment,

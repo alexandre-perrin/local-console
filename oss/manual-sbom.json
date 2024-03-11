@@ -194,11 +194,11 @@
       ]
     },
     {
-      "bom-ref": "packaging==23.2",
+      "bom-ref": "packaging==24.0",
       "externalReferences": [
         {
           "type": "license",
-          "url": "https://github.com/pypa/packaging/blob/23.2/LICENSE"
+          "url": "https://github.com/pypa/packaging/blob/24.0/LICENSE"
         }
       ],
       "licenses": [
@@ -221,22 +221,6 @@
         {
           "license": {
             "id": "Apache 2 or BSD"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "docutils==0.20.1",
-      "externalReferences": [
-        {
-          "type": "license",
-          "url": "https://docutils.sourceforge.io/COPYING.html#exceptions"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "files removed: docutils/utils/math/math2html.py, docutils/writers/html5_polyglot/math.css, tools/editors/emacs/rst.el"
           }
         }
       ]
