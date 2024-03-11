@@ -29,19 +29,22 @@ jobs:
           .venv/Scripts/activate
           pip3 install wedge-cli/
           pip3 install pyinstaller==6.3.0
-      - name: Remove GPL packages
-        run: python3 oss/remove-packages.py
+          pip3 uninstall --yes docutils
+
       - name: Create Executable by PyInstaller
         run: |
           .venv/Scripts/activate
           pyinstaller --clean --noconfirm --distpath ./wedge-cli --workpath ./wedge-cli ./wedge-cli/pyinstaller.spec
+
       - name: Download mosquitto installer
         run: curl -o wedge-cli/mosquitto-2.0.18-install-windows-x64.exe https://mosquitto.org/files/binary/win64/mosquitto-2.0.18-install-windows-x64.exe
+
       - name: Build the Inno Setup Installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.4
         with:
           path: ./wedge-cli/inno-setup.iss
           options: /O+
+
       - name: Upload the Inno Setup Installer
         uses: actions/upload-artifact@v4
         with:

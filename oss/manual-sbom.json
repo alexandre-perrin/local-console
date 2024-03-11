@@ -224,22 +224,6 @@
           }
         }
       ]
-    },
-    {
-      "bom-ref": "docutils==0.20.1",
-      "externalReferences": [
-        {
-          "type": "license",
-          "url": "https://docutils.sourceforge.io/COPYING.html#exceptions"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "files removed: docutils/utils/math/math2html.py, docutils/writers/html5_polyglot/math.css, tools/editors/emacs/rst.el"
-          }
-        }
-      ]
     }
   ]
 }
