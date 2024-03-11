@@ -67,7 +67,7 @@
       "externalReferences": [
         {
           "type": "license",
-          "url": "https://github.com/sayyid5416/pyinstaller/blob/main/LICENSE"
+          "url": "https://github.com/sayyid5416/pyinstaller/blob/v1.5.1/LICENSE"
         }
       ],
       "licenses": [
@@ -182,7 +182,7 @@
       "externalReferences": [
         {
           "type": "license",
-          "url": "https://github.com/T-Dynamos/materialyoucolor-python/blob/v2.0.1/LICENSE"
+          "url": "https://github.com/T-Dynamos/materialyoucolor-python/blob/v2.0.7/LICENSE"
         }
       ],
       "licenses": [
@@ -214,14 +214,59 @@
       "externalReferences": [
         {
           "type": "license",
-          "url": "https://github.com/pypa/packaging/blob/23.2/LICENSE"
+          "url": "https://pypi.org/project/pypiwin32/223/"
         }
       ],
       "licenses": [
         {
           "license": {
-            "id": "Apache 2 or BSD"
+            "id": "Unkown"
           }
+        }
+      ]
+    },
+    {
+      "bom-ref": "Kivy-Garden==0.1.5",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://pypi.org/project/Kivy-Garden/0.1.5/"
+        }
+      ]
+    },
+    {
+      "bom-ref": "annotated-types==0.6.0",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/annotated-types/annotated-types/blob/v0.6.0/LICENSE"
+        }
+      ]
+    },
+    {
+      "bom-ref": "attrs==23.2.0",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/python-attrs/attrs/blob/23.2.0/LICENSE"
+        }
+      ]
+    },
+    {
+      "bom-ref": "exceptiongroup==1.2.0",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/agronholm/exceptiongroup/blob/1.2.0/LICENSE"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urllib3==2.2.1",
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/urllib3/urllib3/blob/2.2.1/LICENSE.txt"
         }
       ]
     }
