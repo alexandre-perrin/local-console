@@ -1,0 +1,112 @@
+#:import res_path wedge_cli.gui.main.resource_path
+
+<ConfigurationScreenView>
+    md_bg_color: self.theme_cls.backgroundColor
+
+    MDBoxLayout:
+        orientation: "vertical"
+
+        MDBoxLayout:
+        # Top bar
+            orientation: "horizontal"
+            size_hint_y: 0.1
+
+            MDBoxLayout:
+            # Controls half
+                orientation: "horizontal"
+                padding: "10dp"
+                spacing: "10dp"
+
+                MDButton:
+                    on_release: root.manager.current = 'home screen'
+                    style: "elevated"
+                    pos_hint: {"center_y": 0.5}
+                    size_hint_x: "60dp"
+                    MDButtonIcon:
+                        icon: "home"
+                        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+                MDWidget:
+                    size_hint_x: 3
+
+        GridLayout:
+        # File path
+            rows: 3
+            cols: 3
+            padding: "5dp"
+            spacing: "5dp"
+            size_hint_y: 0.2
+
+            MDLabel:
+                text: 'Image dir:'
+                adaptive_width: True
+
+            MDLabel:
+                id: lbl_image_path
+                text: ""
+                padding: "5sp"
+                canvas.before:
+                    Color:
+                        rgb: 0, 0, 0
+                    Line:
+                        rounded_rectangle: self.x, self.y, self.width, self.height, 8
+                        width: 1
+
+            MDButton:
+                id: btn_pick_image_dir
+                on_release: root.file_manager_open("lbl_image_path")
+                style: "elevated"
+                MDButtonIcon:
+                    icon: "folder-cog"
+                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+            MDLabel:
+                text: 'Inference dir:'
+                adaptive_width: True
+
+            MDLabel:
+                id: lbl_inference_path
+                text: ""
+                padding: "5sp"
+                canvas.before:
+                    Color:
+                        rgb: 0, 0, 0
+                    Line:
+                        rounded_rectangle: self.x, self.y, self.width, self.height, 8
+                        width: 1
+
+            MDButton:
+                id: btn_pick_inference_dir
+                on_release: root.file_manager_open("lbl_inference_path")
+                style: "elevated"
+                MDButtonIcon:
+                    icon: "folder-cog"
+                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+            MDLabel:
+                text: 'Scheme:'
+                adaptive_width: True
+
+            MDLabel:
+                id: lbl_scheme_path
+                text: ""
+                padding: "5sp"
+                canvas.before:
+                    Color:
+                        rgb: 0, 0, 0
+                    Line:
+                        rounded_rectangle: self.x, self.y, self.width, self.height, 8
+                        width: 1
+
+            MDButton:
+                id: btn_pick_scheme_dir
+                on_release: root.file_manager_open("lbl_scheme_path")
+                style: "elevated"
+                MDButtonIcon:
+                    icon: "folder-cog"
+                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+        MDBoxLayout:
+            orientation: "horizontal"
+            size_hint_y: 0.6
+
