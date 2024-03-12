@@ -1,7 +1,8 @@
 import io
 
 import qrcode
-from kivy.core.image import Texture, Image as CoreImage
+from kivy.core.image import Image as CoreImage
+from kivy.core.image import Texture
 from qrcode.image.styledpil import StyledPilImage
 from qrcode.image.styles.colormasks import SolidFillColorMask
 from qrcode.image.styles.moduledrawers import CircleModuleDrawer

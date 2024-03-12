@@ -119,6 +119,9 @@ class Driver:
         self.gui.views[
             "applications screen"
         ].model.deploy_status = self.camera_state.deploy_status
+        self.gui.views[
+            "connection screen"
+        ].model.connected = self.camera_state.connected
 
     async def image_webserver_task(self) -> None:
         """
