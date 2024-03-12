@@ -1,5 +1,8 @@
 import logging
 import platform
+import re
+import subprocess
+import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from functools import partial
@@ -37,12 +40,25 @@ async def spawn_broker(
         populate_broker_conf(config, config_file)
 
         cmd = [broker_bin, *(("-v",) if verbose else ()), "-c", str(config_file)]
-        invocation = partial(trio.run_process, command=cmd)
-
+        invocation = partial(
+            trio.run_process,
+            command=cmd,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
         broker_proc = await nursery.start(invocation)
-        # This is a margin to let the broker start up.
+        # This is to check the broker start up.
         # A (minor) enhancement would be to poll the broker.
-        await trio.sleep(2)
+        while True:
+            data = (await broker_proc.stdout.receive_some()).decode("utf-8")
+            logger.info(data)
+            pattern = re.compile(r"mosquitto version (\d+\.\d+\.\d+) running")
+            if "Error: Address already in use" in data:
+                logger.error("Mosquitto already initialized")
+                sys.exit(1)
+            elif pattern.search(data):
+                break
         yield broker_proc
         broker_proc.kill()
 
