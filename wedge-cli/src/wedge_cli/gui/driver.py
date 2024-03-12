@@ -44,6 +44,13 @@ class Driver:
         # with bounded periodicity (expect to receive a message within 6 seconds)
         self.periodic_reports = TimeoutBehavior(6, self.set_periodic_reports)
 
+        # This timeout behavior takes care of updating the connectivity
+        # status in case there are no incoming messages from the camera
+        # for longer than the threshold
+        self.connection_status = TimeoutBehavior(
+            Camera.CONNECTION_STATUS_TIMEOUT.seconds, self.connection_status_timeout
+        )
+
         self.start_flags = {
             "mqtt": trio.Event(),
             "webserver": trio.Event(),
@@ -82,6 +89,7 @@ class Driver:
 
             assert self.mqtt_client.client  # appease mypy
             self.periodic_reports.spawn_in(self.nursery)
+            self.connection_status.spawn_in(self.nursery)
             async with self.mqtt_client.client.messages() as mgen:
                 async for msg in mgen:
                     attributes_available = await check_attributes_request(
@@ -96,6 +104,8 @@ class Driver:
 
                     if self.camera_state.is_ready:
                         self.periodic_reports.tap()
+
+                    self.connection_status.tap()
 
     def from_sync(self, async_fn: Callable, *args: Any) -> None:
         self.bridge.enqueue_task(async_fn, *args)
@@ -184,8 +194,8 @@ class Driver:
 
     async def set_periodic_reports(self) -> None:
         # Configure the device to emit status reports twice
-        # as often as the timeout expiration, to ensure that
-        # random deviations in report perioding make the timer
+        # as often as the timeout expiration, to avoid that
+        # random deviations in reporting periodicity make the timer
         # to expire unnecessarily.
         timeout = int(0.5 * self.periodic_reports.timeout_secs)
         await self.mqtt_client.device_configure(
@@ -194,3 +204,7 @@ class Driver:
                 reportStatusIntervalMin=min(timeout, 1),
             )
         )
+
+    async def connection_status_timeout(self) -> None:
+        logger.debug("Connection status timed out: camera is disconnected")
+        self.update_camera_status()
