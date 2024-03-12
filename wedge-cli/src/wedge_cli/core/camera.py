@@ -7,6 +7,7 @@ from datetime import timedelta
 from typing import Any
 from typing import Optional
 
+import qrcode
 from wedge_cli.core.schemas import OnWireProtocol
 
 logger = logging.getLogger(__name__)
@@ -96,3 +97,38 @@ class MQTTTopics(enum.Enum):
     TELEMETRY = "v1/devices/me/telemetry"
     ATTRIBUTES_REQ = "v1/devices/me/attributes/request/+"
     RPC_RESPONSES = "v1/devices/me/rpc/response/+"
+
+
+def get_qr_object(
+    mqtt_host: str, mqtt_port: int, tls_enabled: bool, ntp_server: str, border: int = 5
+) -> qrcode.main.QRCode:
+    """
+    This function generates the QR code object that encodes the connection
+    settings for a camera device.
+
+    :param mqtt_host:   Address of MQTT broker host
+    :param mqtt_port:   TCP port on which the MQTT broker is listening
+    :param tls_enabled: Is TLS enabled?
+    :param ntp_server:  NTP server for the camera to get its time synced
+    :param border:      size of padding around the QR code
+    :return: the QR object containing the code for the camera
+    """
+
+    # This verbosity is to blame between types-qrcode and mypy
+    # It should be instead: qr_code = qrcode.QRCode(...
+    qr_code: qrcode.main.QRCode = qrcode.main.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        border=border,
+    )
+    qr_code.add_data(qr_string(mqtt_host, mqtt_port, tls_enabled, ntp_server))
+    qr_code.make(fit=True)
+
+    return qr_code
+
+
+def qr_string(
+    mqtt_host: str, mqtt_port: int, tls_enabled: bool, ntp_server: str
+) -> str:
+    tls_flag = 0 if tls_enabled else 1
+    return f"AAIAAAAAAAAAAAAAAAAAAA==N=11;E={mqtt_host};H={mqtt_port};t={tls_flag};T={ntp_server};U1FS"
