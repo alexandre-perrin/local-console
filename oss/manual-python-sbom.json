@@ -81,22 +81,6 @@
       ]
     },
     {
-      "bom-ref": "pypiwin32==223",
-      "externalReferences": [
-        {
-          "type": "license",
-          "url": "https://pypi.org/project/pypiwin32/223/"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "Unkown"
-          }
-        }
-      ]
-    },
-    {
       "bom-ref": "Kivy-Garden==0.1.5",
       "externalReferences": [
         {
