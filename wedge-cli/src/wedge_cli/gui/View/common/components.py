@@ -139,9 +139,10 @@ class ImageWithROI(Image):
 
     def refresh_rectangle(self, start: tuple[int, int], size: tuple[int, int]) -> None:
         self._clear_rect()
-        with self.canvas:
-            Color(1, 0, 0, 1)
-            self.rect_line = Line(rectangle=[*start, size[0], size[1]], width=1.5)
+        if self.state != ROIState.Disabled and self.roi != DEFAULT_ROI:
+            with self.canvas:
+                Color(1, 0, 0, 1)
+                self.rect_line = Line(rectangle=[*start, size[0], size[1]], width=1.5)
 
     def update_image_data(self, incoming_file: Path) -> None:
         self.source = str(incoming_file)

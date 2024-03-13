@@ -1,6 +1,6 @@
 #:import JsonLexer pygments.lexers.JsonLexer
 
-<StreamingScreenView>
+<InferenceScreenView>
     md_bg_color: self.theme_cls.backgroundColor
     inference_data: self.inference_data
 
@@ -32,9 +32,6 @@
                         icon: "home"
                         pos_hint: {"center_x": 0.5, "center_y": 0.5}
 
-                MDWidget:
-                    size_hint_x: 0.1
-
                 MDButton:
                     id: btn_stream_control
                     on_release: root.toggle_stream_status()
@@ -42,22 +39,6 @@
                     pos_hint: {"center_y": 0.5}
                     MDButtonText:
                         text: "Set Streaming"
-
-                MDButton:
-                    id: btn_roi_control
-                    on_release: root.control_roi()
-                    style: "elevated"
-                    pos_hint: {"center_y": 0.5}
-                    MDButtonText:
-                        text: "Set ROI"
-
-                MDButton:
-                    id: btn_roi_reset
-                    on_release: root.reset_roi()
-                    style: "elevated"
-                    pos_hint: {"center_y": 0.5}
-                    MDButtonText:
-                        text: "Reset ROI"
 
                 MDWidget:
 
@@ -74,14 +55,50 @@
 
                 MDLabel:
                     text: 'Streaming:'
+
                 MDLabel:
                     id: stream_flag
                     text: "Inactive"
 
+        GridLayout:
+        # File path
+            rows: 2
+            cols: 2
+            padding: "5dp"
+            spacing: "5dp"
+            size_hint_y: 0.1
+
+            MDLabel:
+                text: 'Image:'
+                adaptive_width: True
+
+            MDLabel:
+                id: lbl_image_path
+                padding: "5sp"
+                canvas.before:
+                    Color:
+                        rgb: 0, 0, 0
+                    Line:
+                        rounded_rectangle: self.x, self.y, self.width, self.height, 8
+                        width: 1
+            MDLabel:
+                text: 'Inference:'
+                adaptive_width: True
+
+            MDLabel:
+                id: lbl_inference_path
+                padding: "5sp"
+                canvas.before:
+                    Color:
+                        rgb: 0, 0, 0
+                    Line:
+                        rounded_rectangle: self.x, self.y, self.width, self.height, 8
+                        width: 1
+
         MDBoxLayout:
         # Image view half
             orientation: "horizontal"
-            size_hint_y: 0.9
+            size_hint_y: 0.7
             padding: "5dp"
             spacing: "5dp"
 
@@ -89,45 +106,13 @@
                 id: stream_image
                 radius: "10dp"
                 fit_mode: "contain"
-                on_roi: root.controller.set_roi(args[1])
-                on_size: self.update_roi()
-                on_texture: self.prime_for_roi(args[1])
-                on_state: root.refresh_roi_state(args[1])
                 size_hint_x: 0.7
 
             MDBoxLayout:
                 size_hint_x: 0.3
                 orientation: "vertical"
 
-                MDBoxLayout:
-                    size_hint_y: 0.65
-
-                MDGridLayout:
-                    size_hint_y: 0.35
-                    cols: 3
-                    padding: "10sp"
-                    spacing: "2sp"
-
-                    MDLabel:
-                        text: 'ROI'
-                        font_style: "Title"
-                    MDLabel:
-                        text: 'Offset'
-                        font_style: "Body"
-                    MDLabel:
-                        text: 'Size'
-                        font_style: "Body"
-                    MDLabel:
-                        text: 'H:'
-                        font_style: "Body"
-                    MDLabel:
-                        id: lbl_roi_h_offset
-                    MDLabel:
-                        id: lbl_roi_h_size
-                    MDLabel:
-                        text: 'V:'
-                        font_style: "Body"
-                    MDLabel:
-                        id: lbl_roi_v_offset
-                    MDLabel:
-                        id: lbl_roi_v_size
+                CodeInput:
+                    id: inference_field
+                    lexer: JsonLexer()
+                    font_size: "12sp"
