@@ -46,16 +46,15 @@ exe = EXE(
 
 bins = []
 if platform.system() == "Windows":
+    # https://kivy.org/doc/stable/guide/packaging-windows.html#packaging-a-simple-app
     from kivy_deps import sdl2, glew
     bins = [Tree(p) for p in (sdl2.dep_bins + glew.dep_bins)]
 
-coll = COLLECT(
-    exe,
+coll = COLLECT(exe,
     a.binaries,
+    a.zipfiles,
     a.datas,
     *bins,
     strip=False,
     upx=True,
-    upx_exclude=[],
-    name='offline_tool',
-)
+    name='offline_tool')
