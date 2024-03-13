@@ -20,3 +20,10 @@ LOCAL_IP: str = get_my_ip_by_routing()
 def is_localhost(hostname: str) -> bool:
     resolved_ip = socket.gethostbyname(hostname)
     return ipaddress.ip_address(resolved_ip).is_loopback
+
+
+def replace_local_address(hostname: str) -> str:
+    host = hostname
+    if is_localhost(host):
+        host = LOCAL_IP
+    return host

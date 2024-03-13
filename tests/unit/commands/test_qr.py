@@ -19,9 +19,7 @@ def test_qr_with_defaults(config: AgentConfiguration) -> None:
         patch("wedge_cli.commands.qr.get_config", return_value=config),
         patch("wedge_cli.commands.qr.is_localhost", return_value=False),
         patch("wedge_cli.commands.qr.get_my_ip_by_routing", return_value="1.2.3.4"),
-        patch(
-            "wedge_cli.commands.qr.camera_qr_string", return_value=""
-        ) as mock_qr_string,
+        patch("wedge_cli.core.camera.qr_string", return_value="") as mock_qr_string,
     ):
         result = runner.invoke(app, [])
         assert result.exit_code == 0
@@ -52,9 +50,7 @@ def test_qr_with_overrides(
         patch("wedge_cli.commands.qr.get_config", return_value=config),
         patch("wedge_cli.commands.qr.is_localhost", return_value=False),
         patch("wedge_cli.commands.qr.get_my_ip_by_routing", return_value="1.2.3.4"),
-        patch(
-            "wedge_cli.commands.qr.camera_qr_string", return_value=""
-        ) as mock_qr_string,
+        patch("wedge_cli.core.camera.qr_string", return_value="") as mock_qr_string,
     ):
         result = runner.invoke(
             app,
@@ -86,9 +82,7 @@ def test_qr_for_local_host(config: AgentConfiguration, local_host_alias: str) ->
         patch("wedge_cli.commands.qr.get_config", return_value=config),
         patch("wedge_cli.commands.qr.is_localhost", return_value=True),
         patch("wedge_cli.commands.qr.get_my_ip_by_routing", return_value="1.2.3.4"),
-        patch(
-            "wedge_cli.commands.qr.camera_qr_string", return_value=""
-        ) as mock_qr_string,
+        patch("wedge_cli.core.camera.qr_string", return_value="") as mock_qr_string,
     ):
         result = runner.invoke(app, ["--host", local_host_alias])
         assert result.exit_code == 0
