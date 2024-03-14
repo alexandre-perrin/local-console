@@ -57,7 +57,15 @@ jobs:
       if: ${{ matrix.with-tls }}
       run: |
         python -m pytest tests --cov --cov-report=xml --cov-report=html --hypothesis-seed=42
-
+    - name: Override Coverage Source Path for Sonar
+      if: ${{ matrix.with-tls }}
+      run: sed -i "s/<source>\/__w\/wedge-cli\/wedge-cli<\/source>/<source>\/github\/workspace<\/source>/g" coverage.xml
+    - name: SonarCloud Scan
+      if: ${{ matrix.with-tls }}
+      uses: SonarSource/sonarcloud-github-action@v2.1.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     - name: Create unprivileged user
       # It seems that mosquitto will not load a self-signed CA
       # as root, so it needs to be launched unprivileged.
