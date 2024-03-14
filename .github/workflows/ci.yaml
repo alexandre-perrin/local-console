@@ -56,10 +56,10 @@ jobs:
       # so we don't need to run them more than once.
       if: ${{ matrix.with-tls }}
       run: |
-        python -m pytest tests --cov --cov-report=xml --cov-report=html --hypothesis-seed=42
-    - name: Override Coverage Source Path for Sonar
+        coverage run -m pytest tests -o junit_family=xunit1 --junitxml=xunit-result.xml --hypothesis-seed=42
+    - name: Build Report
       if: ${{ matrix.with-tls }}
-      run: sed -i "s/<source>\/__w\/wedge-cli\/wedge-cli<\/source>/<source>\/github\/workspace<\/source>/g" coverage.xml
+      run: coverage xml
     - name: SonarCloud Scan
       if: ${{ matrix.with-tls }}
       uses: SonarSource/sonarcloud-github-action@v2.1.1
