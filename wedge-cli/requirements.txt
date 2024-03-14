@@ -45,4 +45,4 @@ types-retry==0.9.9.4
 types-setuptools==69.1.0.20240310
 typing_extensions==4.10.0
 urllib3==2.2.1
-zipp==3.17.0
+zipp==3.18.1
