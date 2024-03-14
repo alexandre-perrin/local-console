@@ -56,7 +56,9 @@ jobs:
       # so we don't need to run them more than once.
       if: ${{ matrix.with-tls }}
       run: |
-        python -m pytest tests --cov=wedge-cli/ --cov-report=xml --cov-report=html --hypothesis-seed=42
+        python -m pytest tests --cov=wedge-cli/src/wedge_cli --cov-report=xml --cov-report=html --hypothesis-seed=42
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
     - name: Override Coverage Source Path for Sonar
       if: ${{ matrix.with-tls }}
       run: sed -i "s/<source>\/__w\/wedge-cli\/wedge-cli<\/source>/<source>\/github\/workspace<\/source>/g" coverage.xml
