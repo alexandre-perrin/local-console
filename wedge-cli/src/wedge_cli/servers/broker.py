@@ -39,7 +39,7 @@ async def spawn_broker(
         config_file = Path(tmp_dir) / "broker.toml"
         populate_broker_conf(config, config_file)
 
-        cmd = [broker_bin, *(("-v",) if verbose else ()), "-c", str(config_file)]
+        cmd = [broker_bin, "-v", "-c", str(config_file)]
         invocation = partial(
             trio.run_process,
             command=cmd,
@@ -51,14 +51,16 @@ async def spawn_broker(
         # This is to check the broker start up.
         # A (minor) enhancement would be to poll the broker.
         while True:
-            data = (await broker_proc.stdout.receive_some()).decode("utf-8")
-            logger.info(data)
-            pattern = re.compile(r"mosquitto version (\d+\.\d+\.\d+) running")
-            if "Error: Address already in use" in data:
-                logger.error("Mosquitto already initialized")
-                sys.exit(1)
-            elif pattern.search(data):
-                break
+            data = await broker_proc.stdout.receive_some()
+            if data:
+                data = data.decode("utf-8")
+                logger.debug(data)
+                pattern = re.compile(r"mosquitto version (\d+\.\d+\.\d+) running")
+                if "Error" in data:
+                    logger.error("Mosquitto already initialized")
+                    sys.exit(1)
+                elif pattern.search(data):
+                    break
         yield broker_proc
         broker_proc.kill()
 
