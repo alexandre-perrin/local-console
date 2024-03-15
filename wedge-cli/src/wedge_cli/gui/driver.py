@@ -1,5 +1,6 @@
 import json
 import logging
+import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
@@ -36,6 +37,8 @@ class Driver:
         self.upload_port = 0
         self.image_directory: Optional[Path] = None
         self.inferences_directory: Optional[Path] = None
+        self.image_directory_config: Optional[Path] = None
+        self.inferences_directory_config: Optional[Path] = None
         self.config = get_config()
 
         self.camera_state = Camera()
@@ -156,8 +159,10 @@ class Driver:
     def process_camera_upload(self, incoming_file: Path) -> None:
         if incoming_file.parent == self.image_directory:
             self.update_image_data(incoming_file)
+            self.update_image_directory(incoming_file)
         elif incoming_file.parent == self.inferences_directory:
             self.update_inference_data(incoming_file.read_text())
+            self.update_inferences_directory(incoming_file)
 
     @run_on_ui_thread
     def update_image_data(self, incoming_file: Path) -> None:
@@ -167,20 +172,34 @@ class Driver:
         self.gui.views["inference screen"].ids.stream_image.update_image_data(
             incoming_file
         )
-        if self.image_directory is not None:
-            self.gui.views["inference screen"].ids.lbl_image_path.text = str(
-                self.image_directory.resolve()
-            )
 
     @run_on_ui_thread
     def update_inference_data(self, inference_data: str) -> None:
-        current_view = self.gui.views["home screen"].manager_screens.current
-        if current_view == "inference screen":
-            self.gui.views["inference screen"].ids.inference_field.text = inference_data
-            if self.inferences_directory is not None:
-                self.gui.views["inference screen"].ids.lbl_inference_path.text = str(
-                    self.inferences_directory.resolve()
-                )
+        self.gui.views["inference screen"].ids.inference_field.text = inference_data
+
+    @run_on_ui_thread
+    def update_image_directory(self, incoming_file: Path) -> None:
+        if self.image_directory_config is None:
+            self.gui.views["inference screen"].ids.lbl_image_path.text = str(
+                self.image_directory.resolve()
+            )
+        else:
+            shutil.copy(incoming_file, self.image_directory_config)
+            self.gui.views["inference screen"].ids.lbl_image_path.text = str(
+                self.image_directory_config.resolve()
+            )
+
+    @run_on_ui_thread
+    def update_inferences_directory(self, incoming_file: Path) -> None:
+        if self.inferences_directory_config is None:
+            self.gui.views["inference screen"].ids.lbl_inference_path.text = str(
+                self.inferences_directory.resolve()
+            )
+        else:
+            shutil.copy(incoming_file, self.inferences_directory_config)
+            self.gui.views["inference screen"].ids.lbl_inference_path.text = str(
+                self.inferences_directory_config.resolve()
+            )
 
     async def streaming_rpc_start(self, roi: Optional[UnitROI] = None) -> None:
         instance_id = "backdoor-EA_Main"

@@ -54,7 +54,7 @@
 
             MDButton:
                 id: btn_pick_image_dir
-                on_release: root.file_manager_open("lbl_image_path")
+                on_release: root.file_manager_open_image()
                 style: "elevated"
                 MDButtonIcon:
                     icon: "folder-cog"
@@ -77,7 +77,7 @@
 
             MDButton:
                 id: btn_pick_inference_dir
-                on_release: root.file_manager_open("lbl_inference_path")
+                on_release: root.file_manager_open_inferences()
                 style: "elevated"
                 MDButtonIcon:
                     icon: "folder-cog"
@@ -100,7 +100,7 @@
 
             MDButton:
                 id: btn_pick_scheme_dir
-                on_release: root.file_manager_open("lbl_scheme_path")
+                on_release: root.file_manager_open_flatbuffers()
                 style: "elevated"
                 MDButtonIcon:
                     icon: "folder-cog"

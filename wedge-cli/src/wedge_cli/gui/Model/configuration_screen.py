@@ -9,9 +9,9 @@ class ConfigurationScreenModel(BaseScreenModel):
     """
 
     def __init__(self) -> None:
-        self._image_directory: Path
-        self._inferences_directory: Path
-        self._flatbuffers_directory: Path
+        self._image_directory: Path = None
+        self._inferences_directory: Path = None
+        self._flatbuffers_directory: Path = None
 
     @property
     def image_directory(self) -> Path:
