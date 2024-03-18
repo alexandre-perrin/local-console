@@ -32,12 +32,15 @@
         GridLayout:
         # File path
             rows: 3
-            cols: 3
+            cols: 4
             padding: "5dp"
             spacing: "5dp"
             size_hint_y: 0.2
 
+            # First row from here
+
             MDLabel:
+            # Image dir
                 text: 'Image dir:'
                 adaptive_width: True
 
@@ -60,7 +63,14 @@
                     icon: "folder-cog"
                     pos_hint: {"center_x": 0.5, "center_y": 0.5}
 
+            MDWidget:
+            # Spacer
+                size_hint_x: None
+
+            # Second row from here
+
             MDLabel:
+            # Inference dir
                 text: 'Inference dir:'
                 adaptive_width: True
 
@@ -83,12 +93,19 @@
                     icon: "folder-cog"
                     pos_hint: {"center_x": 0.5, "center_y": 0.5}
 
+            MDWidget:
+            # Spacer
+                size_hint_x: None
+
+            # Third row from here
+
             MDLabel:
-                text: 'Scheme:'
+            # Schema
+                text: 'Schema:'
                 adaptive_width: True
 
             MDLabel:
-                id: lbl_scheme_path
+                id: lbl_schema_path
                 text: ""
                 padding: "5sp"
                 canvas.before:
@@ -99,14 +116,20 @@
                         width: 1
 
             MDButton:
-                id: btn_pick_scheme_dir
+                id: btn_pick_schema_dir
                 on_release: root.file_manager_open_flatbuffers()
                 style: "elevated"
                 MDButtonIcon:
                     icon: "folder-cog"
                     pos_hint: {"center_x": 0.5, "center_y": 0.5}
 
+            MDButton:
+                id: btn_process_schema
+                on_release: root.controller.process_schema()
+
+                MDButtonText:
+                    text: " Process \n schema "
+
         MDBoxLayout:
             orientation: "horizontal"
             size_hint_y: 0.6
-

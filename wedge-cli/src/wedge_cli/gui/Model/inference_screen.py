@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 
 from wedge_cli.core.camera import StreamStatus
 from wedge_cli.gui.Model.base_model import BaseScreenModel
@@ -14,8 +15,8 @@ class InferenceScreenModel(BaseScreenModel):
 
     def __init__(self) -> None:
         self._stream_status = StreamStatus.Disabled
-        self._image_directory = None
-        self._inferences_directory = None
+        self._image_directory: Optional[Path] = None
+        self._inferences_directory: Optional[Path] = None
 
     @property
     def stream_status(self) -> StreamStatus:
@@ -27,19 +28,19 @@ class InferenceScreenModel(BaseScreenModel):
         self.notify_observers()
 
     @property
-    def image_directory(self) -> None:
+    def image_directory(self) -> Optional[Path]:
         return self._image_directory
 
     @image_directory.setter
-    def image_directory(self, value: Path) -> None:
+    def image_directory(self, value: Optional[Path]) -> None:
         self._image_directory = value
         self.notify_observers()
 
     @property
-    def inferences_directory(self) -> None:
+    def inferences_directory(self) -> Optional[Path]:
         return self._inferences_directory
 
     @inferences_directory.setter
-    def inferences_directory(self, value: Path) -> None:
+    def inferences_directory(self, value: Optional[Path]) -> None:
         self._inferences_directory = value
         self.notify_observers()

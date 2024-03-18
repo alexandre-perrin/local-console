@@ -5,6 +5,7 @@ from wedge_cli.gui.Model.configuration_screen import ConfigurationScreenModel
 from wedge_cli.gui.View.ConfigurationScreen.configuration_screen import (
     ConfigurationScreenView,
 )
+from wedge_cli.utils.flatbuffers import FlatBuffers
 
 
 class ConfigurationScreenController:
@@ -19,6 +20,7 @@ class ConfigurationScreenController:
         self.model = model
         self.driver = driver
         self.view = ConfigurationScreenView(controller=self, model=self.model)
+        self.flatbuffers = FlatBuffers()
 
     def get_view(self) -> ConfigurationScreenView:
         return self.view
@@ -30,3 +32,23 @@ class ConfigurationScreenController:
     def update_inferences_directory(self, path: Path) -> None:
         self.driver.inferences_directory_config = path
         self.model.inferences_directory = path
+
+    def update_flatbuffers_schema(self, path: Path) -> None:
+        self.model.flatbuffers_schema = path
+
+    def process_schema(self) -> None:
+        if self.model.flatbuffers_schema is not None:
+            check_file = self.model.flatbuffers_schema.exists()
+            if check_file is True:
+                result, output = self.flatbuffers.conform_flatbuffer_schema(
+                    self.model.flatbuffers_schema
+                )
+                if result is True:
+                    self.driver.flatbuffers_schema = self.model.flatbuffers_schema
+                    self.model.flatbuffers_process_result = "Success!"
+                else:
+                    self.model.flatbuffers_process_result = output
+            else:
+                self.model.flatbuffers_process_result = "File not exist!"
+        else:
+            self.model.flatbuffers_process_result = "Please select a schema file."

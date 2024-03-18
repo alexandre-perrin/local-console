@@ -22,6 +22,7 @@ from wedge_cli.gui.Utility.sync_async import run_on_ui_thread
 from wedge_cli.gui.Utility.sync_async import SyncAsyncBridge
 from wedge_cli.servers.broker import spawn_broker
 from wedge_cli.servers.webserver import AsyncWebserver
+from wedge_cli.utils.flatbuffers import FlatBuffers
 from wedge_cli.utils.local_network import LOCAL_IP
 from wedge_cli.utils.timing import TimeoutBehavior
 
@@ -39,9 +40,11 @@ class Driver:
         self.inferences_directory: Optional[Path] = None
         self.image_directory_config: Optional[Path] = None
         self.inferences_directory_config: Optional[Path] = None
+        self.flatbuffers_schema: Optional[Path] = None
         self.config = get_config()
 
         self.camera_state = Camera()
+        self.flatbuffers = FlatBuffers()
 
         # This takes care of ensuring the device reports its state
         # with bounded periodicity (expect to receive a message within 6 seconds)
@@ -161,7 +164,12 @@ class Driver:
             self.update_image_data(incoming_file)
             self.update_image_directory(incoming_file)
         elif incoming_file.parent == self.inferences_directory:
-            self.update_inference_data(incoming_file.read_text())
+            # For test, assumed that the Flatbuffer's binary(.bin) sent to the same directory as
+            # the directory of the output tensor(.txt), as temporary implementation.
+            if incoming_file.suffix.lower() == ".bin":
+                self.update_inference_data_flatbuffers(incoming_file)
+            elif incoming_file.suffix.lower() == ".txt":
+                self.update_inference_data(incoming_file.read_text())
             self.update_inferences_directory(incoming_file)
 
     @run_on_ui_thread
@@ -178,11 +186,26 @@ class Driver:
         self.gui.views["inference screen"].ids.inference_field.text = inference_data
 
     @run_on_ui_thread
+    def update_inference_data_flatbuffers(self, incoming_file: Path) -> None:
+        if incoming_file.exists():
+            if self.flatbuffers_schema and incoming_file and self.inferences_directory:
+                # TODO: Will add base64 decoding.
+                self.flatbuffers.flatbuffer_binary_to_json(
+                    self.flatbuffers_schema, incoming_file, self.inferences_directory
+                )
+                # TODO: Now, only works for SmartCamera. Will update it.
+                with open(self.inferences_directory / "SmartCamera.json") as file:
+                    self.gui.views[
+                        "inference screen"
+                    ].ids.inference_field.text = file.read()
+
+    @run_on_ui_thread
     def update_image_directory(self, incoming_file: Path) -> None:
         if self.image_directory_config is None:
-            self.gui.views["inference screen"].ids.lbl_image_path.text = str(
-                self.image_directory.resolve()
-            )
+            if self.image_directory is not None:
+                self.gui.views["inference screen"].ids.lbl_image_path.text = str(
+                    self.image_directory.resolve()
+                )
         else:
             shutil.copy(incoming_file, self.image_directory_config)
             self.gui.views["inference screen"].ids.lbl_image_path.text = str(
@@ -192,9 +215,10 @@ class Driver:
     @run_on_ui_thread
     def update_inferences_directory(self, incoming_file: Path) -> None:
         if self.inferences_directory_config is None:
-            self.gui.views["inference screen"].ids.lbl_inference_path.text = str(
-                self.inferences_directory.resolve()
-            )
+            if self.inferences_directory is not None:
+                self.gui.views["inference screen"].ids.lbl_inference_path.text = str(
+                    self.inferences_directory.resolve()
+                )
         else:
             shutil.copy(incoming_file, self.inferences_directory_config)
             self.gui.views["inference screen"].ids.lbl_inference_path.text = str(
