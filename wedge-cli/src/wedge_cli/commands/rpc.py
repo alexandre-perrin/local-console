@@ -5,7 +5,7 @@ import trio
 import typer
 from wedge_cli.clients.agent import Agent
 
-app = typer.Typer(help="Command to send RPC to module instance")
+app = typer.Typer(help="Command to send RPC to a module instance")
 
 logger = logging.getLogger(__name__)
 

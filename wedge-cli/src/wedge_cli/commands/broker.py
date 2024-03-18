@@ -7,7 +7,9 @@ from wedge_cli.core.config import get_config
 from wedge_cli.core.schemas import AgentConfiguration
 from wedge_cli.servers.broker import spawn_broker
 
-app = typer.Typer(help="Command to start a MQTT broker")
+app = typer.Typer(
+    help="Command to start a MQTT broker. It will fail if there is already a broker listening in the port specified in config."
+)
 
 logger = logging.getLogger(__name__)
 

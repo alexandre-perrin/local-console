@@ -20,7 +20,9 @@ from wedge_cli.core.schemas import OnWireProtocol
 from wedge_cli.core.schemas import RemoteConnectionInfo
 
 logger = logging.getLogger(__name__)
-app = typer.Typer(help="Commands that interact with the configuration of the agent")
+app = typer.Typer(
+    help="Commands to read and write the different configuration parameters of the agent"
+)
 
 
 def send_config(config_dict: dict, connection_info: RemoteConnectionInfo) -> None:
@@ -161,7 +163,7 @@ def config_send(
         send_config(config_dict, connection_info)
 
 
-@app.command("instance", help="Configure a module instance")
+@app.command("instance", help="Configure an application module instance")
 def config_instance(
     instance_id: Annotated[
         str,

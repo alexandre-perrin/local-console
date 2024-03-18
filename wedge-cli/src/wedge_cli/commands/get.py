@@ -35,7 +35,7 @@ async def on_message_print_payload(cs: trio.CancelScope, agent: Agent) -> None:
                 logger.debug("Empty message arrived")
 
 
-@app.command(help="Get the telemetries")
+@app.command(help="Get telemetries being sent from the application")
 def telemetry() -> None:
     agent = Agent()
     agent.read_only_loop(
@@ -56,7 +56,7 @@ async def on_message_telemetry(cs: trio.CancelScope, agent: Agent) -> None:
                 print(to_print, flush=True)
 
 
-@app.command(help="Get the status of instance")
+@app.command(help="Get the status of an instance module")
 def instance(
     instance_id: Annotated[
         str,

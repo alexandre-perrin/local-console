@@ -136,10 +136,15 @@ wedge-cli build
 wedge-cli --verbose deploy
 ```
 
-it will show a message similar to
+it will show the following logs in between the topics recieved(this can be avoided by removing the `--verbose` option)
 ```
-INFO: Downloaded module bin/source.wasm
-INFO: Downloaded module bin/sink.wasm
+DEBUG: GET /bin/sink.wasm HTTP/1.1 200 -
+DEBUG: GET /bin/source.wasm HTTP/1.1 200 -
+```
+
+and upon completion it will show
+```
+INFO: Deployment complete
 ```
 
 The application will be deployed. Note that the final module identifiers to be used for the deployment, will be composed by suffixing the original module identifiers with a portion of the hash of the module binary. This is done to make sure that the agent's caching of downloaded modules will not inadvertenly skip downloading a newer version of a module, without you needing to change the module identifier by hand. Regarding the module instances, their identifiers remain unchanged, since there is no caching mechanism to beware.
