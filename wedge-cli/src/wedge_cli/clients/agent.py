@@ -3,7 +3,6 @@ import json
 import logging
 import random
 import re
-import traceback
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
@@ -237,9 +236,9 @@ def handle_task_exceptions(excgroup: Any) -> None:
         "s" if num_exceptions else "",
     )
     for e in excgroup.exceptions:
-        exc_desc_lines = traceback.format_exception_only(type(e), e)
-        exc_desc = "".join(exc_desc_lines).rstrip()
-        logger.error("Exception: %s", exc_desc)
+        logger.exception(
+            "Exception occurred within MQTT client processing:", exc_info=e
+        )
 
 
 async def check_attributes_request(agent: Agent, topic: str, payload: str) -> bool:
