@@ -273,3 +273,7 @@ wedge-cli qr
 ```
 
 By default, it will use the settings of the CLI. If the MQTT host is set to localhost, it will produce the QR code with the IP address of the externally-accessible interface to the local machine. For other settings, try the `--help` flag.
+
+## App samples
+
+You can find examples of apps in the [samples](./samples) folder and the documentation for each sample app in the [docs](./docs) folder.
