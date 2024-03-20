@@ -15,6 +15,7 @@ from wedge_cli.gui.Utility.axis_mapping import as_normal_in_set
 from wedge_cli.gui.Utility.axis_mapping import DEFAULT_ROI
 from wedge_cli.gui.Utility.axis_mapping import delta
 from wedge_cli.gui.Utility.axis_mapping import denormalize_in_set
+from wedge_cli.gui.View.common.behaviors import HoverBehavior
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ class ROIState(enum.Enum):
     PickingEndPoint = enum.auto()
 
 
-class ImageWithROI(Image):
+class ImageWithROI(Image, HoverBehavior):
     roi = ObjectProperty(DEFAULT_ROI)
     state = ObjectProperty(ROIState.Disabled)
 
@@ -39,7 +40,6 @@ class ImageWithROI(Image):
         # Should be of type UnitROI but Python tuples are immutable
         # and we need to assign to the tuple elements.
         self._active_subregion: list[tuple[float, float]] = [(0, 0), (0, 0)]
-        Window.bind(mouse_pos=self.on_mouse_pos)
 
     def start_roi_draw(self) -> None:
         if self.state == ROIState.Disabled:
@@ -114,17 +114,20 @@ class ImageWithROI(Image):
 
         return bool(super().on_touch_down(touch))
 
-    def on_mouse_pos(self, window: Window, pos: tuple[int, int]) -> None:
+    def on_enter(self) -> None:
         if self.state in (
             ROIState.PickingStartPoint,
             ROIState.PickingEndPoint,
-        ) and self.point_is_in_subregion(pos):
-            window.set_system_cursor("crosshair")
+        ) and self.point_is_in_subregion(self.current_point):
+            Window.set_system_cursor("crosshair")
             if self.state == ROIState.PickingEndPoint:
-                self.rect_end = pos
+                self.rect_end = self.current_point
                 self.draw_rectangle()
         else:
-            window.set_system_cursor("arrow")
+            Window.set_system_cursor("arrow")
+
+    def on_leave(self) -> None:
+        Window.set_system_cursor("arrow")
 
     def draw_rectangle(self) -> None:
         start = (
