@@ -22,9 +22,10 @@ logger = logging.getLogger(__name__)
 
 class ROIState(enum.Enum):
     Disabled = enum.auto()
-    Viewing = enum.auto()
+    Enabled = enum.auto()
     PickingStartPoint = enum.auto()
     PickingEndPoint = enum.auto()
+    Viewing = enum.auto()
 
 
 class ImageWithROI(Image, HoverBehavior):
@@ -50,7 +51,7 @@ class ImageWithROI(Image, HoverBehavior):
         self.clear_roi()
 
     def cancel_roi_draw(self) -> None:
-        self.state = ROIState.Viewing
+        self.state = ROIState.Enabled
         self.clear_roi()
 
     def clear_roi(self) -> None:
@@ -142,7 +143,7 @@ class ImageWithROI(Image, HoverBehavior):
 
     def refresh_rectangle(self, start: tuple[int, int], size: tuple[int, int]) -> None:
         self._clear_rect()
-        if self.state != ROIState.Disabled and self.roi != DEFAULT_ROI:
+        if self.state in (ROIState.PickingEndPoint, ROIState.Viewing):
             with self.canvas:
                 Color(1, 0, 0, 1)
                 self.rect_line = Line(rectangle=[*start, size[0], size[1]], width=1.5)
@@ -152,7 +153,7 @@ class ImageWithROI(Image, HoverBehavior):
 
     def prime_for_roi(self, _texture: Texture) -> None:
         if self.state == ROIState.Disabled:
-            self.state = ROIState.Viewing
+            self.state = ROIState.Enabled
         self.update_norm_subregion()
 
     def update_roi(self) -> None:

@@ -29,7 +29,7 @@ class StreamingScreenView(BaseScreenView):
         if roi_state == ROIState.Disabled:
             inform_roi_is_disabled()
             return
-        elif roi_state == ROIState.Viewing:
+        elif roi_state == ROIState.Enabled:
             self.ids.stream_image.start_roi_draw()
         else:
             self.ids.stream_image.cancel_roi_draw()
@@ -46,7 +46,7 @@ class StreamingScreenView(BaseScreenView):
         # The "Set ROI" button
         self.ids.btn_roi_control.disabled = roi_state == ROIState.Disabled
         if roi_state != ROIState.Disabled:
-            if roi_state == ROIState.Viewing:
+            if roi_state in (ROIState.Enabled, ROIState.Viewing):
                 self.ids.btn_roi_control.style = "elevated"
             else:
                 self.ids.btn_roi_control.style = "filled"
