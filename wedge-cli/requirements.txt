@@ -12,7 +12,7 @@ decorator==5.1.1
 docutils==0.20.1
 exceptiongroup==1.2.0
 idna==3.6
-importlib_metadata==7.0.2
+importlib_metadata==7.1.0
 Kivy==2.3.0
 Kivy-Garden==0.1.5
 kivymd @ git+https://github.com/kivymd/KivyMD.git@06e5f0c3330170200918e712345a2b4be6290c65
