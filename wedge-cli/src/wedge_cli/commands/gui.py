@@ -19,7 +19,7 @@ def gui() -> None:
     """
     This import must happen within this callback, as
     Kivy performs several initialization steps during
-    imports.
+    imports, that override logging and input handling.
     """
     from wedge_cli.gui.main import WedgeGUIApp
 
