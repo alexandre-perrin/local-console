@@ -2,6 +2,7 @@ from kivy.uix.codeinput import (
     CodeInput,
 )  # nopycln: import # Required by the screen's KV spec file
 from wedge_cli.core.camera import StreamStatus
+from wedge_cli.gui.Utility.axis_mapping import DEFAULT_ROI
 from wedge_cli.gui.Utility.axis_mapping import pixel_roi_from_normals
 from wedge_cli.gui.View.base_screen import BaseScreenView
 from wedge_cli.gui.View.common.components import (
@@ -32,7 +33,7 @@ class StreamingScreenView(BaseScreenView):
         roi_state: ROIState = self.ids.stream_image.state
         if roi_state != ROIState.Disabled:
             self.ids.stream_image.cancel_roi_draw()
-            self.controller.set_roi(self.model.DEFAULT_ROI)
+            self.controller.set_roi(DEFAULT_ROI)
 
     def refresh_roi_state(self, roi_state: ROIState) -> None:
         # The "Set ROI" button
