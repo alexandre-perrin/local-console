@@ -26,7 +26,7 @@ class Camera:
     CONNECTION_STATUS_TIMEOUT = timedelta(seconds=20)
 
     def __init__(self) -> None:
-        self.sensor_state = StreamStatus.Inactive
+        self.sensor_state = StreamStatus.Disabled
         self.app_state = ""
         self.deploy_status: dict[str, str] = {}
         self.onwire_schema: Optional[OnWireProtocol] = None
@@ -76,6 +76,7 @@ class Camera:
 
 
 class StreamStatus(enum.Enum):
+    Disabled = "Disabled"
     Inactive = "Inactive"
     Active = "Active"
     Transitioning = "..."
@@ -89,7 +90,7 @@ class StreamStatus(enum.Enum):
         elif value == "...":
             return cls.Transitioning
 
-        raise ValueError(value)
+        return cls.Disabled
 
 
 class MQTTTopics(enum.Enum):
