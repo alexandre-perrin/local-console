@@ -35,9 +35,7 @@ class ConnectionScreenController:
         background: Color = tuple(
             int(255 * (val * 1.1)) for val in self.view.theme_cls.backgroundColor[:3]
         )
-        fill: Color = tuple(
-            int(255 * val) for val in self.view.theme_cls.primaryColor[:3]
-        )
+        fill: Color = (0, 0, 0)
         self.view.ids.img_qr_display.texture = qr_object_as_texture(
             qr, background, fill
         )
