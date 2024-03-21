@@ -39,7 +39,7 @@ trio-typing==0.10.0
 trio-util==0.7.0
 typer==0.9.0
 types-docutils==0.20.0.20240311
-types-paho-mqtt==1.6.0.20240106
+types-paho-mqtt==1.6.0.20240321
 types-Pygments==2.17.0.20240310
 types-retry==0.9.9.4
 types-setuptools==69.1.0.20240310
