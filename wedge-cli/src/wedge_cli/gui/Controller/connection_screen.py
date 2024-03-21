@@ -30,7 +30,7 @@ class ConnectionScreenController:
             self.model.mqtt_port,
             tls_enabled,
             replace_local_address(self.model.ntp_host),
-            border=1,
+            border=4,
         )
         background: Color = tuple(
             int(255 * (val * 1.1)) for val in self.view.theme_cls.backgroundColor[:3]
