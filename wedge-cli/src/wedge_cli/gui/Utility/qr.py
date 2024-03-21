@@ -5,7 +5,7 @@ from kivy.core.image import Image as CoreImage
 from kivy.core.image import Texture
 from qrcode.image.styledpil import StyledPilImage
 from qrcode.image.styles.colormasks import SolidFillColorMask
-from qrcode.image.styles.moduledrawers import CircleModuleDrawer
+from qrcode.image.styles.moduledrawers import SquareModuleDrawer
 
 # Color tuple, whose components value range is [0, 255]
 Color = tuple[int, ...]
@@ -24,7 +24,7 @@ def qr_object_as_texture(
     """
     img = qr.make_image(
         image_factory=StyledPilImage,  # type: ignore[type-abstract]
-        module_drawer=CircleModuleDrawer(),
+        module_drawer=SquareModuleDrawer(),
         color_mask=SolidFillColorMask(
             front_color=fill_color, back_color=background_color
         ),

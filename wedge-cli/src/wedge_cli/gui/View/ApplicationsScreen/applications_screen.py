@@ -78,6 +78,6 @@ class ApplicationsScreenView(BaseScreenView):
 
     def app_state_refresh(self, app: MDApp, value: bool) -> None:
         """
-        Makes the deploy button react to the camera readyness state.
+        Makes the deploy button react to the camera readiness state.
         """
         self.ids.btn_deploy_file.disabled = not self.app.is_ready

@@ -1,7 +1,13 @@
+from kivy.metrics import dp
 from kivy.uix.codeinput import (
     CodeInput,
 )  # nopycln: import # Required by the screen's KV spec file
+from kivymd.uix.snackbar import MDSnackbar
+from kivymd.uix.snackbar import MDSnackbarButtonContainer
+from kivymd.uix.snackbar import MDSnackbarCloseButton
+from kivymd.uix.snackbar import MDSnackbarSupportingText
 from wedge_cli.core.camera import StreamStatus
+from wedge_cli.gui.Utility.axis_mapping import DEFAULT_ROI
 from wedge_cli.gui.Utility.axis_mapping import pixel_roi_from_normals
 from wedge_cli.gui.View.base_screen import BaseScreenView
 from wedge_cli.gui.View.common.components import (
@@ -21,9 +27,9 @@ class StreamingScreenView(BaseScreenView):
     def control_roi(self) -> None:
         roi_state: ROIState = self.ids.stream_image.state
         if roi_state == ROIState.Disabled:
-            # might want to give visual feedback here
+            inform_roi_is_disabled()
             return
-        elif roi_state == ROIState.Viewing:
+        elif roi_state == ROIState.Enabled:
             self.ids.stream_image.start_roi_draw()
         else:
             self.ids.stream_image.cancel_roi_draw()
@@ -32,13 +38,15 @@ class StreamingScreenView(BaseScreenView):
         roi_state: ROIState = self.ids.stream_image.state
         if roi_state != ROIState.Disabled:
             self.ids.stream_image.cancel_roi_draw()
-            self.controller.set_roi(self.model.DEFAULT_ROI)
+            self.controller.set_roi(DEFAULT_ROI)
+        else:
+            inform_roi_is_disabled()
 
     def refresh_roi_state(self, roi_state: ROIState) -> None:
         # The "Set ROI" button
         self.ids.btn_roi_control.disabled = roi_state == ROIState.Disabled
         if roi_state != ROIState.Disabled:
-            if roi_state == ROIState.Viewing:
+            if roi_state in (ROIState.Enabled, ROIState.Viewing):
                 self.ids.btn_roi_control.style = "elevated"
             else:
                 self.ids.btn_roi_control.style = "filled"
@@ -61,3 +69,21 @@ class StreamingScreenView(BaseScreenView):
         self.ids.lbl_roi_h_size.text = str(h_size)
         self.ids.lbl_roi_v_offset.text = str(v_offset)
         self.ids.lbl_roi_v_size.text = str(v_size)
+
+
+def inform_roi_is_disabled() -> None:
+    MDSnackbar(
+        MDSnackbarSupportingText(
+            text="Cannot set ROI without having received a camera frame",
+        ),
+        MDSnackbarButtonContainer(
+            MDSnackbarCloseButton(
+                icon="close",
+            ),
+            pos_hint={"center_y": 0.5},
+        ),
+        y=dp(24),
+        orientation="horizontal",
+        pos_hint={"center_x": 0.5},
+        size_hint_x=0.5,
+    ).open()

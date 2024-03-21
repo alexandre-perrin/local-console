@@ -15,18 +15,20 @@ from wedge_cli.gui.Utility.axis_mapping import as_normal_in_set
 from wedge_cli.gui.Utility.axis_mapping import DEFAULT_ROI
 from wedge_cli.gui.Utility.axis_mapping import delta
 from wedge_cli.gui.Utility.axis_mapping import denormalize_in_set
+from wedge_cli.gui.View.common.behaviors import HoverBehavior
 
 logger = logging.getLogger(__name__)
 
 
 class ROIState(enum.Enum):
     Disabled = enum.auto()
-    Viewing = enum.auto()
+    Enabled = enum.auto()
     PickingStartPoint = enum.auto()
     PickingEndPoint = enum.auto()
+    Viewing = enum.auto()
 
 
-class ImageWithROI(Image):
+class ImageWithROI(Image, HoverBehavior):
     roi = ObjectProperty(DEFAULT_ROI)
     state = ObjectProperty(ROIState.Disabled)
 
@@ -39,7 +41,6 @@ class ImageWithROI(Image):
         # Should be of type UnitROI but Python tuples are immutable
         # and we need to assign to the tuple elements.
         self._active_subregion: list[tuple[float, float]] = [(0, 0), (0, 0)]
-        Window.bind(mouse_pos=self.on_mouse_pos)
 
     def start_roi_draw(self) -> None:
         if self.state == ROIState.Disabled:
@@ -50,7 +51,7 @@ class ImageWithROI(Image):
         self.clear_roi()
 
     def cancel_roi_draw(self) -> None:
-        self.state = ROIState.Viewing
+        self.state = ROIState.Enabled
         self.clear_roi()
 
     def clear_roi(self) -> None:
@@ -114,17 +115,20 @@ class ImageWithROI(Image):
 
         return bool(super().on_touch_down(touch))
 
-    def on_mouse_pos(self, window: Window, pos: tuple[int, int]) -> None:
+    def on_enter(self) -> None:
         if self.state in (
             ROIState.PickingStartPoint,
             ROIState.PickingEndPoint,
-        ) and self.point_is_in_subregion(pos):
-            window.set_system_cursor("crosshair")
+        ) and self.point_is_in_subregion(self.current_point):
+            Window.set_system_cursor("crosshair")
             if self.state == ROIState.PickingEndPoint:
-                self.rect_end = pos
+                self.rect_end = self.current_point
                 self.draw_rectangle()
         else:
-            window.set_system_cursor("arrow")
+            Window.set_system_cursor("arrow")
+
+    def on_leave(self) -> None:
+        Window.set_system_cursor("arrow")
 
     def draw_rectangle(self) -> None:
         start = (
@@ -139,7 +143,7 @@ class ImageWithROI(Image):
 
     def refresh_rectangle(self, start: tuple[int, int], size: tuple[int, int]) -> None:
         self._clear_rect()
-        if self.state != ROIState.Disabled and self.roi != DEFAULT_ROI:
+        if self.state in (ROIState.PickingEndPoint, ROIState.Viewing):
             with self.canvas:
                 Color(1, 0, 0, 1)
                 self.rect_line = Line(rectangle=[*start, size[0], size[1]], width=1.5)
@@ -149,7 +153,7 @@ class ImageWithROI(Image):
 
     def prime_for_roi(self, _texture: Texture) -> None:
         if self.state == ROIState.Disabled:
-            self.state = ROIState.Viewing
+            self.state = ROIState.Enabled
         self.update_norm_subregion()
 
     def update_roi(self) -> None:
