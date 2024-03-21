@@ -65,10 +65,6 @@ async def spawn_broker(
         broker_proc.kill()
 
 
-def exe_ext() -> str:
-    return ".exe" if platform.system() == "Windows" else ""
-
-
 def populate_broker_conf(config: AgentConfiguration, config_file: Path) -> None:
     data = {"mqtt_port": str(config.mqtt.port)}
 
