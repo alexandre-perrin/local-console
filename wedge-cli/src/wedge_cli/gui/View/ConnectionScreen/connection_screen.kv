@@ -1,5 +1,6 @@
 #:import res_path wedge_cli.gui.main.resource_path
 #:import get_my_ip wedge_cli.utils.local_network.get_my_ip_by_routing
+
 <EntryLabel@MDLabel>:
     halign: "right"
 
@@ -9,7 +10,10 @@
             "If the given address resolves to this machine, the QR code \n" \
             "will encode the machine's IP address in the local network."
 
-<LocalIPInput@LocalIPTooltip+MDTextField>:
+<FocusText@MDTextField>:
+    write_tab: False
+
+<LocalIPInput@LocalIPTooltip+FocusText>:
 
 
 <ConnectionScreenView>
@@ -95,10 +99,11 @@
 
                     EntryLabel:
                         text: "MQTT port:"
-                    MDTextField:
+                    FocusText:
                         id: txt_mqtt_port
                         on_text: root.validate_mqtt_port(*args)
                         multiline: False
+                        focus_previous: txt_mqtt_host
                         MDTextFieldHelperText:
                             text: "Enter a valid port number"
                             mode: "on_error"
@@ -109,6 +114,8 @@
                         id: txt_ntp_host
                         on_text: root.validate_ntp_port(*args)
                         multiline: False
+                        focus_previous: txt_mqtt_port
+                        focus_next: txt_mqtt_host
                         MDTextFieldHelperText:
                             text: "Enter a valid host address"
                             mode: "on_error"
