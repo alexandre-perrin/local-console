@@ -33,7 +33,7 @@
       ]
     },
     {
-      "bom-ref": "importlib_metadata==7.0.2",
+      "bom-ref": "importlib_metadata==7.1.0",
       "externalReferences": [
         {
           "type": "license",
