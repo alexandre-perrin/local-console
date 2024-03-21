@@ -54,7 +54,8 @@ async def spawn_broker(
             data = await broker_proc.stdout.receive_some()
             if data:
                 data = data.decode("utf-8")
-                logger.debug(data)
+                for line in data.splitlines():
+                    logger.debug(line)
                 pattern = re.compile(r"mosquitto version (\d+\.\d+\.\d+) running")
                 if "Error" in data:
                     logger.error("Mosquitto already initialized")
