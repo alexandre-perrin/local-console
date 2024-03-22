@@ -1,5 +1,6 @@
 #:import res_path wedge_cli.gui.main.resource_path
 #:import get_my_ip wedge_cli.utils.local_network.get_my_ip_by_routing
+#:include res_path(components.kv)
 
 <EntryLabel@MDLabel>:
     halign: "right"
@@ -37,14 +38,7 @@
                 padding: "10dp"
                 spacing: "10dp"
 
-                MDButton:
-                    on_release: root.manager.current = 'home screen'
-                    style: "elevated"
-                    pos_hint: {"center_y": 0.5}
-                    size_hint_x: "60dp"
-                    MDButtonIcon:
-                        icon: "home"
-                        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+                GoHomeButton:
 
                 MDWidget:
 

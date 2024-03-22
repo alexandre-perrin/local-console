@@ -1,4 +1,5 @@
 #:import res_path wedge_cli.gui.main.resource_path
+#:include res_path(components.kv)
 
 <ConfigurationScreenView>
     md_bg_color: self.theme_cls.backgroundColor
@@ -17,14 +18,7 @@
                 padding: "10dp"
                 spacing: "10dp"
 
-                MDButton:
-                    on_release: root.manager.current = 'home screen'
-                    style: "elevated"
-                    pos_hint: {"center_y": 0.5}
-                    size_hint_x: "60dp"
-                    MDButtonIcon:
-                        icon: "home"
-                        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+                GoHomeButton:
 
                 MDWidget:
                     size_hint_x: 3
