@@ -50,23 +50,22 @@ async def spawn_broker(
         broker_proc = await nursery.start(invocation)
         # This is to check the broker start up.
         # A (minor) enhancement would be to poll the broker.
+        pattern = re.compile(r"mosquitto version (\d+\.\d+\.\d+) running")
         while True:
             data = await broker_proc.stdout.receive_some()
             if data:
                 data = data.decode("utf-8")
-                logger.debug(data)
-                pattern = re.compile(r"mosquitto version (\d+\.\d+\.\d+) running")
+                for line in data.splitlines():
+                    logger.debug(line)
                 if "Error" in data:
                     logger.error("Mosquitto already initialized")
                     sys.exit(1)
                 elif pattern.search(data):
                     break
+
+        nursery.start_soon(get_broker_logs, broker_proc.stdout)
         yield broker_proc
         broker_proc.kill()
-
-
-def exe_ext() -> str:
-    return ".exe" if platform.system() == "Windows" else ""
 
 
 def populate_broker_conf(config: AgentConfiguration, config_file: Path) -> None:
@@ -90,3 +89,9 @@ def populate_broker_conf(config: AgentConfiguration, config_file: Path) -> None:
     template = Template(template_file.read_text())
     rendered = template.substitute(data)
     config_file.write_text(rendered)
+
+
+async def get_broker_logs(proc_stdout: trio.abc.ReceiveStream) -> None:
+    async for chunk in proc_stdout:
+        for line in chunk.decode().splitlines():
+            logger.debug(line)
