@@ -29,6 +29,7 @@ class Camera:
         self.sensor_state = StreamStatus.Disabled
         self.app_state = ""
         self.deploy_status: dict[str, str] = {}
+        self.ota_status: dict[str, str] = {}
         self.onwire_schema: Optional[OnWireProtocol] = None
         self.attributes_available = False
         self._last_reception: Optional[datetime] = None
@@ -65,6 +66,7 @@ class Camera:
                         status.get("Sensor", "")
                     )
                     self.app_state = status["ApplicationProcessor"]
+                    self.ota_status = decoded["OTA"]
 
             if self.SYSINFO_TOPIC in payload:
                 sent_from_camera = True
