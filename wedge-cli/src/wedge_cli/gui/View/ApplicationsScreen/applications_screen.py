@@ -24,7 +24,9 @@ class ApplicationsScreenView(BaseScreenView):
         reconcile_status = self.model.deploy_status.get("reconcileStatus")
         if reconcile_status:
             self.ids.lbl_deployment_status.text = reconcile_status
-        self.ids.txt_deployment_data.text = json.dumps(self.model.deploy_status)
+        self.ids.txt_deployment_data.text = json.dumps(
+            self.model.deploy_status, indent=4
+        )
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
