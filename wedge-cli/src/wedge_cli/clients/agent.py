@@ -65,12 +65,6 @@ class Agent:
         # complying with TLS' Subject Common Name matching.
         self.mqttc.tls_insecure_set(is_localhost(agent_config.mqtt.host.ip_value))
 
-    def async_done(self) -> None:
-        assert self.nursery
-        assert self.client
-        self.client.disconnect()
-        self.nursery.cancel_scope.cancel()
-
     async def initialize_handshake(self, timeout: int = 5) -> None:
         async with self.mqtt_scope(
             [
@@ -87,7 +81,6 @@ class Agent:
                             self, msg.topic, msg.payload.decode()
                         )
             logger.debug("Exiting initialized handshake")
-            self.async_done()
 
     async def set_periodic_reports(self, report_interval: int) -> None:
         await self.device_configure(
@@ -190,11 +183,14 @@ class Agent:
             self.nursery = nursery
             self.client = AsyncClient(self.mqttc, self.nursery)
 
-            self.client.connect(self._host, self._port)
-            for topic in subs_topics:
-                self.client.subscribe(topic)
-
-            yield
+            try:
+                self.client.connect(self._host, self._port)
+                for topic in subs_topics:
+                    self.client.subscribe(topic)
+                yield
+            finally:
+                self.client.disconnect()
+                self.nursery.cancel_scope.cancel()
 
     async def publish(self, topic: str, payload: str) -> None:
         assert self.client is not None
@@ -212,7 +208,6 @@ class Agent:
     async def request_instance_logs(self, instance_id: str) -> None:
         async with self.mqtt_scope([]):
             await self.rpc(instance_id, "$agent/set", '{"log_enable": true}')
-            self.async_done()
 
 
 @asynccontextmanager

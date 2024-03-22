@@ -189,7 +189,6 @@ async def configure_task(instance_id: str, topic: str, config: str) -> None:
     await agent.initialize_handshake()
     async with agent.mqtt_scope([]):
         await agent.configure(instance_id, topic, config)
-        agent.async_done()
 
 
 @app.command("device", help="Configure the device")
@@ -224,7 +223,6 @@ async def config_device_task(desired_device_config: DesiredDeviceConfig) -> int:
     if agent.onwire_schema == OnWireProtocol.EVP2:
         async with agent.mqtt_scope([]):
             await agent.device_configure(desired_device_config)
-            agent.async_done()
         retcode = 0
     else:
         logger.warning(
