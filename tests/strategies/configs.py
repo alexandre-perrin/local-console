@@ -58,7 +58,7 @@ def generate_valid_ip(draw: st.DrawFn) -> str:
 def generate_invalid_ip(draw: st.DrawFn) -> str:
     return draw(
         generate_identifiers(
-            max_size=10, categories_first_char=("S", "Z"), include_in_first_char=" +"
+            max_size=10, categories_first_char=("S", "Z"), include_in_first_char=" +.-"
         )
     )
 

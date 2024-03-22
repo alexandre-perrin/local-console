@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class IPAddress(BaseModel):
-    ip_value: str = Field(pattern=r"^[\w.-]+$")
+    ip_value: str = Field(pattern=r"^[\w\d_][\w.-]*$")
 
     @model_serializer
     def ser_model(self) -> str:
