@@ -14,17 +14,18 @@ class ConnectionScreenView(BaseScreenView):
         self.model_is_changed()
 
     def validate_mqtt_host(self, widget: Widget, text: str) -> None:
+        self.model.mqtt_host = text
         try:
             MQTTParams(
                 host=IPAddress(ip_value=text), port=self.model.mqtt_port, device_id=None
             )
             widget.error = False
-            self.model.mqtt_host = text
         except ValidationError as e:
             widget.error = True
             logger.warning(f"Validation error of MQTT host {widget}: {e}")
 
     def validate_mqtt_port(self, widget: Widget, text: str) -> None:
+        self.model.mqtt_port = int(text)
         try:
             MQTTParams(
                 host=IPAddress(ip_value=self.model.mqtt_host),
@@ -32,7 +33,6 @@ class ConnectionScreenView(BaseScreenView):
                 device_id=None,
             )
             widget.error = False
-            self.model.mqtt_port = int(text)
         except ValueError:
             widget.error = True
         except ValidationError as e:
@@ -40,10 +40,10 @@ class ConnectionScreenView(BaseScreenView):
             logger.warning(f"Validation error of MQTT port {widget}: {e}")
 
     def validate_ntp_port(self, widget: Widget, text: str) -> None:
+        self.model.ntp_host = text
         try:
             IPAddress(ip_value=text)
             widget.error = False
-            self.model.ntp_host = text
         except ValidationError as e:
             widget.error = True
             logger.warning(f"Validation error of NTP host {widget}: {e}")
