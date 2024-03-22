@@ -131,6 +131,9 @@ class Driver:
         self.gui.views[
             "connection screen"
         ].model.connected = self.camera_state.connected
+        self.gui.views[
+            "ai model screen"
+        ].model.ota_status = self.camera_state.ota_status
 
     async def image_webserver_task(self) -> None:
         """
