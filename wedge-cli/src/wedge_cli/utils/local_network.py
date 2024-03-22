@@ -18,8 +18,11 @@ LOCAL_IP: str = get_my_ip_by_routing()
 
 
 def is_localhost(hostname: str) -> bool:
-    resolved_ip = socket.gethostbyname(hostname)
-    return ipaddress.ip_address(resolved_ip).is_loopback
+    try:
+        resolved_ip = socket.gethostbyname(hostname)
+        return ipaddress.ip_address(resolved_ip).is_loopback
+    except socket.gaierror:
+        return False
 
 
 def replace_local_address(hostname: str) -> str:
