@@ -51,12 +51,20 @@ class Camera:
         if topic == MQTTTopics.ATTRIBUTES.value:
             if self.EA_STATE_TOPIC in payload:
                 sent_from_camera = True
-                decoded = json.loads(b64decode(payload[self.EA_STATE_TOPIC]))
+                firmware_is_supported = False
+                try:
+                    decoded = json.loads(b64decode(payload[self.EA_STATE_TOPIC]))
+                    firmware_is_supported = True
+                except UnicodeDecodeError:
+                    decoded = json.loads(payload[self.EA_STATE_TOPIC])
                 payload[self.EA_STATE_TOPIC] = decoded
 
-                status = decoded["Status"]
-                self.sensor_state = StreamStatus.from_string(status["Sensor"])
-                self.app_state = status["ApplicationProcessor"]
+                if firmware_is_supported:
+                    status = decoded["Status"]
+                    self.sensor_state = StreamStatus.from_string(
+                        status.get("Sensor", "")
+                    )
+                    self.app_state = status["ApplicationProcessor"]
 
             if self.SYSINFO_TOPIC in payload:
                 sent_from_camera = True
