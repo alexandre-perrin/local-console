@@ -67,7 +67,7 @@ class AIModelScreenView(BaseScreenView):
         if not self.model.model_file_valid:
             MDSnackbar(
                 MDSnackbarSupportingText(
-                    text="Invalid AOT-compiled module file",
+                    text="Invalid AI Model file header!",
                 ),
                 MDSnackbarButtonContainer(
                     MDSnackbarCloseButton(

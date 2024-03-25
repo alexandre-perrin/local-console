@@ -2,6 +2,7 @@ from pathlib import Path
 
 from trio import Event
 from wedge_cli.gui.Model.base_model import BaseScreenModel
+from wedge_cli.utils.validation import validate_imx500_model_file
 
 
 class AIModelScreenModel(BaseScreenModel):
@@ -46,8 +47,7 @@ class AIModelScreenModel(BaseScreenModel):
     @model_file.setter
     def model_file(self, value: Path) -> None:
         self._model_file = value
-        # TODO perform actual validation
-        self._model_file_valid = True
+        self._model_file_valid = validate_imx500_model_file(value)
 
         self.notify_observers()
 
