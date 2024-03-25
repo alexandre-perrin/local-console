@@ -51,9 +51,18 @@ AOT_XTENSA_HEADER = (
     0x00,
 )
 
+IMX500_MODEL_HEADER = (0x34, 0x36, 0x34, 0x39)
+
 
 def validate_app_file(app_file: Path) -> bool:
     with app_file.open("rb") as file_in:
         file_header = file_in.read(len(AOT_XTENSA_HEADER))
 
     return file_header == bytes(AOT_XTENSA_HEADER)
+
+
+def validate_imx500_model_file(app_file: Path) -> bool:
+    with app_file.open("rb") as file_in:
+        file_header = file_in.read(len(IMX500_MODEL_HEADER))
+
+    return file_header == bytes(IMX500_MODEL_HEADER)
