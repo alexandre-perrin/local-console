@@ -92,7 +92,9 @@ def configuration_spec(
     package_file: Path, webserver_root: Path, webserver_port: int
 ) -> dict[str, dict[str, str]]:
     file_hash = get_package_hash(package_file)
-    url = f"http://{get_my_ip_by_routing()}:{webserver_port}/{PurePosixPath(package_file.relative_to(webserver_root))}"
+    ip_addr = get_my_ip_by_routing()
+    rel_path = PurePosixPath(package_file.relative_to(webserver_root))
+    url = f"http://{ip_addr}:{webserver_port}/{rel_path}"
     return {
         "OTA": {
             "UpdateModule": "DnnModel",
