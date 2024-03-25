@@ -88,17 +88,23 @@ def get_package_hash(package_file: Path) -> str:
     return b64encode(digest.finalize()).decode()
 
 
+def get_package_version(package_file: Path) -> str:
+    ver_bytes = package_file.read_bytes()[0x30:0x40]
+    return ver_bytes.decode()
+
+
 def configuration_spec(
     package_file: Path, webserver_root: Path, webserver_port: int
 ) -> dict[str, dict[str, str]]:
     file_hash = get_package_hash(package_file)
+    version_str = get_package_version(package_file)
     ip_addr = get_my_ip_by_routing()
     rel_path = PurePosixPath(package_file.relative_to(webserver_root))
     url = f"http://{ip_addr}:{webserver_port}/{rel_path}"
     return {
         "OTA": {
             "UpdateModule": "DnnModel",
-            "DesiredVersion": "0207000000010101",
+            "DesiredVersion": version_str,
             "PackageUri": url,
             "HashValue": file_hash,
         }
