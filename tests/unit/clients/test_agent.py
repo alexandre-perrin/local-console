@@ -44,7 +44,6 @@ async def test_configure_instance(
         agent = Agent()
         async with agent.mqtt_scope([]):
             await agent.configure(instance_id, topic, config)
-            agent.async_done()
 
         payload = json.dumps(
             {
@@ -80,7 +79,6 @@ async def test_rpc(
                 return_value=(MQTT_ERR_SUCCESS, None)
             )
             await agent.rpc(instance_id, method, params)
-            agent.async_done()
 
         agent.client.publish_and_wait.assert_called_once()
 
@@ -108,6 +106,5 @@ async def test_rpc_error(
             )
             with pytest.raises(ConnectionError):
                 await agent.rpc(instance_id, method, params)
-            agent.async_done()
 
         agent.client.publish_and_wait.assert_called_once()

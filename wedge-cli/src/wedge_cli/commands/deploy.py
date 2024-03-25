@@ -124,7 +124,6 @@ async def exec_deployment(
             agent.nursery.start_soon(deploy_fsm.initialization_timeout)
             await deploy_fsm.done.wait()
             success = True
-            agent.async_done()
 
     if timeout_scope.cancelled_caught:
         logger.error("Timeout when sending modules.")

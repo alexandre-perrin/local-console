@@ -232,7 +232,6 @@ async def test_attributes_request_handling(
         agent.publish = AsyncMock()
         async with agent.mqtt_scope([MQTTTopics.ATTRIBUTES_REQ.value]):
             check = await check_attributes_request(agent, request_topic, "{}")
-            agent.async_done()
 
         response_topic = request_topic.replace("request", "response")
         agent.publish.assert_called_once_with(response_topic, "{}")

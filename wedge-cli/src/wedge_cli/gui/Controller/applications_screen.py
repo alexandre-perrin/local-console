@@ -99,7 +99,6 @@ class ApplicationsScreenController:
                     ephemeral_agent.nursery.start_soon(deploy_fsm.message_task)
                     await deploy_fsm.done.wait()
                     success = True
-                    ephemeral_agent.async_done()
 
             if timeout_scope.cancelled_caught:
                 logger.error("Timeout when sending modules.")
