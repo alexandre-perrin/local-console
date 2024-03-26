@@ -36,7 +36,10 @@ class Camera:
 
     @property
     def is_ready(self) -> bool:
-        return self.onwire_schema is not None and self.attributes_available
+        # Attributes report interval cannot be controlled in EVP1
+        return (
+            self.onwire_schema is not OnWireProtocol.EVP1 and self.attributes_available
+        )
 
     @property
     def connected(self) -> bool:
@@ -77,7 +80,13 @@ class Camera:
 
             if self.DEPLOY_STATUS_TOPIC in payload:
                 sent_from_camera = True
-                self.deploy_status = payload[self.DEPLOY_STATUS_TOPIC]
+                if (
+                    self.onwire_schema == OnWireProtocol.EVP1
+                    or self.onwire_schema is None
+                ):
+                    self.deploy_status = json.loads(payload[self.DEPLOY_STATUS_TOPIC])
+                else:
+                    self.deploy_status = payload[self.DEPLOY_STATUS_TOPIC]
                 self.attributes_available = True
 
         if sent_from_camera:
