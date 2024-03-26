@@ -47,6 +47,7 @@ def check_rpc_telemetry(telemetry: subprocess.Popen, wedge_cli_pre: list[str]) -
     # 000FF1 = (0,15,241)
     subprocess.run(wedge_cli_pre + ["rpc", "node", "my-method", '{"rgb":"000FF1"}'])
     time.sleep(2)
+    log.info("Waiting to get telemetries")
     for line in telemetry.stdout:  # type: ignore
         telemetry_out = json.loads(line.replace("'", '"'))
         rgb = (
@@ -57,6 +58,19 @@ def check_rpc_telemetry(telemetry: subprocess.Popen, wedge_cli_pre: list[str]) -
 
         assert rgb == ("0", "15", "241")
         break
+
+
+def check_logs(wedge_cli_pre: list[str]) -> None:
+    log.info("Starting to get logs")
+    logs = subprocess.Popen(
+        wedge_cli_pre + ["logs", "node"], stdout=subprocess.PIPE, text=True, bufsize=0
+    )
+    log.info("Waiting for logs")
+    for line in logs.stdout:  # type: ignore
+        log.info(f"Getting logs: {line}")
+        if "Sending telemetry..." in line:
+            logs.kill()
+            break
 
 
 @retry(tries=5, exceptions=AssertionError)
@@ -271,10 +285,14 @@ def main() -> None:
                 cmd_preamble + ["get", "telemetry"],
                 stdout=subprocess.PIPE,
                 text=True,
+                bufsize=0,
             )
 
             check_rpc_telemetry(telemetry, cmd_preamble)
             log.info("Telemetry for RPC arrived succesfully")
+
+            check_logs(cmd_preamble)
+            log.info("Logs arrived succesfully")
 
             check_configuration_telemetry(telemetry, cmd_preamble)
             log.info("Telemetry for Configuration arrived succesfully")
