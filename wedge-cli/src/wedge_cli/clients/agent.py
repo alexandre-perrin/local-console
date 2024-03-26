@@ -175,7 +175,7 @@ class Agent:
             assert self.nursery is not None
             cs = self.nursery.cancel_scope
             self.nursery.start_soon(message_task, cs, self)
-            self.nursery.start_soon(driver_task, cs, self)
+            await driver_task(cs, self)
 
     @asynccontextmanager
     async def mqtt_scope(self, subs_topics: list[str]) -> AsyncIterator[None]:
