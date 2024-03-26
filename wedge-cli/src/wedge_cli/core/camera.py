@@ -23,7 +23,7 @@ class Camera:
     SYSINFO_TOPIC = "systemInfo"
     DEPLOY_STATUS_TOPIC = "deploymentStatus"
 
-    CONNECTION_STATUS_TIMEOUT = timedelta(seconds=20)
+    CONNECTION_STATUS_TIMEOUT = timedelta(seconds=180)
 
     def __init__(self) -> None:
         self.sensor_state = StreamStatus.Disabled
