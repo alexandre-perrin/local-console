@@ -167,11 +167,9 @@ class Driver:
             self.update_image_data(incoming_file)
             self.update_image_directory(incoming_file)
         elif incoming_file.parent == self.inferences_directory:
-            # For test, assumed that the Flatbuffer's binary(.bin) sent to the same directory as
-            # the directory of the output tensor(.txt), as temporary implementation.
-            if incoming_file.suffix.lower() == ".bin":
+            if self.flatbuffers_schema:
                 self.update_inference_data_flatbuffers(incoming_file)
-            elif incoming_file.suffix.lower() == ".txt":
+            else:
                 self.update_inference_data(incoming_file.read_text())
             self.update_inferences_directory(incoming_file)
 
@@ -192,15 +190,19 @@ class Driver:
     def update_inference_data_flatbuffers(self, incoming_file: Path) -> None:
         if incoming_file.exists():
             if self.flatbuffers_schema and incoming_file and self.inferences_directory:
-                # TODO: Will add base64 decoding.
-                self.flatbuffers.flatbuffer_binary_to_json(
-                    self.flatbuffers_schema, incoming_file, self.inferences_directory
-                )
-                # TODO: Now, only works for SmartCamera. Will update it.
-                with open(self.inferences_directory / "SmartCamera.json") as file:
-                    self.gui.views[
-                        "inference screen"
-                    ].ids.inference_field.text = file.read()
+                output_name = "SmartCamera"
+                if self.flatbuffers.flatbuffer_binary_to_json(
+                    self.flatbuffers_schema,
+                    incoming_file,
+                    output_name,
+                    self.inferences_directory,
+                ):
+                    with open(
+                        self.inferences_directory / f"{output_name}.json"
+                    ) as file:
+                        self.gui.views[
+                            "inference screen"
+                        ].ids.inference_field.text = file.read()
 
     @run_on_ui_thread
     def update_image_directory(self, incoming_file: Path) -> None:
