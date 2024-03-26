@@ -1,13 +1,14 @@
 from unittest.mock import patch
 
 from hypothesis import given
-from hypothesis import strategies as st
 from typer.testing import CliRunner
 from wedge_cli.commands.get import app
 from wedge_cli.commands.get import on_message_print_payload
 from wedge_cli.commands.get import on_message_telemetry
 from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.enums import GetObjects
+
+from tests.strategies.configs import generate_text
 
 runner = CliRunner()
 
@@ -32,7 +33,7 @@ def test_get_telemetry_command():
         assert result.exit_code == 0
 
 
-@given(st.text(min_size=1, max_size=5))
+@given(generate_text())
 def test_get_instance_command(instance_id: str):
     with (
         patch("wedge_cli.commands.get.Agent") as mock_agent,

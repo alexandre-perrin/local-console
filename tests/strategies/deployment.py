@@ -5,23 +5,25 @@ from wedge_cli.core.schemas import InstanceSpec
 from wedge_cli.core.schemas import Module
 from wedge_cli.core.schemas import Topics
 
+from tests.strategies.configs import generate_text
+
 
 @st.composite
 def instance_spec_strategy(draw):
     return InstanceSpec(
-        moduleId=draw(st.text(min_size=1, max_size=5)),
+        moduleId=draw(generate_text()),
         subscribe=draw(
             st.dictionaries(
-                st.text(min_size=1, max_size=5),
-                st.text(max_size=5),
+                generate_text(),
+                generate_text(),
                 min_size=1,
                 max_size=5,
             )
         ),
         publish=draw(
             st.dictionaries(
-                st.text(min_size=1, max_size=5),
-                st.text(max_size=5),
+                generate_text(),
+                generate_text(),
                 min_size=1,
                 max_size=5,
             )
@@ -32,28 +34,28 @@ def instance_spec_strategy(draw):
 @st.composite
 def module_strategy(draw):
     return Module(
-        entryPoint=draw(st.text(min_size=1, max_size=5)),
-        moduleImpl=draw(st.text(min_size=1, max_size=5)),
-        downloadUrl=draw(st.text(min_size=1, max_size=5)),
-        hash=draw(st.text(min_size=1, max_size=5)),
+        entryPoint=draw(generate_text()),
+        moduleImpl=draw(generate_text()),
+        downloadUrl=draw(generate_text()),
+        hash=draw(generate_text()),
     )
 
 
 @st.composite
 def topics_strategy(draw):
     return Topics(
-        type=draw(st.text(min_size=1, max_size=5)),
-        topic=draw(st.text(min_size=1, max_size=5)),
+        type=draw(generate_text()),
+        topic=draw(generate_text()),
     )
 
 
 @st.composite
 def deployment_strategy(draw):
     return Deployment(
-        deploymentId=draw(st.text(min_size=1, max_size=5)),
+        deploymentId=draw(generate_text()),
         instanceSpecs=draw(
             st.dictionaries(
-                st.text(min_size=1, max_size=5),
+                generate_text(),
                 instance_spec_strategy(),
                 min_size=1,
                 max_size=5,
@@ -61,7 +63,7 @@ def deployment_strategy(draw):
         ),
         modules=draw(
             st.dictionaries(
-                st.text(min_size=1, max_size=5),
+                generate_text(),
                 module_strategy(),
                 min_size=1,
                 max_size=5,
@@ -69,7 +71,7 @@ def deployment_strategy(draw):
         ),
         publishTopics=draw(
             st.dictionaries(
-                st.text(min_size=1, max_size=5),
+                generate_text(),
                 topics_strategy(),
                 min_size=1,
                 max_size=5,
@@ -77,7 +79,7 @@ def deployment_strategy(draw):
         ),
         subscribeTopics=draw(
             st.dictionaries(
-                st.text(min_size=1, max_size=5),
+                generate_text(),
                 topics_strategy(),
                 min_size=1,
                 max_size=5,

@@ -7,11 +7,13 @@ from wedge_cli.commands.logs import app
 from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.schemas import OnWireProtocol
 
+from tests.strategies.configs import generate_text
+
 runner = CliRunner()
 
 
 @given(
-    st.text(min_size=1, max_size=5),
+    generate_text(),
     st.integers(),
     st.sampled_from(OnWireProtocol),
 )
@@ -42,7 +44,7 @@ def test_logs_command(
 
 
 @given(
-    st.text(min_size=1, max_size=5),
+    generate_text(),
     st.integers(),
 )
 def test_logs_command_exception(instance_id: str, timeout: int):

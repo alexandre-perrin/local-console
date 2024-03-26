@@ -14,12 +14,13 @@ from wedge_cli.core.schemas import AgentConfiguration
 from wedge_cli.core.schemas import OnWireProtocol
 
 from tests.strategies.configs import generate_agent_config
+from tests.strategies.configs import generate_text
 
 
 @given(
-    st.text(),
-    st.text(),
-    st.text(),
+    generate_text(),
+    generate_text(),
+    generate_text(),
     generate_agent_config(),
     st.sampled_from(OnWireProtocol),
 )
@@ -57,7 +58,7 @@ async def test_configure_instance(
         )
 
 
-@given(st.text(), generate_agent_config(), st.sampled_from(OnWireProtocol))
+@given(generate_text(), generate_agent_config(), st.sampled_from(OnWireProtocol))
 @pytest.mark.trio
 async def test_rpc(
     instance_id: str, agent_config: AgentConfiguration, onwire_schema: OnWireProtocol
@@ -83,7 +84,7 @@ async def test_rpc(
         agent.client.publish_and_wait.assert_called_once()
 
 
-@given(st.text(), generate_agent_config(), st.sampled_from(OnWireProtocol))
+@given(generate_text(), generate_agent_config(), st.sampled_from(OnWireProtocol))
 @pytest.mark.trio
 async def test_rpc_error(
     instance_id: str, agent_config: AgentConfiguration, onwire_schema: OnWireProtocol

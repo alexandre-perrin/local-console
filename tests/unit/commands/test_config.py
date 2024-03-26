@@ -17,6 +17,7 @@ from wedge_cli.core.schemas import RemoteConnectionInfo
 from tests.strategies.configs import generate_agent_config
 from tests.strategies.configs import generate_identifiers
 from tests.strategies.configs import generate_invalid_ip
+from tests.strategies.configs import generate_text
 from tests.strategies.configs import generate_valid_ip
 from tests.strategies.configs import generate_valid_port_number
 from tests.strategies.path import path_strategy
@@ -24,7 +25,7 @@ from tests.strategies.path import path_strategy
 runner = CliRunner()
 
 
-@given(st.text(max_size=5), generate_agent_config())
+@given(generate_text(), generate_agent_config())
 def test_config_get_command(parser_return: str, agent_config: AgentConfiguration):
     with (
         patch(
@@ -53,7 +54,7 @@ def test_config_get_command(parser_return: str, agent_config: AgentConfiguration
                 assert result.exit_code == 0
 
 
-@given(st.text(max_size=5), generate_agent_config())
+@given(generate_text(), generate_agent_config())
 def test_config_get_command_section_none(
     parser_return: str, agent_config: AgentConfiguration
 ):
@@ -136,16 +137,8 @@ def test_config_set_command(new_value: str, agent_config: AgentConfiguration):
 
 
 @given(
-    st.text(
-        min_size=1,
-        max_size=2,
-        alphabet=st.characters(whitelist_categories=("Ll", "Nd")),
-    ),
-    st.text(
-        min_size=1,
-        max_size=5,
-        alphabet=st.characters(whitelist_categories=("Ll", "Nd")),
-    ),
+    generate_text(),
+    generate_text(),
     generate_agent_config(),
 )
 def test_config_set_command_value_error(

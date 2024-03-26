@@ -17,6 +17,7 @@ from wedge_cli.core.schemas import RemoteConnectionInfo
 from wedge_cli.core.schemas import TLSConfiguration
 
 from tests.strategies.configs import generate_agent_config
+from tests.strategies.configs import generate_text
 from tests.strategies.configs import generate_tls_config
 from tests.strategies.configs import generate_valid_ip
 from tests.strategies.configs import generate_valid_port_number
@@ -39,7 +40,7 @@ def test_start_remote(remote_host, remote_port) -> None:
         assert result.exit_code == 0
 
 
-@given(st.lists(st.text(min_size=1, max_size=10), max_size=5, min_size=1))
+@given(st.lists(generate_text(), max_size=5, min_size=1))
 def test_start_libraries(libraries_list) -> None:
     with patch(
         "wedge_cli.commands.start.start_agent", return_value=0
@@ -227,7 +228,7 @@ def test_start_agent_remote(valid_ip: str, port: int) -> None:
 
 
 @given(
-    st.lists(st.text(min_size=1, max_size=10), max_size=5, min_size=1),
+    st.lists(generate_text(), max_size=5, min_size=1),
     generate_agent_config(),
 )
 def test_start_agent_libraries(

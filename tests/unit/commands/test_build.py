@@ -19,6 +19,7 @@ from wedge_cli.core.enums import ModuleExtension
 from wedge_cli.core.enums import Target
 from wedge_cli.core.schemas import DeploymentManifest
 
+from tests.strategies.configs import generate_text
 from tests.strategies.deployment import deployment_manifest_strategy
 from tests.strategies.path import path_strategy
 
@@ -27,7 +28,7 @@ runner = CliRunner()
 
 @given(
     deployment_manifest_strategy(),
-    st.lists(st.text(min_size=1, max_size=5), min_size=1, max_size=5),
+    st.lists(generate_text(), min_size=1, max_size=5),
 )
 def test_build_command_wasm(
     deployment_manifest: DeploymentManifest, flags: Optional[list[str]]
@@ -58,7 +59,7 @@ def test_build_command_wasm(
 
 @given(
     deployment_manifest_strategy(),
-    st.lists(st.text(min_size=1, max_size=5), min_size=1, max_size=5),
+    st.lists(generate_text(), min_size=1, max_size=5),
     st.sampled_from(Target),
 )
 def test_build_command_target(
@@ -138,7 +139,7 @@ def test_build_command_secret(
 
 @given(
     deployment_manifest_strategy(),
-    st.lists(st.text(min_size=1, max_size=5), max_size=5),
+    st.lists(generate_text(), max_size=5),
 )
 def test_build_command_wasm_not_found(
     deployment_manifest: DeploymentManifest, flags: Optional[list[str]]
@@ -164,7 +165,7 @@ def test_build_command_wasm_not_found(
         assert result.exit_code == 1
 
 
-@given(st.lists(st.text(max_size=5), max_size=5))
+@given(st.lists(generate_text(), max_size=5))
 def test_compile_wasm(flags: Optional[list[str]]):
     with (
         patch("wedge_cli.commands.build.subprocess.run") as mock_run_agent,
@@ -203,7 +204,7 @@ def test_compile_wasm_file_not_found(flags=[]):
         mock_clang.assert_called_once()
 
 
-@given(st.text(min_size=1, max_size=5), path_strategy(), st.binary())
+@given(generate_text(), path_strategy(), st.binary())
 def test_sign_file(module_name: str, secret_path: Path, bytes_mock: bytes):
     with (
         patch("wedge_cli.commands.build.Path.exists", return_value=True) as mock_exists,
@@ -220,7 +221,7 @@ def test_sign_file(module_name: str, secret_path: Path, bytes_mock: bytes):
         mock_sign.assert_called_once_with(bytes_mock, bytes_mock)
 
 
-@given(st.text(min_size=1, max_size=5), path_strategy())
+@given(generate_text(), path_strategy())
 def test_sign_file_exception(module_name: str, secret_path: Path):
     with (
         patch("wedge_cli.commands.build.Path.exists", return_value=True) as mock_exists,
@@ -236,7 +237,7 @@ def test_sign_file_exception(module_name: str, secret_path: Path):
         mock_open.assert_any_call(f"bin/{file}", "rb")
 
 
-@given(st.text(min_size=1, max_size=5), st.sampled_from(Target))
+@given(generate_text(), st.sampled_from(Target))
 def test_compile_aot(module_name: str, target: Target):
     result = Mock()
     result.returncode = 0
@@ -254,7 +255,7 @@ def test_compile_aot(module_name: str, target: Target):
         )
 
 
-@given(st.text(min_size=1, max_size=5), st.sampled_from(Target))
+@given(generate_text(), st.sampled_from(Target))
 def test_compile_aot_wamrc_fail(module_name: str, target: Target):
     result = Mock()
     result.returncode = 1
@@ -273,7 +274,7 @@ def test_compile_aot_wamrc_fail(module_name: str, target: Target):
         )
 
 
-@given(st.text(min_size=1, max_size=5), st.sampled_from(Target))
+@given(generate_text(), st.sampled_from(Target))
 def test_compile_aot_file_not_found(module_name: str, target: Target):
     with patch(
         "wedge_cli.commands.build.subprocess.run", side_effect=FileNotFoundError
