@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 app = typer.Typer(
     help=(
         "Command to generate a QR code for camera onboarding. "
-        "Host and port options default to the configured values in the CLI."
+        "Host and port options default to the configured values in the CLI"
     )
 )
 
@@ -24,7 +24,7 @@ app = typer.Typer(
 def qr(
     host: Annotated[
         Optional[str],
-        typer.Option(help="Host address for the MQTT broker."),
+        typer.Option(help="Host address for the MQTT broker"),
     ] = None,
     port: Annotated[
         Optional[int],

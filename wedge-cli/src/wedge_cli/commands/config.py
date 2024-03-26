@@ -139,7 +139,7 @@ def config_send(
     config_file: Annotated[
         Path,
         typer.Option(
-            help="Path to a .ini file where the configuration to be sent is defined, it should have the same format as the one in ~/.config/wedge."
+            help="Path to a .ini file where the configuration to be sent is defined, it should have the same format as the one in ~/.config/wedge"
         ),
     ],
     ip: Annotated[str, typer.Option(help="IP where the configuration is send")],
@@ -167,15 +167,15 @@ def config_send(
 def config_instance(
     instance_id: Annotated[
         str,
-        typer.Argument(help="Target instance of the configuration."),
+        typer.Argument(help="Target instance of the configuration"),
     ],
     topic: Annotated[
         str,
-        typer.Argument(help="Topic of the configuration."),
+        typer.Argument(help="Topic of the configuration"),
     ],
     config: Annotated[
         str,
-        typer.Argument(help="Data of the configuration."),
+        typer.Argument(help="Data of the configuration"),
     ],
 ) -> None:
     try:
@@ -197,11 +197,11 @@ async def configure_task(instance_id: str, topic: str, config: str) -> None:
 def config_device(
     interval_max: Annotated[
         int,
-        typer.Argument(help="Max interval to report."),
+        typer.Argument(help="Max interval to report"),
     ],
     interval_min: Annotated[
         int,
-        typer.Argument(help="Min interval to report."),
+        typer.Argument(help="Min interval to report"),
     ],
 ) -> None:
     retcode = 1

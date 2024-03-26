@@ -177,7 +177,7 @@ def run_agent_tls_with_custom_localhost(
         raise SystemExit(
             "cwrap's nss_wrapper library was not found. Please "
             "install it in order to launch the agent in TLS mode "
-            "as it tries to connect to the local MQTT broker."
+            "as it tries to connect to the local MQTT broker"
         )
 
     with TemporaryDirectory() as tempdir:

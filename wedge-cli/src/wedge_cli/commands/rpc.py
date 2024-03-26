@@ -14,15 +14,15 @@ logger = logging.getLogger(__name__)
 def rpc(
     instance_id: Annotated[
         str,
-        typer.Argument(help="Target instance of the RPC."),
+        typer.Argument(help="Target instance of the RPC"),
     ],
     method: Annotated[
         str,
-        typer.Argument(help="Method of the RPC."),
+        typer.Argument(help="Method of the RPC"),
     ],
     params: Annotated[
         str,
-        typer.Argument(help="JSON representing the parameters."),
+        typer.Argument(help="JSON representing the parameters"),
     ],
 ) -> None:
     try:

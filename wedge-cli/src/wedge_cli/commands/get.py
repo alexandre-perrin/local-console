@@ -60,7 +60,7 @@ async def on_message_telemetry(cs: trio.CancelScope, agent: Agent) -> None:
 def instance(
     instance_id: Annotated[
         str,
-        typer.Argument(help="Target instance of the RPC."),
+        typer.Argument(help="Target instance of the RPC"),
     ]
 ) -> None:
     agent = Agent()

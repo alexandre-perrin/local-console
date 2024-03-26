@@ -8,7 +8,7 @@ from wedge_cli.core.schemas import AgentConfiguration
 from wedge_cli.servers.broker import spawn_broker
 
 app = typer.Typer(
-    help="Command to start a MQTT broker. It will fail if there is already a broker listening in the port specified in config."
+    help="Command to start a MQTT broker. It will fail if there is already a broker listening in the port specified in config"
 )
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ def broker(
         config = get_config()
         trio.run(broker_task, config, verbose, server_name)
     except KeyboardInterrupt:
-        logger.warning("Cancelled by the user.")
+        logger.warning("Cancelled by the user")
 
 
 async def broker_task(

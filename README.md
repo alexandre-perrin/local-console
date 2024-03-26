@@ -136,7 +136,7 @@ wedge-cli build
 wedge-cli --verbose deploy
 ```
 
-it will show the following logs in between the topics recieved(this can be avoided by removing the `--verbose` option)
+it will show the following logs in between the topics received (this can be avoided by removing the `--verbose` option)
 ```
 DEBUG: GET /bin/sink.wasm HTTP/1.1 200 -
 DEBUG: GET /bin/source.wasm HTTP/1.1 200 -
