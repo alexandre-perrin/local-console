@@ -7,12 +7,14 @@ from hypothesis import strategies as st
 from typer.testing import CliRunner
 from wedge_cli.commands.new import app
 
+from tests.strategies.configs import generate_text
+
 runner = CliRunner()
 
 
 @given(
-    st.text(min_size=1, max_size=5),
-    st.lists(st.text(min_size=1, max_size=5), min_size=1),
+    generate_text(),
+    st.lists(generate_text(), min_size=1),
 )
 def test_new_command(name: str, path_mock: str):
     assets_mock = Mock()

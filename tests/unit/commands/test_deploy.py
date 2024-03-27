@@ -7,10 +7,10 @@ import pytest
 from hypothesis import given
 from typer.testing import CliRunner
 from wedge_cli.clients.agent import Agent
+from wedge_cli.clients.agent import check_attributes_request
 from wedge_cli.commands.deploy import app
-from wedge_cli.commands.deploy import check_attributes_request
-from wedge_cli.commands.deploy import get_empty_deployment
 from wedge_cli.core.camera import MQTTTopics
+from wedge_cli.core.commands.deploy import get_empty_deployment
 from wedge_cli.core.enums import Target
 from wedge_cli.core.schemas import AgentConfiguration
 from wedge_cli.core.schemas import DeploymentManifest
@@ -29,8 +29,8 @@ def test_get_empty_deployment():
     assert len(empty.deployment.deploymentId) != 0
 
 
-@given(st.booleans(), generate_agent_config())
-def test_deploy_empty_command(empty: bool, agent_config: AgentConfiguration) -> None:
+@given(generate_agent_config())
+def test_deploy_empty_command(agent_config: AgentConfiguration) -> None:
     with (
         patch("wedge_cli.commands.deploy.Agent") as mock_agent_client,
         patch("wedge_cli.commands.deploy.get_empty_deployment") as mock_get_deployment,
@@ -38,16 +38,13 @@ def test_deploy_empty_command(empty: bool, agent_config: AgentConfiguration) -> 
         patch("wedge_cli.commands.deploy.is_localhost", return_value=True),
         patch("wedge_cli.commands.deploy.exec_deployment") as mock_exec_deploy,
     ):
-        if empty:
-            result = runner.invoke(app, ["-e"])
-            mock_agent_client.assert_called_once()
-            mock_get_deployment.assert_called_once()
-            mock_exec_deploy.assert_called_once_with(
-                mock_agent_client(), mock_get_deployment.return_value, ANY, ANY, ANY
-            )
-            assert result.exit_code == 0
-        else:
-            pass
+        result = runner.invoke(app, ["-e"])
+        mock_agent_client.assert_called_once()
+        mock_get_deployment.assert_called_once()
+        mock_exec_deploy.assert_called_once_with(
+            mock_agent_client(), mock_get_deployment.return_value, ANY, ANY, ANY, ANY
+        )
+        assert result.exit_code == 0
 
 
 @given(deployment_manifest_strategy(), st.sampled_from(Target), generate_agent_config())
@@ -87,7 +84,7 @@ def test_deploy_command_target(
         )
         mock_make_unique_ids.assert_called_once()
         mock_exec_deploy.assert_called_once_with(
-            mock_agent_client(), deployment_manifest, ANY, ANY, ANY
+            mock_agent_client(), deployment_manifest, ANY, ANY, ANY, ANY
         )
         assert result.exit_code == 0
 
@@ -130,7 +127,7 @@ def test_deploy_command_signed(
         )
         mock_make_unique_ids.assert_called_once()
         mock_exec_deploy.assert_called_once_with(
-            mock_agent_client(), deployment_manifest, ANY, ANY, ANY
+            mock_agent_client(), deployment_manifest, ANY, ANY, ANY, ANY
         )
         assert result.exit_code == 0
 
@@ -173,20 +170,18 @@ def test_deploy_command_timeout(
         )
         mock_make_unique_ids.assert_called_once()
         mock_exec_deploy.assert_called_once_with(
-            mock_agent_client(), deployment_manifest, ANY, ANY, timeout
+            mock_agent_client(), deployment_manifest, ANY, ANY, ANY, timeout
         )
         assert result.exit_code == 0
 
 
 @given(
-    deployment_manifest_strategy(),
     st.booleans(),
     st.integers(),
     st.sampled_from(Target),
     generate_agent_config(),
 )
 def test_deploy_manifest_no_bin(
-    deployment_manifest: DeploymentManifest,
     signed: bool,
     timeout: int,
     target: Target,

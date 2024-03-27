@@ -46,7 +46,7 @@ def qr(
     # Take default values from the configured settings
     config = get_config()
     host = config.mqtt.host.ip_value if not host else host
-    port = config.mqtt.port if not port else port
+    port = config.mqtt.port if port is None else port
     tls_enabled = config.is_tls_enabled if enable_tls is None else enable_tls
 
     local_ip = get_my_ip_by_routing()

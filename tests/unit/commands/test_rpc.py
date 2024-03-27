@@ -1,20 +1,20 @@
 from unittest.mock import patch
 
 from hypothesis import given
-from hypothesis import strategies as st
 from typer.testing import CliRunner
 from wedge_cli.commands.rpc import app
 from wedge_cli.core.schemas import AgentConfiguration
 
 from tests.strategies.configs import generate_agent_config
+from tests.strategies.configs import generate_text
 
 runner = CliRunner()
 
 
 @given(
-    st.text(min_size=1, max_size=5),
-    st.text(min_size=1, max_size=5),
-    st.text(min_size=1, max_size=5),
+    generate_text(),
+    generate_text(),
+    generate_text(),
     generate_agent_config(),
 )
 def test_rpc_command(
@@ -31,9 +31,9 @@ def test_rpc_command(
 
 
 @given(
-    st.text(min_size=1, max_size=5),
-    st.text(min_size=1, max_size=5),
-    st.text(min_size=1, max_size=5),
+    generate_text(),
+    generate_text(),
+    generate_text(),
     generate_agent_config(),
 )
 def test_rpc_command_exception(
