@@ -6,7 +6,7 @@ Make sure that you have the agent running and follow the next steps:
 
 1. Build the application
 
-Move to the [rpc sample directory](../samples/rpc-example) path and build the application by running
+Move to the [rpc sample directory](../../samples/rpc-example) path and build the application by running
 
 ```sh
 wedge-cli build

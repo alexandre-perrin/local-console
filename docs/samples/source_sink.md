@@ -10,7 +10,7 @@ Make sure that you have the agent running and follow the next steps:
 
 1. Build the application
 
-Move to the [source-sink sample directory](../samples/source-sink) path and build the application by running
+Move to the [source-sink sample directory](../../samples/source-sink) path and build the application by running
 
 ```sh
 wedge-cli build
