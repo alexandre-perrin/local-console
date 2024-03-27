@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 def get_default_config() -> configparser.ConfigParser:
     config = configparser.ConfigParser()
     config["evp"] = {
-        "iot_platform": "tb",
+        "iot_platform": "EVP1",
     }
     config["mqtt"] = {"host": "localhost", "port": "1883"}
     config["webserver"] = {"host": "localhost", "port": "8000"}
