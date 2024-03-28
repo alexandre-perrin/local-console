@@ -13,7 +13,7 @@ This tool simplifies the development of applications in a local environment by p
 Make sure your system has installed:
 
 * GNU make
-* Python 3.9 (or higher)
+* Python 3.10 (or higher)
 * pip
 
 #### 1. WEdge Agent
@@ -90,12 +90,14 @@ By default, the mosquitto service will be up and running in the 1883 port. You c
 ```sh
 systemctl status mosquitto.service
 ```
-In case you want to initiate another mosquitto instance in another port you can run the following command:
+Make sure that its installation did not enable a running instance, by doing:
 
 ```sh
-mosquitto -c mosquitto.conf
+sudo systemctl disable mosquitto.service
+sudo systemctl stop mosquitto.service
 ```
-And specify the port that you want to use with the parameter `listener` in `mosquitto.conf`.
+
+This action is only necessary once (i.e. after installing the software).
 
 > [!TIP]
 > If you configure the broker to listen on a port `XXXX` other than the default 1883, you can specify it in the WEdge CLI config by doing `wedge config set mqtt port XXXX`
