@@ -39,7 +39,7 @@ class ConnectionScreenView(BaseScreenView):
             widget.error = True
             logger.warning(f"Validation error of MQTT port {widget}: {e}")
 
-    def validate_ntp_port(self, widget: Widget, text: str) -> None:
+    def validate_ntp_host(self, widget: Widget, text: str) -> None:
         self.model.ntp_host = text
         try:
             IPAddress(ip_value=text)
