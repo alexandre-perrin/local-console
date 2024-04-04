@@ -67,3 +67,7 @@ Created desktop shortcut at: C:\Users\User\Desktop\Wedge GUI.lnk
 ```
 
 3. The script created a shortcut icon at your Windows desktop. Please click on it, and if asked allow network connections through the Windows firewall. You are now ready to use the GUI.
+
+## Uninstalling
+
+Just repeat the same procedure as above, but targeting the `wedge_uninstall.ps1` script instead of `wedge_install.ps1`. The script will remove the desktop shortcut and all files within your user's `%APPDATA%` folder. System dependencies such as Git, Mosquitto and Python 3.11 will remain installed. Should you want to remove them, you'll need to do so manually.
