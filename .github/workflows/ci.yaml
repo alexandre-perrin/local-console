@@ -47,19 +47,19 @@ jobs:
             mv /tmp/wasi-sdk-20.0 /opt/wasi-sdk
     - name: Install wedge-cli
       run: |
-        pip install wedge-cli/
+        python3 -m venv .venv
+        . .venv/bin/activate
+        pip install -e wedge-cli/
         pip install -r tests/requirements.txt
-        pip uninstall --yes docutils
     - name: Run Unit Test
       id: unit-test
       # The unit test suites test E2E independently of the environment,
       # so we don't need to run them more than once.
       if: ${{ matrix.with-tls }}
       run: |
+        . .venv/bin/activate
         coverage run -m pytest tests -o junit_family=xunit1 --junitxml=xunit-result.xml --hypothesis-seed=42
-    - name: Build Report
-      if: ${{ matrix.with-tls }}
-      run: coverage xml
+        coverage xml
     - name: SonarCloud Scan
       if: ${{ matrix.with-tls }}
       uses: SonarSource/sonarcloud-github-action@v2.1.1
@@ -82,6 +82,7 @@ jobs:
     - name: Run E2E with${{ matrix.with-tls == false && 'out' || '' }} TLS (for ${{ matrix.ows-version }})
       id: e2e
       run: |
+        . .venv/bin/activate
         runuser -u testbot -- python tests/e2e.py ${{ matrix.with-tls == true && '--with-tls' || '' }} -s ${{ matrix.ows-version }}
 
   pre-commit:
