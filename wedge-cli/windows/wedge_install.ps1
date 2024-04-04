@@ -17,10 +17,10 @@ function Main
     Get-Git
     Get-Python311
 
-    Write-LogMessage "Installing Wedge CLI"
+    Write-LogMessage "Installing Wedge CLI & GUI"
 
     Refresh-Path
-    $appDataDir = Create-AppDataDirectory -DirectoryName "WedgeCLI"
+    $appDataDir = Create-AppDataDirectory -DirectoryName "OfflineTool"
     $virtualenvDir = Join-Path -Path $appDataDir -ChildPath "virtualenv"
     Create-PythonEnvWithExecutable -VirtualenvDir $virtualenvDir
 
@@ -226,7 +226,7 @@ function Create-PythonEnvWithExecutable
         }
     }
 
-    $activateScript = Join-Path -Path $VirtualenvDir -ChildPath "Scripts\Activate.ps1"
+    $activateScript = Join-Path -Path $(Join-Path -Path $VirtualenvDir -ChildPath "Scripts") -ChildPath "Activate.ps1"
     if (Test-Path $activateScript -PathType Leaf)
     {
         Write-Host "Skipped creation."
@@ -243,8 +243,9 @@ function Create-PythonEnvWithExecutable
     # Update pip and Install the repo within the virtual environment
     python -m pip install --upgrade pip
     $repoPath = Get-RepoPathFromHere
-    python -m pip install "$repoPath\wedge-cli"
-    Write-LogMessage "Wedge CLI has been installed."
+    $repoSubDir = Join-Path -Path $repoPath -ChildPath "wedge-cli"
+    python -m pip install "`"$repoSubDir`""
+    Write-LogMessage "Offline Tool has been installed."
 
     Write-LogMessage "Virtual environment has been updated."
 }
@@ -337,7 +338,7 @@ function Create-DesktopShortcut {
     )
 
     $WshShell = New-Object -comObject WScript.Shell
-    $DestinationPath = $WshShell.SpecialFolders("Desktop") + "\Wedge GUI.lnk"
+    $DestinationPath = Join-Path -Path $WshShell.SpecialFolders("Desktop") -ChildPath "Wedge GUI.lnk"
 
     # If icon already exists, just remove it so that we make sure it is
     # kept up to date since recreating has zero cost.
@@ -345,7 +346,7 @@ function Create-DesktopShortcut {
         Remove-Item -Path $DestinationPath
     }
 
-    $SourceExe = Join-Path -Path $VirtualenvDir -ChildPath "Scripts\python.exe"
+    $SourceExe = Join-Path -Path $(Join-Path -Path $VirtualenvDir -ChildPath "Scripts") -ChildPath "python.exe"
     $Command = '-m wedge_cli gui'
 
     $Shortcut = $WshShell.CreateShortcut($DestinationPath)
