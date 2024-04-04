@@ -1,20 +1,44 @@
 import base64
 import json
 import logging
+import os
 import subprocess
+import sys
 from pathlib import Path
+from shutil import which
 
 logger = logging.getLogger(__file__)
 
 
 class FlatBuffers:
+    @staticmethod
+    def get_flatc() -> str:
+        """
+        For linux, this has no relevant effects.
+        For windows, the installer script placed the flatc binary
+                     within the virtualenv's scripts directory.
+        """
+        env_root = str(Path(sys.executable).parent)
+        current_path = os.environ.get("PATH", "")
+        if env_root not in current_path.split(os.pathsep):
+            os.environ["PATH"] = current_path + os.pathsep + env_root
+
+        # Resolve the path to flatc from the PATH
+        flatc_path = which("flatc")
+        if not flatc_path:
+            logger.error("flatc not found in PATH")
+            return "flatc"
+        else:
+            return flatc_path
+
     def conform_flatbuffer_schema(self, fbs: Path) -> tuple[bool, str]:
         """
         Verifies if JSON is valid.
         """
         try:
+            flatc_path = self.get_flatc()
             subprocess.check_output(
-                ["flatc", "--conform", fbs],
+                [flatc_path, "--conform", fbs],
                 stderr=subprocess.STDOUT,
             )
         except subprocess.CalledProcessError as e:
@@ -66,9 +90,10 @@ class FlatBuffers:
             with open(out_path, "wb") as f:
                 f.write(output_tensor_decode)
 
+            flatc_path = self.get_flatc()
             subprocess.call(
                 [
-                    "flatc",
+                    flatc_path,
                     "--json",
                     "--strict-json",
                     "-o",

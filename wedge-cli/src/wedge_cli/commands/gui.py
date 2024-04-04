@@ -23,4 +23,10 @@ def gui() -> None:
     """
     from wedge_cli.gui.main import WedgeGUIApp
 
-    trio.run(WedgeGUIApp().app_main)
+    try:
+        trio.run(WedgeGUIApp().app_main)
+    except Exception as e:
+        logger.exception(
+            "Uncaught exception ocurred. Press Enter to abort.", exc_info=e
+        )
+        input()

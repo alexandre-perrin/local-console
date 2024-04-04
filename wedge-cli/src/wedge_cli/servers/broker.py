@@ -14,6 +14,7 @@ import trio
 from wedge_cli.core.enums import config_paths
 from wedge_cli.core.schemas import AgentConfiguration
 from wedge_cli.utils.tls import ensure_certificate_pair_exists
+from wedge_cli.utils.windows import get_program_files_path
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ async def spawn_broker(
         if platform.system() == "Linux":
             broker_bin = "mosquitto"
         elif platform.system() == "Windows":
-            broker_bin = "C:\\Program Files\\mosquitto\\mosquitto.exe"
+            broker_bin = get_program_files_path() + "\\mosquitto\\mosquitto.exe"
 
         config_file = Path(tmp_dir) / "broker.toml"
         populate_broker_conf(config, config_file)

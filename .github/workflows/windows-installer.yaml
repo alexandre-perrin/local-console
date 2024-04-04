@@ -1,0 +1,54 @@
+name: windows-installer
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  # TODO: remove
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build the Inno Setup Installer
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.4
+        with:
+          path: ./inno-setup.iss
+          options: /O+
+
+      - name: Upload the Inno Setup Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: ./Output/offline-tool-setup.exe
+
+  test:
+    runs-on: windows-latest
+    needs: build
+    steps:
+      - name: Download installer
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-installer
+
+      - name: Check file list
+        run: ls
+
+      - name: Perform installation
+        shell: pwsh
+        run: Start-Process -FilePath ".\offline-tool-setup.exe" -ArgumentList "/SILENT" -Wait
+
+      - name: Test
+        shell: pwsh
+        run: |
+          $AppDir = Join-Path -Path $env:APPDATA -ChildPath "WedgeCLI\virtualenv"
+          $SourceExe = Join-Path -Path $AppDir -ChildPath "Scripts\python.exe"
+          $TestCmd = "$SourceExe -m wedge_cli config get"
+          Invoke-Expression $TestCmd
