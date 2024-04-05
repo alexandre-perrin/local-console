@@ -1,5 +1,7 @@
 [run]
-branch = True
 relative_files = True
-source =
-    wedge-cli/src/
+include =
+    wedge-cli/src/*
+omit =
+    wedge-cli/src/wedge_cli/assets/*
+branch = True

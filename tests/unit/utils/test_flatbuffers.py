@@ -16,7 +16,7 @@ def test_flatc_conform():
         path = Mock()
         assert (True, "Success!") == fb.conform_flatbuffer_schema(path)
         mock_subprocess.check_output.assert_called_once_with(
-            ["flatc", "--conform", path], stderr=mock_subprocess.STDOUT
+            [fb.get_flatc(), "--conform", path], stderr=mock_subprocess.STDOUT
         )
 
 
@@ -70,7 +70,7 @@ def test_flatbuffer_binary_to_json(tmp_path):
         )
         mock_call.assert_called_once_with(
             [
-                "flatc",
+                fb.get_flatc(),
                 "--json",
                 "--strict-json",
                 "-o",
