@@ -98,6 +98,12 @@ jobs:
       - name: Run Pre-commit
         uses: pre-commit/action@v3.0.1
 
+  installer:
+    name: Windows installer
+    needs: [pre-commit]
+    uses: ./.github/workflows/windows-installer.yaml
+    secrets: inherit
+
   publish:
     name: Publish and tag
     runs-on: [self-hosted, X64]
