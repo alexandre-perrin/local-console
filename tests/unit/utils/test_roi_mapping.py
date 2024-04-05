@@ -1,7 +1,7 @@
-from wedge_cli.gui.Utility.axis_mapping import as_normal_in_set
-from wedge_cli.gui.Utility.axis_mapping import DEFAULT_ROI
-from wedge_cli.gui.Utility.axis_mapping import pixel_roi_from_normals
-from wedge_cli.gui.Utility.axis_mapping import SENSOR_SIZE
+from wedge_cli.gui.utils.axis_mapping import as_normal_in_set
+from wedge_cli.gui.utils.axis_mapping import DEFAULT_ROI
+from wedge_cli.gui.utils.axis_mapping import pixel_roi_from_normals
+from wedge_cli.gui.utils.axis_mapping import SENSOR_SIZE
 
 
 def test_normalizing():

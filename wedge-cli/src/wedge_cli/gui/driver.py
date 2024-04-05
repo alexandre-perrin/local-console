@@ -16,10 +16,10 @@ from wedge_cli.core.camera import Camera
 from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.config import get_config
 from wedge_cli.core.schemas import DesiredDeviceConfig
-from wedge_cli.gui.Utility.axis_mapping import pixel_roi_from_normals
-from wedge_cli.gui.Utility.axis_mapping import UnitROI
-from wedge_cli.gui.Utility.sync_async import run_on_ui_thread
-from wedge_cli.gui.Utility.sync_async import SyncAsyncBridge
+from wedge_cli.gui.utils.axis_mapping import pixel_roi_from_normals
+from wedge_cli.gui.utils.axis_mapping import UnitROI
+from wedge_cli.gui.utils.sync_async import run_on_ui_thread
+from wedge_cli.gui.utils.sync_async import SyncAsyncBridge
 from wedge_cli.servers.broker import spawn_broker
 from wedge_cli.servers.webserver import AsyncWebserver
 from wedge_cli.utils.flatbuffers import FlatBuffers
