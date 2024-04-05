@@ -53,13 +53,12 @@ class ConnectionScreenModel(BaseScreenModel):
 
     def validate_mqtt_port(self) -> bool:
         try:
-            mqtt_port = int(self.mqtt_port)
             MQTTParams(
                 host=IPAddress(ip_value="localhost"),
-                port=mqtt_port,
+                port=int(self.mqtt_port),
                 device_id=None,
             )
-        except (ValueError, ValidationError) as e:
+        except ValueError as e:
             logger.warning(f"Validation error of MQTT port: {e}")
             return False
         return True
