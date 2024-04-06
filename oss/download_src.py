@@ -11,7 +11,7 @@ target_folder = pathlib.Path() / "tools"
 
 
 def main() -> None:
-    with open(root_path / "manual-tools-sbom.json") as f:
+    with open(root_path / "manual-application-tools-sbom.json") as f:
         data = json.loads(f.read())
 
     for component in data["components"]:
