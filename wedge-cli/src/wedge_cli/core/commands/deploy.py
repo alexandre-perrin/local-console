@@ -159,7 +159,6 @@ class EVP1DeployFSM(DeployFSM):
         if is_finished and matches:
             logger.info("Deployment complete")
             self.done.set()
-            return
 
     async def message_task(self) -> None:
         """
