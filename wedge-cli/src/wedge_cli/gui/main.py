@@ -20,8 +20,8 @@ from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.screenmanager import MDScreenManager
 from wedge_cli.gui.driver import Driver
-from wedge_cli.gui.View.screens import screens
-from wedge_cli.gui.View.screens import start_screen
+from wedge_cli.gui.view.screens import screens
+from wedge_cli.gui.view.screens import start_screen
 
 logger = logging.getLogger(__name__)
 
