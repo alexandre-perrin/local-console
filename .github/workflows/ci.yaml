@@ -12,7 +12,7 @@ env:
 
 jobs:
   test:
-    name: Test (E2E for ${{ matrix.ows-version }} with${{ matrix.with-tls == false && 'out' || '' }} TLS)
+    name: Test (E2E for ${{ matrix.ows-version }} with${{ matrix.with-tls == false && 'out' || '' }} TLS${{ matrix.with-tls && ' & Unit' || '' }})
     runs-on: [self-hosted, X64]
     container: ubuntu:22.04
     timeout-minutes: 20
@@ -104,18 +104,16 @@ jobs:
     uses: ./.github/workflows/windows-installer.yaml
     secrets: inherit
 
-  publish:
-    name: Publish and tag
+  verify:
+    name: Verify if already published
     runs-on: [self-hosted, X64]
-    needs: [pre-commit, test, installer]
     if: github.ref == 'refs/heads/main'
+    outputs:
+      exists: ${{ steps.check-tag.outputs.exists }}
+      tag: ${{ steps.tag.outputs.string }}
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-    - name: Setup Python ${{ env.PYTHON_VERSION }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
     - name: Extract version
       id: tag
       run: |
@@ -126,16 +124,24 @@ jobs:
       id: check-tag
       with:
         tag: ${{ steps.tag.outputs.string }}
-    - name: Fail if tag already exists
-      if: steps.check-tag.outputs.exists != 'false'
-      run: |
-        echo "::error file=ci.yaml::Tag ${{ steps.tag.outputs.string }} already exists!"
-        exit 1
+
+  publish:
+    name: Publish and tag
+    runs-on: [self-hosted, X64]
+    needs: [pre-commit, test, installer, verify]
+    if: needs.verify.outputs.exists == 'false'
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Setup Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
     - name: Tag new version
       uses: tvdias/github-tagger@v0.0.2
       with:
         repo-token: ${{ secrets.TOKEN_PACKAGES }}
-        tag: ${{ steps.tag.outputs.string }}
+        tag: ${{ needs.verify.outputs.tag }}
     - name: Build wheel
       run: |
         python3 -m pip install build
@@ -155,10 +161,10 @@ jobs:
         merge-multiple: true
     - uses: softprops/action-gh-release@v2
       with:
-        name: ${{ steps.tag.outputs.string }}
-        tag_name: ${{ steps.tag.outputs.string }}
-        #TODO add proper release notes
-        body: Release ${{ steps.tag.outputs.string }}
+        name: ${{ needs.verify.outputs.tag }}
+        tag_name: ${{ needs.verify.outputs.tag }}
+        # TODO add proper release notes
+        body: Release ${{ needs.verify.outputs.tag }}
         files: |
           offline-tool-setup.exe
           wedge-cli/dist/*.whl
