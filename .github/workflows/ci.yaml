@@ -98,10 +98,16 @@ jobs:
       - name: Run Pre-commit
         uses: pre-commit/action@v3.0.1
 
+  installer:
+    name: Windows installer
+    needs: [pre-commit]
+    uses: ./.github/workflows/windows-installer.yaml
+    secrets: inherit
+
   publish:
     name: Publish and tag
     runs-on: [self-hosted, X64]
-    needs: [pre-commit, test]
+    needs: [pre-commit, test, installer]
     if: github.ref == 'refs/heads/main'
     steps:
     - name: Checkout
@@ -111,31 +117,48 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     - name: Extract version
+      id: tag
       run: |
-            package_version=$(awk -F' = ' '/^version/ {print $2}' wedge-cli/setup.cfg | tr -d "'")
-            echo "PACKAGE_VERSION=$package_version" >> "$GITHUB_ENV"
+        package_version=$(awk -F' = ' '/^version/ {print $2}' wedge-cli/setup.cfg | tr -d "'")
+        echo "string=v$package_version" >> "$GITHUB_OUTPUT"
     - name: Check
       uses: mukunku/tag-exists-action@v1.6.0
       id: check-tag
       with:
-        tag: v${{ env.PACKAGE_VERSION }}
+        tag: ${{ steps.tag.outputs.string }}
+    - name: Fail if tag already exists
+      if: steps.check-tag.outputs.exists != 'false'
+      run: |
+        echo "::error file=ci.yaml::Tag ${{ steps.tag.outputs.string }} already exists!"
+        exit 1
     - name: Tag new version
       uses: tvdias/github-tagger@v0.0.2
-      if: steps.check-tag.outputs.exists == 'false'
       with:
         repo-token: ${{ secrets.TOKEN_PACKAGES }}
-        tag: v${{ env.PACKAGE_VERSION }}
+        tag: ${{ steps.tag.outputs.string }}
     - name: Build wheel
-      if: steps.check-tag.outputs.exists == 'false'
       run: |
         python3 -m pip install build
         python3 -m build wedge-cli/ --wheel
     - name: Upload to AZ
       uses: bacongobbler/azure-blob-storage-upload@main
-      if: steps.check-tag.outputs.exists == 'false'
       with:
         source_dir: wedge-cli/dist
         container_name: main
         connection_string: ${{ secrets.CEDATA_CONNECTION_STRING }}
         extra_args: '--pattern *.whl'
         overwrite: 'true'
+    - name: Get Windows Installer
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ needs.installer.outputs.artifact }}
+        merge-multiple: true
+    - uses: softprops/action-gh-release@v2
+      with:
+        name: ${{ steps.tag.outputs.string }}
+        tag_name: ${{ steps.tag.outputs.string }}
+        #TODO add proper release notes
+        body: Release ${{ steps.tag.outputs.string }}
+        files: |
+          offline-tool-setup.exe
+          wedge-cli/dist/*.whl

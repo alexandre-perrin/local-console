@@ -1,16 +1,16 @@
 name: windows-installer
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-  # TODO: remove
-  pull_request:
+  workflow_call:
 
 jobs:
   build:
+    name: Build
     runs-on: windows-latest
+    env:
+      ARTIFACT_NAME: windows-installer
+    outputs:
+      artifact: ${{ env.ARTIFACT_NAME }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,10 +26,11 @@ jobs:
       - name: Upload the Inno Setup Installer
         uses: actions/upload-artifact@v4
         with:
-          name: windows-installer
+          name: ${{ env.ARTIFACT_NAME }}
           path: ./Output/offline-tool-setup.exe
 
   test:
+    name: Test
     runs-on: windows-latest
     needs: build
     steps:
