@@ -45,7 +45,9 @@ class AIModelScreenView(BaseScreenView):
         self.manager_open = False
         self.opening_path = Path.cwd()
         self.file_manager = MDFileManager(
-            exit_manager=self.exit_manager, select_path=self.select_path
+            exit_manager=self.exit_manager,
+            select_path=self.select_path,
+            selector="file",
         )
 
     def file_manager_open(self) -> None:
