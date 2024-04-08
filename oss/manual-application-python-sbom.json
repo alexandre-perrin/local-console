@@ -1,22 +1,6 @@
 {
   "components": [
     {
-      "bom-ref": "colorama==0.4.6",
-      "externalReferences": [
-        {
-          "type": "license",
-          "url": "https://github.com/tartley/colorama/blob/0.4.6/LICENSE.txt"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "BSD 3-Clause New or Revised License"
-          }
-        }
-      ]
-    },
-    {
       "bom-ref": "idna==3.6",
       "externalReferences": [
         {
@@ -37,7 +21,7 @@
       "externalReferences": [
         {
           "type": "license",
-          "url": "https://github.com/python/importlib_metadata/blob/v7.0.2/LICENSE"
+          "url": "https://github.com/python/importlib_metadata/blob/v7.1.0/LICENSE"
         }
       ],
       "licenses": [
