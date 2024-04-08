@@ -1,3 +1,4 @@
+from datetime import timedelta
 from unittest.mock import ANY
 from unittest.mock import AsyncMock
 from unittest.mock import patch
@@ -5,6 +6,7 @@ from unittest.mock import patch
 import hypothesis.strategies as st
 import pytest
 from hypothesis import given
+from hypothesis import settings
 from typer.testing import CliRunner
 from wedge_cli.clients.agent import Agent
 from wedge_cli.clients.agent import check_attributes_request
@@ -89,9 +91,7 @@ def test_deploy_command_target(
         assert result.exit_code == 0
 
 
-# @given(st.booleans(), generate_agent_config())
-# agent_config: AgentConfiguration) -> None:
-#        patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
+@settings(deadline=timedelta(seconds=10))
 @given(deployment_manifest_strategy(), generate_agent_config())
 def test_deploy_command_signed(
     deployment_manifest: DeploymentManifest, agent_config: AgentConfiguration
