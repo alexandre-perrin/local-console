@@ -19,7 +19,7 @@
 
 <ConnectionScreenView>
     md_bg_color: self.theme_cls.backgroundColor
-    on_enter: self.model_is_changed()
+    on_enter: self.entry_actions()
 
     MDBoxLayout:
         orientation: "vertical"
@@ -106,7 +106,7 @@
                         text: "NTP server address:"
                     LocalIPInput:
                         id: txt_ntp_host
-                        on_text: root.validate_ntp_port(*args)
+                        on_text: root.validate_ntp_host(*args)
                         multiline: False
                         focus_previous: txt_mqtt_port
                         focus_next: txt_mqtt_host

@@ -27,7 +27,7 @@ class ConnectionScreenController:
         tls_enabled = False
         qr = get_qr_object(
             replace_local_address(self.model.mqtt_host),
-            self.model.mqtt_port,
+            int(self.model.mqtt_port),
             tls_enabled,
             replace_local_address(self.model.ntp_host),
             border=4,

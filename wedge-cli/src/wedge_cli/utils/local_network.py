@@ -1,5 +1,8 @@
 import ipaddress
+import logging
 import socket
+
+logger = logging.getLogger(__file__)
 
 
 def get_my_ip_by_routing(probe_host: str = "9.9.9.9") -> str:
@@ -23,10 +26,13 @@ def is_localhost(hostname: str) -> bool:
         return ipaddress.ip_address(resolved_ip).is_loopback
     except socket.gaierror:
         return False
+    except UnicodeError:
+        # Raised when using very long strings
+        return False
+    except Exception as e:
+        logger.warn(f"Unknown error while getting host by name: {e}")
+    return False
 
 
 def replace_local_address(hostname: str) -> str:
-    host = hostname
-    if is_localhost(host):
-        host = LOCAL_IP
-    return host
+    return LOCAL_IP if is_localhost(hostname) else hostname

@@ -77,6 +77,14 @@ def generate_valid_port_number(draw: st.DrawFn) -> int:
 
 
 @st.composite
+def generate_invalid_port_number(draw: st.DrawFn) -> int:
+    return draw(
+        st.integers(min_value=-100, max_value=-1)
+        | st.integers(min_value=65536, max_value=100000)
+    )
+
+
+@st.composite
 def generate_agent_config(draw: st.DrawFn) -> AgentConfiguration:
     return AgentConfiguration(
         evp=EVPParams(
