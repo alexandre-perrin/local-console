@@ -89,9 +89,6 @@ def test_deploy_command_target(
         assert result.exit_code == 0
 
 
-# @given(st.booleans(), generate_agent_config())
-# agent_config: AgentConfiguration) -> None:
-#        patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
 @given(deployment_manifest_strategy(), generate_agent_config())
 def test_deploy_command_signed(
     deployment_manifest: DeploymentManifest, agent_config: AgentConfiguration
