@@ -29,6 +29,10 @@ def test_qr_with_defaults(config: AgentConfiguration) -> None:
             config.mqtt.port,
             config.is_tls_enabled,
             "pool.ntp.org",
+            "",
+            "",
+            "",
+            "",
         )
 
 
@@ -67,7 +71,14 @@ def test_qr_with_overrides(
         assert result.exit_code == 0
 
         mock_qr_string.assert_called_once_with(
-            host_override, port_override, tls_enable_override, ntp_override
+            host_override,
+            port_override,
+            tls_enable_override,
+            ntp_override,
+            "",
+            "",
+            "",
+            "",
         )
 
 
@@ -88,5 +99,12 @@ def test_qr_for_local_host(config: AgentConfiguration, local_host_alias: str) ->
         assert result.exit_code == 0
 
         mock_qr_string.assert_called_once_with(
-            "1.2.3.4", config.mqtt.port, config.is_tls_enabled, "pool.ntp.org"
+            "1.2.3.4",
+            config.mqtt.port,
+            config.is_tls_enabled,
+            "pool.ntp.org",
+            "",
+            "",
+            "",
+            "",
         )
