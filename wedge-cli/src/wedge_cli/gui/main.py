@@ -19,6 +19,7 @@ from kivy.properties import BooleanProperty
 from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.screenmanager import MDScreenManager
+from wedge_cli.gui.config import configure
 from wedge_cli.gui.driver import Driver
 from wedge_cli.gui.view.screens import screens
 from wedge_cli.gui.view.screens import start_screen
@@ -45,6 +46,7 @@ class WedgeGUIApp(MDApp):
         self.load_all_kv_files(self.directory)
         self.manager_screens = MDScreenManager()
         self.views: dict[str, type[MDScreen]] = {}
+        configure()
 
     def build(self) -> MDScreenManager:
         self.generate_application_screens()
