@@ -11,7 +11,6 @@ https://github.com/HeaTTheatR/LoginAppMVC
 https://en.wikipedia.org/wiki/Model–view–controller
 """
 import logging
-from pathlib import Path
 from typing import Any
 
 import trio
