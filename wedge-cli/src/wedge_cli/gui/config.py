@@ -11,3 +11,9 @@ def configure() -> None:
         Config.read(CONFIG_PATH)
     else:
         logger.warning("Error while reading configuration file")
+
+def resource_path(relative_path: str) -> str:
+    base_path = Path(__file__).parent
+    logger.warning(f"base_path is {base_path}")
+    target = base_path.joinpath(relative_path).resolve()
+    return str(target)

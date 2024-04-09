@@ -78,10 +78,3 @@ class WedgeGUIApp(MDApp):
             self.views[name_screen] = view
 
         self.manager_screens.current = start_screen
-
-
-def resource_path(relative_path: str) -> str:
-    base_path = Path(__file__).parent
-    logger.warning(f"base_path is {base_path}")
-    target = base_path.joinpath(relative_path).resolve()
-    return str(target)
