@@ -10,8 +10,10 @@ from wedge_cli.gui.model.connection_screen import ConnectionScreenModel
 from wedge_cli.gui.utils.observer import Observer
 
 from tests.strategies.configs import generate_invalid_ip
+from tests.strategies.configs import generate_invalid_ip_long
 from tests.strategies.configs import generate_invalid_port_number
 from tests.strategies.configs import generate_valid_ip
+from tests.strategies.configs import generate_valid_ip_strict
 from tests.strategies.configs import generate_valid_port_number
 
 
@@ -52,10 +54,16 @@ def test_initialization():
     assert model.mqtt_port == f"{mock_get_config().mqtt.port}"
     assert model.mqtt_port_valid
     assert model.ntp_host_valid
+    assert model.ip_address == ""
+    assert model.subnet_mask == ""
+    assert model.subnet_mask_valid
+    assert model.gateway == ""
+    assert model.dns_server == ""
     assert not model.connected
     assert model.is_valid_parameters
 
 
+# mqtt host
 @given(generate_valid_ip())
 def test_mqtt_host(valid_ip: str):
     with create_model() as model:
@@ -72,6 +80,7 @@ def test_mqtt_host_invalid(invalid_ip: str):
         assert not model.is_valid_parameters
 
 
+# ntp host
 @given(generate_valid_ip())
 def test_ntp_host(valid_ip: str):
     with create_model() as model:
@@ -88,6 +97,7 @@ def test_ntp_host_invalid(invalid_ip: str):
         assert not model.is_valid_parameters
 
 
+# mqtt port
 @given(generate_valid_port_number())
 def test_mqtt_port(port: int):
     with create_model() as model:
@@ -104,6 +114,101 @@ def test_mqtt_port_invalid(port: int):
         assert not model.is_valid_parameters
 
 
+# ip address
+@given(generate_valid_ip())
+def test_ip_address(ip: str):
+    with create_model() as model:
+        model.ip_address = ip
+        assert len(model.ip_address) <= model.MAX_STRING_LENGTH
+
+
+@given(generate_invalid_ip())
+def test_ip_address_invalid(ip: str):
+    with create_model() as model:
+        model.ip_address = ip
+        assert len(model.ip_address) <= model.MAX_STRING_LENGTH
+
+
+@given(generate_invalid_ip_long())
+def test_ip_address_invalid_long(ip: str):
+    with create_model() as model:
+        model.ip_address = ip
+        assert len(model.ip_address) <= model.MAX_STRING_LENGTH
+
+
+# subnet mask
+@given(generate_valid_ip_strict())
+def test_subnet_mask(ip: str):
+    with create_model() as model:
+        model.subnet_mask = ip
+        assert model.subnet_mask_valid
+        assert model.is_valid_parameters
+        assert len(model.subnet_mask) <= model.MAX_STRING_LENGTH
+
+
+@given(generate_invalid_ip())
+def test_subnet_mask_invalid(ip: str):
+    with create_model() as model:
+        model.subnet_mask = ip
+        assert not model.subnet_mask_valid
+        assert not model.is_valid_parameters
+        assert len(model.subnet_mask) <= model.MAX_STRING_LENGTH
+
+
+@given(generate_invalid_ip_long())
+def test_subnet_mask_invalid_long(ip: str):
+    with create_model() as model:
+        model.subnet_mask = ip
+        assert not model.subnet_mask_valid
+        assert not model.is_valid_parameters
+        assert len(model.subnet_mask) <= model.MAX_STRING_LENGTH
+
+
+# gateway
+@given(generate_valid_ip())
+def test_gateway(ip: str):
+    with create_model() as model:
+        model.gateway = ip
+        assert len(model.gateway) <= model.MAX_STRING_LENGTH
+
+
+@given(generate_invalid_ip())
+def test_gateway_invalid(ip: str):
+    with create_model() as model:
+        model.gateway = ip
+        assert len(model.gateway) <= model.MAX_STRING_LENGTH
+
+
+@given(generate_invalid_ip_long())
+def test_gateway_invalid_long(ip: str):
+    with create_model() as model:
+        model.gateway = ip
+        assert len(model.gateway) <= model.MAX_STRING_LENGTH
+
+
+# dns_server
+@given(generate_valid_ip())
+def test_dns_server(ip: str):
+    with create_model() as model:
+        model.dns_server = ip
+        assert len(model.dns_server) <= model.MAX_STRING_LENGTH
+
+
+@given(generate_invalid_ip())
+def test_dns_server_invalid(ip: str):
+    with create_model() as model:
+        model.dns_server = ip
+        assert len(model.dns_server) <= model.MAX_STRING_LENGTH
+
+
+@given(generate_invalid_ip_long())
+def test_dns_server_invalid_long(ip: str):
+    with create_model() as model:
+        model.dns_server = ip
+        assert len(model.dns_server) <= model.MAX_STRING_LENGTH
+
+
+# connection status
 @given(st.booleans())
 def test_connected(connected: bool):
     with create_model() as model:

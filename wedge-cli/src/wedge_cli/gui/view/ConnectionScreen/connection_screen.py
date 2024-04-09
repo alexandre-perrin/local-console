@@ -22,6 +22,22 @@ class ConnectionScreenView(BaseScreenView):
         self.model.ntp_host = text
         widget.error = not self.model.ntp_host_valid
 
+    def validate_ip_address(self, widget: Widget, text: str) -> None:
+        self.model.ip_address = text
+        # no validation in the same way as the Setup Enrollment on the Console
+
+    def validate_subnet_mask(self, widget: Widget, text: str) -> None:
+        self.model.subnet_mask = text
+        widget.error = not self.model.subnet_mask_valid
+
+    def validate_gateway(self, widget: Widget, text: str) -> None:
+        self.model.gateway = text
+        # no validation in the same way as the Setup Enrollment on the Console
+
+    def validate_dns_server(self, widget: Widget, text: str) -> None:
+        self.model.dns_server = text
+        # no validation in the same way as the Setup Enrollment on the Console
+
     def model_is_changed(self) -> None:
         if self.model.is_valid_parameters:
             self.enable_generate_qr()
@@ -34,6 +50,10 @@ class ConnectionScreenView(BaseScreenView):
         self.ids.txt_mqtt_host.text = self.model.mqtt_host
         self.ids.txt_mqtt_port.text = self.model.mqtt_port
         self.ids.txt_ntp_host.text = self.model.ntp_host
+        self.ids.txt_ip_address.text = self.model.ip_address
+        self.ids.txt_subnet_mask.text = self.model.subnet_mask
+        self.ids.txt_gateway.text = self.model.gateway
+        self.ids.txt_dns_server.text = self.model.dns_server
 
     def enable_generate_qr(self) -> None:
         self.ids.btn_qr_gen.disabled = False

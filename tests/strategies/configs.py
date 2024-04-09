@@ -1,4 +1,6 @@
 from pathlib import Path
+from socket import inet_ntoa
+from struct import pack
 
 from hypothesis import strategies as st
 from wedge_cli.core.schemas import AgentConfiguration
@@ -21,6 +23,7 @@ def generate_text(draw: st.DrawFn, min_size: int = 1, max_size: int = 5):
 def generate_identifiers(
     draw: st.DrawFn,
     max_size: int,
+    min_size: int = 0,
     categories_first_char=("Ll", "Lu", "Nd"),
     categories_next_chars=("Ll", "Lu", "Nd"),
     include_in_first_char="",
@@ -52,6 +55,7 @@ def generate_identifiers(
                     include_characters=include_in_next_chars,
                 ),
                 max_size=max_size - 1,
+                min_size=min_size,
             ),
         ).map(lambda t: t[0] + "".join(t[1]))
     )
@@ -69,6 +73,24 @@ def generate_invalid_ip(draw: st.DrawFn) -> str:
             max_size=10, categories_first_char=("S", "Z"), include_in_first_char=" +.-"
         )
     )
+
+
+@st.composite
+def generate_invalid_ip_long(draw: st.DrawFn) -> str:
+    return draw(
+        generate_identifiers(
+            max_size=42,
+            min_size=38,
+            categories_first_char=("S", "Z"),
+            include_in_first_char=" +.-",
+        )
+    )
+
+
+@st.composite
+def generate_valid_ip_strict(draw: st.DrawFn) -> str:
+    ip_int = draw(st.integers(min_value=1, max_value=0xFFFFFFFF))
+    return inet_ntoa(pack(">I", ip_int))
 
 
 @st.composite
