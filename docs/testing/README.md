@@ -52,6 +52,19 @@ wedge-cli gui
 
 In this view the user can configure the connection settings.
 
+- IP Address
+    - (If using static IP) Static IP address for the device
+    - (If using DHCP) Blank
+- Subnet Mask
+    - (If using static IP) Subnet mask
+    - (If using DHCP) Blank
+- Gateway
+    - (If using static IP) IP address of gateway
+    - (If using DHCP) Blank
+- DNS
+    - (If using static IP) DNS IP address
+    - (If using DHCP) Blank
+
 Notice that,
 
 ![connection-qr-message](assets/connection-qr-message.png)
