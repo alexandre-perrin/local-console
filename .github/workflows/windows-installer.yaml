@@ -49,7 +49,8 @@ jobs:
       - name: Test
         shell: pwsh
         run: |
-          $AppDir = Join-Path $env:APPDATA "OfflineTool" "virtualenv"
-          $SourceExe = Join-Path $AppDir "Scripts" "python.exe"
-          $TestCmd = "$SourceExe -m wedge_cli config get"
-          Invoke-Expression $TestCmd
+          $SourceExe = Join-Path $env:APPDATA "OfflineTool" `
+                     | Join-Path -ChildPath "virtualenv" `
+                     | Join-Path -ChildPath "Scripts" `
+                     | Join-Path -ChildPath "wedge-cli.exe"
+          Invoke-Expression "$SourceExe config get"

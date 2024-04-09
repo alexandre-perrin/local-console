@@ -346,8 +346,8 @@ function Create-DesktopShortcut {
         Remove-Item -Path $DestinationPath
     }
 
-    $SourceExe = Join-Path -Path $(Join-Path -Path $VirtualenvDir -ChildPath "Scripts") -ChildPath "python.exe"
-    $Command = '-m wedge_cli gui'
+    $SourceExe = Join-Path -Path $(Join-Path -Path $VirtualenvDir -ChildPath "Scripts") -ChildPath "wedge-cli.exe"
+    $Command = 'gui'
 
     $Shortcut = $WshShell.CreateShortcut($DestinationPath)
     $Shortcut.TargetPath = $SourceExe
