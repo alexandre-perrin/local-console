@@ -73,13 +73,17 @@
                     cols: 2
                     adaptive_height: True
                     padding: "5dp"
-                    spacing: "25dp"
+                    spacing: "25dp", "5dp"
 
                     EntryLabel:
                         text: "Local IP Address:"
+                        size_hint_y: None
+                        height: 40
                     MDLabel:
                         text: get_my_ip()
                         allow_selection: True
+                        size_hint_y: None
+                        height: 40
 
                     EntryLabel:
                         text: "MQTT host address:"
@@ -109,9 +113,57 @@
                         on_text: root.validate_ntp_host(*args)
                         multiline: False
                         focus_previous: txt_mqtt_port
+                        focus_next: txt_ip_address
+                        MDTextFieldHelperText:
+                            text: "Enter a valid ntp server address"
+                            mode: "on_focus"
+
+                    EntryLabel:
+                        text: "IP Address:"
+                    FocusText:
+                        id: txt_ip_address
+                        on_text: root.validate_ip_address(*args)
+                        multiline: False
+                        focus_previous: txt_ntp_host
+                        focus_next: txt_subnet_mask
+                        MDTextFieldHelperText:
+                            text: "Enter a valid IP address"
+                            mode: "on_focus"
+
+                    EntryLabel:
+                        text: "Subnet Mask:"
+                    FocusText:
+                        id: txt_subnet_mask
+                        on_text: root.validate_subnet_mask(*args)
+                        multiline: False
+                        focus_previous: txt_ip_address
+                        focus_next: txt_gateway
+                        MDTextFieldHelperText:
+                            text: "Enter a valid Subnet Mask"
+                            mode: "on_focus"
+
+                    EntryLabel:
+                        text: "Gateway:"
+                    FocusText:
+                        id: txt_gateway
+                        on_text: root.validate_gateway(*args)
+                        multiline: False
+                        focus_previous: txt_subnet_mask
+                        focus_next: txt_dns_server
+                        MDTextFieldHelperText:
+                            text: "Enter a valid Gateway"
+                            mode: "on_focus"
+
+                    EntryLabel:
+                        text: "DNS server:"
+                    FocusText:
+                        id: txt_dns_server
+                        on_text: root.validate_dns_server(*args)
+                        multiline: False
+                        focus_previous: txt_gateway
                         focus_next: txt_mqtt_host
                         MDTextFieldHelperText:
-                            text: "Enter a valid host address"
+                            text: "Enter a valid DNS server"
                             mode: "on_focus"
 
                 # Spacer

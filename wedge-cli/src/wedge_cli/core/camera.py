@@ -120,7 +120,15 @@ class MQTTTopics(enum.Enum):
 
 
 def get_qr_object(
-    mqtt_host: str, mqtt_port: int, tls_enabled: bool, ntp_server: str, border: int = 5
+    mqtt_host: str,
+    mqtt_port: int,
+    tls_enabled: bool,
+    ntp_server: str,
+    ip_address: str = "",
+    subnet_mask: str = "",
+    gateway: str = "",
+    dns_server: str = "",
+    border: int = 5,
 ) -> qrcode.main.QRCode:
     """
     This function generates the QR code object that encodes the connection
@@ -130,9 +138,16 @@ def get_qr_object(
     :param mqtt_port:   TCP port on which the MQTT broker is listening
     :param tls_enabled: Is TLS enabled?
     :param ntp_server:  NTP server for the camera to get its time synced
+    :param ip_address:  Static IP address of the camera device
+    :param subnet_mask: Address of Subnet Mask
+    :param gateway:     Address of Gateway
+    :param dns_server:  Address of DNS server
     :param border:      size of padding around the QR code
     :return: the QR object containing the code for the camera
     """
+
+    # Minimum border is 4 according to the specs
+    border = 4 if border < 4 else border
 
     # This verbosity is to blame between types-qrcode and mypy
     # It should be instead: qr_code = qrcode.QRCode(...
@@ -141,14 +156,43 @@ def get_qr_object(
         error_correction=qrcode.constants.ERROR_CORRECT_M,
         border=border,
     )
-    qr_code.add_data(qr_string(mqtt_host, mqtt_port, tls_enabled, ntp_server))
+    qr_code.add_data(
+        qr_string(
+            mqtt_host,
+            mqtt_port,
+            tls_enabled,
+            ntp_server,
+            ip_address,
+            subnet_mask,
+            gateway,
+            dns_server,
+        )
+    )
     qr_code.make(fit=True)
 
     return qr_code
 
 
 def qr_string(
-    mqtt_host: str, mqtt_port: int, tls_enabled: bool, ntp_server: str
+    mqtt_host: str,
+    mqtt_port: int,
+    tls_enabled: bool,
+    ntp_server: str,
+    ip_address: str = "",
+    subnet_mask: str = "",
+    gateway: str = "",
+    dns_server: str = "",
 ) -> str:
+    # Followed the order of the Setup Enrollment on the Console.
     tls_flag = 0 if tls_enabled else 1
-    return f"AAIAAAAAAAAAAAAAAAAAAA==N=11;E={mqtt_host};H={mqtt_port};t={tls_flag};T={ntp_server};U1FS"
+    output = f"AAIAAAAAAAAAAAAAAAAAAA==N=11;E={mqtt_host};H={mqtt_port};t={tls_flag}"
+    if ip_address:
+        output += f";I={ip_address}"
+    if subnet_mask:
+        output += f";K={subnet_mask}"
+    if gateway:
+        output += f";G={gateway}"
+    if dns_server:
+        output += f";D={dns_server}"
+    output += f";T={ntp_server};U1FS"
+    return output

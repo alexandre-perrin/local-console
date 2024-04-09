@@ -30,6 +30,10 @@ class ConnectionScreenController:
             int(self.model.mqtt_port),
             tls_enabled,
             replace_local_address(self.model.ntp_host),
+            self.model.ip_address,
+            self.model.subnet_mask,
+            self.model.gateway,
+            self.model.dns_server,
             border=4,
         )
         background: Color = tuple(
