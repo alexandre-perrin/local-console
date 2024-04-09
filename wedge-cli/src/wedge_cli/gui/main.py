@@ -11,7 +11,6 @@ https://github.com/HeaTTheatR/LoginAppMVC
 https://en.wikipedia.org/wiki/Model–view–controller
 """
 import logging
-from pathlib import Path
 from typing import Any
 
 import trio
@@ -19,6 +18,7 @@ from kivy.properties import BooleanProperty
 from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.screenmanager import MDScreenManager
+from wedge_cli.gui.config import configure
 from wedge_cli.gui.driver import Driver
 from wedge_cli.gui.view.screens import screens
 from wedge_cli.gui.view.screens import start_screen
@@ -45,6 +45,7 @@ class WedgeGUIApp(MDApp):
         self.load_all_kv_files(self.directory)
         self.manager_screens = MDScreenManager()
         self.views: dict[str, type[MDScreen]] = {}
+        configure()
 
     def build(self) -> MDScreenManager:
         self.generate_application_screens()
@@ -76,10 +77,3 @@ class WedgeGUIApp(MDApp):
             self.views[name_screen] = view
 
         self.manager_screens.current = start_screen
-
-
-def resource_path(relative_path: str) -> str:
-    base_path = Path(__file__).parent
-    logger.warning(f"base_path is {base_path}")
-    target = base_path.joinpath(relative_path).resolve()
-    return str(target)
