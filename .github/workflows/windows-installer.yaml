@@ -39,18 +39,34 @@ jobs:
         with:
           name: windows-installer
 
-      - name: Check file list
-        run: ls
+      - name: Set log paths
+        shell: pwsh
+        run: |
+          $LogsDir = Join-Path $env:TEMP "cilogs"
+          mkdir $LogsDir
+          $LogExe = Join-Path $LogsDir "exe-installer"
+          $LogScript = Join-Path $LogsDir "script"
+          echo "LOG_EXE=$LogExe" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "LOG_PS1=$LogScript" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Perform installation
         shell: pwsh
-        run: Start-Process -FilePath ".\offline-tool-setup.exe" -ArgumentList "/SILENT" -Wait
+        run: Start-Process -FilePath ".\offline-tool-setup.exe" -ArgumentList "/LOG=`"$env:LOG_EXE`" /NOCANCEL /SILENT" -Wait
+
+      - name: Check installer logs
+        shell: pwsh
+        run: cat $env:LOG_EXE
+
+      - name: Check script logs
+        shell: pwsh
+        run: cat $env:LOG_PS1
 
       - name: Test
         shell: pwsh
         run: |
-          $SourceExe = Join-Path $env:APPDATA "OfflineTool" `
-                     | Join-Path -ChildPath "virtualenv" `
-                     | Join-Path -ChildPath "Scripts" `
-                     | Join-Path -ChildPath "wedge-cli.exe"
+          $ScriptsDir = Join-Path $env:APPDATA "OfflineTool" `
+                      | Join-Path -ChildPath "virtualenv" `
+                      | Join-Path -ChildPath "Scripts"
+          ls -l $ScriptsDir
+          $SourceExe = Join-Path $ScriptsDir "wedge-cli.exe"
           Invoke-Expression "$SourceExe config get"

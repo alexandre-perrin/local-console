@@ -18,7 +18,7 @@ function Display-Privilege
     }
 }
 
-function Run-Privileged([string]$PrivilegedExecPath)
+function Run-Privileged([string]$PrivilegedExecPath, [string]$ExtraArgs = "")
 {
     if (-not $(Check-Privilege)) {
         # We are not running "as Administrator" - so relaunch as administrator
@@ -114,5 +114,10 @@ function Write-LogMessage([string]$Message)
 {
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $logMessage = "[$timestamp] $Message"
-    Write-Host $logMessage
+
+    if (-not [string]::IsNullOrWhiteSpace($RedirectLogPath)) {
+        Write-Host $logMessage *>> "$RedirectLogPath"
+    } else {
+        Write-Host $logMessage
+    }
 }

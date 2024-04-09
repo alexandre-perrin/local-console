@@ -17,7 +17,7 @@ AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\{#MyAppCanonical}
-ChangesAssociations=yes
+PrivilegesRequired=lowest
 DisableProgramGroupPage=yes
 OutputBaseFilename=offline-tool-setup
 Compression=lzma
@@ -33,7 +33,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Source: "wedge-cli\*";  Excludes: "*.pyc,__pycache__\*,*.egg-info\*"; DestDir: "{tmp}\wedge-cli"; Flags: recursesubdirs
 
 [Run]
-Filename: "powershell.exe"; Parameters: "Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser; {tmp}\\wedge-cli\\windows\\wedge_install.ps1"; Flags: waituntilterminated;
+Filename: "powershell.exe"; Parameters: "Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser; {tmp}\\wedge-cli\\windows\\install.ps1"; Flags: waituntilterminated;
 
 [UninstallDelete]
 Type: files; Name: "{userdesktop}\Wedge GUI.lnk"

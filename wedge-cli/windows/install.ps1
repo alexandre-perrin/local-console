@@ -1,9 +1,18 @@
+$RedirectLogPath = [System.Environment]::GetEnvironmentVariable("LOG_PS1", [System.EnvironmentVariableTarget]::Process)
+$DoRedirect = -not [string]::IsNullOrWhiteSpace($RedirectLogPath)
+
 $rootPath = Split-Path $MyInvocation.MyCommand.Path -parent
 $utils = Join-Path $rootPath "utils.ps1"
 . $utils
 
 function Main
 {
+    if ($(Check-Privilege)) {
+        Write-Error "This script must NOT be run as an Administrator role"
+        Wait-UserInput 10
+        Exit 1
+    }
+
     $stepsPath = Join-Path $rootPath "steps"
     $scriptSys = Join-Path $stepsPath "sys.ps1"
     $scriptApp = Join-Path $stepsPath "app.ps1"

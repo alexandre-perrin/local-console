@@ -70,21 +70,21 @@ function Initialize-Mosquitto
     # Check if the service was found
     if ($service -ne $null) {
         Write-LogMessage "Found Windows Service for Mosquitto. Preparing to remove..."
-        Write-Host "DisplayName: $($service.DisplayName)"
-        Write-Host "Status: $($service.Status)"
-        Write-Host "ServiceName: $($service.Name)"
-        Write-Host "StartType: $($service.StartType)"
+        Write-LogMessage "DisplayName: $($service.DisplayName)"
+        Write-LogMessage "Status: $($service.Status)"
+        Write-LogMessage "ServiceName: $($service.Name)"
+        Write-LogMessage "StartType: $($service.StartType)"
 
         # Stop the service if it's running
         if ($service.Status -eq 'Running') {
-            Write-Host "Stopping the Mosquitto service..."
+            Write-LogMessage "Stopping the Mosquitto service..."
             Stop-Service -Name $service.Name -Force
             # Ensure the service has stopped
             $service.WaitForStatus('Stopped', '00:00:30')
         }
 
         # Remove the service
-        Write-Host "Removing the Mosquitto service..."
+        Write-LogMessage "Removing the Mosquitto service..."
         $deleteCmd = "sc.exe delete $($service.Name)"
         Invoke-Expression $deleteCmd
 

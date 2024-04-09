@@ -47,7 +47,7 @@ function Create-PythonEnvWithExecutable([string]$VirtualenvDir)
         Write-LogMessage "Virtual environment is already present."
     } else {
         Write-LogMessage "Virtual environment will be created in $VirtualenvDir"
-        python -m venv "$VirtualenvDir"
+        python -m venv $VirtualenvDir
         Write-LogMessage "Virtual environment created."
     }
 
@@ -132,7 +132,7 @@ function Create-DesktopShortcut([string]$VirtualenvDir)
     #$Shortcut.IconLocation = ""
     $Shortcut.Save()
 
-    Write-Host "Created desktop shortcut at: $DestinationPath"
+    Write-LogMessage "Created desktop shortcut at: $DestinationPath"
 }
 
 Main
