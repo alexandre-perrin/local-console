@@ -106,7 +106,7 @@ class EVP2DeployFSM(DeployFSM):
 
         is_finished, matches = self.verify_report(deploy_status)
         if is_finished and matches:
-            next_stage = DeployStage.Done
+            self.stage = DeployStage.Done
             logger.info("Deployment complete")
             self.done.set()
             return
