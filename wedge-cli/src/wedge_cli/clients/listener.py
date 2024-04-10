@@ -35,9 +35,8 @@ class Listener:
         config_parse = configparser.ConfigParser()
         config_dict = json.loads(data.decode("utf-8").strip().replace("'", ""))
         for section_names, values in config_dict.items():
-            if "host" in values.keys():
-                if isinstance(values["host"], dict):
-                    values["host"] = values["host"]["ip_value"]
+            if "host" in values.keys() and isinstance(values["host"], dict):
+                values["host"] = values["host"]["ip_value"]
             config_parse[section_names] = values
         # save config_paths
         with open(self.config_paths.config_path, "w") as f:
