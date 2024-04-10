@@ -25,6 +25,21 @@ def test_get_my_ip_by_routing(ip: str, port: int):
         mock_socket.socket.return_value.close.assert_called_once()
 
 
+@given(generate_invalid_ip(), generate_valid_port_number())
+def test_get_my_ip_by_routing_no_connection(ip: str, port: int):
+    mock_socket = MagicMock()
+    mock_socket.socket.return_value.getsockname.return_value = (ip, port)
+    mock_socket.socket.return_value.connect.side_effect = OSError("Connection Failed")
+    with patch("wedge_cli.utils.local_network.socket", mock_socket):
+        assert get_my_ip_by_routing() == ""
+        mock_socket.socket.assert_called_once_with(
+            mock_socket.AF_INET, mock_socket.SOCK_DGRAM
+        )
+        mock_socket.socket.return_value.connect.assert_called_once_with(("9.9.9.9", 53))
+        mock_socket.socket.return_value.getsockname.assert_not_called()
+        mock_socket.socket.return_value.close.assert_not_called()
+
+
 def test_is_localhost():
     assert is_localhost("localhost")
     assert is_localhost("127.0.0.1")

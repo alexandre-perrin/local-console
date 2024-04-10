@@ -11,9 +11,13 @@ def get_my_ip_by_routing(probe_host: str = "9.9.9.9") -> str:
     command to a stable public service such as Quad9 DNS.
     """
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect((probe_host, 53))
-    this_machine_ip = str(s.getsockname()[0])
-    s.close()
+    try:
+        s.connect((probe_host, 53))
+        this_machine_ip = str(s.getsockname()[0])
+        s.close()
+    except OSError as e:
+        logger.warning(f"Socket connect error: {e}")
+        this_machine_ip = ""
     return this_machine_ip
 
 
@@ -30,7 +34,7 @@ def is_localhost(hostname: str) -> bool:
         # Raised when using very long strings
         return False
     except Exception as e:
-        logger.warn(f"Unknown error while getting host by name: {e}")
+        logger.warning(f"Unknown error while getting host by name: {e}")
     return False
 
 
