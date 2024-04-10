@@ -4,6 +4,7 @@ from wedge_cli.gui.model.connection_screen import ConnectionScreenModel
 from wedge_cli.gui.utils.qr import Color
 from wedge_cli.gui.utils.qr import qr_object_as_texture
 from wedge_cli.gui.view.ConnectionScreen.connection_screen import ConnectionScreenView
+from wedge_cli.utils.local_network import get_my_ip_by_routing
 from wedge_cli.utils.local_network import replace_local_address
 
 
@@ -24,6 +25,9 @@ class ConnectionScreenController:
         return self.view
 
     def qr_generate(self) -> None:
+        # Get the local IP since it might be updated.
+        self.model.local_ip = get_my_ip_by_routing()
+
         tls_enabled = False
         qr = get_qr_object(
             replace_local_address(self.model.mqtt_host),

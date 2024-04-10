@@ -60,7 +60,29 @@ def test_initialization():
     assert model.gateway == ""
     assert model.dns_server == ""
     assert not model.connected
+    assert not model.local_ip_updated
     assert model.is_valid_parameters
+
+
+# local ip
+@given(generate_valid_ip())
+def test_local_ip(valid_ip: str):
+    with create_model() as model:
+        model.local_ip = valid_ip
+        assert model.local_ip_updated
+        model.local_ip_updated = False
+        model.local_ip = valid_ip
+        assert not model.local_ip_updated
+
+
+@given(generate_invalid_ip())
+def test_local_ip(invalid_ip: str):
+    with create_model() as model:
+        model.local_ip = invalid_ip
+        assert model.local_ip_updated
+        model.local_ip_updated = False
+        model.local_ip = invalid_ip
+        assert not model.local_ip_updated
 
 
 # mqtt host

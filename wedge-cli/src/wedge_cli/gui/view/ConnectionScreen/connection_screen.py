@@ -1,6 +1,11 @@
 import logging
 
+from kivy.metrics import dp
 from kivy.uix.widget import Widget
+from kivymd.uix.snackbar import MDSnackbar
+from kivymd.uix.snackbar import MDSnackbarButtonContainer
+from kivymd.uix.snackbar import MDSnackbarCloseButton
+from kivymd.uix.snackbar import MDSnackbarSupportingText
 from wedge_cli.gui.view.base_screen import BaseScreenView
 
 logger = logging.getLogger(__name__)
@@ -47,6 +52,7 @@ class ConnectionScreenView(BaseScreenView):
         self.ids.lbl_conn_status.text = (
             "Connected [No TLS]" if self.model.connected else "Disconnected"
         )
+        self.ids.txt_local_ip.text = self.model.local_ip
         self.ids.txt_mqtt_host.text = self.model.mqtt_host
         self.ids.txt_mqtt_port.text = self.model.mqtt_port
         self.ids.txt_ntp_host.text = self.model.ntp_host
@@ -55,8 +61,28 @@ class ConnectionScreenView(BaseScreenView):
         self.ids.txt_gateway.text = self.model.gateway
         self.ids.txt_dns_server.text = self.model.dns_server
 
+        if self.model.local_ip_updated:
+            self.model.local_ip_updated = False
+            self.show_local_ip_updated()
+
     def enable_generate_qr(self) -> None:
         self.ids.btn_qr_gen.disabled = False
 
     def disable_generate_qr(self) -> None:
         self.ids.btn_qr_gen.disabled = True
+
+    def show_local_ip_updated(self) -> None:
+        MDSnackbar(
+            MDSnackbarSupportingText(text="Warning: Local IP Address was updated!"),
+            MDSnackbarButtonContainer(
+                MDSnackbarCloseButton(
+                    icon="close",
+                ),
+                pos_hint={"center_y": 0.5},
+            ),
+            y=dp(24),
+            orientation="horizontal",
+            pos_hint={"center_x": 0.5},
+            size_hint_x=0.5,
+            duration=5,
+        ).open()
