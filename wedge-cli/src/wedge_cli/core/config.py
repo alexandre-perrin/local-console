@@ -189,8 +189,6 @@ def schema_to_parser(
         field_class = unwrap_class(field_types[parameter])
         value = cast_rawvalue_as_field(new, field_class)
         setattr(sec_obj, parameter, value)
-    except ValueError as e:
-        raise ValueError(f"Unable to validate value for '{section}.{parameter}'") from e
     except ValidationError as e:
         err = e.errors()[0]
         if new is None:
@@ -201,6 +199,8 @@ def schema_to_parser(
             msg = f"Setting parameter '{parameter}' in section '{section}': {err['msg']} (was '{new}')"
         logger.error(msg)
         raise e
+    except ValueError as e:
+        raise ValueError(f"Unable to validate value for '{section}.{parameter}'") from e
 
     config_dict = agent_config.model_dump(exclude_none=True)
     config_parser = configparser.ConfigParser()
