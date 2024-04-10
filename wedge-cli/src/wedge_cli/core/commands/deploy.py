@@ -237,9 +237,8 @@ def update_deployment_manifest(
         else:
             name_parts.append(ModuleExtension.WASM.value)
 
-        if use_signed:
-            if target_arch:
-                name_parts.append(ModuleExtension.SIGNED.value)
+        if use_signed and target_arch:
+            name_parts.append(ModuleExtension.SIGNED.value)
 
         file = files_dir / ".".join(name_parts)
 
