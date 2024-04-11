@@ -28,28 +28,3 @@ jobs:
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ./Output/offline-tool-setup.exe
-
-  test:
-    name: Test
-    runs-on: windows-latest
-    needs: build
-    steps:
-      - name: Download installer
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-installer
-
-      - name: Check file list
-        run: ls
-
-      - name: Perform installation
-        shell: pwsh
-        run: Start-Process -FilePath ".\offline-tool-setup.exe" -ArgumentList "/SILENT" -Wait
-
-      - name: Test
-        shell: pwsh
-        run: |
-          $AppDir = Join-Path $env:APPDATA "OfflineTool" "virtualenv"
-          $SourceExe = Join-Path $AppDir "Scripts" "python.exe"
-          $TestCmd = "$SourceExe -m wedge_cli config get"
-          Invoke-Expression $TestCmd

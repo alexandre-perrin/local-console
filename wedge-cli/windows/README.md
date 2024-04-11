@@ -9,7 +9,7 @@ Prior to starting, make sure you have either cloned the [wedge-cli repository](h
 1. First, set the shell at the location of this README, and allow execution of the helper script for this step:
 ```powershell
 > cd $wedge-cli_repository_root\wedge-cli\windows
-> Unblock-File -Path .\wedge_install.ps1
+> Unblock-File -Path .\install.ps1
 ```
 
 2. Then, enable executing local scripts only for the current shell. You may be asked to confirm the action.
@@ -25,9 +25,9 @@ https:/go.microsoft.com/fwlink/?LinkID=135170. Do you want to change the executi
 
 2. Execute the installer script. It will download all prerequisites, install them, and then install the CLI+GUI from the repository root.
 ```powershell
-> .\wedge_install.ps1
+> .\install.ps1
 
-> .\wedge_install.ps1
+> .\install.ps1
 [2024-04-02 09:31:58] Downloading installer for the Mosquitto MQTT broker...
 [2024-04-02 09:32:00] Installing the Mosquitto MQTT broker...
 [2024-04-02 09:32:04] Mosquitto installation complete.
@@ -70,4 +70,4 @@ Created desktop shortcut at: C:\Users\User\Desktop\Wedge GUI.lnk
 
 ## Uninstalling
 
-Just repeat the same procedure as above, but targeting the `wedge_uninstall.ps1` script instead of `wedge_install.ps1`. The script will remove the desktop shortcut and all files within your user's `%APPDATA%` folder. System dependencies such as Git, Mosquitto and Python 3.11 will remain installed. Should you want to remove them, you'll need to do so manually.
+Just repeat the same procedure as above, but targeting the `uninstall.ps1` script instead of `install.ps1`. The script will remove the desktop shortcut and all files within your user's `%APPDATA%` folder. System dependencies such as Git, Mosquitto and Python 3.11 will remain installed. Should you want to remove them, you'll need to do so manually.
