@@ -1,4 +1,5 @@
 import logging
+import os
 import shutil
 from pathlib import Path
 from typing import Annotated
@@ -27,4 +28,6 @@ def new(
     project_path = Path(project_name)
     assets_path = assets.__path__[0]
     shutil.copytree(assets_path, project_path, dirs_exist_ok=True)
-    shutil.move(project_path / "template", project_path / project_path)
+    shutil.move(
+        project_path / "template", Path(os.path.join(project_path, project_path))
+    )

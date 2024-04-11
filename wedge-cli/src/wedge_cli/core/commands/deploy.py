@@ -106,7 +106,7 @@ class EVP2DeployFSM(DeployFSM):
 
         is_finished, matches = self.verify_report(deploy_status)
         if is_finished and matches:
-            next_stage = DeployStage.Done
+            self.stage = DeployStage.Done
             logger.info("Deployment complete")
             self.done.set()
             return
@@ -237,9 +237,8 @@ def update_deployment_manifest(
         else:
             name_parts.append(ModuleExtension.WASM.value)
 
-        if use_signed:
-            if target_arch:
-                name_parts.append(ModuleExtension.SIGNED.value)
+        if use_signed and target_arch:
+            name_parts.append(ModuleExtension.SIGNED.value)
 
         file = files_dir / ".".join(name_parts)
 

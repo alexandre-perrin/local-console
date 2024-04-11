@@ -76,7 +76,7 @@ def setup_default_https_ca() -> None:
                 f.write(response.read())
             response.close()
         except Exception as e:
-            logger.error("Error while downloading HTTPS CA", e)
+            logger.error(f"Error while downloading HTTPS CA: {e}")
             sys.exit(1)
 
     if not target_https_ca.is_file():
