@@ -166,6 +166,9 @@ class AsyncClient:
     def _on_socket_close(
         self, client: mqtt.Client, userdata: Any, sock: socket.socket
     ) -> None:
+        """
+        Empty implementation. Added to be consistent with the rest of the defined functions.
+        """
         pass
 
     def _on_socket_register_write(

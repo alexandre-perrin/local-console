@@ -54,13 +54,15 @@ def on_message_logs(instance_id: str, timeout: int) -> Callable:
                     logs = defaultdict(list)
                     if "values" in payload:
                         payload = payload["values"]
-                    if "device/log" in payload.keys():
-                        for log in payload["device/log"]:
-                            logs[log["app"]].append(log)
-                        if instance_id in logs.keys():
-                            time_cs.deadline += timeout
-                            for instance_log in logs[instance_id]:
-                                print(instance_log)
+                    if "device/log" not in payload.keys():
+                        continue
+
+                    for log in payload["device/log"]:
+                        logs[log["app"]].append(log)
+                    if instance_id in logs.keys():
+                        time_cs.deadline += timeout
+                        for instance_log in logs[instance_id]:
+                            print(instance_log)
 
         if time_cs.cancelled_caught:
             logger.error(

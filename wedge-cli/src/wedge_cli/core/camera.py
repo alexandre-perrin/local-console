@@ -55,43 +55,47 @@ class Camera:
         if topic == MQTTTopics.ATTRIBUTES.value:
             if self.EA_STATE_TOPIC in payload:
                 sent_from_camera = True
-                firmware_is_supported = False
-                try:
-                    decoded = json.loads(b64decode(payload[self.EA_STATE_TOPIC]))
-                    firmware_is_supported = True
-                except UnicodeDecodeError:
-                    decoded = json.loads(payload[self.EA_STATE_TOPIC])
-                payload[self.EA_STATE_TOPIC] = decoded
+                self.process_state_topic(payload)
 
-                if firmware_is_supported:
-                    status = decoded["Status"]
-                    self.sensor_state = StreamStatus.from_string(
-                        status.get("Sensor", "")
-                    )
-                    self.app_state = status["ApplicationProcessor"]
-                    self.ota_status = decoded["OTA"]
-
-            if self.SYSINFO_TOPIC in payload:
+            elif self.SYSINFO_TOPIC in payload:
                 sent_from_camera = True
-                sys_info = payload[self.SYSINFO_TOPIC]
-                if "protocolVersion" in sys_info:
-                    self.onwire_schema = OnWireProtocol(sys_info["protocolVersion"])
-                self.attributes_available = True
+                self.process_sysinfo_topic(payload)
 
-            if self.DEPLOY_STATUS_TOPIC in payload:
+            elif self.DEPLOY_STATUS_TOPIC in payload:
                 sent_from_camera = True
-                if (
-                    self.onwire_schema == OnWireProtocol.EVP1
-                    or self.onwire_schema is None
-                ):
-                    self.deploy_status = json.loads(payload[self.DEPLOY_STATUS_TOPIC])
-                else:
-                    self.deploy_status = payload[self.DEPLOY_STATUS_TOPIC]
-                self.attributes_available = True
+                self.process_deploy_status_topic(payload)
 
         if sent_from_camera:
             self._last_reception = datetime.now()
             logger.debug("Incoming on %s: %s", topic, str(payload))
+
+    def process_state_topic(self, payload: dict[str, Any]) -> None:
+        firmware_is_supported = False
+        try:
+            decoded = json.loads(b64decode(payload[self.EA_STATE_TOPIC]))
+            firmware_is_supported = True
+        except UnicodeDecodeError:
+            decoded = json.loads(payload[self.EA_STATE_TOPIC])
+        payload[self.EA_STATE_TOPIC] = decoded
+
+        if firmware_is_supported:
+            status = decoded["Status"]
+            self.sensor_state = StreamStatus.from_string(status.get("Sensor", ""))
+            self.app_state = status["ApplicationProcessor"]
+            self.ota_status = decoded["OTA"]
+
+    def process_sysinfo_topic(self, payload: dict[str, Any]) -> None:
+        sys_info = payload[self.SYSINFO_TOPIC]
+        if "protocolVersion" in sys_info:
+            self.onwire_schema = OnWireProtocol(sys_info["protocolVersion"])
+        self.attributes_available = True
+
+    def process_deploy_status_topic(self, payload: dict[str, Any]) -> None:
+        if self.onwire_schema == OnWireProtocol.EVP1 or self.onwire_schema is None:
+            self.deploy_status = json.loads(payload[self.DEPLOY_STATUS_TOPIC])
+        else:
+            self.deploy_status = payload[self.DEPLOY_STATUS_TOPIC]
+        self.attributes_available = True
 
 
 class StreamStatus(enum.Enum):

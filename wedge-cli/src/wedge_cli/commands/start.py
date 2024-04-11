@@ -67,9 +67,9 @@ def start_agent(connection_info: RemoteConnectionInfo, libraries: Libraries) -> 
     except KeyboardInterrupt:
         logger.debug("Terminated by SIGTERM")
         retcode = 0
-    except SystemExit:
+    except SystemExit as e:
         logger.debug("Terminated by SIGINT")
-        retcode = 0
+        raise e
 
     return retcode
 
