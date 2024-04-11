@@ -6,6 +6,7 @@ from wedge_cli.core.config import get_config
 from wedge_cli.core.schemas import IPAddress
 from wedge_cli.core.schemas import MQTTParams
 from wedge_cli.gui.model.base_model import BaseScreenModel
+from wedge_cli.utils.local_network import get_my_ip_by_routing
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ class ConnectionScreenModel(BaseScreenModel):
     def __init__(self) -> None:
         config = get_config()
         # Settings
+        self._local_ip = get_my_ip_by_routing()
         self._mqtt_host = config.mqtt.host.ip_value
         self._mqtt_port = str(config.mqtt.port)
         self._ntp_host = "pool.ntp.org"
@@ -35,6 +37,18 @@ class ConnectionScreenModel(BaseScreenModel):
         self._subnet_mask_valid = True
         # Connection status
         self._is_connected = False
+        self._is_local_ip_updated = False
+
+    @property
+    def local_ip(self) -> str:
+        return self._local_ip
+
+    @local_ip.setter
+    def local_ip(self, ip: str) -> None:
+        if ip != self._local_ip:
+            self._local_ip = ip
+            self._is_local_ip_updated = True
+            self.notify_observers()
 
     def validate_mqtt_host(self) -> bool:
         try:
@@ -174,6 +188,14 @@ class ConnectionScreenModel(BaseScreenModel):
     def connected(self, connected: bool) -> None:
         self._is_connected = connected
         self.notify_observers()
+
+    @property
+    def local_ip_updated(self) -> bool:
+        return self._is_local_ip_updated
+
+    @local_ip_updated.setter
+    def local_ip_updated(self, local_ip_updated: bool) -> None:
+        self._is_local_ip_updated = local_ip_updated
 
     @property
     def is_valid_parameters(self) -> bool:
