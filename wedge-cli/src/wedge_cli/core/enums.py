@@ -1,6 +1,8 @@
 from enum import Enum
 from pathlib import Path
 
+from wedge_cli.utils.enums import StrEnum
+
 DEFAULT_HOME = "~/.config/wedge"
 
 
@@ -71,23 +73,17 @@ class Commands(str, Enum):
     CLEAN = "clean"
 
 
-class GetObjects(Enum):
+class GetObjects(StrEnum):
     INSTANCE = "instance"
     DEPLOYMENT = "deployment"
     TELEMETRY = "telemetry"
 
-    def __str__(self) -> str:
-        return self.value
 
-
-class GetCommands(Enum):
+class GetCommands(StrEnum):
     GET = "get"
     SET = "set"
     UNSET = "unset"
     SEND = "send"
-
-    def __str__(self) -> str:
-        return self.value
 
 
 class EVPEnvVars:
@@ -104,19 +100,13 @@ class EVPEnvVars:
     EVP_MQTT_TLS_CLIENT_KEY = "EVP_MQTT_TLS_CLIENT_KEY"
 
 
-class Target(Enum):
+class Target(StrEnum):
     AMD64 = "amd64"
     ARM64 = "arm64"
     XTENSA = "xtensa"
 
-    def __str__(self) -> str:
-        return self.value
 
-
-class ModuleExtension(Enum):
+class ModuleExtension(StrEnum):
     WASM = "wasm"
     AOT = "aot"
     SIGNED = "signed"
-
-    def __str__(self) -> str:
-        return self.value
