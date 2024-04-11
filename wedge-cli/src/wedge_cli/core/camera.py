@@ -57,11 +57,11 @@ class Camera:
                 sent_from_camera = True
                 self.process_state_topic(payload)
 
-            elif self.SYSINFO_TOPIC in payload:
+            if self.SYSINFO_TOPIC in payload:
                 sent_from_camera = True
                 self.process_sysinfo_topic(payload)
 
-            elif self.DEPLOY_STATUS_TOPIC in payload:
+            if self.DEPLOY_STATUS_TOPIC in payload:
                 sent_from_camera = True
                 self.process_deploy_status_topic(payload)
 
