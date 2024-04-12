@@ -18,6 +18,7 @@ from wedge_cli.core.config import get_config
 from wedge_cli.core.schemas import DesiredDeviceConfig
 from wedge_cli.gui.utils.axis_mapping import pixel_roi_from_normals
 from wedge_cli.gui.utils.axis_mapping import UnitROI
+from wedge_cli.gui.utils.enums import Screen
 from wedge_cli.gui.utils.sync_async import run_on_ui_thread
 from wedge_cli.gui.utils.sync_async import SyncAsyncBridge
 from wedge_cli.servers.broker import spawn_broker
@@ -120,19 +121,19 @@ class Driver:
     def update_camera_status(self) -> None:
         self.gui.is_ready = self.camera_state.is_ready
         self.gui.views[
-            "streaming screen"
+            Screen.STREAMING_SCREEN
         ].model.stream_status = self.camera_state.sensor_state
         self.gui.views[
-            "inference screen"
+            Screen.INFERENCE_SCREEN
         ].model.stream_status = self.camera_state.sensor_state
         self.gui.views[
-            "applications screen"
+            Screen.APPLICATIONS_SCREEN
         ].model.deploy_status = self.camera_state.deploy_status
         self.gui.views[
-            "connection screen"
+            Screen.CONNECTION_SCREEN
         ].model.connected = self.camera_state.connected
         self.gui.views[
-            "ai model screen"
+            Screen.AI_MODEL_SCREEN
         ].model.ota_status = self.camera_state.ota_status
 
     async def image_webserver_task(self) -> None:
@@ -175,16 +176,18 @@ class Driver:
 
     @run_on_ui_thread
     def update_image_data(self, incoming_file: Path) -> None:
-        self.gui.views["streaming screen"].ids.stream_image.update_image_data(
+        self.gui.views[Screen.STREAMING_SCREEN].ids.stream_image.update_image_data(
             incoming_file
         )
-        self.gui.views["inference screen"].ids.stream_image.update_image_data(
+        self.gui.views[Screen.INFERENCE_SCREEN].ids.stream_image.update_image_data(
             incoming_file
         )
 
     @run_on_ui_thread
     def update_inference_data(self, inference_data: str) -> None:
-        self.gui.views["inference screen"].ids.inference_field.text = inference_data
+        self.gui.views[
+            Screen.INFERENCE_SCREEN
+        ].ids.inference_field.text = inference_data
 
     @run_on_ui_thread
     def update_inference_data_flatbuffers(self, incoming_file: Path) -> None:
@@ -201,19 +204,19 @@ class Driver:
                         self.inferences_directory / f"{output_name}.json"
                     ) as file:
                         self.gui.views[
-                            "inference screen"
+                            Screen.INFERENCE_SCREEN
                         ].ids.inference_field.text = file.read()
 
     @run_on_ui_thread
     def update_image_directory(self, incoming_file: Path) -> None:
         if self.image_directory_config is None:
             if self.image_directory is not None:
-                self.gui.views["inference screen"].ids.lbl_image_path.text = str(
+                self.gui.views[Screen.INFERENCE_SCREEN].ids.lbl_image_path.text = str(
                     self.image_directory.resolve()
                 )
         else:
             shutil.copy(incoming_file, self.image_directory_config)
-            self.gui.views["inference screen"].ids.lbl_image_path.text = str(
+            self.gui.views[Screen.INFERENCE_SCREEN].ids.lbl_image_path.text = str(
                 self.image_directory_config.resolve()
             )
 
@@ -221,12 +224,12 @@ class Driver:
     def update_inferences_directory(self, incoming_file: Path) -> None:
         if self.inferences_directory_config is None:
             if self.inferences_directory is not None:
-                self.gui.views["inference screen"].ids.lbl_inference_path.text = str(
-                    self.inferences_directory.resolve()
-                )
+                self.gui.views[
+                    Screen.INFERENCE_SCREEN
+                ].ids.lbl_inference_path.text = str(self.inferences_directory.resolve())
         else:
             shutil.copy(incoming_file, self.inferences_directory_config)
-            self.gui.views["inference screen"].ids.lbl_inference_path.text = str(
+            self.gui.views[Screen.INFERENCE_SCREEN].ids.lbl_inference_path.text = str(
                 self.inferences_directory_config.resolve()
             )
 

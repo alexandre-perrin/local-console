@@ -1,4 +1,3 @@
-import enum
 import json
 import logging
 from pathlib import Path
@@ -12,6 +11,7 @@ from pydantic import model_serializer
 from pydantic import model_validator
 from pydantic import ValidationInfo
 from pydantic_core import PydanticCustomError
+from wedge_cli.utils.enums import StrEnum
 
 logger = logging.getLogger(__name__)
 
@@ -155,16 +155,13 @@ class DesiredDeviceConfig(BaseModel):
     reportStatusIntervalMin: Annotated[int, Field(ge=0, le=65535)]
 
 
-class OnWireProtocol(enum.Enum):
+class OnWireProtocol(StrEnum):
     # Values coming from
     # https://github.com/midokura/evp-onwire-schema/blob/26441528ca76895e1c7e9569ba73092db71c5bc1/schema/systeminfo.schema.json#L42
     # https://github.com/midokura/evp-onwire-schema/blob/1164987a620f34e142869f3979ca63b186c0a061/schema/systeminfo/systeminfo.schema.json#L19
     EVP1 = "EVP1"
     EVP2 = "EVP2-TB"
     # EVP2 on C8Y not implemented at this time
-
-    def __str__(self) -> str:
-        return self.value
 
     def for_agent_environ(self) -> str:
         if self == self.EVP1:
