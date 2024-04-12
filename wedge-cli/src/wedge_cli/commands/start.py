@@ -34,7 +34,7 @@ app = typer.Typer(help="Command that starts the agent up")
 
 
 def start_agent(connection_info: RemoteConnectionInfo, libraries: Libraries) -> int:
-    if not None in connection_info.__dict__.values():
+    if None not in connection_info.__dict__.values():
         server = Listener(
             ip=connection_info.host, port=connection_info.port  # type:ignore
         )
