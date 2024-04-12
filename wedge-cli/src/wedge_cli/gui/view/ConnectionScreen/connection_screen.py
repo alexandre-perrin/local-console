@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from kivy.metrics import dp
 from kivy.uix.widget import Widget
@@ -6,9 +7,32 @@ from kivymd.uix.snackbar import MDSnackbar
 from kivymd.uix.snackbar import MDSnackbarButtonContainer
 from kivymd.uix.snackbar import MDSnackbarCloseButton
 from kivymd.uix.snackbar import MDSnackbarSupportingText
+from kivymd.uix.textfield import MDTextField
+from kivymd.uix.tooltip import MDTooltip
 from wedge_cli.gui.view.base_screen import BaseScreenView
 
 logger = logging.getLogger(__name__)
+
+
+class FocusText(MDTextField):
+    write_tab = False
+
+
+class LocalIPInput(MDTooltip, FocusText):
+    def on_long_touch(self, *args: Any) -> None:
+        """
+        Implemented so that the function signature matches the
+        spec from the MDTooltip documentation. The original signature,
+        coming from KivyMD's TouchBehavior, includes mandatory 'touch'
+        argument, which seems to be at odds with base Kivy's event
+        dispatch signature.
+        """
+
+    def on_double_tap(self, *args: Any) -> None:
+        pass  # Same as above
+
+    def on_triple_tap(self, *args: Any) -> None:
+        pass  # Same as above
 
 
 class ConnectionScreenView(BaseScreenView):
