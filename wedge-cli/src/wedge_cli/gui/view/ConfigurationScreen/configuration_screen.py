@@ -2,12 +2,12 @@ from pathlib import Path
 from typing import Any
 
 from kivy.metrics import dp
-from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.snackbar import MDSnackbar
 from kivymd.uix.snackbar import MDSnackbarButtonContainer
 from kivymd.uix.snackbar import MDSnackbarCloseButton
 from kivymd.uix.snackbar import MDSnackbarSupportingText
 from wedge_cli.gui.view.base_screen import BaseScreenView
+from wedge_cli.gui.view.common.components import FileManager
 
 
 class ConfigurationScreenView(BaseScreenView):
@@ -34,34 +34,32 @@ class ConfigurationScreenView(BaseScreenView):
         self.manager_open_inferences = False
         self.manager_open_flatbuffers = False
 
-        self.file_manager_image = MDFileManager(
+        self.file_manager_image = FileManager(
             exit_manager=self.exit_manager_image,
             select_path=self.select_path_image,
             search="dirs",
         )
-        self.file_manager_inferences = MDFileManager(
+        self.file_manager_inferences = FileManager(
             exit_manager=self.exit_manager_inferences,
             select_path=self.select_path_inferences,
             search="dirs",
         )
-        self.file_manager_flatbuffers = MDFileManager(
+        self.file_manager_flatbuffers = FileManager(
             exit_manager=self.exit_manager_flatbuffers,
             select_path=self.select_path_flatbuffers,
             ext=[".fbs"],
         )
 
-        self.opening_path = Path.cwd()
-
     def file_manager_open_image(self) -> None:
-        self.file_manager_image.show(str(self.opening_path))
+        self.file_manager_image.open()
         self.manager_open_image = True
 
     def file_manager_open_inferences(self) -> None:
-        self.file_manager_inferences.show(str(self.opening_path))
+        self.file_manager_inferences.open()
         self.manager_open_inferences = True
 
     def file_manager_open_flatbuffers(self) -> None:
-        self.file_manager_flatbuffers.show(str(self.opening_path))
+        self.file_manager_flatbuffers.open()
         self.manager_open_flatbuffers = True
 
     def select_path_image(self, path: str) -> None:
@@ -70,7 +68,7 @@ class ConfigurationScreenView(BaseScreenView):
         :param path: path to the selected directory;
         """
         self.exit_manager_image()
-        self.opening_path = Path(path).parent
+        self.file_manager_image.refresh_opening_path()
         self.controller.update_image_directory(Path(path))
 
     def select_path_inferences(self, path: str) -> None:
@@ -79,7 +77,7 @@ class ConfigurationScreenView(BaseScreenView):
         :param path: path to the selected directory;
         """
         self.exit_manager_inferences()
-        self.opening_path = Path(path).parent
+        self.file_manager_inferences.refresh_opening_path()
         self.controller.update_inferences_directory(Path(path))
 
     def select_path_flatbuffers(self, path: str) -> None:
@@ -88,7 +86,7 @@ class ConfigurationScreenView(BaseScreenView):
         :param path: path to the selected directory;
         """
         self.exit_manager_flatbuffers()
-        self.opening_path = Path(path).parent
+        self.file_manager_flatbuffers.refresh_opening_path()
         self.controller.update_flatbuffers_schema(Path(path))
 
     def exit_manager_image(self, *args: Any) -> None:
