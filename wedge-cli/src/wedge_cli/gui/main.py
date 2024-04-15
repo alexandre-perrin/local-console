@@ -20,7 +20,7 @@ from kivymd.uix.screen import MDScreen
 from kivymd.uix.screenmanager import MDScreenManager
 from wedge_cli.gui.config import configure
 from wedge_cli.gui.driver import Driver
-from wedge_cli.gui.view.screens import screens
+from wedge_cli.gui.view.screens import screen_dict
 from wedge_cli.gui.view.screens import start_screen
 
 logger = logging.getLogger(__name__)
@@ -61,12 +61,12 @@ class WedgeGUIApp(MDApp):
         architecture.
         """
 
-        for i, name_screen in enumerate(screens.keys()):
-            model = screens[name_screen]["model"]()
-            controller = screens[name_screen]["controller"](model, self.driver)
+        for name, entry in screen_dict.items():
+            model = entry["model_class"]()
+            controller = entry["controller_class"](model, self.driver)
             view = controller.get_view()
             view.manager_screens = self.manager_screens
-            view.name = name_screen
+            view.name = name
 
             view.theme_cls.theme_style = "Light"
             view.theme_cls.primary_palette = (
@@ -74,6 +74,6 @@ class WedgeGUIApp(MDApp):
             )
 
             self.manager_screens.add_widget(view)
-            self.views[name_screen] = view
+            self.views[name] = view
 
         self.manager_screens.current = start_screen

@@ -1,4 +1,5 @@
 Param (
+	[String] $InstallPath,
 	[String] $TranscriptPath
 )
 $DoRedirect = -not [string]::IsNullOrWhiteSpace($TranscriptPath)
@@ -17,13 +18,13 @@ function Main
     }
 
     Refresh-Path
-    $appDataDir = Create-AppDataDirectory -DirectoryName "OfflineTool"
-    $virtualenvDir = Join-Path "$appDataDir" "virtualenv"
+    Create-AppDataDirectory -Path $InstallPath
+    $virtualenvDir = Join-Path $InstallPath "virtualenv"
     Create-PythonEnvWithExecutable -VirtualenvDir $virtualenvDir
 
-    $binPath = Join-Path "$VirtualenvDir" "Scripts"
-    Get-FlatcBinary -ScriptsDir "$binPath"
-    Create-DesktopShortcut -VirtualenvDir "$virtualenvDir"
+    $binPath = Join-Path $VirtualenvDir "Scripts"
+    Get-FlatcBinary -ScriptsDir $binPath
+    Create-DesktopShortcut -VirtualenvDir $virtualenvDir
 }
 
 function Create-PythonEnvWithExecutable([string]$VirtualenvDir)
@@ -89,24 +90,20 @@ function Get-FlatcBinary([string]$ScriptsDir)
     Remove-Item -Path $zipPath
 }
 
-function Create-AppDataDirectory([string]$DirectoryName)
+function Create-AppDataDirectory([string]$Path)
 {
-    # Construct the full path to the new directory within APPDATA
-    $fullPath = Join-Path $env:APPDATA $DirectoryName
-
     # Check if the directory already exists
-    if (Test-Path -Path $fullPath) {
-        Write-LogMessage "Directory already exists: $fullPath"
+    if (Test-Path -Path $Path) {
+        Write-LogMessage "Directory already exists: $Path"
     } else {
         # Attempt to create the directory
         try {
-            New-Item -Path $fullPath -ItemType Directory | Out-Null
-            Write-LogMessage "Directory created successfully: $fullPath"
+            New-Item -Path $Path -ItemType Directory | Out-Null
+            Write-LogMessage "Directory created successfully: $Path"
         } catch {
             Write-LogMessage "Failed to create directory: $_"
         }
     }
-    return $fullPath
 }
 
 function Create-DesktopShortcut([string]$VirtualenvDir)

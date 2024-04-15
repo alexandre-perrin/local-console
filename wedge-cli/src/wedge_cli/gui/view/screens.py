@@ -15,36 +15,36 @@ from wedge_cli.gui.model.home_screen import HomeScreenModel
 from wedge_cli.gui.model.inference_screen import InferenceScreenModel
 from wedge_cli.gui.model.streaming_screen import StreamingScreenModel
 
-screens = {
+screen_dict = {
     "home screen": {
-        "model": HomeScreenModel,
-        "controller": HomeScreenController,
+        "model_class": HomeScreenModel,
+        "controller_class": HomeScreenController,
     },
     "connection screen": {
-        "model": ConnectionScreenModel,
-        "controller": ConnectionScreenController,
+        "model_class": ConnectionScreenModel,
+        "controller_class": ConnectionScreenController,
     },
     "configuration screen": {
-        "model": ConfigurationScreenModel,
-        "controller": ConfigurationScreenController,
+        "model_class": ConfigurationScreenModel,
+        "controller_class": ConfigurationScreenController,
     },
     "streaming screen": {
-        "model": StreamingScreenModel,
-        "controller": StreamingScreenController,
+        "model_class": StreamingScreenModel,
+        "controller_class": StreamingScreenController,
     },
     "inference screen": {
-        "model": InferenceScreenModel,
-        "controller": InferenceScreenController,
+        "model_class": InferenceScreenModel,
+        "controller_class": InferenceScreenController,
     },
     "applications screen": {
-        "model": ApplicationsScreenModel,
-        "controller": ApplicationsScreenController,
+        "model_class": ApplicationsScreenModel,
+        "controller_class": ApplicationsScreenController,
     },
     "ai model screen": {
-        "model": AIModelScreenModel,
-        "controller": AIModelScreenController,
+        "model_class": AIModelScreenModel,
+        "controller_class": AIModelScreenController,
     },
 }
 
 start_screen = "home screen"
-assert start_screen in screens
+assert start_screen in screen_dict
