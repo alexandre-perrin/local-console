@@ -10,7 +10,9 @@ from kivy.graphics import Line
 from kivy.graphics.texture import Texture
 from kivy.input import MotionEvent
 from kivy.properties import ObjectProperty
+from kivy.properties import StringProperty
 from kivy.uix.image import Image
+from kivymd.uix.filemanager import MDFileManager
 from wedge_cli.gui.utils.axis_mapping import as_normal_in_set
 from wedge_cli.gui.utils.axis_mapping import DEFAULT_ROI
 from wedge_cli.gui.utils.axis_mapping import delta
@@ -216,3 +218,17 @@ class ImageWithROI(Image, HoverBehavior):
             ):
                 return True
         return False
+
+
+class FileManager(MDFileManager):
+    _opening_path = StringProperty(str(Path.cwd()))
+
+    def refresh_opening_path(self) -> None:
+        cur = Path(self.current_path)
+        if cur.is_dir():
+            self._opening_path = str(cur)
+        else:
+            self._opening_path = str(cur.parent)
+
+    def open(self) -> None:
+        self.show(self._opening_path)
