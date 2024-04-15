@@ -1,3 +1,7 @@
+Param (
+	[String] $AppInstallPath = (Join-Path $env:APPDATA "OfflineTool")
+)
+
 $RedirectLogPath = [System.Environment]::GetEnvironmentVariable("LOG_PS1", [System.EnvironmentVariableTarget]::Process)
 $DoRedirect = -not [string]::IsNullOrWhiteSpace($RedirectLogPath)
 
@@ -31,12 +35,13 @@ function Main
     Write-LogMessage "Done installing system dependencies"
 
     Write-LogMessage "Installing Offline Tool"
+    $AppInstallArgs = "-InstallPath `"$AppInstallPath`""
     $AppRedirectArgs = ""
     $AppLogFile = "$RedirectLogPath-app"
     if ($DoRedirect) {
         $AppRedirectArgs = "-TranscriptPath `"$AppLogFile`""
     }
-    Run-Unprivileged "$scriptApp" "$AppRedirectArgs"
+    Run-Unprivileged "$scriptApp" "$AppInstallArgs $AppRedirectArgs"
     if ($DoRedirect) {
         cat "$AppLogFile" >> $RedirectLogPath
         rm "$AppLogFile"
