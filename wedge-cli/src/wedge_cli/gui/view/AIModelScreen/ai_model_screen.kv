@@ -33,32 +33,10 @@
                 spacing: "10dp"
                 padding: "10dp"
 
-                MDLabel:
-                    text: 'Model location:'
-                    adaptive_width: True
-
-                MDLabel:
-                    id: lbl_app_path
-                    shorten: True
-                    shorten_from: 'left'
-                    size_hint_x: 3
-                    padding: "5sp"
-                    canvas.before:
-                        Color:
-                            rgb: 0, 0, 0
-                        Line:
-                            rounded_rectangle: self.x, self.y, self.width, self.height, 8
-                            width: 1
-
-                MDButton:
-                    id: btn_pick_file
-                    on_release: root.file_manager_open()
-                    style: "elevated"
-                    pos_hint: {"center_y": 0.5}
-                    size_hint_x: "60dp"
-                    MDButtonIcon:
-                        icon: "file-cog"
-                        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+                PathSelectorCombo:
+                    id: model_pick
+                    name: 'Model location:'
+                    icon: "file-cog"
 
                 MDButton:
                     id: btn_ota_file
