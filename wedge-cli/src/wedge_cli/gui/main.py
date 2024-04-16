@@ -14,6 +14,8 @@ import logging
 from typing import Any
 
 import trio
+from kivy.base import ExceptionHandler
+from kivy.base import ExceptionManager
 from kivy.properties import BooleanProperty
 from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
@@ -77,3 +79,21 @@ class WedgeGUIApp(MDApp):
             self.views[name] = view
 
         self.manager_screens.current = start_screen
+
+
+class GUIExceptionHandler(ExceptionHandler):
+    def handle_exception(self, inst: BaseException) -> Any:
+        logger.exception("Uncaught Kivy exception ocurred:", exc_info=inst)
+        cause = inst.__traceback__
+        assert cause  # appease mypy
+        while cause.tb_next:
+            cause = cause.tb_next
+        """
+        TODO Decide whether to return .RAISE or .PASS depending
+             on the 'cause'. If .PASS, maybe we can show it on
+             the GUI itself!
+        """
+        return ExceptionManager.RAISE
+
+
+ExceptionManager.add_handler(GUIExceptionHandler())
