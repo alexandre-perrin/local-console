@@ -40,3 +40,20 @@ def is_localhost(hostname: str) -> bool:
 
 def replace_local_address(hostname: str) -> str:
     return LOCAL_IP if is_localhost(hostname) else hostname
+
+
+def is_valid_host(hostname: str) -> bool:
+    try:
+        socket.gethostbyname(hostname)
+    except socket.gaierror as e:
+        if e.errno == socket.EAI_NONAME:
+            logger.warning(f"Invalid hostname or IP address - {hostname}: {e}")
+        elif e.errno == socket.EAI_AGAIN:
+            logger.warning(f"DNS look up error - {hostname}: {e}")
+        else:
+            logger.warning(f"Socket error - {hostname}: {e}")
+        return False
+    except Exception as e:
+        logger.warning(f"An unexpected error occurred - {hostname}: {e}")
+        return False
+    return True

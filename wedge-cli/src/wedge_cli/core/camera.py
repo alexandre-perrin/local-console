@@ -125,7 +125,7 @@ class MQTTTopics(enum.Enum):
 
 def get_qr_object(
     mqtt_host: str,
-    mqtt_port: int,
+    mqtt_port: Optional[int],
     tls_enabled: bool,
     ntp_server: str,
     ip_address: str = "",
@@ -179,7 +179,7 @@ def get_qr_object(
 
 def qr_string(
     mqtt_host: str,
-    mqtt_port: int,
+    mqtt_port: Optional[int],
     tls_enabled: bool,
     ntp_server: str,
     ip_address: str = "",

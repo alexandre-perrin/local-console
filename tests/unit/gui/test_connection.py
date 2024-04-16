@@ -4,11 +4,13 @@ from unittest.mock import patch
 import hypothesis.strategies as st
 from hypothesis import given
 from pytest import fixture
+from pytest import mark
 from wedge_cli.core.config import config_to_schema
 from wedge_cli.core.config import get_default_config
 from wedge_cli.gui.model.connection_screen import ConnectionScreenModel
 from wedge_cli.gui.utils.observer import Observer
 
+from tests.strategies.configs import generate_invalid_hostname_long
 from tests.strategies.configs import generate_invalid_ip
 from tests.strategies.configs import generate_invalid_ip_long
 from tests.strategies.configs import generate_invalid_port_number
@@ -49,40 +51,269 @@ def create_model() -> ConnectionScreenModel:
 
 def test_initialization():
     model = ConnectionScreenModel()
+    # Settings
     assert model.mqtt_host == mock_get_config().mqtt.host.ip_value
-    assert model.mqtt_host_valid
     assert model.mqtt_port == f"{mock_get_config().mqtt.port}"
-    assert model.mqtt_port_valid
-    assert model.ntp_host_valid
+    assert model.ntp_host == "pool.ntp.org"
     assert model.ip_address == ""
     assert model.subnet_mask == ""
-    assert model.subnet_mask_valid
     assert model.gateway == ""
     assert model.dns_server == ""
+    # Settings validity
+    assert not model.mqtt_host_error
+    assert not model.mqtt_port_error
+    assert not model.ntp_host_error
+    assert not model.ip_address_error
+    assert not model.subnet_mask_error
+    assert not model.gateway_error
+    assert not model.dns_server_error
+    # Others
     assert not model.connected
-    assert not model.local_ip_updated
-    assert model.is_valid_parameters
+    assert model.warning_message == ""
 
 
 # local ip
 @given(generate_valid_ip())
-def test_local_ip(valid_ip: str):
+def test_local_ip_valid_updated(valid_ip: str):
     with create_model() as model:
         model.local_ip = valid_ip
-        assert model.local_ip_updated
-        model.local_ip_updated = False
-        model.local_ip = valid_ip
-        assert not model.local_ip_updated
+        assert model.local_ip == valid_ip
+        assert not model.mqtt_host_error
+        assert not model.mqtt_port_error
+        assert not model.ntp_host_error
+        assert not model.ip_address_error
+        assert not model.subnet_mask_error
+        assert not model.gateway_error
+        assert not model.dns_server_error
+        assert model.warning_message == "Warning, Local IP Address is updated."
 
 
+# local ip
 @given(generate_invalid_ip())
-def test_local_ip(invalid_ip: str):
+def test_local_ip_invalid_updated(invalid_ip: str):
     with create_model() as model:
         model.local_ip = invalid_ip
-        assert model.local_ip_updated
-        model.local_ip_updated = False
-        model.local_ip = invalid_ip
-        assert not model.local_ip_updated
+        assert model.local_ip == invalid_ip
+        assert not model.mqtt_host_error
+        assert not model.mqtt_port_error
+        assert not model.ntp_host_error
+        assert not model.ip_address_error
+        assert not model.subnet_mask_error
+        assert not model.gateway_error
+        assert not model.dns_server_error
+        assert model.warning_message == "Warning, Local IP Address is updated."
+
+
+# local ip
+def test_local_ip_not_updated():
+    with create_model() as model:
+        ip = model.local_ip
+        model.local_ip = ip
+        assert model.local_ip == ip
+        assert not model.mqtt_host_error
+        assert not model.mqtt_port_error
+        assert not model.ntp_host_error
+        assert not model.ip_address_error
+        assert not model.subnet_mask_error
+        assert not model.gateway_error
+        assert not model.dns_server_error
+        assert model.warning_message == ""
+
+
+# local ip
+def test_local_ip_empty():
+    with create_model() as model:
+        model.local_ip = ""
+        assert model.local_ip == ""
+        assert not model.mqtt_host_error
+        assert not model.mqtt_port_error
+        assert not model.ntp_host_error
+        assert not model.ip_address_error
+        assert not model.subnet_mask_error
+        assert not model.gateway_error
+        assert not model.dns_server_error
+        assert (
+            model.warning_message
+            == "Warning, No Local IP Address.\nPlease check connectivity."
+        )
+
+
+# List of addresses to check
+addresses_to_check = [
+    "1.2.3.4.5",  # DTSS-25
+    "1A.2B.3C.4D.5C",  # DTSS-26
+    "123.345.567.789",  # DTSS-44
+    "!@#$%^^",  # DTSS-45
+    "AB1.CD2.ED3.GH4",  # DTSS-47
+]
+
+
+# warning of local ip updated
+@mark.parametrize("invalid_ip", addresses_to_check)
+def test_local_ip_invalid_mqtt_ntp(invalid_ip: str):
+    with create_model() as model:
+        model.mqtt_host = invalid_ip
+        model.ntp_host = invalid_ip
+        model.local_ip = "192.168.11.11"
+        assert model.local_ip == "192.168.11.11"
+        assert model.mqtt_host == invalid_ip
+        assert model.mqtt_host_error
+        assert not model.mqtt_port_error
+        assert model.ntp_host == invalid_ip
+        assert model.ntp_host_error
+        assert not model.ip_address_error
+        assert not model.subnet_mask_error
+        assert not model.gateway_error
+        assert not model.dns_server_error
+        assert (
+            model.warning_message == "Warning, invalid parameters:"
+            "\n- MQTT host address"
+            "\n- NTP server address"
+            "\nWarning, Local IP Address is updated."
+        )
+
+
+# warning of invalid mqtt host and ntp server
+@mark.parametrize("invalid_ip", addresses_to_check)
+def test_same_local_ip_invalid_mqtt_ntp(invalid_ip: str):
+    with create_model() as model:
+        ip = model.local_ip
+        model.mqtt_host = invalid_ip
+        model.ntp_host = invalid_ip
+        model.local_ip = ip
+        assert model.local_ip == ip
+        assert model.mqtt_host == invalid_ip
+        assert model.mqtt_host_error
+        assert not model.mqtt_port_error
+        assert model.ntp_host == invalid_ip
+        assert model.ntp_host_error
+        assert not model.ip_address_error
+        assert not model.subnet_mask_error
+        assert not model.gateway_error
+        assert not model.dns_server_error
+        assert (
+            model.warning_message == "Warning, invalid parameters:"
+            "\n- MQTT host address"
+            "\n- NTP server address"
+        )
+
+
+# warning of invalid mqtt port and local ip updated
+def test_local_ip_mqtt_port_all_characters():
+    with create_model() as model:
+        model.mqtt_port = "aaa"
+        model.local_ip = "192.168.11.11"
+        assert model.local_ip == "192.168.11.11"
+        assert model.mqtt_port == ""
+        assert not model.mqtt_host_error
+        assert model.mqtt_port_error
+        assert not model.ntp_host_error
+        assert not model.ip_address_error
+        assert not model.subnet_mask_error
+        assert not model.gateway_error
+        assert not model.dns_server_error
+        assert (
+            model.warning_message == "Warning, invalid parameters:"
+            "\n- MQTT port"
+            "\nWarning, Local IP Address is updated."
+        )
+
+
+# warning of invalid mqtt port and local ip updated
+def test_local_ip_mqtt_port_full_invalid():
+    with create_model() as model:
+        model.mqtt_port = "!@#$%^^"
+        model.local_ip = "192.168.11.11"
+        assert model.local_ip == "192.168.11.11"
+        assert model.mqtt_port == ""
+        assert not model.mqtt_host_error
+        assert model.mqtt_port_error
+        assert not model.ntp_host_error
+        assert not model.ip_address_error
+        assert not model.subnet_mask_error
+        assert not model.gateway_error
+        assert not model.dns_server_error
+        assert (
+            model.warning_message == "Warning, invalid parameters:"
+            "\n- MQTT port"
+            "\nWarning, Local IP Address is updated."
+        )
+
+
+# invalid mqtt port and warning of local ip updated
+def test_local_ip_mqtt_port_part_invalid():
+    with create_model() as model:
+        model.mqtt_port = "1883c"
+        model.local_ip = "192.168.11.11"
+        assert model.local_ip == "192.168.11.11"
+        assert model.mqtt_port == "1883"
+        assert not model.mqtt_host_error
+        assert not model.mqtt_port_error
+        assert not model.ntp_host_error
+        assert not model.ip_address_error
+        assert not model.subnet_mask_error
+        assert not model.gateway_error
+        assert not model.dns_server_error
+        assert model.warning_message == "Warning, Local IP Address is updated."
+
+
+@mark.parametrize("invalid_ip", addresses_to_check)
+def test_local_ip_full_warning(invalid_ip: str):
+    with create_model() as model:
+        model.mqtt_host = invalid_ip
+        model.mqtt_port = "99999"
+        model.ntp_host = invalid_ip
+        model.ip_address = invalid_ip
+        model.subnet_mask = invalid_ip
+        model.gateway = invalid_ip
+        model.dns_server = invalid_ip
+        model.local_ip = "192.168.11.11"
+        assert model.local_ip == "192.168.11.11"
+        assert model.mqtt_host == invalid_ip
+        assert model.mqtt_port == "99999"
+        assert model.ntp_host == invalid_ip
+        assert model.mqtt_host_error
+        assert model.mqtt_port_error
+        assert model.ntp_host_error
+        assert model.ip_address_error
+        assert model.subnet_mask_error
+        assert model.gateway_error
+        assert model.dns_server_error
+        assert (
+            model.warning_message == "Warning, invalid parameters:"
+            "\n- MQTT host address"
+            "\n- MQTT port"
+            "\n- NTP server address"
+            "\n- IP Address"
+            "\n- Subnet Mask"
+            "\n- Gateway"
+            "\n- DNS server"
+            "\nWarning, Local IP Address is updated."
+        )
+
+
+# local ip
+def test_local_ip_empty_with_invalid_parameters():
+    with create_model() as model:
+        model.mqtt_host = "1.2.3.4.5"
+        model.mqtt_port = "aaa"
+        model.ntp_host = "1.2.3.4.5"
+        model.local_ip = ""
+        assert model.local_ip == ""
+        assert model.mqtt_host == "1.2.3.4.5"
+        assert model.mqtt_port == ""
+        assert model.ntp_host == "1.2.3.4.5"
+        assert not model.mqtt_host_error
+        assert not model.mqtt_port_error
+        assert not model.ntp_host_error
+        assert not model.ip_address_error
+        assert not model.subnet_mask_error
+        assert not model.gateway_error
+        assert not model.dns_server_error
+        assert (
+            model.warning_message
+            == "Warning, No Local IP Address.\nPlease check connectivity."
+        )
 
 
 # mqtt host
@@ -90,16 +321,26 @@ def test_local_ip(invalid_ip: str):
 def test_mqtt_host(valid_ip: str):
     with create_model() as model:
         model.mqtt_host = valid_ip
-        assert model.mqtt_host_valid
-        assert model.is_valid_parameters
+        assert model.mqtt_host == valid_ip
+        assert not model.mqtt_host_error
+        assert model.warning_message == ""
 
 
 @given(generate_invalid_ip())
 def test_mqtt_host_invalid(invalid_ip: str):
     with create_model() as model:
         model.mqtt_host = invalid_ip
-        assert not model.mqtt_host_valid
-        assert not model.is_valid_parameters
+        assert model.mqtt_host == invalid_ip
+        assert not model.mqtt_host_error
+        assert model.warning_message == ""
+
+
+@given(generate_invalid_hostname_long())
+def test_mqtt_host_invalid_long(ip: str):
+    with create_model() as model:
+        model.mqtt_host = ip
+        assert not model.mqtt_host_error
+        assert len(model.mqtt_host) <= model.MAX_LEN_DOMAIN_NAME
 
 
 # ntp host
@@ -107,33 +348,45 @@ def test_mqtt_host_invalid(invalid_ip: str):
 def test_ntp_host(valid_ip: str):
     with create_model() as model:
         model.ntp_host = valid_ip
-        assert model.ntp_host_valid
-        assert model.is_valid_parameters
+        assert model.ntp_host == valid_ip
+        assert not model.ntp_host_error
+        assert model.warning_message == ""
 
 
 @given(generate_invalid_ip())
 def test_ntp_host_invalid(invalid_ip: str):
     with create_model() as model:
         model.ntp_host = invalid_ip
-        assert not model.ntp_host_valid
-        assert not model.is_valid_parameters
+        assert model.ntp_host == invalid_ip
+        assert not model.ntp_host_error
+        assert model.warning_message == ""
+
+
+@given(generate_invalid_hostname_long())
+def test_ntp_host_invalid_long(ip: str):
+    with create_model() as model:
+        model.ntp_host = ip
+        assert not model.ntp_host_error
+        assert len(model.ntp_host) <= model.MAX_LEN_DOMAIN_NAME
 
 
 # mqtt port
 @given(generate_valid_port_number())
 def test_mqtt_port(port: int):
     with create_model() as model:
-        model.mqtt_port = port
-        assert model.mqtt_port_valid
-        assert model.is_valid_parameters
+        model.mqtt_port = str(port)
+        assert model.mqtt_port == str(port)
+        assert not model.mqtt_port_error
+        assert model.warning_message == ""
 
 
 @given(generate_invalid_port_number())
 def test_mqtt_port_invalid(port: int):
     with create_model() as model:
-        model.mqtt_port = port
-        assert not model.mqtt_port_valid
-        assert not model.is_valid_parameters
+        model.mqtt_port = str(port)
+        assert model.mqtt_port == str(abs(port))[:5]
+        assert not model.mqtt_port_error
+        assert model.warning_message == ""
 
 
 # ip address
@@ -141,21 +394,31 @@ def test_mqtt_port_invalid(port: int):
 def test_ip_address(ip: str):
     with create_model() as model:
         model.ip_address = ip
-        assert len(model.ip_address) <= model.MAX_STRING_LENGTH
+        assert len(model.ip_address) <= model.MAX_LEN_IP_ADDRESS
 
 
 @given(generate_invalid_ip())
 def test_ip_address_invalid(ip: str):
     with create_model() as model:
         model.ip_address = ip
-        assert len(model.ip_address) <= model.MAX_STRING_LENGTH
+        assert len(model.ip_address) <= model.MAX_LEN_IP_ADDRESS
 
 
 @given(generate_invalid_ip_long())
 def test_ip_address_invalid_long(ip: str):
     with create_model() as model:
         model.ip_address = ip
-        assert len(model.ip_address) <= model.MAX_STRING_LENGTH
+        model.subnet_mask = ip
+        model.gateway = ip
+        model.dns_server = ip
+        assert not model.ip_address_error
+        assert not model.subnet_mask_error
+        assert not model.gateway_error
+        assert not model.dns_server_error
+        assert len(model.ip_address) <= model.MAX_LEN_IP_ADDRESS
+        assert len(model.subnet_mask) <= model.MAX_LEN_IP_ADDRESS
+        assert len(model.gateway) <= model.MAX_LEN_IP_ADDRESS
+        assert len(model.dns_server) <= model.MAX_LEN_IP_ADDRESS
 
 
 # subnet mask
@@ -163,27 +426,24 @@ def test_ip_address_invalid_long(ip: str):
 def test_subnet_mask(ip: str):
     with create_model() as model:
         model.subnet_mask = ip
-        assert model.subnet_mask_valid
-        assert model.is_valid_parameters
-        assert len(model.subnet_mask) <= model.MAX_STRING_LENGTH
+        assert not model.subnet_mask_error
+        assert len(model.subnet_mask) <= model.MAX_LEN_IP_ADDRESS
 
 
 @given(generate_invalid_ip())
 def test_subnet_mask_invalid(ip: str):
     with create_model() as model:
         model.subnet_mask = ip
-        assert not model.subnet_mask_valid
-        assert not model.is_valid_parameters
-        assert len(model.subnet_mask) <= model.MAX_STRING_LENGTH
+        assert not model.subnet_mask_error
+        assert len(model.subnet_mask) <= model.MAX_LEN_IP_ADDRESS
 
 
 @given(generate_invalid_ip_long())
 def test_subnet_mask_invalid_long(ip: str):
     with create_model() as model:
         model.subnet_mask = ip
-        assert not model.subnet_mask_valid
-        assert not model.is_valid_parameters
-        assert len(model.subnet_mask) <= model.MAX_STRING_LENGTH
+        assert not model.subnet_mask_error
+        assert len(model.subnet_mask) <= model.MAX_LEN_IP_ADDRESS
 
 
 # gateway
@@ -191,21 +451,24 @@ def test_subnet_mask_invalid_long(ip: str):
 def test_gateway(ip: str):
     with create_model() as model:
         model.gateway = ip
-        assert len(model.gateway) <= model.MAX_STRING_LENGTH
+        assert not model.gateway_error
+        assert len(model.gateway) <= model.MAX_LEN_IP_ADDRESS
 
 
 @given(generate_invalid_ip())
 def test_gateway_invalid(ip: str):
     with create_model() as model:
         model.gateway = ip
-        assert len(model.gateway) <= model.MAX_STRING_LENGTH
+        assert not model.gateway_error
+        assert len(model.gateway) <= model.MAX_LEN_IP_ADDRESS
 
 
 @given(generate_invalid_ip_long())
 def test_gateway_invalid_long(ip: str):
     with create_model() as model:
         model.gateway = ip
-        assert len(model.gateway) <= model.MAX_STRING_LENGTH
+        assert not model.gateway_error
+        assert len(model.gateway) <= model.MAX_LEN_IP_ADDRESS
 
 
 # dns_server
@@ -213,21 +476,24 @@ def test_gateway_invalid_long(ip: str):
 def test_dns_server(ip: str):
     with create_model() as model:
         model.dns_server = ip
-        assert len(model.dns_server) <= model.MAX_STRING_LENGTH
+        assert not model.dns_server_error
+        assert len(model.dns_server) <= model.MAX_LEN_IP_ADDRESS
 
 
 @given(generate_invalid_ip())
 def test_dns_server_invalid(ip: str):
     with create_model() as model:
         model.dns_server = ip
-        assert len(model.dns_server) <= model.MAX_STRING_LENGTH
+        assert not model.dns_server_error
+        assert len(model.dns_server) <= model.MAX_LEN_IP_ADDRESS
 
 
 @given(generate_invalid_ip_long())
 def test_dns_server_invalid_long(ip: str):
     with create_model() as model:
         model.dns_server = ip
-        assert len(model.dns_server) <= model.MAX_STRING_LENGTH
+        assert not model.dns_server_error
+        assert len(model.dns_server) <= model.MAX_LEN_IP_ADDRESS
 
 
 # connection status

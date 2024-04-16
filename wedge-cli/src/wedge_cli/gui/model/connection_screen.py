@@ -1,4 +1,5 @@
 import logging
+import re
 
 from pydantic import ValidationError
 from pydantic.networks import IPvAnyAddress
@@ -7,6 +8,7 @@ from wedge_cli.core.schemas import IPAddress
 from wedge_cli.core.schemas import MQTTParams
 from wedge_cli.gui.model.base_model import BaseScreenModel
 from wedge_cli.utils.local_network import get_my_ip_by_routing
+from wedge_cli.utils.local_network import is_valid_host
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +19,9 @@ class ConnectionScreenModel(BaseScreenModel):
     :class:`~View.settings_screen.ConnectionScreen.ConnectionScreenView` class.
     """
 
-    MAX_STRING_LENGTH = int(39)
+    MAX_LEN_PORT = int(5)
+    MAX_LEN_IP_ADDRESS = int(39)
+    MAX_LEN_DOMAIN_NAME = int(64)
 
     def __init__(self) -> None:
         config = get_config()
@@ -31,48 +35,131 @@ class ConnectionScreenModel(BaseScreenModel):
         self._gateway = ""
         self._dns_server = ""
         # Settings validity
-        self._mqtt_host_valid = True
-        self._mqtt_port_valid = True
-        self._ntp_host_valid = True
-        self._subnet_mask_valid = True
+        self._mqtt_host_error = False
+        self._mqtt_port_error = False
+        self._ntp_host_error = False
+        self._ip_address_error = False
+        self._subnet_mask_error = False
+        self._gateway_error = False
+        self._dns_server_error = False
         # Connection status
         self._is_connected = False
-        self._is_local_ip_updated = False
+        # Warning message
+        self._warning_message = ""
 
+    def validate_hostname(self, host: str) -> bool:
+        try:
+            IPAddress(ip_value=host),
+        except ValidationError as e:
+            logger.warning(f"Validation error of hostname: {e}")
+            return False
+
+        if not is_valid_host(host):
+            return False
+        return True
+
+    def validate_ip_address(self, ip: str) -> bool:
+        try:
+            IPvAnyAddress(ip)
+        except ValueError as e:
+            logger.warning(f"Validation error of IP address: {e}")
+            return False
+        return True
+
+    def validate_all_settings(self) -> None:
+        # Validate all settings and set color of invalid cell
+        self._mqtt_host_error = not self.validate_hostname(self.mqtt_host)
+        self._mqtt_port_error = not self.validate_mqtt_port()
+        self._ntp_host_error = not self.validate_hostname(self.ntp_host)
+        if not self.ip_address:
+            self._ip_address_error = False
+        else:
+            self._ip_address_error = not self.validate_ip_address(self.ip_address)
+        if not self.subnet_mask:
+            self._subnet_mask_error = False
+        else:
+            self._subnet_mask_error = not self.validate_ip_address(self.subnet_mask)
+        if not self.gateway:
+            self._gateway_error = False
+        else:
+            self._gateway_error = not self.validate_ip_address(self.gateway)
+        if not self.dns_server:
+            self._dns_server_error = False
+        else:
+            self._dns_server_error = not self.validate_ip_address(self.dns_server)
+
+    def ganerate_warning_message(self) -> str:
+        warning_message = ""
+        if self._mqtt_host_error:
+            warning_message += "\n- MQTT host address"
+        if self._mqtt_port_error:
+            warning_message += "\n- MQTT port"
+        if self._ntp_host_error:
+            warning_message += "\n- NTP server address"
+        if self._ip_address_error:
+            warning_message += "\n- IP Address"
+        if self._subnet_mask_error:
+            warning_message += "\n- Subnet Mask"
+        if self._gateway_error:
+            warning_message += "\n- Gateway"
+        if self._dns_server:
+            warning_message += "\n- DNS server"
+        if warning_message != "":
+            warning_message = "Warning, invalid parameters:" + warning_message
+        return warning_message
+
+    # Local IP Address
     @property
     def local_ip(self) -> str:
         return self._local_ip
 
     @local_ip.setter
     def local_ip(self, ip: str) -> None:
-        if ip != self._local_ip:
+        if ip == "":
+            # In case of no connectivity
+            self._warning_message = (
+                "Warning, No Local IP Address.\nPlease check connectivity."
+            )
             self._local_ip = ip
-            self._is_local_ip_updated = True
             self.notify_observers()
+            return
 
-    def validate_mqtt_host(self) -> bool:
-        try:
-            IPAddress(ip_value=self.mqtt_host),
-        except ValidationError as e:
-            logger.warning(f"Validation error of MQTT host: {e}")
-            return False
-        return True
+        # Validate all settings to set color of invalid cell
+        self.validate_all_settings()
 
+        # Generate warning message of invalid parameter
+        warning_message = self.ganerate_warning_message()
+
+        # Add warning message of local ip updated
+        if self._local_ip != ip:
+            if warning_message != "":
+                warning_message += "\n"
+            warning_message += "Warning, Local IP Address is updated."
+
+        # Set warning message if any warning to display
+        if warning_message != "":
+            self._warning_message = warning_message
+
+        self._local_ip = ip
+        self.notify_observers()
+
+    # MQTT host address
     @property
     def mqtt_host(self) -> str:
         return self._mqtt_host
 
     @mqtt_host.setter
     def mqtt_host(self, host: str) -> None:
-        self._mqtt_host = host
-        self._mqtt_host_valid = self.validate_mqtt_host()
+        if len(host) <= self.MAX_LEN_DOMAIN_NAME:
+            self._mqtt_host = host
         # Maybe commit the new value into the persistent configuration
         self.notify_observers()
 
     @property
-    def mqtt_host_valid(self) -> bool:
-        return self._mqtt_host_valid
+    def mqtt_host_error(self) -> bool:
+        return self._mqtt_host_error
 
+    # MQTT port
     def validate_mqtt_port(self) -> bool:
         try:
             MQTTParams(
@@ -91,95 +178,91 @@ class ConnectionScreenModel(BaseScreenModel):
 
     @mqtt_port.setter
     def mqtt_port(self, port: str) -> None:
-        self._mqtt_port = port
-        self._mqtt_port_valid = self.validate_mqtt_port()
+        self._mqtt_port = re.sub(r"\D", "", port)[: self.MAX_LEN_PORT]
         # Maybe commit the new value into the persistent configuration
         self.notify_observers()
 
     @property
-    def mqtt_port_valid(self) -> bool:
-        return self._mqtt_port_valid
+    def mqtt_port_error(self) -> bool:
+        return self._mqtt_port_error
 
-    def validate_ntp_host(self) -> bool:
-        try:
-            IPAddress(ip_value=self.ntp_host)
-        except ValidationError as e:
-            logger.warning(f"Validation error of MQTT port: {e}")
-            return False
-        return True
-
+    # NTP server address
     @property
     def ntp_host(self) -> str:
         return self._ntp_host
 
     @ntp_host.setter
     def ntp_host(self, host: str) -> None:
-        self._ntp_host = host
-        self._ntp_host_valid = self.validate_ntp_host()
+        if len(host) <= self.MAX_LEN_DOMAIN_NAME:
+            self._ntp_host = host
         # Maybe commit the new value into the persistent configuration
         self.notify_observers()
 
     @property
-    def ntp_host_valid(self) -> bool:
-        return self._ntp_host_valid
+    def ntp_host_error(self) -> bool:
+        return self._ntp_host_error
 
+    # IP Address (for Static IP)
     @property
     def ip_address(self) -> str:
         return self._ip_address
 
     @ip_address.setter
     def ip_address(self, ip: str) -> None:
-        # Limit the length in the same way as the Setup Enrollment on the Console
-        if len(ip) <= self.MAX_STRING_LENGTH:
+        if len(ip) <= self.MAX_LEN_IP_ADDRESS:
             self._ip_address = ip
         self.notify_observers()
 
-    def validate_subnet_mask(self) -> bool:
-        try:
-            IPvAnyAddress(self.subnet_mask)
-        except ValueError as e:
-            logger.warning(f"Validation error of Subnet Mask: {e}")
-            return False
-        return True
+    @property
+    def ip_address_error(self) -> bool:
+        return self._ip_address_error
 
+    # Subnet Mask (for Static IP)
     @property
     def subnet_mask(self) -> str:
         return self._subnet_mask
 
     @subnet_mask.setter
     def subnet_mask(self, mask: str) -> None:
-        # Limit the length in the same way as the Setup Enrollment on the Console
-        if len(mask) <= self.MAX_STRING_LENGTH:
+        if len(mask) <= self.MAX_LEN_IP_ADDRESS:
             self._subnet_mask = mask
-        self._subnet_mask_valid = self.validate_subnet_mask()
         self.notify_observers()
 
     @property
-    def subnet_mask_valid(self) -> bool:
-        return self._subnet_mask_valid
+    def subnet_mask_error(self) -> bool:
+        return self._subnet_mask_error
 
+    # Gateway (for Static IP)
     @property
     def gateway(self) -> str:
         return self._gateway
 
     @gateway.setter
     def gateway(self, gateway: str) -> None:
-        # Limit the length in the same way as the Setup Enrollment on the Console
-        if len(gateway) <= self.MAX_STRING_LENGTH:
+        if len(gateway) <= self.MAX_LEN_IP_ADDRESS:
             self._gateway = gateway
         self.notify_observers()
 
+    @property
+    def gateway_error(self) -> bool:
+        return self._gateway_error
+
+    # DNS server (for Static IP)
     @property
     def dns_server(self) -> str:
         return self._dns_server
 
     @dns_server.setter
     def dns_server(self, server: str) -> None:
-        # Limit the length in the same way as the Setup Enrollment on the Console
-        if len(server) <= self.MAX_STRING_LENGTH:
+        if len(server) <= self.MAX_LEN_IP_ADDRESS:
             self._dns_server = server
         self.notify_observers()
 
+    @property
+    def dns_server_error(self) -> bool:
+        return self._dns_server_error
+
+    # Others
     @property
     def connected(self) -> bool:
         return self._is_connected
@@ -190,18 +273,10 @@ class ConnectionScreenModel(BaseScreenModel):
         self.notify_observers()
 
     @property
-    def local_ip_updated(self) -> bool:
-        return self._is_local_ip_updated
+    def warning_message(self) -> str:
+        return self._warning_message
 
-    @local_ip_updated.setter
-    def local_ip_updated(self, local_ip_updated: bool) -> None:
-        self._is_local_ip_updated = local_ip_updated
-
-    @property
-    def is_valid_parameters(self) -> bool:
-        return (
-            self._mqtt_host_valid
-            and self._mqtt_port_valid
-            and self._ntp_host_valid
-            and self._subnet_mask_valid
-        )
+    @warning_message.setter
+    def warning_message(self, warning: str) -> None:
+        self._warning_message = warning
+        self.notify_observers()

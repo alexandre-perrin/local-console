@@ -88,6 +88,18 @@ def generate_invalid_ip_long(draw: st.DrawFn) -> str:
 
 
 @st.composite
+def generate_invalid_hostname_long(draw: st.DrawFn) -> str:
+    return draw(
+        generate_identifiers(
+            max_size=66,
+            min_size=63,
+            categories_first_char=("S", "Z"),
+            include_in_first_char=" +.-",
+        )
+    )
+
+
+@st.composite
 def generate_valid_ip_strict(draw: st.DrawFn) -> str:
     ip_int = draw(st.integers(min_value=1, max_value=0xFFFFFFFF))
     return inet_ntoa(pack(">I", ip_int))
