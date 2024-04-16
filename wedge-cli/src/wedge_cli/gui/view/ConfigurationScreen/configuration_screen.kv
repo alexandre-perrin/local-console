@@ -53,7 +53,7 @@
 
             MDButton:
                 id: btn_pick_image_dir
-                on_release: root.file_manager_open_image()
+                on_release: root.file_manager_image.open()
                 style: "elevated"
                 MDButtonIcon:
                     icon: "folder-cog"
@@ -85,7 +85,7 @@
 
             MDButton:
                 id: btn_pick_inference_dir
-                on_release: root.file_manager_open_inferences()
+                on_release: root.file_manager_inferences.open()
                 style: "elevated"
                 MDButtonIcon:
                     icon: "folder-cog"
@@ -117,7 +117,7 @@
 
             MDButton:
                 id: btn_pick_schema_dir
-                on_release: root.file_manager_open_flatbuffers()
+                on_release: root.file_manager_flatbuffers.open()
                 style: "elevated"
                 MDButtonIcon:
                     icon: "folder-cog"

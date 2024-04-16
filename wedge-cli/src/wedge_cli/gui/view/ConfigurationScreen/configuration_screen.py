@@ -30,10 +30,6 @@ class ConfigurationScreenView(BaseScreenView):
     def __init__(self, **kargs: Any) -> None:
         super().__init__(**kargs)
 
-        self.manager_open_image = False
-        self.manager_open_inferences = False
-        self.manager_open_flatbuffers = False
-
         self.file_manager_image = FileManager(
             exit_manager=self.exit_manager_image,
             select_path=self.select_path_image,
@@ -49,18 +45,6 @@ class ConfigurationScreenView(BaseScreenView):
             select_path=self.select_path_flatbuffers,
             ext=[".fbs"],
         )
-
-    def file_manager_open_image(self) -> None:
-        self.file_manager_image.open()
-        self.manager_open_image = True
-
-    def file_manager_open_inferences(self) -> None:
-        self.file_manager_inferences.open()
-        self.manager_open_inferences = True
-
-    def file_manager_open_flatbuffers(self) -> None:
-        self.file_manager_flatbuffers.open()
-        self.manager_open_flatbuffers = True
 
     def select_path_image(self, path: str) -> None:
         """
@@ -91,17 +75,14 @@ class ConfigurationScreenView(BaseScreenView):
 
     def exit_manager_image(self, *args: Any) -> None:
         """Called when the user reaches the root of the directory tree."""
-        self.manager_open_image = False
         self.file_manager_image.close()
 
     def exit_manager_inferences(self, *args: Any) -> None:
         """Called when the user reaches the root of the directory tree."""
-        self.manager_open_inferences = False
         self.file_manager_inferences.close()
 
     def exit_manager_flatbuffers(self, *args: Any) -> None:
         """Called when the user reaches the root of the directory tree."""
-        self.manager_open_flatbuffers = False
         self.file_manager_flatbuffers.close()
 
     def show_flatbuffers_process_result(self, result: str) -> None:
