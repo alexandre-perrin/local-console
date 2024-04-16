@@ -2,6 +2,7 @@ import enum
 import logging
 from math import fabs
 from pathlib import Path
+from typing import Any
 from typing import Optional
 
 from kivy.core.window import Window
@@ -13,6 +14,8 @@ from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
 from kivy.uix.image import Image
 from kivymd.uix.filemanager import MDFileManager
+from kivymd.uix.textfield import MDTextField
+from kivymd.uix.tooltip import MDTooltip
 from wedge_cli.gui.utils.axis_mapping import as_normal_in_set
 from wedge_cli.gui.utils.axis_mapping import DEFAULT_ROI
 from wedge_cli.gui.utils.axis_mapping import delta
@@ -232,3 +235,24 @@ class FileManager(MDFileManager):
 
     def open(self) -> None:
         self.show(self._opening_path)
+
+
+class FocusText(MDTextField):
+    write_tab = False
+
+
+class GUITooltip(MDTooltip):
+    def on_long_touch(self, *args: Any) -> None:
+        """
+        Implemented so that the function signature matches the
+        spec from the MDTooltip documentation. The original signature,
+        coming from KivyMD's TouchBehavior, includes mandatory 'touch'
+        argument, which seems to be at odds with base Kivy's event
+        dispatch signature.
+        """
+
+    def on_double_tap(self, *args: Any) -> None:
+        pass  # Same as above
+
+    def on_triple_tap(self, *args: Any) -> None:
+        pass  # Same as above
