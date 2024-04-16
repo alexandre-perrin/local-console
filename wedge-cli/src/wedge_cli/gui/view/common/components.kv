@@ -68,3 +68,34 @@
                 default_size_hint: 1, None
                 size_hint_y: None
                 height: self.minimum_height
+
+
+<PathSelectorCombo>:
+    orientation: "horizontal"
+    spacing: "10dp"
+
+    MDLabel:
+        text: root.name
+        adaptive_width: True
+
+    MDLabel:
+        id: lbl_path
+        shorten: True
+        shorten_from: 'left'
+        size_hint_x: 3
+        padding: "5sp"
+        canvas.before:
+            Color:
+                rgb: 0, 0, 0
+            Line:
+                rounded_rectangle: self.x, self.y, self.width, self.height, 8
+                width: 1
+
+    MDButton:
+        on_release: root.open_manager()
+        style: "elevated"
+        pos_hint: {"center_y": 0.5}
+        size_hint_x: "60dp"
+        MDButtonIcon:
+            icon: root.icon
+            pos_hint: {"center_x": 0.5, "center_y": 0.5}

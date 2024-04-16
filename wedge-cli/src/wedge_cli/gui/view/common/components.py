@@ -13,6 +13,7 @@ from kivy.input import MotionEvent
 from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
 from kivy.uix.image import Image
+from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.textfield import MDTextField
 from kivymd.uix.tooltip import MDTooltip
@@ -256,3 +257,39 @@ class GUITooltip(MDTooltip):
 
     def on_triple_tap(self, *args: Any) -> None:
         pass  # Same as above
+
+
+class PathSelectorCombo(MDBoxLayout):
+    name = StringProperty("Path")
+    """
+    Holds the descriptive text of the label for user identification
+
+    :attr:`descriptor` is an :class:`~kivy.properties.StringProperty`
+    and defaults to `path`.
+    """
+
+    icon = StringProperty("file-cog")
+    """
+    Holds the name of the icon from the Material Design lib that should
+    be rendered in the button that opens the associated file selector view.
+
+    :attr:`icon` is an :class:`~kivy.properties.StringProperty`
+    and defaults to `file-cog`.
+    """
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        # Other MDFileManager properties are to be
+        # assigned directly to self.file_manager
+        self.file_manager = FileManager(exit_manager=self.exit_manager)
+
+    def accept_path(self, path: str) -> None:
+        self.ids.lbl_path.text = path
+
+    def open_manager(self) -> None:
+        self.file_manager.open()
+
+    def exit_manager(self, *args: Any) -> None:
+        """Called when the user reaches the root of the directory tree."""
+        self.file_manager.close()
+        self.file_manager.refresh_opening_path()
