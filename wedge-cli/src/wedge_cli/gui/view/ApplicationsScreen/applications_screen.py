@@ -6,12 +6,14 @@ from typing import Any
 from kivy.metrics import dp
 from kivy.properties import StringProperty
 from kivymd.app import MDApp
-from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.snackbar import MDSnackbar
 from kivymd.uix.snackbar import MDSnackbarButtonContainer
 from kivymd.uix.snackbar import MDSnackbarCloseButton
 from kivymd.uix.snackbar import MDSnackbarSupportingText
 from wedge_cli.gui.view.base_screen import BaseScreenView
+from wedge_cli.gui.view.common.components import (
+    PathSelectorCombo,
+)  # nopycln: import # Required by the screen's KV spec file
 from wedge_cli.utils.validation import validate_app_file
 
 logger = logging.getLogger(__name__)
@@ -33,17 +35,8 @@ class ApplicationsScreenView(BaseScreenView):
 
         self.app.bind(is_ready=self.app_state_refresh)
 
-        self.manager_open = False
-        self.opening_path = Path.cwd()
-        self.file_manager = MDFileManager(
-            exit_manager=self.exit_manager,
-            select_path=self.select_path,
-            selector="file",
-        )
-
-    def file_manager_open(self) -> None:
-        self.file_manager.show(str(self.opening_path))
-        self.manager_open = True
+        self.ids.app_file.file_manager.select_path = self.select_path
+        self.ids.app_file.file_manager.selector = "file"
 
     def select_path(self, path: str) -> None:
         """
@@ -52,10 +45,10 @@ class ApplicationsScreenView(BaseScreenView):
 
         :param path: path to the selected directory or file;
         """
-        self.exit_manager()
-        self.opening_path = Path(path).parent
+        self.ids.app_file.file_manager.exit_manager()
+
         if validate_app_file(Path(path)):
-            self.ids.lbl_app_path.text = path
+            self.ids.app_file.accept_path(path)
             self.ids.btn_deploy_file.disabled = not self.app.is_ready
         else:
             self.ids.btn_deploy_file.disabled = True
@@ -74,11 +67,6 @@ class ApplicationsScreenView(BaseScreenView):
                 pos_hint={"center_x": 0.5},
                 size_hint_x=0.5,
             ).open()
-
-    def exit_manager(self, *args: Any) -> None:
-        """Called when the user reaches the root of the directory tree."""
-        self.manager_open = False
-        self.file_manager.close()
 
     def app_state_refresh(self, app: MDApp, value: bool) -> None:
         """
