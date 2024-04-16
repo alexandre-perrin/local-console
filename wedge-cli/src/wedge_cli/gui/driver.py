@@ -77,6 +77,9 @@ class Driver:
 
     async def gui_run(self) -> None:
         await self.gui.async_run(async_lib="trio")
+        self.stop()
+
+    def stop(self) -> None:
         self.bridge.close_task_queue()
         self.nursery.cancel_scope.cancel()
 

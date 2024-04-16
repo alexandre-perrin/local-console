@@ -40,7 +40,16 @@ class WedgeGUIApp(MDApp):
             self.nursery = nursery
             self.driver = Driver(self, nursery)
             nursery.start_soon(self.driver.main)
-            await trio.sleep_forever()
+            try:
+                await trio.sleep_forever()
+            except KeyboardInterrupt:
+                """
+                TODO This achieves the expected closing functionality from
+                     the terminal window, but it still produces an ugly
+                     traceback.
+                """
+                logger.warning("Cancelled per user request via keyboard")
+                self.driver.stop()
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
