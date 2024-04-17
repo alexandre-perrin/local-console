@@ -9,7 +9,7 @@ function Main
     Write-LogMessage "Uninstalling Offline Tool"
 
     # Construct the full path to the new directory within APPDATA
-    $fullPath = Join-Path -Path $env:APPDATA -ChildPath "OfflineTool"
+    $fullPath = $DefaultInstallPath
     if (Test-Path -Path $fullPath)
     {
         Write-LogMessage "Removing program files"

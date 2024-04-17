@@ -1,5 +1,5 @@
 Param (
-	[String] $AppInstallPath = (Join-Path $env:APPDATA "OfflineTool")
+	[String] $AppInstallPath
 )
 
 $RedirectLogPath = [System.Environment]::GetEnvironmentVariable("LOG_PS1", [System.EnvironmentVariableTarget]::Process)
@@ -33,6 +33,10 @@ function Main
         rm "$SysLogFile"
     }
     Write-LogMessage "Done installing system dependencies"
+
+    if ([string]::IsNullOrWhiteSpace($AppInstallPath)) {
+        $AppInstallPath = $DefaultInstallPath
+    }
 
     Write-LogMessage "Installing Offline Tool"
     $AppInstallArgs = "-InstallPath `"$AppInstallPath`""

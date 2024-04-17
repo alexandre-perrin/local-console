@@ -121,3 +121,5 @@ function Write-LogMessage([string]$Message)
         Write-Host $logMessage
     }
 }
+
+$DefaultInstallPath = Join-Path $env:LOCALAPPDATA "Programs" | Join-Path -ChildPath "OfflineTool"
