@@ -23,112 +23,41 @@
                 MDWidget:
                     size_hint_x: 3
 
-        GridLayout:
-        # File path
-            rows: 3
-            cols: 4
+        MDBoxLayout:
+        # Path selectors
+            orientation: "vertical"
             padding: "5dp"
-            spacing: "5dp"
+            spacing: "10dp"
             size_hint_y: 0.2
 
-            # First row from here
-
-            MDLabel:
+            PathSelectorCombo:
             # Image dir
-                text: 'Image dir:'
-                adaptive_width: True
+                id: image_pick
+                name: 'Image dir:'
+                icon: "folder-cog"
 
-            MDLabel:
-                id: lbl_image_path
-                shorten: True
-                shorten_from: "left"
-                text: ""
-                padding: "5sp"
-                canvas.before:
-                    Color:
-                        rgb: 0, 0, 0
-                    Line:
-                        rounded_rectangle: self.x, self.y, self.width, self.height, 8
-                        width: 1
-
-            MDButton:
-                id: btn_pick_image_dir
-                on_release: root.file_manager_open_image()
-                style: "elevated"
-                MDButtonIcon:
-                    icon: "folder-cog"
-                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
-
-            MDWidget:
-            # Spacer
-                size_hint_x: None
-
-            # Second row from here
-
-            MDLabel:
+            PathSelectorCombo:
             # Inference dir
-                text: 'Inference dir:'
-                adaptive_width: True
+                id: inference_pick
+                name: 'Inference dir:'
+                icon: "folder-cog"
 
-            MDLabel:
-                id: lbl_inference_path
-                shorten: True
-                shorten_from: "left"
-                text: ""
-                padding: "5sp"
-                canvas.before:
-                    Color:
-                        rgb: 0, 0, 0
-                    Line:
-                        rounded_rectangle: self.x, self.y, self.width, self.height, 8
-                        width: 1
-
-            MDButton:
-                id: btn_pick_inference_dir
-                on_release: root.file_manager_open_inferences()
-                style: "elevated"
-                MDButtonIcon:
-                    icon: "folder-cog"
-                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
-
-            MDWidget:
-            # Spacer
-                size_hint_x: None
-
-            # Third row from here
-
-            MDLabel:
+            MDBoxLayout:
             # Schema
-                text: 'Schema:'
-                adaptive_width: True
+                orientation: "horizontal"
+                spacing: "5dp"
 
-            MDLabel:
-                id: lbl_schema_path
-                shorten: True
-                shorten_from: "left"
-                text: ""
-                padding: "5sp"
-                canvas.before:
-                    Color:
-                        rgb: 0, 0, 0
-                    Line:
-                        rounded_rectangle: self.x, self.y, self.width, self.height, 8
-                        width: 1
-
-            MDButton:
-                id: btn_pick_schema_dir
-                on_release: root.file_manager_open_flatbuffers()
-                style: "elevated"
-                MDButtonIcon:
+                PathSelectorCombo:
+                    id: schema_pick
+                    name: 'Schema:'
                     icon: "folder-cog"
-                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
 
-            MDButton:
-                id: btn_process_schema
-                on_release: root.controller.process_schema()
+                MDButton:
+                    id: btn_process_schema
+                    on_release: root.controller.process_schema()
 
-                MDButtonText:
-                    text: " Process \n schema "
+                    MDButtonText:
+                        text: " Process \n schema "
 
         MDBoxLayout:
             orientation: "horizontal"

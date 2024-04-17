@@ -2,6 +2,7 @@ import enum
 import logging
 from math import fabs
 from pathlib import Path
+from typing import Any
 from typing import Optional
 
 from kivy.core.window import Window
@@ -12,7 +13,10 @@ from kivy.input import MotionEvent
 from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
 from kivy.uix.image import Image
+from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.filemanager import MDFileManager
+from kivymd.uix.textfield import MDTextField
+from kivymd.uix.tooltip import MDTooltip
 from wedge_cli.gui.utils.axis_mapping import as_normal_in_set
 from wedge_cli.gui.utils.axis_mapping import DEFAULT_ROI
 from wedge_cli.gui.utils.axis_mapping import delta
@@ -232,3 +236,60 @@ class FileManager(MDFileManager):
 
     def open(self) -> None:
         self.show(self._opening_path)
+
+
+class FocusText(MDTextField):
+    write_tab = False
+
+
+class GUITooltip(MDTooltip):
+    def on_long_touch(self, *args: Any) -> None:
+        """
+        Implemented so that the function signature matches the
+        spec from the MDTooltip documentation. The original signature,
+        coming from KivyMD's TouchBehavior, includes mandatory 'touch'
+        argument, which seems to be at odds with base Kivy's event
+        dispatch signature.
+        """
+
+    def on_double_tap(self, *args: Any) -> None:
+        pass  # Same as above
+
+    def on_triple_tap(self, *args: Any) -> None:
+        pass  # Same as above
+
+
+class PathSelectorCombo(MDBoxLayout):
+    name = StringProperty("Path")
+    """
+    Holds the descriptive text of the label for user identification
+
+    :attr:`descriptor` is an :class:`~kivy.properties.StringProperty`
+    and defaults to `path`.
+    """
+
+    icon = StringProperty("file-cog")
+    """
+    Holds the name of the icon from the Material Design lib that should
+    be rendered in the button that opens the associated file selector view.
+
+    :attr:`icon` is an :class:`~kivy.properties.StringProperty`
+    and defaults to `file-cog`.
+    """
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        # Other MDFileManager properties are to be
+        # assigned directly to self.file_manager
+        self.file_manager = FileManager(exit_manager=self.exit_manager)
+
+    def accept_path(self, path: str) -> None:
+        self.ids.lbl_path.text = path
+
+    def open_manager(self) -> None:
+        self.file_manager.open()
+
+    def exit_manager(self, *args: Any) -> None:
+        """Called when the user reaches the root of the directory tree."""
+        self.file_manager.close()
+        self.file_manager.refresh_opening_path()

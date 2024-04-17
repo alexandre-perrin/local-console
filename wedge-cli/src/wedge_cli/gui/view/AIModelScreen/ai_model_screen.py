@@ -6,13 +6,15 @@ from typing import Any
 from kivy.metrics import dp
 from kivy.properties import StringProperty
 from kivymd.app import MDApp
-from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.snackbar import MDSnackbar
 from kivymd.uix.snackbar import MDSnackbarButtonContainer
 from kivymd.uix.snackbar import MDSnackbarCloseButton
 from kivymd.uix.snackbar import MDSnackbarSupportingText
 from wedge_cli.gui.utils.sync_async import run_on_ui_thread
 from wedge_cli.gui.view.base_screen import BaseScreenView
+from wedge_cli.gui.view.common.components import (
+    PathSelectorCombo,
+)  # nopycln: import # Required by the screen's KV spec file
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +30,7 @@ class AIModelScreenView(BaseScreenView):
             self.ids.lbl_ota_status.text = update_status
 
         if self.model.model_file.is_file():
-            self.ids.lbl_app_path.text = str(self.model.model_file)
+            self.ids.model_pick.accept_path(str(self.model.model_file))
 
         can_deploy = (
             self.app.is_ready
@@ -41,18 +43,8 @@ class AIModelScreenView(BaseScreenView):
         super().__init__(**kwargs)
 
         self.app.bind(is_ready=self.app_state_refresh)
-
-        self.manager_open = False
-        self.opening_path = Path.cwd()
-        self.file_manager = MDFileManager(
-            exit_manager=self.exit_manager,
-            select_path=self.select_path,
-            selector="file",
-        )
-
-    def file_manager_open(self) -> None:
-        self.file_manager.show(str(self.opening_path))
-        self.manager_open = True
+        self.ids.model_pick.file_manager.select_path = self.select_path
+        self.ids.model_pick.file_manager.selector = "file"
 
     def select_path(self, path_str: str) -> None:
         """
@@ -61,9 +53,8 @@ class AIModelScreenView(BaseScreenView):
 
         :param path: path to the selected directory or file;
         """
-        self.exit_manager()
+        self.ids.model_pick.file_manager.exit_manager()
         path = Path(path_str)
-        self.opening_path = path.parent
         self.model.model_file = path
 
         if not self.model.model_file_valid:
@@ -82,11 +73,6 @@ class AIModelScreenView(BaseScreenView):
                 pos_hint={"center_x": 0.5},
                 size_hint_x=0.5,
             ).open()
-
-    def exit_manager(self, *args: Any) -> None:
-        """Called when the user reaches the root of the directory tree."""
-        self.manager_open = False
-        self.file_manager.close()
 
     def app_state_refresh(self, app: MDApp, value: bool) -> None:
         """
