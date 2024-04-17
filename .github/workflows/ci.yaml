@@ -163,8 +163,7 @@ jobs:
       with:
         name: ${{ needs.verify.outputs.tag }}
         tag_name: ${{ needs.verify.outputs.tag }}
-        # TODO add proper release notes
-        body: Release ${{ needs.verify.outputs.tag }}
+        generate_release_notes: true
         files: |
           offline-tool-setup.exe
           wedge-cli/dist/*.whl
