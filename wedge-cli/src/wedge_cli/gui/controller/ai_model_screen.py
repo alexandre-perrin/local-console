@@ -4,6 +4,7 @@ from base64 import b64encode
 from pathlib import Path
 from pathlib import PurePosixPath
 from tempfile import TemporaryDirectory
+from typing import Any
 
 import trio
 from cryptography.hazmat.primitives import hashes
@@ -17,9 +18,6 @@ from wedge_cli.core.schemas.edge_cloud_if_v1 import DnnOta
 from wedge_cli.core.schemas.edge_cloud_if_v1 import DnnOtaBody
 from wedge_cli.gui.driver import Driver
 from wedge_cli.gui.model.ai_model_screen import AIModelScreenModel
-from wedge_cli.gui.view.AIModelScreen.ai_model_screen import (
-    AIModelScreenView,
-)
 from wedge_cli.servers.webserver import AsyncWebserver
 from wedge_cli.utils.local_network import get_my_ip_by_routing
 
@@ -36,12 +34,12 @@ class AIModelScreenController:
     the view to control its actions.
     """
 
-    def __init__(self, model: AIModelScreenModel, driver: Driver):
+    def __init__(self, model: AIModelScreenModel, driver: Driver, view: Any):
         self.model = model
         self.driver = driver
-        self.view = AIModelScreenView(controller=self, model=self.model)
+        self.view = view(controller=self, model=self.model)
 
-    def get_view(self) -> AIModelScreenView:
+    def get_view(self) -> Any:
         return self.view
 
     def deploy(self) -> None:

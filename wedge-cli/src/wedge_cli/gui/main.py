@@ -76,8 +76,9 @@ class WedgeGUIApp(MDApp):
         """
 
         for name, entry in screen_dict.items():
-            model = entry["model_class"]()
-            controller = entry["controller_class"](model, self.driver)
+            # TODO:FIXME: as a consequence of decouple viewer and controller
+            model = entry["model_class"]()  # type: ignore
+            controller = entry["controller_class"](model, self.driver)  # type: ignore
             view = controller.get_view()
             view.manager_screens = self.manager_screens
             view.name = name

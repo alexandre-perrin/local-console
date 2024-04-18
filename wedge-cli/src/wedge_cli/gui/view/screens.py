@@ -7,6 +7,7 @@ from wedge_cli.gui.controller.connection_screen import ConnectionScreenControlle
 from wedge_cli.gui.controller.home_screen import HomeScreenController
 from wedge_cli.gui.controller.inference_screen import InferenceScreenController
 from wedge_cli.gui.controller.streaming_screen import StreamingScreenController
+from wedge_cli.gui.driver import Driver
 from wedge_cli.gui.model.ai_model_screen import AIModelScreenModel
 from wedge_cli.gui.model.applications_screen import ApplicationsScreenModel
 from wedge_cli.gui.model.configuration_screen import ConfigurationScreenModel
@@ -14,6 +15,14 @@ from wedge_cli.gui.model.connection_screen import ConnectionScreenModel
 from wedge_cli.gui.model.home_screen import HomeScreenModel
 from wedge_cli.gui.model.inference_screen import InferenceScreenModel
 from wedge_cli.gui.model.streaming_screen import StreamingScreenModel
+from wedge_cli.gui.view.AIModelScreen.ai_model_screen import AIModelScreenView
+
+
+def create_ai_model_controller(
+    model: AIModelScreenModel, driver: Driver
+) -> AIModelScreenController:
+    return AIModelScreenController(model, driver, AIModelScreenView)
+
 
 screen_dict = {
     "home screen": {
@@ -42,7 +51,7 @@ screen_dict = {
     },
     "ai model screen": {
         "model_class": AIModelScreenModel,
-        "controller_class": AIModelScreenController,
+        "controller_class": create_ai_model_controller,
     },
 }
 
