@@ -5,7 +5,7 @@ from hypothesis import strategies as st
 from typer.testing import CliRunner
 from wedge_cli.commands.logs import app
 from wedge_cli.core.camera import MQTTTopics
-from wedge_cli.core.schemas import OnWireProtocol
+from wedge_cli.core.schemas.schemas import OnWireProtocol
 
 from tests.strategies.configs import generate_text
 

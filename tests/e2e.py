@@ -13,7 +13,7 @@ from tempfile import TemporaryDirectory
 from process_handler import ProcessHandler
 from process_handler import SharedLogger
 from retry import retry
-from wedge_cli.core.schemas import OnWireProtocol
+from wedge_cli.core.schemas.schemas import OnWireProtocol
 from wedge_cli.utils.tls import generate_self_signed_ca
 
 FORMAT = "%(asctime)s %(levelname)s %(message)s"

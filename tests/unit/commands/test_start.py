@@ -10,11 +10,11 @@ from wedge_cli.commands.start import start_agent
 from wedge_cli.core.enums import Commands
 from wedge_cli.core.enums import config_paths
 from wedge_cli.core.enums import EVPEnvVars
-from wedge_cli.core.schemas import AgentConfiguration
-from wedge_cli.core.schemas import IPAddress
-from wedge_cli.core.schemas import Libraries
-from wedge_cli.core.schemas import RemoteConnectionInfo
-from wedge_cli.core.schemas import TLSConfiguration
+from wedge_cli.core.schemas.schemas import AgentConfiguration
+from wedge_cli.core.schemas.schemas import IPAddress
+from wedge_cli.core.schemas.schemas import Libraries
+from wedge_cli.core.schemas.schemas import RemoteConnectionInfo
+from wedge_cli.core.schemas.schemas import TLSConfiguration
 
 from tests.strategies.configs import generate_agent_config
 from tests.strategies.configs import generate_text

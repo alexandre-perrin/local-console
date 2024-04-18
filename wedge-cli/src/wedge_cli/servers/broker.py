@@ -12,7 +12,7 @@ from tempfile import TemporaryDirectory
 
 import trio
 from wedge_cli.core.enums import config_paths
-from wedge_cli.core.schemas import AgentConfiguration
+from wedge_cli.core.schemas.schemas import AgentConfiguration
 from wedge_cli.utils.tls import ensure_certificate_pair_exists
 from wedge_cli.utils.windows import get_program_files_path
 

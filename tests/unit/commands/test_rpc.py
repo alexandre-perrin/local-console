@@ -3,7 +3,7 @@ from unittest.mock import patch
 from hypothesis import given
 from typer.testing import CliRunner
 from wedge_cli.commands.rpc import app
-from wedge_cli.core.schemas import AgentConfiguration
+from wedge_cli.core.schemas.schemas import AgentConfiguration
 
 from tests.strategies.configs import generate_agent_config
 from tests.strategies.configs import generate_text

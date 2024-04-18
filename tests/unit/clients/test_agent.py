@@ -10,8 +10,8 @@ from paho.mqtt.client import MQTT_ERR_ERRNO
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 from wedge_cli.clients.agent import Agent
 from wedge_cli.core.camera import MQTTTopics
-from wedge_cli.core.schemas import AgentConfiguration
-from wedge_cli.core.schemas import OnWireProtocol
+from wedge_cli.core.schemas.schemas import AgentConfiguration
+from wedge_cli.core.schemas.schemas import OnWireProtocol
 
 from tests.strategies.configs import generate_agent_config
 from tests.strategies.configs import generate_text

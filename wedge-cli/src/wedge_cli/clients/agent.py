@@ -17,10 +17,10 @@ from wedge_cli.clients.trio_paho_mqtt import AsyncClient
 from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.config import config_paths
 from wedge_cli.core.config import get_config
-from wedge_cli.core.schemas import AgentConfiguration
-from wedge_cli.core.schemas import DeploymentManifest
-from wedge_cli.core.schemas import DesiredDeviceConfig
-from wedge_cli.core.schemas import OnWireProtocol
+from wedge_cli.core.schemas.schemas import AgentConfiguration
+from wedge_cli.core.schemas.schemas import DeploymentManifest
+from wedge_cli.core.schemas.schemas import DesiredDeviceConfig
+from wedge_cli.core.schemas.schemas import OnWireProtocol
 from wedge_cli.utils.local_network import is_localhost
 from wedge_cli.utils.tls import ensure_certificate_pair_exists
 from wedge_cli.utils.tls import get_random_identifier

@@ -15,8 +15,8 @@ from wedge_cli.clients.agent import Agent
 from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.enums import ModuleExtension
 from wedge_cli.core.enums import Target
-from wedge_cli.core.schemas import DeploymentManifest
-from wedge_cli.core.schemas import OnWireProtocol
+from wedge_cli.core.schemas.schemas import DeploymentManifest
+from wedge_cli.core.schemas.schemas import OnWireProtocol
 from wedge_cli.servers.webserver import AsyncWebserver
 
 logger = logging.getLogger(__name__)

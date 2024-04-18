@@ -14,9 +14,9 @@ from wedge_cli.commands.deploy import app
 from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.commands.deploy import get_empty_deployment
 from wedge_cli.core.enums import Target
-from wedge_cli.core.schemas import AgentConfiguration
-from wedge_cli.core.schemas import DeploymentManifest
-from wedge_cli.core.schemas import OnWireProtocol
+from wedge_cli.core.schemas.schemas import AgentConfiguration
+from wedge_cli.core.schemas.schemas import DeploymentManifest
+from wedge_cli.core.schemas.schemas import OnWireProtocol
 
 from tests.strategies.configs import generate_agent_config
 from tests.strategies.deployment import deployment_manifest_strategy

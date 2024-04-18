@@ -1,5 +1,5 @@
 from wedge_cli.commands.deploy import get_empty_deployment
-from wedge_cli.core.schemas import DeploymentManifest
+from wedge_cli.core.schemas.schemas import DeploymentManifest
 from wedge_cli.gui.model.base_model import BaseScreenModel
 
 

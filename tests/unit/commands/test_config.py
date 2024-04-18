@@ -8,11 +8,11 @@ from typer.testing import CliRunner
 from wedge_cli.commands.config import app
 from wedge_cli.core.enums import config_paths
 from wedge_cli.core.enums import GetCommands
-from wedge_cli.core.schemas import AgentConfiguration
-from wedge_cli.core.schemas import DesiredDeviceConfig
-from wedge_cli.core.schemas import IPAddress
-from wedge_cli.core.schemas import OnWireProtocol
-from wedge_cli.core.schemas import RemoteConnectionInfo
+from wedge_cli.core.schemas.schemas import AgentConfiguration
+from wedge_cli.core.schemas.schemas import DesiredDeviceConfig
+from wedge_cli.core.schemas.schemas import IPAddress
+from wedge_cli.core.schemas.schemas import OnWireProtocol
+from wedge_cli.core.schemas.schemas import RemoteConnectionInfo
 
 from tests.strategies.configs import generate_agent_config
 from tests.strategies.configs import generate_identifiers

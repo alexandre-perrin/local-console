@@ -4,8 +4,8 @@ import re
 from pydantic import ValidationError
 from pydantic.networks import IPvAnyAddress
 from wedge_cli.core.config import get_config
-from wedge_cli.core.schemas import IPAddress
-from wedge_cli.core.schemas import MQTTParams
+from wedge_cli.core.schemas.schemas import IPAddress
+from wedge_cli.core.schemas.schemas import MQTTParams
 from wedge_cli.gui.model.base_model import BaseScreenModel
 from wedge_cli.utils.local_network import get_my_ip_by_routing
 from wedge_cli.utils.local_network import is_valid_host

@@ -10,13 +10,13 @@ from typing import Optional
 from pydantic import BaseModel
 from pydantic import ValidationError
 from wedge_cli.core.enums import config_paths
-from wedge_cli.core.schemas import AgentConfiguration
-from wedge_cli.core.schemas import DeploymentManifest
-from wedge_cli.core.schemas import EVPParams
-from wedge_cli.core.schemas import IPAddress
-from wedge_cli.core.schemas import MQTTParams
-from wedge_cli.core.schemas import TLSConfiguration
-from wedge_cli.core.schemas import WebserverParams
+from wedge_cli.core.schemas.schemas import AgentConfiguration
+from wedge_cli.core.schemas.schemas import DeploymentManifest
+from wedge_cli.core.schemas.schemas import EVPParams
+from wedge_cli.core.schemas.schemas import IPAddress
+from wedge_cli.core.schemas.schemas import MQTTParams
+from wedge_cli.core.schemas.schemas import TLSConfiguration
+from wedge_cli.core.schemas.schemas import WebserverParams
 
 logger = logging.getLogger(__name__)
 
