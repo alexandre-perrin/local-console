@@ -1,4 +1,3 @@
-import json
 import logging
 from pathlib import Path
 from typing import Any
@@ -9,6 +8,9 @@ from kivymd.uix.snackbar import MDSnackbar
 from kivymd.uix.snackbar import MDSnackbarButtonContainer
 from kivymd.uix.snackbar import MDSnackbarCloseButton
 from kivymd.uix.snackbar import MDSnackbarSupportingText
+from pydantic import BaseModel
+from wedge_cli.core.schemas.edge_cloud_if_v1 import OTA
+from wedge_cli.core.schemas.edge_cloud_if_v1 import Version
 from wedge_cli.gui.utils.sync_async import run_on_ui_thread
 from wedge_cli.gui.view.base_screen import BaseScreenView
 from wedge_cli.gui.view.common.components import (
@@ -18,19 +20,20 @@ from wedge_cli.gui.view.common.components import (
 logger = logging.getLogger(__name__)
 
 
+class OtaData(BaseModel):
+    OTA: OTA
+    Version: Version
+
+
 class AIModelScreenView(BaseScreenView):
     def model_is_changed(self) -> None:
         # If Done or Failed
         leaf_update_status = False
 
         if self.model.device_config:
-            # Extract parts to show
-            text = {
-                "OTA": self.model.device_config.OTA.model_dump(),
-                "Version": self.model.device_config.Version.model_dump(),
-            }
-
-            self.ids.txt_ota_data.text = json.dumps(text, indent=4)
+            self.ids.txt_ota_data.text = OtaData(
+                **self.model.device_config.model_dump()
+            ).model_dump_json(indent=4)
 
             update_status = self.model.device_config.OTA.UpdateStatus
             leaf_update_status = update_status in ("Done", "Failed")
