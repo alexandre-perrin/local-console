@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from trio import Event
+from wedge_cli.core.edge_cloud_if_v1 import DeviceConfiguration
 from wedge_cli.gui.model.base_model import BaseScreenModel
 from wedge_cli.utils.validation import validate_imx500_model_file
 
@@ -12,27 +13,27 @@ class AIModelScreenModel(BaseScreenModel):
     """
 
     def __init__(self) -> None:
-        self._ota_status: dict[str, str] = {}
+        self._device_config: DeviceConfiguration | None = None
 
         # These two variables enable signaling that the OTA
         # status has changed from a previous report
         self._ota_event = Event()
-        self._ota_status_previous: dict[str, str] = {}
+        self._device_config_previous: DeviceConfiguration | None = None
 
         self._model_file = Path()
         self._model_file_valid = False
 
     @property
-    def ota_status(self) -> dict[str, str]:
-        return self._ota_status
+    def device_config(self) -> DeviceConfiguration | None:
+        return self._device_config
 
-    @ota_status.setter
-    def ota_status(self, value: dict[str, str]) -> None:
-        self._ota_status = value
+    @device_config.setter
+    def device_config(self, value: DeviceConfiguration | None) -> None:
+        self._device_config = value
 
         # detect content change
-        if self._ota_status_previous != value:
-            self._ota_status_previous = value
+        if self._device_config_previous != value:
+            self._device_config_previous = value
             self._ota_event.set()
             self.notify_observers()
 

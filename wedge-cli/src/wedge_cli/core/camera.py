@@ -8,6 +8,8 @@ from typing import Any
 from typing import Optional
 
 import qrcode
+from pydantic import ValidationError
+from wedge_cli.core.edge_cloud_if_v1 import DeviceConfiguration
 from wedge_cli.core.schemas.schemas import OnWireProtocol
 
 logger = logging.getLogger(__name__)
@@ -29,7 +31,7 @@ class Camera:
         self.sensor_state = StreamStatus.Disabled
         self.app_state = ""
         self.deploy_status: dict[str, str] = {}
-        self.ota_status: dict[str, str] = {}
+        self.device_config: DeviceConfiguration | None = None
         self.onwire_schema: Optional[OnWireProtocol] = None
         self.attributes_available = False
         self._last_reception: Optional[datetime] = None
@@ -76,13 +78,12 @@ class Camera:
             firmware_is_supported = True
         except UnicodeDecodeError:
             decoded = json.loads(payload[self.EA_STATE_TOPIC])
-        payload[self.EA_STATE_TOPIC] = decoded
 
         if firmware_is_supported:
-            status = decoded["Status"]
-            self.sensor_state = StreamStatus.from_string(status.get("Sensor", ""))
-            self.app_state = status["ApplicationProcessor"]
-            self.ota_status = decoded["OTA"]
+            try:
+                self.device_config = DeviceConfiguration.model_validate(decoded)
+            except ValidationError as e:
+                logger.warning(f"Error while validating device configuration: {e}")
 
     def process_sysinfo_topic(self, payload: dict[str, Any]) -> None:
         sys_info = payload[self.SYSINFO_TOPIC]

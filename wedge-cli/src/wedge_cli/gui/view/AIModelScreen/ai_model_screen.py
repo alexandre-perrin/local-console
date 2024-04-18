@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any
 
 from kivy.metrics import dp
-from kivy.properties import StringProperty
 from kivymd.app import MDApp
 from kivymd.uix.snackbar import MDSnackbar
 from kivymd.uix.snackbar import MDSnackbarButtonContainer
@@ -20,22 +19,28 @@ logger = logging.getLogger(__name__)
 
 
 class AIModelScreenView(BaseScreenView):
-    ota_status = StringProperty("")
-
     def model_is_changed(self) -> None:
-        self.ids.txt_ota_data.text = json.dumps(self.model.ota_status, indent=4)
+        # If Done or Failed
+        leaf_update_status = False
 
-        update_status = self.model.ota_status.get("UpdateStatus")
-        if update_status:
+        if self.model.device_config:
+            # Extract parts to show
+            text = {
+                "OTA": self.model.device_config.OTA.model_dump(),
+                "Version": self.model.device_config.Version.model_dump(),
+            }
+
+            self.ids.txt_ota_data.text = json.dumps(text, indent=4)
+
+            update_status = self.model.device_config.OTA.UpdateStatus
+            leaf_update_status = update_status in ("Done", "Failed")
             self.ids.lbl_ota_status.text = update_status
 
         if self.model.model_file.is_file():
             self.ids.model_pick.accept_path(str(self.model.model_file))
 
         can_deploy = (
-            self.app.is_ready
-            and self.model.model_file_valid
-            and update_status in ("Done", "Failed")
+            self.app.is_ready and self.model.model_file_valid and leaf_update_status
         )
         self.ids.btn_ota_file.disabled = not can_deploy
 

@@ -137,7 +137,7 @@ class Driver:
         ].model.connected = self.camera_state.connected
         self.gui.views[
             Screen.AI_MODEL_SCREEN
-        ].model.ota_status = self.camera_state.ota_status
+        ].model.device_config = self.camera_state.device_config
 
     async def blobs_webserver_task(self) -> None:
         """

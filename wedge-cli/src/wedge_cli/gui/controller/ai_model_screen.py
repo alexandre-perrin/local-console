@@ -42,9 +42,43 @@ class AIModelScreenController:
 
     def deploy(self) -> None:
         self.view.ids.btn_ota_file.disabled = True
-        self.driver.from_sync(self.deploy_task, self.model.model_file)
+        self.driver.from_sync(self.deployment_task, self.model.model_file)
 
-    async def deploy_task(self, package_file: Path) -> None:
+    async def undeploy_step(self, network_id: str) -> None:
+        ephemeral_agent = Agent()
+
+        timeout_secs = 30
+        with trio.move_on_after(timeout_secs) as timeout_scope:
+            async with ephemeral_agent.mqtt_scope([]):
+                await ephemeral_agent.configure(
+                    "backdoor-EA_Main",
+                    "placeholder",
+                    json.dumps(
+                        {
+                            "OTA": {
+                                "UpdateModule": "DnnModel",
+                                "DeleteNetworkID": network_id,
+                            }
+                        }
+                    ),
+                )
+                while True:
+                    if self.model.device_config is None:
+                        continue
+
+                    latest_update = self.model.device_config.OTA.DnnModelLastUpdatedDate
+
+                    if (
+                        self.model.device_config.OTA.UpdateStatus == "Done"
+                        and len(latest_update) == 0
+                    ):
+                        logger.debug("AI model not loaded")
+                        break
+
+                    await self.model.ota_event()
+                    timeout_scope.deadline += timeout_secs
+
+    async def deploy_step(self, package_file: Path) -> None:
         config = get_config()
         ephemeral_agent = Agent()
         webserver_port = config.webserver.port
@@ -71,7 +105,11 @@ class AIModelScreenController:
                     while True:
                         await self.model.ota_event()
                         timeout_scope.deadline += timeout_secs
-                        if self.model.ota_status.get("UpdateStatus") in (
+
+                        if self.model.device_config is None:
+                            continue
+
+                        if self.model.device_config.OTA.UpdateStatus in (
                             "Done",
                             "Failed",
                         ):
@@ -80,6 +118,13 @@ class AIModelScreenController:
             if timeout_scope.cancelled_caught:
                 self.view.notify_deploy_timeout()
                 logger.error("Timeout when sending modules.")
+
+    async def deployment_task(self, package_file: Path) -> None:
+        network_id = get_network_id(package_file)
+        logger.debug(f"Undeploying network with id {network_id}")
+        await self.undeploy_step(network_id)
+        logger.debug("Deploying network")
+        await self.deploy_step(package_file)
 
 
 def get_package_hash(package_file: Path) -> str:
@@ -91,6 +136,11 @@ def get_package_hash(package_file: Path) -> str:
 def get_package_version(package_file: Path) -> str:
     ver_bytes = package_file.read_bytes()[0x30:0x40]
     return ver_bytes.decode()
+
+
+def get_network_id(package_file: Path) -> str:
+    ver_bytes = get_package_version(package_file)
+    return ver_bytes[6 : 6 + 6]
 
 
 def configuration_spec(
