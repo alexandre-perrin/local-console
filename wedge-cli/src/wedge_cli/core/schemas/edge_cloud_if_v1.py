@@ -2,6 +2,7 @@
 Edge Cloud IF v1 schemas. Properties not included here are ignored. For example, PQ settings.
 """
 from pydantic import BaseModel
+from wedge_cli.utils.schemas import ListModel
 
 
 class Hardware(BaseModel):
@@ -12,10 +13,14 @@ class Hardware(BaseModel):
     LedOn: bool
 
 
+class DnnModelVersion(ListModel):
+    root: list[str]
+
+
 class Version(BaseModel):
     SensorFwVersion: str
     SensorLoaderVersion: str
-    DnnModelVersion: list[str]
+    DnnModelVersion: DnnModelVersion
     ApFwVersion: str
     ApLoaderVersion: str
 

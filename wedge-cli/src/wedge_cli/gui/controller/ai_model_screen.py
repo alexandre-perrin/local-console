@@ -11,6 +11,7 @@ from cryptography.hazmat.primitives import hashes
 from wedge_cli.clients.agent import Agent
 from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.config import get_config
+from wedge_cli.core.schemas.edge_cloud_if_v1 import DnnModelVersion
 from wedge_cli.gui.driver import Driver
 from wedge_cli.gui.model.ai_model_screen import AIModelScreenModel
 from wedge_cli.gui.view.AIModelScreen.ai_model_screen import (
@@ -66,11 +67,14 @@ class AIModelScreenController:
                     if self.model.device_config is None:
                         continue
 
-                    latest_update = self.model.device_config.OTA.DnnModelLastUpdatedDate
+                    deployed_dnn_model_versions = get_network_ids(
+                        self.model._device_config.Version.DnnModelVersion  # type: ignore
+                    )
+                    logger.debug(f"Dnn deployed version: {deployed_dnn_model_versions}")
 
                     if (
-                        self.model.device_config.OTA.UpdateStatus == "Done"
-                        and len(latest_update) == 0
+                        self.model.device_config.OTA.UpdateStatus in ["Done", "Failed"]
+                        and network_id not in deployed_dnn_model_versions
                     ):
                         logger.debug("AI model not loaded")
                         break
@@ -159,3 +163,7 @@ def configuration_spec(
             "HashValue": file_hash,
         }
     }
+
+
+def get_network_ids(dnn_model_version: DnnModelVersion) -> list[str]:
+    return [desired_version[6 : 6 + 6] for desired_version in dnn_model_version]
