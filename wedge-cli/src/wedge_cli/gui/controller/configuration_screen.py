@@ -29,9 +29,15 @@ class ConfigurationScreenController:
         self.driver.set_image_directory(path)
         self.model.image_directory = path
 
+    def update_image_max_size(self, size: int) -> None:
+        self.driver.image_dir_watcher.set_storage_limit(size)
+
     def update_inferences_directory(self, path: Path) -> None:
         self.driver.set_inference_directory(path)
         self.model.inferences_directory = path
+
+    def update_inference_max_size(self, size: int) -> None:
+        self.driver.inference_dir_watcher.set_storage_limit(size)
 
     def update_flatbuffers_schema(self, path: Path) -> None:
         self.model.flatbuffers_schema = path

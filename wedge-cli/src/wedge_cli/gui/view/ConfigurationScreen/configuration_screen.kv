@@ -30,7 +30,7 @@
             orientation: "vertical"
             padding: "15dp"
             spacing: "10dp"
-            size_hint_y: 0.2
+            size_hint_y: 0.6
 
             PathSelectorCombo:
             # Image dir
@@ -39,12 +39,22 @@
                 icon: "folder-cog"
                 path: app.image_dir_path
 
+            FileSizeCombo:
+                id: images_size_control
+                label: "Max total size in image dir:"
+                on_value: root.controller.update_image_max_size(args[1])
+
             PathSelectorCombo:
             # Inference dir
                 id: inference_pick
                 name: 'Inference dir:'
                 icon: "folder-cog"
                 path: app.inference_dir_path
+
+            FileSizeCombo:
+                id: inference_size_control
+                label: "Max total size in inference folder:"
+                on_value: root.controller.update_inference_max_size(args[1])
 
             MDBoxLayout:
             # Schema
@@ -66,4 +76,4 @@
 
         MDBoxLayout:
             orientation: "horizontal"
-            size_hint_y: 0.6
+            size_hint_y: 0.3
