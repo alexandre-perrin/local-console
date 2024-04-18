@@ -277,6 +277,14 @@ class PathSelectorCombo(MDBoxLayout):
     and defaults to `file-cog`.
     """
 
+    path = StringProperty("")
+    """
+    Holds the current value of the path
+
+    :attr:`path` is an :class:`~kivy.properties.StringProperty`
+    and defaults to `""`.
+    """
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         # Other MDFileManager properties are to be
@@ -284,7 +292,7 @@ class PathSelectorCombo(MDBoxLayout):
         self.file_manager = FileManager(exit_manager=self.exit_manager)
 
     def accept_path(self, path: str) -> None:
-        self.ids.lbl_path.text = path
+        self.path = path
 
     def open_manager(self) -> None:
         self.file_manager.open()

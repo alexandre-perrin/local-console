@@ -45,7 +45,7 @@ class ApplicationsScreenController:
         config: AgentConfiguration = get_config()  # type:ignore
         port = config.webserver.port
 
-        module_file = Path(self.view.ids.lbl_app_path.text)
+        module_file = Path(self.view.ids.app_file.path)
 
         node = "node"
         deployment = Deployment.model_validate(
