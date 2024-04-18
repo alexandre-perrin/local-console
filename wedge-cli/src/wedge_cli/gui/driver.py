@@ -15,7 +15,7 @@ from wedge_cli.clients.agent import check_attributes_request
 from wedge_cli.core.camera import Camera
 from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.config import get_config
-from wedge_cli.core.schemas import DesiredDeviceConfig
+from wedge_cli.core.schemas.schemas import DesiredDeviceConfig
 from wedge_cli.gui.utils.axis_mapping import pixel_roi_from_normals
 from wedge_cli.gui.utils.axis_mapping import UnitROI
 from wedge_cli.gui.utils.enums import Screen

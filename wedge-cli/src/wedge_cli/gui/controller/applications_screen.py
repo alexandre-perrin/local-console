@@ -8,8 +8,8 @@ from wedge_cli.core.commands.deploy import exec_deployment
 from wedge_cli.core.commands.deploy import make_unique_module_ids
 from wedge_cli.core.commands.deploy import populate_urls_and_hashes
 from wedge_cli.core.config import get_config
-from wedge_cli.core.schemas import Deployment
-from wedge_cli.core.schemas import DeploymentManifest
+from wedge_cli.core.schemas.schemas import Deployment
+from wedge_cli.core.schemas.schemas import DeploymentManifest
 from wedge_cli.gui.driver import Driver
 from wedge_cli.gui.model.applications_screen import ApplicationsScreenModel
 from wedge_cli.gui.view.ApplicationsScreen.applications_screen import (

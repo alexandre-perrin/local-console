@@ -4,7 +4,7 @@ import hypothesis.strategies as st
 from hypothesis import given
 from typer.testing import CliRunner
 from wedge_cli.commands.qr import app
-from wedge_cli.core.schemas import AgentConfiguration
+from wedge_cli.core.schemas.schemas import AgentConfiguration
 
 from tests.strategies.configs import generate_agent_config
 from tests.strategies.configs import generate_valid_ip

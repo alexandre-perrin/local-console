@@ -8,7 +8,7 @@ from typing import Any
 from typing import Optional
 
 import qrcode
-from wedge_cli.core.schemas import OnWireProtocol
+from wedge_cli.core.schemas.schemas import OnWireProtocol
 
 logger = logging.getLogger(__name__)
 

@@ -4,7 +4,7 @@ from typing import Annotated
 import trio
 import typer
 from wedge_cli.core.config import get_config
-from wedge_cli.core.schemas import AgentConfiguration
+from wedge_cli.core.schemas.schemas import AgentConfiguration
 from wedge_cli.servers.broker import spawn_broker
 
 app = typer.Typer(

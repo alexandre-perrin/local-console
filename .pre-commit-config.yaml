@@ -34,7 +34,7 @@ repos:
     rev: v1.8.0
     hooks:
       - id: mypy
-        args: [--python-version=3.9]
+        args: [--python-version=3.10]
         additional_dependencies:
           - types-paho-mqtt==1.6.0.7
           - types-retry
