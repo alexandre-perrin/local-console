@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from trio import Event
-from wedge_cli.core.edge_cloud_if_v1 import DeviceConfiguration
+from wedge_cli.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from wedge_cli.gui.model.base_model import BaseScreenModel
 from wedge_cli.utils.validation import validate_imx500_model_file
 

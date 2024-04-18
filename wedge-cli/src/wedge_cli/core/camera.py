@@ -9,7 +9,7 @@ from typing import Optional
 
 import qrcode
 from pydantic import ValidationError
-from wedge_cli.core.edge_cloud_if_v1 import DeviceConfiguration
+from wedge_cli.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from wedge_cli.core.schemas.schemas import OnWireProtocol
 
 logger = logging.getLogger(__name__)
