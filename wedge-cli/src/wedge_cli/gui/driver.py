@@ -67,7 +67,7 @@ class Driver:
 
     async def main(self) -> None:
         self.nursery.start_soon(self.mqtt_setup)
-        self.nursery.start_soon(self.image_webserver_task)
+        self.nursery.start_soon(self.blobs_webserver_task)
 
         for flag in self.start_flags.values():
             await flag.wait()
@@ -139,7 +139,7 @@ class Driver:
             Screen.AI_MODEL_SCREEN
         ].model.ota_status = self.camera_state.ota_status
 
-    async def image_webserver_task(self) -> None:
+    async def blobs_webserver_task(self) -> None:
         """
         Spawn a webserver on an arbitrary available port for receiving
         images from a camera.
@@ -148,7 +148,7 @@ class Driver:
         :return:
         """
         with (
-            TemporaryDirectory(prefix="WEdgeGUI_") as tempdir,
+            TemporaryDirectory(prefix="LocalConsole_") as tempdir,
             AsyncWebserver(
                 Path(tempdir), port=0, on_incoming=self.process_camera_upload
             ) as image_serve,
