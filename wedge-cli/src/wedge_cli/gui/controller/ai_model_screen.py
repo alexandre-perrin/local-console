@@ -1,4 +1,3 @@
-import json
 import logging
 import shutil
 from base64 import b64encode
@@ -53,6 +52,7 @@ class AIModelScreenController:
         ephemeral_agent = Agent()
 
         timeout_secs = 30
+        model_is_deployed = True
         with trio.move_on_after(timeout_secs) as timeout_scope:
             async with ephemeral_agent.mqtt_scope([]):
                 await ephemeral_agent.configure(
@@ -63,25 +63,30 @@ class AIModelScreenController:
                     ).model_dump_json(),
                 )
                 while True:
-                    if self.model.device_config is None:
-                        continue
+                    if self.model.device_config:
+                        deployed_dnn_model_versions = get_network_ids(
+                            self.model.device_config.Version.DnnModelVersion  # type: ignore
+                        )
+                        logger.debug(
+                            f"Dnn deployed version: {deployed_dnn_model_versions}"
+                        )
+                        model_is_deployed = network_id in deployed_dnn_model_versions
 
-                    deployed_dnn_model_versions = get_network_ids(
-                        self.model._device_config.Version.DnnModelVersion  # type: ignore
-                    )
-                    logger.debug(f"Dnn deployed version: {deployed_dnn_model_versions}")
-
-                    if (
-                        self.model.device_config.OTA.UpdateStatus in ["Done", "Failed"]
-                        and network_id not in deployed_dnn_model_versions
-                    ):
-                        logger.debug("AI model not loaded")
-                        break
+                        if (
+                            self.model.device_config.OTA.UpdateStatus
+                            in ["Done", "Failed"]
+                            and not model_is_deployed
+                        ):
+                            logger.debug("AI model not loaded")
+                            break
 
                     await self.model.ota_event()
                     timeout_scope.deadline += timeout_secs
 
-    async def deploy_step(self, package_file: Path) -> None:
+        if model_is_deployed:
+            logger.warning("Model hasn't been undeployed")
+
+    async def deploy_step(self, network_id: str, package_file: Path) -> None:
         config = get_config()
         ephemeral_agent = Agent()
         webserver_port = config.webserver.port
@@ -94,6 +99,7 @@ class AIModelScreenController:
 
             # In my tests, the "Updating" phase may take this long:
             timeout_secs = 90
+            model_is_deployed = False
             with trio.move_on_after(timeout_secs) as timeout_scope:
                 async with (
                     ephemeral_agent.mqtt_scope(
@@ -103,20 +109,26 @@ class AIModelScreenController:
                 ):
                     assert ephemeral_agent.nursery  # make mypy happy
                     await ephemeral_agent.configure(
-                        "backdoor-EA_Main", "placeholder", json.dumps(spec)
+                        "backdoor-EA_Main", "placeholder", spec
                     )
                     while True:
+                        if self.model.device_config:
+                            model_is_deployed = network_id in get_network_ids(
+                                self.model.device_config.Version.DnnModelVersion  # type: ignore
+                            )
+
+                            if (
+                                self.model.device_config.OTA.UpdateStatus
+                                in ("Done", "Failed")
+                                and model_is_deployed
+                            ):
+                                break
+
                         await self.model.ota_event()
                         timeout_scope.deadline += timeout_secs
 
-                        if self.model.device_config is None:
-                            continue
-
-                        if self.model.device_config.OTA.UpdateStatus in (
-                            "Done",
-                            "Failed",
-                        ):
-                            break
+            if not model_is_deployed:
+                logger.warning("Model is not deployed")
 
             if timeout_scope.cancelled_caught:
                 self.view.notify_deploy_timeout()
@@ -127,7 +139,7 @@ class AIModelScreenController:
         logger.debug(f"Undeploying network with id {network_id}")
         await self.undeploy_step(network_id)
         logger.debug("Deploying network")
-        await self.deploy_step(package_file)
+        await self.deploy_step(network_id, package_file)
 
 
 def get_package_hash(package_file: Path) -> str:
@@ -148,7 +160,7 @@ def get_network_id(package_file: Path) -> str:
 
 def configuration_spec(
     package_file: Path, webserver_root: Path, webserver_port: int
-) -> dict[str, dict[str, str]]:
+) -> str:
     file_hash = get_package_hash(package_file)
     version_str = get_package_version(package_file)
     ip_addr = get_my_ip_by_routing()
@@ -156,7 +168,7 @@ def configuration_spec(
     url = f"http://{ip_addr}:{webserver_port}/{rel_path}"
     return DnnOta(
         OTA=DnnOtaBody(DesiredVersion=version_str, PackageUri=url, HashValue=file_hash)
-    ).model_dump()
+    ).model_dump_json()
 
 
 def get_network_ids(dnn_model_version: DnnModelVersion) -> list[str]:
