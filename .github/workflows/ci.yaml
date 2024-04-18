@@ -34,10 +34,14 @@ jobs:
         python-version: ${{ env.PYTHON_VERSION }}
     - name: Install test requirements
       run: |
-        apt-get -y update && apt install -y wget curl gcc python3-dev make cmake git software-properties-common mosquitto libnss-wrapper
+        apt-get -y update && \
+        apt install -y curl gcc python3-dev make cmake \
+                       software-properties-common git \
+                       mosquitto libnss-wrapper \
+                       xvfb libgl1-mesa-glx libxrender1 libglib2.0-0
     - name: Download and install agent
       run: |
-        wget ${{ secrets.WEDGE_AGENT_SAS_URL }} -k -O wedge-agent_amd64.deb
+        curl -sL -o wedge-agent_amd64.deb ${{ secrets.WEDGE_AGENT_SAS_URL }}
         apt install -y libc6
         apt install -y ./wedge-agent_amd64.deb
         cp /usr/bin/wedge_agent /usr/bin/evp_agent
@@ -58,7 +62,7 @@ jobs:
       if: ${{ matrix.with-tls }}
       run: |
         . .venv/bin/activate
-        coverage run -m pytest tests -o junit_family=xunit1 --junitxml=xunit-result.xml --hypothesis-seed=42
+        xvfb-run coverage run -m pytest tests -o junit_family=xunit1 --junitxml=xunit-result.xml --hypothesis-seed=42
         coverage xml
     - name: SonarCloud Scan
       if: ${{ matrix.with-tls }}
