@@ -12,6 +12,8 @@ from wedge_cli.clients.agent import Agent
 from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.config import get_config
 from wedge_cli.core.schemas.edge_cloud_if_v1 import DnnModelVersion
+from wedge_cli.core.schemas.edge_cloud_if_v1 import DnnOta
+from wedge_cli.core.schemas.edge_cloud_if_v1 import DnnOtaBody
 from wedge_cli.gui.driver import Driver
 from wedge_cli.gui.model.ai_model_screen import AIModelScreenModel
 from wedge_cli.gui.view.AIModelScreen.ai_model_screen import (
@@ -155,14 +157,9 @@ def configuration_spec(
     ip_addr = get_my_ip_by_routing()
     rel_path = PurePosixPath(package_file.relative_to(webserver_root))
     url = f"http://{ip_addr}:{webserver_port}/{rel_path}"
-    return {
-        "OTA": {
-            "UpdateModule": "DnnModel",
-            "DesiredVersion": version_str,
-            "PackageUri": url,
-            "HashValue": file_hash,
-        }
-    }
+    return DnnOta(
+        OTA=DnnOtaBody(DesiredVersion=version_str, PackageUri=url, HashValue=file_hash)
+    ).model_dump()
 
 
 def get_network_ids(dnn_model_version: DnnModelVersion) -> list[str]:

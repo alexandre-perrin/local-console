@@ -2,6 +2,7 @@
 Edge Cloud IF v1 schemas. Properties not included here are ignored. For example, PQ settings.
 """
 from pydantic import BaseModel
+from pydantic import Field
 from wedge_cli.utils.schemas import ListModel
 
 
@@ -49,3 +50,14 @@ class DeviceConfiguration(BaseModel):
     Status: Status
     OTA: OTA
     Permission: Permission
+
+
+class DnnOtaBody(BaseModel):
+    UpdateModule: str = Field(default="DnnModel")
+    DesiredVersion: str
+    PackageUri: str
+    HashValue: str
+
+
+class DnnOta(BaseModel):
+    OTA: DnnOtaBody
