@@ -8,9 +8,7 @@ from kivymd.uix.snackbar import MDSnackbar
 from kivymd.uix.snackbar import MDSnackbarButtonContainer
 from kivymd.uix.snackbar import MDSnackbarCloseButton
 from kivymd.uix.snackbar import MDSnackbarSupportingText
-from pydantic import BaseModel
-from wedge_cli.core.schemas.edge_cloud_if_v1 import OTA
-from wedge_cli.core.schemas.edge_cloud_if_v1 import Version
+from wedge_cli.gui.schemas import OtaData
 from wedge_cli.gui.utils.sync_async import run_on_ui_thread
 from wedge_cli.gui.view.base_screen import BaseScreenView
 from wedge_cli.gui.view.common.components import (
@@ -18,11 +16,6 @@ from wedge_cli.gui.view.common.components import (
 )  # nopycln: import # Required by the screen's KV spec file
 
 logger = logging.getLogger(__name__)
-
-
-class OtaData(BaseModel):
-    OTA: OTA
-    Version: Version
 
 
 class AIModelScreenView(BaseScreenView):
