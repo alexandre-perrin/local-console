@@ -95,6 +95,7 @@ class FlatBuffers:
                 [
                     flatc_path,
                     "--json",
+                    "--defaults-json",
                     "--strict-json",
                     "-o",
                     out_dir,

@@ -72,6 +72,7 @@ def test_flatbuffer_binary_to_json(tmp_path):
             [
                 fb.get_flatc(),
                 "--json",
+                "--defaults-json",
                 "--strict-json",
                 "-o",
                 tmp_path,
