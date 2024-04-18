@@ -26,11 +26,11 @@ class ConfigurationScreenController:
         return self.view
 
     def update_image_directory(self, path: Path) -> None:
-        self.driver.image_directory_config = path
+        self.driver.set_image_directory(path)
         self.model.image_directory = path
 
     def update_inferences_directory(self, path: Path) -> None:
-        self.driver.inferences_directory_config = path
+        self.driver.set_inference_directory(path)
         self.model.inferences_directory = path
 
     def update_flatbuffers_schema(self, path: Path) -> None:
