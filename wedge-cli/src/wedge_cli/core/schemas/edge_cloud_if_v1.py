@@ -61,3 +61,12 @@ class DnnOtaBody(BaseModel):
 
 class DnnOta(BaseModel):
     OTA: DnnOtaBody
+
+
+class DnnDeleteBody(BaseModel):
+    UpdateModule: str = Field(default="DnnModel")
+    DeleteNetworkID: str
+
+
+class DnnDelete(BaseModel):
+    OTA: DnnDeleteBody

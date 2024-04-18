@@ -11,6 +11,8 @@ from cryptography.hazmat.primitives import hashes
 from wedge_cli.clients.agent import Agent
 from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.config import get_config
+from wedge_cli.core.schemas.edge_cloud_if_v1 import DnnDelete
+from wedge_cli.core.schemas.edge_cloud_if_v1 import DnnDeleteBody
 from wedge_cli.core.schemas.edge_cloud_if_v1 import DnnModelVersion
 from wedge_cli.core.schemas.edge_cloud_if_v1 import DnnOta
 from wedge_cli.core.schemas.edge_cloud_if_v1 import DnnOtaBody
@@ -56,14 +58,9 @@ class AIModelScreenController:
                 await ephemeral_agent.configure(
                     "backdoor-EA_Main",
                     "placeholder",
-                    json.dumps(
-                        {
-                            "OTA": {
-                                "UpdateModule": "DnnModel",
-                                "DeleteNetworkID": network_id,
-                            }
-                        }
-                    ),
+                    DnnDelete(
+                        OTA=DnnDeleteBody(DeleteNetworkID=network_id)
+                    ).model_dump_json(),
                 )
                 while True:
                     if self.model.device_config is None:
