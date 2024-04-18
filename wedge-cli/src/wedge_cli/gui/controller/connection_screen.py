@@ -27,11 +27,11 @@ class ConnectionScreenController:
     def qr_generate(self) -> None:
         # Get the local IP since it might be updated.
         self.model.local_ip = get_my_ip_by_routing()
-
+        mqtt_port = int(self.model.mqtt_port) if self.model.mqtt_port != "" else None
         tls_enabled = False
         qr = get_qr_object(
             replace_local_address(self.model.mqtt_host),
-            int(self.model.mqtt_port),
+            mqtt_port,
             tls_enabled,
             replace_local_address(self.model.ntp_host),
             self.model.ip_address,

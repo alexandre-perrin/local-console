@@ -27,38 +27,26 @@ class ConnectionScreenView(BaseScreenView):
 
     def validate_mqtt_host(self, widget: Widget, text: str) -> None:
         self.model.mqtt_host = text
-        widget.error = not self.model.mqtt_host_valid
 
     def validate_mqtt_port(self, widget: Widget, text: str) -> None:
         self.model.mqtt_port = text
-        widget.error = not self.model.mqtt_port_valid
 
     def validate_ntp_host(self, widget: Widget, text: str) -> None:
         self.model.ntp_host = text
-        widget.error = not self.model.ntp_host_valid
 
     def validate_ip_address(self, widget: Widget, text: str) -> None:
         self.model.ip_address = text
-        # no validation in the same way as the Setup Enrollment on the Console
 
     def validate_subnet_mask(self, widget: Widget, text: str) -> None:
         self.model.subnet_mask = text
-        widget.error = not self.model.subnet_mask_valid
 
     def validate_gateway(self, widget: Widget, text: str) -> None:
         self.model.gateway = text
-        # no validation in the same way as the Setup Enrollment on the Console
 
     def validate_dns_server(self, widget: Widget, text: str) -> None:
         self.model.dns_server = text
-        # no validation in the same way as the Setup Enrollment on the Console
 
     def model_is_changed(self) -> None:
-        if self.model.is_valid_parameters:
-            self.enable_generate_qr()
-        else:
-            self.disable_generate_qr()
-
         self.ids.lbl_conn_status.text = (
             "Connected [No TLS]" if self.model.connected else "Disconnected"
         )
@@ -71,19 +59,21 @@ class ConnectionScreenView(BaseScreenView):
         self.ids.txt_gateway.text = self.model.gateway
         self.ids.txt_dns_server.text = self.model.dns_server
 
-        if self.model.local_ip_updated:
-            self.model.local_ip_updated = False
-            self.show_local_ip_updated()
+        if self.model.warning_message != "":
+            self.show_message_at_bottom(self.model.warning_message)
+            self.model.warning_message = ""
 
-    def enable_generate_qr(self) -> None:
-        self.ids.btn_qr_gen.disabled = False
+        self.ids.txt_mqtt_host.error = self.model.mqtt_host_error
+        self.ids.txt_mqtt_port.error = self.model.mqtt_port_error
+        self.ids.txt_ntp_host.error = self.model.ntp_host_error
+        self.ids.txt_ip_address.error = self.model.ip_address_error
+        self.ids.txt_subnet_mask.error = self.model.subnet_mask_error
+        self.ids.txt_gateway.error = self.model.gateway_error
+        self.ids.txt_dns_server.error = self.model.dns_server_error
 
-    def disable_generate_qr(self) -> None:
-        self.ids.btn_qr_gen.disabled = True
-
-    def show_local_ip_updated(self) -> None:
+    def show_message_at_bottom(self, message: str) -> None:
         MDSnackbar(
-            MDSnackbarSupportingText(text="Warning: Local IP Address was updated!"),
+            MDSnackbarSupportingText(text=message),
             MDSnackbarButtonContainer(
                 MDSnackbarCloseButton(
                     icon="close",
