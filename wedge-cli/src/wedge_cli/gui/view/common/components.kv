@@ -99,3 +99,26 @@
         MDButtonIcon:
             icon: root.icon
             pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+
+<FileSizeCombo>:
+    orientation: "horizontal"
+    spacing: "5dp"
+
+    MDLabel:
+        text: root.label
+        adaptive_width: True
+
+    NumberInputField:
+        text: root._spec
+        on_text: root.set_spec(*args)
+        pos_hint: {"center_y": 0.5}
+        size_hint_x: None
+        width: "80sp"
+
+    MDDropDownItem:
+        pos_hint: {"center_y": .5}
+        on_release: root.open_menu(*args)
+
+        MDDropDownItemText:
+            text: root._selected_unit
