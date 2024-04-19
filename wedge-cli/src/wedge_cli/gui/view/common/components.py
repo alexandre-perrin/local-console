@@ -1,20 +1,25 @@
 import enum
 import logging
+import re
 from math import fabs
 from pathlib import Path
 from typing import Any
 from typing import Optional
 
+from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.graphics import Color
 from kivy.graphics import Line
 from kivy.graphics.texture import Texture
 from kivy.input import MotionEvent
+from kivy.properties import NumericProperty
 from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
 from kivy.uix.image import Image
 from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.dropdownitem import MDDropDownItem
 from kivymd.uix.filemanager import MDFileManager
+from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.textfield import MDTextField
 from kivymd.uix.tooltip import MDTooltip
 from wedge_cli.gui.utils.axis_mapping import as_normal_in_set
@@ -301,3 +306,103 @@ class PathSelectorCombo(MDBoxLayout):
         """Called when the user reaches the root of the directory tree."""
         self.file_manager.close()
         self.file_manager.refresh_opening_path()
+
+
+class NumberInputField(MDTextField):
+    """
+    It is an MDTextField that only accepts digits,
+    ignoring any other character type.
+    """
+
+    pat = re.compile(r"\D")
+
+    def insert_text(self, incoming_char: str, from_undo: bool = False) -> Any:
+        s = re.sub(self.pat, "", incoming_char)
+        return super().insert_text(s, from_undo=from_undo)
+
+
+class FileSizeCombo(MDBoxLayout):
+    """
+    Widget group that provides user-friendly input
+    of a file size quantity, with the result in
+    bytes given on the 'value' property.
+    """
+
+    label = StringProperty("Max size:")
+    """
+    Sets the label that identifies the widget group to the user
+
+    :attr:`label` is an :class:`~kivy.properties.StringProperty`
+    and defaults to `Max size:`.
+    """
+
+    value = NumericProperty(0)
+    """
+    Contains the file size in bytes equivalent to the user
+    input values in the widget group.
+
+    :attr:`value` is an :class:`~kivy.properties.NumericProperty`
+    and defaults to `0`.
+    """
+
+    cool_off_ms = NumericProperty(2000)
+    """
+    Specifies the input value cool-off period before updating
+    the 'value' property.
+
+    :attr:`value` is an :class:`~kivy.properties.NumericProperty`
+    and defaults to `0`.
+    """
+
+    _factors = {"kB": 2**10, "MB": 2**20, "GB": 2**30}
+    _spec = StringProperty("10")
+    _selected_unit = StringProperty("MB")
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.validation_clock: Optional[Clock] = None
+        menu_items = [
+            {
+                "text": unit,
+                "on_release": lambda x=unit: self.set_unit(x),
+            }
+            for unit in self._factors.keys()
+        ]
+        self.menu = MDDropdownMenu(
+            items=menu_items,
+            position="bottom",
+        )
+        self.update_value()
+
+    def open_menu(self, widget: MDDropDownItem) -> None:
+        self.menu.caller = widget
+        self.menu.open()
+
+        if self.validation_clock:
+            # Previous cool-off was not done, so cancel it
+            self.validation_clock.cancel()
+
+    def set_unit(self, unit_item: str) -> None:
+        self._selected_unit = unit_item
+        self.menu.dismiss()
+        self._schedule_validation()
+
+    def set_spec(self, widget: NumberInputField, text: str) -> None:
+        self._spec = text
+        self._schedule_validation()
+
+    def _schedule_validation(self) -> None:
+        if not self.validation_clock:
+            # First time, instantiate cool-off clock
+            self.validation_clock = Clock.schedule_once(
+                lambda _dt: self.update_value(), self.cool_off_ms / 1000
+            )
+        else:
+            # Previous cool-off was not done, so cancel it
+            self.validation_clock.cancel()
+
+        # Start input value cool-off before updating
+        self.validation_clock()
+
+    def update_value(self) -> None:
+        self.value = int(self._spec) * self._factors[self._selected_unit]
