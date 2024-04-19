@@ -62,6 +62,7 @@ class WedgeGUIApp(MDApp):
         configure()
 
     def build(self) -> MDScreenManager:
+        self.title = "Local Console"
         self.generate_application_screens()
         return self.manager_screens
 

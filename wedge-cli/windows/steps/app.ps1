@@ -59,7 +59,7 @@ function Create-PythonEnvWithExecutable([string]$VirtualenvDir)
     & $PythonAtVenv -m pip install "$repoPath"
 
     if ($LASTEXITCODE -eq 0) {
-        Write-LogMessage "Offline Tool has been installed."
+        Write-LogMessage "Local Console has been installed."
     } else {
         Write-Error "Error activating the virtualenv"
         Exit 1
@@ -109,7 +109,7 @@ function Create-AppDataDirectory([string]$Path)
 function Create-DesktopShortcut([string]$VirtualenvDir)
 {
     $WshShell = New-Object -comObject WScript.Shell
-    $DestinationPath = Join-Path $WshShell.SpecialFolders("Desktop") "Wedge GUI.lnk"
+    $DestinationPath = Join-Path $WshShell.SpecialFolders("Desktop") "Local Console.lnk"
 
     # If icon already exists, just remove it so that we make sure it is
     # kept up to date since recreating has zero cost.
@@ -125,7 +125,7 @@ function Create-DesktopShortcut([string]$VirtualenvDir)
     $Shortcut.TargetPath = $SourceExe
     $Shortcut.Arguments = $Command
     $Shortcut.WorkingDirectory = $HOME
-    $Shortcut.Description = "Starts the GUI mode of the Wedge CLI"
+    $Shortcut.Description = "Starts the Local Console"
     #$Shortcut.IconLocation = ""
     $Shortcut.Save()
 

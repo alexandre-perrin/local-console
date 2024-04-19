@@ -122,4 +122,4 @@ function Write-LogMessage([string]$Message)
     }
 }
 
-$DefaultInstallPath = Join-Path $env:LOCALAPPDATA "Programs" | Join-Path -ChildPath "OfflineTool"
+$DefaultInstallPath = Join-Path $env:LOCALAPPDATA "Programs" | Join-Path -ChildPath "LocalConsole"

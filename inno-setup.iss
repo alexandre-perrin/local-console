@@ -1,9 +1,9 @@
-; Inno Setup Script for generating Windows Installer of Offline Tool.
+; Inno Setup Script for generating Windows Installer of Local Console.
 
-#define MyAppName "Offline Tool"
+#define MyAppName "Local Console"
 #define MyAppVersion "0.1.0"
 #define MyAppPublisher "Sony Semiconductor Solutions Corporation"
-#define MyAppExeName "offline-tool.exe"
+#define MyAppExeName "local-console.exe"
 #define MyAppAssocName MyAppName + " File"
 #define MyAppAssocExt ".myp"
 #define MyAppCanonical StringChange(MyAppName, " ", "")
@@ -19,7 +19,7 @@ AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\{#MyAppCanonical}
 PrivilegesRequired=lowest
 DisableProgramGroupPage=yes
-OutputBaseFilename=offline-tool-setup
+OutputBaseFilename=local-console-setup
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -37,4 +37,5 @@ Filename: "powershell.exe"; Parameters: "Set-ExecutionPolicy -ExecutionPolicy Re
 
 [UninstallDelete]
 Type: files; Name: "{userdesktop}\Wedge GUI.lnk"
+Type: files; Name: "{userdesktop}\Local Console.lnk"
 Type: filesandordirs; Name: "{app}"
