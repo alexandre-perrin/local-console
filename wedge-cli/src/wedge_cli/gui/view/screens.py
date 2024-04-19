@@ -1,5 +1,7 @@
 # The screen's dictionary contains the objects of the models and controllers
 # of the screens of the application.
+from functools import partial
+
 from wedge_cli.gui.controller.ai_model_screen import AIModelScreenController
 from wedge_cli.gui.controller.applications_screen import ApplicationsScreenController
 from wedge_cli.gui.controller.configuration_screen import ConfigurationScreenController
@@ -14,6 +16,7 @@ from wedge_cli.gui.model.connection_screen import ConnectionScreenModel
 from wedge_cli.gui.model.home_screen import HomeScreenModel
 from wedge_cli.gui.model.inference_screen import InferenceScreenModel
 from wedge_cli.gui.model.streaming_screen import StreamingScreenModel
+from wedge_cli.gui.view.AIModelScreen.ai_model_screen import AIModelScreenView
 
 screen_dict = {
     "home screen": {
@@ -42,7 +45,7 @@ screen_dict = {
     },
     "ai model screen": {
         "model_class": AIModelScreenModel,
-        "controller_class": AIModelScreenController,
+        "controller_class": partial(AIModelScreenController, view=AIModelScreenView),
     },
 }
 

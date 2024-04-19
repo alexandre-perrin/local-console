@@ -1,15 +1,14 @@
-import json
 import logging
 from pathlib import Path
 from typing import Any
 
 from kivy.metrics import dp
-from kivy.properties import StringProperty
 from kivymd.app import MDApp
 from kivymd.uix.snackbar import MDSnackbar
 from kivymd.uix.snackbar import MDSnackbarButtonContainer
 from kivymd.uix.snackbar import MDSnackbarCloseButton
 from kivymd.uix.snackbar import MDSnackbarSupportingText
+from wedge_cli.gui.schemas import OtaData
 from wedge_cli.gui.utils.sync_async import run_on_ui_thread
 from wedge_cli.gui.view.base_screen import BaseScreenView
 from wedge_cli.gui.view.common.components import (
@@ -20,22 +19,24 @@ logger = logging.getLogger(__name__)
 
 
 class AIModelScreenView(BaseScreenView):
-    ota_status = StringProperty("")
-
     def model_is_changed(self) -> None:
-        self.ids.txt_ota_data.text = json.dumps(self.model.ota_status, indent=4)
+        # If Done or Failed
+        leaf_update_status = False
 
-        update_status = self.model.ota_status.get("UpdateStatus")
-        if update_status:
+        if self.model.device_config:
+            self.ids.txt_ota_data.text = OtaData(
+                **self.model.device_config.model_dump()
+            ).model_dump_json(indent=4)
+
+            update_status = self.model.device_config.OTA.UpdateStatus
+            leaf_update_status = update_status in ("Done", "Failed")
             self.ids.lbl_ota_status.text = update_status
 
         if self.model.model_file.is_file():
             self.ids.model_pick.accept_path(str(self.model.model_file))
 
         can_deploy = (
-            self.app.is_ready
-            and self.model.model_file_valid
-            and update_status in ("Done", "Failed")
+            self.app.is_ready and self.model.model_file_valid and leaf_update_status
         )
         self.ids.btn_ota_file.disabled = not can_deploy
 
