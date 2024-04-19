@@ -15,6 +15,7 @@ from kivy.input import MotionEvent
 from kivy.properties import NumericProperty
 from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
+from kivy.uix.codeinput import CodeInput
 from kivy.uix.image import Image
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.dropdownitem import MDDropDownItem
@@ -408,3 +409,16 @@ class FileSizeCombo(MDBoxLayout):
 
     def update_value(self) -> None:
         self.value = int(self._spec) * self._factors[self._selected_unit]
+
+
+class CodeInputCustom(CodeInput):
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        # Cursor must be moved after setting text
+        # By scheduling execution will be performed before next frame
+        self.bind(
+            text=lambda instance, value: Clock.schedule_once(self.on_text_validate)
+        )
+
+    def on_text_validate(self, *args: Any) -> None:
+        self.cursor = (0, 0)

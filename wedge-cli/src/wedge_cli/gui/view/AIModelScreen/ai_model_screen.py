@@ -12,6 +12,9 @@ from wedge_cli.gui.schemas import OtaData
 from wedge_cli.gui.utils.sync_async import run_on_ui_thread
 from wedge_cli.gui.view.base_screen import BaseScreenView
 from wedge_cli.gui.view.common.components import (
+    CodeInputCustom,
+)  # nopycln: import # Required by the screen's KV spec file
+from wedge_cli.gui.view.common.components import (
     PathSelectorCombo,
 )  # nopycln: import # Required by the screen's KV spec file
 
