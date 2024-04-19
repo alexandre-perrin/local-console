@@ -3,6 +3,12 @@ from socket import inet_ntoa
 from struct import pack
 
 from hypothesis import strategies as st
+from wedge_cli.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
+from wedge_cli.core.schemas.edge_cloud_if_v1 import Hardware
+from wedge_cli.core.schemas.edge_cloud_if_v1 import OTA
+from wedge_cli.core.schemas.edge_cloud_if_v1 import Permission
+from wedge_cli.core.schemas.edge_cloud_if_v1 import Status
+from wedge_cli.core.schemas.edge_cloud_if_v1 import Version
 from wedge_cli.core.schemas.schemas import AgentConfiguration
 from wedge_cli.core.schemas.schemas import EVPParams
 from wedge_cli.core.schemas.schemas import IPAddress
@@ -154,4 +160,33 @@ def generate_tls_config(draw: st.DrawFn) -> TLSConfiguration:
     return TLSConfiguration.model_construct(
         ca_certificate=draw(st.just(Path("ca.crt"))),
         ca_key=draw(st.just(Path("ca.key"))),
+    )
+
+
+@st.composite
+def generate_valid_device_configuration(draw: st.DrawFn) -> DeviceConfiguration:
+    # TODO: generate data at random
+    # Use https://polyfactory.litestar.dev/latest/
+    # while pydantic hypothesis support is missing https://docs.pydantic.dev/latest/integrations/hypothesis/
+    return DeviceConfiguration(
+        Hardware=Hardware(
+            Sensor="", SensorId="", KG="", ApplicationProcessor="", LedOn=True
+        ),
+        Version=Version(
+            SensorFwVersion="",
+            SensorLoaderVersion="",
+            DnnModelVersion=[],
+            ApFwVersion="",
+            ApLoaderVersion="",
+        ),
+        Status=Status(Sensor="", ApplicationProcessor=""),
+        OTA=OTA(
+            SensorFwLastUpdatedDate="",
+            SensorLoaderLastUpdatedDate="",
+            DnnModelLastUpdatedDate=[],
+            ApFwLastUpdatedDate="",
+            UpdateProgress=75,
+            UpdateStatus="Updating",
+        ),
+        Permission=Permission(FactoryReset=False),
     )
