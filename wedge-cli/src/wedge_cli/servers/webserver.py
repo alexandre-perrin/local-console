@@ -27,16 +27,22 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         logger.debug(" ".join(str(arg) for arg in args))
 
     def do_PUT(self) -> None:
-        content_length = int(self.headers["Content-Length"])
-        data = self.rfile.read(content_length)
-        dest_path = Path(self.directory) / self.path.lstrip("/")
-        dest_path.write_bytes(data)
-        self.send_response(200)
-        self.end_headers()
+        try:
+            content_length = int(self.headers["Content-Length"])
+            data = self.rfile.read(content_length)
+            dest_path = Path(self.directory) / self.path.lstrip("/")
+            dest_path.write_bytes(data)
+            self.send_response(200)
+            self.end_headers()
 
-        # Notify of new file via the queue
-        if self.on_incoming:
-            self.on_incoming(dest_path)
+            # Notify of new file via the queue
+            if self.on_incoming:
+                self.on_incoming(dest_path)
+
+        except Exception as e:
+            logger.warning(f"Error while receiving data: {e}")
+            self.send_response(500)
+            self.end_headers()
 
     do_POST = do_PUT
 
