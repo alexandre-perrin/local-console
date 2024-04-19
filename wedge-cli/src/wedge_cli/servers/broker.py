@@ -1,5 +1,4 @@
 import logging
-import platform
 import re
 import subprocess
 import sys
@@ -7,6 +6,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from functools import partial
 from pathlib import Path
+from shutil import which
 from string import Template
 from tempfile import TemporaryDirectory
 
@@ -14,7 +14,6 @@ import trio
 from wedge_cli.core.enums import config_paths
 from wedge_cli.core.schemas.schemas import AgentConfiguration
 from wedge_cli.utils.tls import ensure_certificate_pair_exists
-from wedge_cli.utils.windows import get_program_files_path
 
 logger = logging.getLogger(__name__)
 
@@ -31,12 +30,13 @@ async def spawn_broker(
             server_name, broker_cert_path, broker_key_path, config.tls, is_server=True
         )
 
-    with TemporaryDirectory() as tmp_dir:
-        if platform.system() == "Linux":
-            broker_bin = "mosquitto"
-        elif platform.system() == "Windows":
-            broker_bin = get_program_files_path() + "\\mosquitto\\mosquitto.exe"
+    broker_bin = which("mosquitto")
+    if not broker_bin:
+        raise ValueError(
+            "Could not find mosquitto in the PATH. Please add it and try again"
+        )
 
+    with TemporaryDirectory() as tmp_dir:
         config_file = Path(tmp_dir) / "broker.toml"
         populate_broker_conf(config, config_file)
 

@@ -38,7 +38,7 @@ function Main
 function Get-Mosquitto
 {
 
-    $mosquittoExecPath = "$(Get-ProgramFilesPath)\mosquitto\mosquitto.exe"
+    $mosquittoExecPath = "$(Get-ProgramFilesPath)\mosquitto"
     if (Test-ExecutablePath -Path $mosquittoExecPath)
     {
         Write-LogMessage "Mosquitto is already installed."
@@ -59,7 +59,41 @@ function Get-Mosquitto
     # Cleanup downloaded installer
     Remove-Item -Path $downloadPath -Force
 
+    # Adding the path for the machine
+    Add-EnvPath $mosquittoExecPath "Machine"
+
     Write-LogMessage "Mosquitto installation complete."
+}
+
+
+function Add-EnvPath {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string] $Path,
+
+        [ValidateSet('Machine', 'User', 'Session')]
+        [string] $Container = 'Session'
+    )
+
+    if ($Container -ne 'Session') {
+        $containerMapping = @{
+            Machine = [EnvironmentVariableTarget]::Machine
+            User = [EnvironmentVariableTarget]::User
+        }
+        $containerType = $containerMapping[$Container]
+
+        $persistedPaths = [Environment]::GetEnvironmentVariable('Path', $containerType) -split ';'
+        if ($persistedPaths -notcontains $Path) {
+            $persistedPaths = $persistedPaths + $Path | where { $_ }
+            [Environment]::SetEnvironmentVariable('Path', $persistedPaths -join ';', $containerType)
+        }
+    }
+
+    $envPaths = $env:Path -split ';'
+    if ($envPaths -notcontains $Path) {
+        $envPaths = $envPaths + $Path | where { $_ }
+        $env:Path = $envPaths -join ';'
+    }
 }
 
 function Initialize-Mosquitto
