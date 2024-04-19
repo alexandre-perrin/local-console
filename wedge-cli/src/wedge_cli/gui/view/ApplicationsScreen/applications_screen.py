@@ -12,6 +12,9 @@ from kivymd.uix.snackbar import MDSnackbarCloseButton
 from kivymd.uix.snackbar import MDSnackbarSupportingText
 from wedge_cli.gui.view.base_screen import BaseScreenView
 from wedge_cli.gui.view.common.components import (
+    CodeInputCustom,
+)  # nopycln: import # Required by the screen's KV spec file
+from wedge_cli.gui.view.common.components import (
     PathSelectorCombo,
 )  # nopycln: import # Required by the screen's KV spec file
 from wedge_cli.utils.validation import validate_app_file
