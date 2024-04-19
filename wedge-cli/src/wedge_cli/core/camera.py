@@ -82,6 +82,9 @@ class Camera:
         if firmware_is_supported:
             try:
                 self.device_config = DeviceConfiguration.model_validate(decoded)
+                self.sensor_state = StreamStatus.from_string(
+                    self.device_config.Status.Sensor
+                )
             except ValidationError as e:
                 logger.warning(f"Error while validating device configuration: {e}")
 
