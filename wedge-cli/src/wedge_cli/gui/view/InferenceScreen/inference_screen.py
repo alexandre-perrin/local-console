@@ -1,8 +1,8 @@
-from kivy.uix.codeinput import (
-    CodeInput,
-)  # nopycln: import # Required by the screen's KV spec file
 from wedge_cli.core.camera import StreamStatus
 from wedge_cli.gui.view.base_screen import BaseScreenView
+from wedge_cli.gui.view.common.components import (
+    CodeInputCustom,
+)  # nopycln: import # Required by the screen's KV spec file
 from wedge_cli.gui.view.common.components import (
     ImageWithROI,
 )  # nopycln: import # Required by the screen's KV spec file
