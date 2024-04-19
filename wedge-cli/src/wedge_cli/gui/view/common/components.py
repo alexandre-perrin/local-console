@@ -27,6 +27,10 @@ from wedge_cli.gui.utils.axis_mapping import as_normal_in_set
 from wedge_cli.gui.utils.axis_mapping import DEFAULT_ROI
 from wedge_cli.gui.utils.axis_mapping import delta
 from wedge_cli.gui.utils.axis_mapping import denormalize_in_set
+from wedge_cli.gui.utils.axis_mapping import get_dead_zone_within_image
+from wedge_cli.gui.utils.axis_mapping import get_dead_zone_within_widget
+from wedge_cli.gui.utils.axis_mapping import get_normalized_center_subregion
+from wedge_cli.gui.utils.axis_mapping import snap_point_in_deadzone
 from wedge_cli.gui.view.common.behaviors import HoverBehavior
 
 logger = logging.getLogger(__name__)
@@ -41,8 +45,12 @@ class ROIState(enum.Enum):
 
 
 class ImageWithROI(Image, HoverBehavior):
+    # Read-only properties
     roi = ObjectProperty(DEFAULT_ROI)
     state = ObjectProperty(ROIState.Disabled)
+
+    # Widget configuration properties
+    dead_zone_px = NumericProperty(20)
 
     def __init__(self, **kwargs: str) -> None:
         super().__init__(**kwargs)
@@ -55,6 +63,8 @@ class ImageWithROI(Image, HoverBehavior):
         self._active_subregion: list[tuple[float, float]] = [(0, 0), (0, 0)]
         # https://www.reddit.com/r/kivy/comments/16qftb0/memory_leak_with_images/
         self.nocache = True
+        self._dead_zone_in_image: list[tuple[float, float]] = [(0, 0), (0, 0)]
+        self._dead_zone_in_widget: list[tuple[float, float]] = [(0, 0), (0, 0)]
 
     def start_roi_draw(self) -> None:
         if self.state == ROIState.Disabled:
@@ -90,9 +100,12 @@ class ImageWithROI(Image, HoverBehavior):
                 as_normal_in_set(touch.y, (0, self.size[1])),
             )
             # normalize coordinate within the image space
-            self.roi_start = (
+            normalized_roi_start = (
                 as_normal_in_set(w_roi_start[0], self._active_subregion[0]),
                 as_normal_in_set(w_roi_start[1], self._active_subregion[1]),
+            )
+            self.roi_start = snap_point_in_deadzone(
+                normalized_roi_start, self._dead_zone_in_image
             )
             self.state = ROIState.PickingEndPoint
             return True  # to consume the event and not propagate it further
@@ -109,9 +122,12 @@ class ImageWithROI(Image, HoverBehavior):
                 as_normal_in_set(touch.y, (0, self.size[1])),
             )
             # normalize coordinate within the image space
-            roi_end = (
+            normalized_roi_end = (
                 as_normal_in_set(w_roi_end[0], self._active_subregion[0]),
                 as_normal_in_set(w_roi_end[1], self._active_subregion[1]),
+            )
+            roi_end = snap_point_in_deadzone(
+                normalized_roi_end, self._dead_zone_in_image
             )
 
             # these are in the image's unit coordinate system
@@ -199,19 +215,27 @@ class ImageWithROI(Image, HoverBehavior):
         if self.state == ROIState.Disabled:
             return
 
-        image_size_map = self.get_norm_image_size()
+        image_size = self.get_norm_image_size()
         widget_size = self.size
-        limits = [(0.0, 0.0), (0.0, 0.0)]
-        for dim in (0, 1):
-            min_dim = as_normal_in_set(
-                (widget_size[dim] - image_size_map[dim]) / 2, (0, widget_size[dim])
-            )
-            max_dim = as_normal_in_set(
-                (widget_size[dim] + image_size_map[dim]) / 2, (0, widget_size[dim])
-            )
-            limits[dim] = (min_dim, max_dim)
+        active_subregion = get_normalized_center_subregion(image_size, widget_size)
+        self._active_subregion = active_subregion
+        self.update_dead_zone(image_size, widget_size, active_subregion)
 
-        self._active_subregion = limits
+    def update_dead_zone(
+        self,
+        image_size: tuple[int, int],
+        widget_size: tuple[int, int],
+        active_subregion: list[tuple[float, float]],
+    ) -> None:
+        assert self.state != ROIState.Disabled
+        dead_subregion_w = get_dead_zone_within_widget(
+            self.dead_zone_px, image_size, widget_size
+        )
+        dead_subregion_i = get_dead_zone_within_image(
+            dead_subregion_w, active_subregion
+        )
+        self._dead_zone_in_widget = dead_subregion_w
+        self._dead_zone_in_image = dead_subregion_i
 
     def point_is_in_subregion(self, pos: tuple[int, int]) -> bool:
         if all(coord == 0 for axis in self._active_subregion for coord in axis):

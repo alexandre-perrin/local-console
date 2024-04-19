@@ -53,3 +53,57 @@ def denormalize_in_set(value: Number, set_: NumberSet) -> Number:
 
 def delta(set_: NumberSet) -> Number:
     return set_[1] - set_[0]
+
+
+def get_normalized_center_subregion(
+    subregion_size: tuple[int, int], widget_size: tuple[int, int]
+) -> list[tuple[float, float]]:
+    normalized = [(0.0, 0.0), (0.0, 0.0)]
+    for dim in (0, 1):
+        min_dim = as_normal_in_set(
+            (widget_size[dim] - subregion_size[dim]) / 2, (0, widget_size[dim])
+        )
+        max_dim = as_normal_in_set(
+            (widget_size[dim] + subregion_size[dim]) / 2, (0, widget_size[dim])
+        )
+        normalized[dim] = (min_dim, max_dim)
+
+    return normalized
+
+
+def get_dead_zone_within_widget(
+    dead_zone_px: int, image_size: tuple[int, int], widget_size: tuple[int, int]
+) -> list[tuple[float, float]]:
+    # Dead zone removes two strips of self.dead_zone_px of width, on each dimension
+    dead_zone_size = [(sz - 2 * dead_zone_px) for sz in image_size]
+    return get_normalized_center_subregion(
+        (dead_zone_size[0], dead_zone_size[1]), widget_size
+    )
+
+
+def get_dead_zone_within_image(
+    dead_zone_in_widget: list[tuple[float, float]],
+    active_subregion: list[tuple[float, float]],
+) -> list[tuple[float, float]]:
+    # Now normalize the dead zone within the image area
+    normalized = [(0.0, 0.0), (0.0, 0.0)]
+    for dim in (0, 1):
+        normalized[dim] = (
+            as_normal_in_set(dead_zone_in_widget[dim][0], active_subregion[dim]),
+            as_normal_in_set(dead_zone_in_widget[dim][1], active_subregion[dim]),
+        )
+
+    return normalized
+
+
+def snap_point_in_deadzone(
+    pos: tuple[float, float], dead_zone: list[tuple[float, float]]
+) -> tuple[float, float]:
+    snapped = list(pos)
+    for dim in (0, 1):
+        if pos[dim] < dead_zone[dim][0]:
+            snapped[dim] = 0
+        elif pos[dim] > dead_zone[dim][1]:
+            snapped[dim] = 1
+
+    return (snapped[0], snapped[1])
