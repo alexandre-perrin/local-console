@@ -121,7 +121,7 @@ class StorageSizeWatcher:
         self.storage_usage = sum(e[1] for e in sorted_e)
 
     def _prune(self) -> None:
-        if not self._size_limit:
+        if self._size_limit is None:
             return
 
         # In order to make this class thread-safe,
@@ -129,12 +129,14 @@ class StorageSizeWatcher:
         # self.state == self.State.Checking
 
         while self.storage_usage > self._size_limit:
-            (_, path), size = self.content.popitem(last=False)
             try:
+                (_, path), size = self.content.popitem(last=False)
                 path.unlink()
+                self.storage_usage -= size
             except FileNotFoundError:
                 logger.warning(f"File {path} was already removed")
-            self.storage_usage -= size
+            except KeyError:
+                break
 
         # In order to make this class thread-safe,
         # the following would be required:
