@@ -70,3 +70,7 @@ class DnnDeleteBody(BaseModel):
 
 class DnnDelete(BaseModel):
     OTA: DnnDeleteBody
+
+
+class SetFactoryReset(BaseModel):
+    Permission: Permission

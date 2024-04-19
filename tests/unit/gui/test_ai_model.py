@@ -13,6 +13,9 @@ from wedge_cli.gui.controller.ai_model_screen import AIModelScreenController
 from wedge_cli.gui.controller.ai_model_screen import get_package_hash
 from wedge_cli.utils.local_network import get_my_ip_by_routing
 
+# To allow other tests to load driver
+del sys.modules["wedge_cli.gui.driver"]
+
 
 @pytest.fixture(params=["Done", "Failed"])
 def update_status(request):

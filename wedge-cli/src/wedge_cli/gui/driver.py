@@ -15,6 +15,8 @@ from wedge_cli.clients.agent import check_attributes_request
 from wedge_cli.core.camera import Camera
 from wedge_cli.core.camera import MQTTTopics
 from wedge_cli.core.config import get_config
+from wedge_cli.core.schemas.edge_cloud_if_v1 import Permission
+from wedge_cli.core.schemas.edge_cloud_if_v1 import SetFactoryReset
 from wedge_cli.core.schemas.schemas import DesiredDeviceConfig
 from wedge_cli.gui.utils.axis_mapping import pixel_roi_from_normals
 from wedge_cli.gui.utils.axis_mapping import UnitROI
@@ -114,6 +116,7 @@ class Driver:
                     payload = json.loads(msg.payload)
                     self.camera_state.process_incoming(msg.topic, payload)
                     self.update_camera_status()
+                    await self.process_factory_reset()
 
                     if self.camera_state.is_ready:
                         self.periodic_reports.tap()
@@ -122,6 +125,19 @@ class Driver:
 
     def from_sync(self, async_fn: Callable, *args: Any) -> None:
         self.bridge.enqueue_task(async_fn, *args)
+
+    async def process_factory_reset(self) -> None:
+        if self.camera_state.is_new_device_config and self.camera_state.device_config:
+            factory_reset = self.camera_state.device_config.Permission.FactoryReset
+            logger.info(f"Factory Reset is {factory_reset}")
+            if not factory_reset:
+                await self.mqtt_client.configure(
+                    "backdoor-EA_Main",
+                    "placeholder",
+                    SetFactoryReset(
+                        Permission=Permission(FactoryReset=True)
+                    ).model_dump_json(),
+                )
 
     @run_on_ui_thread
     def update_camera_status(self) -> None:

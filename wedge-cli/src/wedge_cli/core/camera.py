@@ -35,6 +35,7 @@ class Camera:
         self.onwire_schema: Optional[OnWireProtocol] = None
         self.attributes_available = False
         self._last_reception: Optional[datetime] = None
+        self._is_new_device_config = False
 
     @property
     def is_ready(self) -> bool:
@@ -51,6 +52,18 @@ class Camera:
             return (
                 datetime.now() - self._last_reception
             ) < self.CONNECTION_STATUS_TIMEOUT
+
+    @property
+    def is_new_device_config(self) -> bool:
+        """
+        Property indicating whether there's a new device configuration since the last check.
+
+        This property toggles a boolean flag each time it's accessed.
+        It returns True if a new device configuration has been detected
+        since the last time this property was accessed, otherwise False.
+        """
+        self._is_new_device_config = not self._is_new_device_config
+        return not self._is_new_device_config
 
     def process_incoming(self, topic: str, payload: dict[str, Any]) -> None:
         sent_from_camera = False
@@ -85,6 +98,7 @@ class Camera:
                 self.sensor_state = StreamStatus.from_string(
                     self.device_config.Status.Sensor
                 )
+                self._is_new_device_config = True
             except ValidationError as e:
                 logger.warning(f"Error while validating device configuration: {e}")
 
