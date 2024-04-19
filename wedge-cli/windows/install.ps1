@@ -38,7 +38,7 @@ function Main
         $AppInstallPath = $DefaultInstallPath
     }
 
-    Write-LogMessage "Installing Offline Tool"
+    Write-LogMessage "Installing Local Console"
     $AppInstallArgs = "-InstallPath `"$AppInstallPath`""
     $AppRedirectArgs = ""
     $AppLogFile = "$RedirectLogPath-app"
@@ -50,7 +50,7 @@ function Main
         cat "$AppLogFile" >> $RedirectLogPath
         rm "$AppLogFile"
     }
-    Write-LogMessage "Done installing Offline Tool"
+    Write-LogMessage "Done installing Local Console"
 
     Restore-DefaultExecutionPolicy
     Wait-UserInput

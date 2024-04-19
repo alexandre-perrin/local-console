@@ -6,7 +6,7 @@ function Main
 {
     Set-TemporalExecutionPolicy
 
-    Write-LogMessage "Uninstalling Offline Tool"
+    Write-LogMessage "Uninstalling Local Console"
 
     # Construct the full path to the new directory within APPDATA
     $fullPath = $DefaultInstallPath
@@ -18,6 +18,12 @@ function Main
 
     $WshShell = New-Object -comObject WScript.Shell
     $IconPath = Join-Path -Path $WshShell.SpecialFolders("Desktop") -ChildPath "Wedge GUI.lnk"
+    if (Test-Path -Path $IconPath)
+    {
+        Write-LogMessage "Removing desktop shortcut"
+        Remove-Item -Path $IconPath -Force
+    }
+    $IconPath = Join-Path -Path $WshShell.SpecialFolders("Desktop") -ChildPath "Local Console.lnk"
     if (Test-Path -Path $IconPath)
     {
         Write-LogMessage "Removing desktop shortcut"

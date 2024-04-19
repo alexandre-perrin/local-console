@@ -27,4 +27,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: ./Output/offline-tool-setup.exe
+          path: ./Output/local-console-setup.exe
