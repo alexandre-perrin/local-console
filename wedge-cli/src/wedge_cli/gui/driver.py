@@ -37,10 +37,10 @@ class Driver:
 
         self.mqtt_client = Agent()
         self.upload_port = 0
-        self.image_directory: Optional[Path] = None
-        self.inferences_directory: Optional[Path] = None
+        self.temporary_image_directory: Optional[Path] = None
+        self.temporary_inference_directory: Optional[Path] = None
         self.image_directory_config: Optional[Path] = None
-        self.inferences_directory_config: Optional[Path] = None
+        self.inference_directory_config: Optional[Path] = None
         self.flatbuffers_schema: Optional[Path] = None
         self.config = get_config()
 
@@ -67,7 +67,7 @@ class Driver:
 
     async def main(self) -> None:
         self.nursery.start_soon(self.mqtt_setup)
-        self.nursery.start_soon(self.image_webserver_task)
+        self.nursery.start_soon(self.blobs_webserver_task)
 
         for flag in self.start_flags.values():
             await flag.wait()
@@ -139,7 +139,7 @@ class Driver:
             Screen.AI_MODEL_SCREEN
         ].model.ota_status = self.camera_state.ota_status
 
-    async def image_webserver_task(self) -> None:
+    async def blobs_webserver_task(self) -> None:
         """
         Spawn a webserver on an arbitrary available port for receiving
         images from a camera.
@@ -148,7 +148,7 @@ class Driver:
         :return:
         """
         with (
-            TemporaryDirectory(prefix="WEdgeGUI_") as tempdir,
+            TemporaryDirectory(prefix="LocalConsole_") as tempdir,
             AsyncWebserver(
                 Path(tempdir), port=0, on_incoming=self.process_camera_upload
             ) as image_serve,
@@ -158,27 +158,39 @@ class Driver:
 
             assert image_serve.port
             self.upload_port = image_serve.port
-            self.image_directory = Path(tempdir) / "images"
-            self.inferences_directory = Path(tempdir) / "inferences"
-            self.image_directory.mkdir(exist_ok=True)
-            self.inferences_directory.mkdir(exist_ok=True)
+            self.temporary_image_directory = Path(tempdir) / "images"
+            self.temporary_inference_directory = Path(tempdir) / "inferences"
+            self.temporary_image_directory.mkdir(exist_ok=True)
+            self.temporary_inference_directory.mkdir(exist_ok=True)
+            self.set_image_directory(self.temporary_image_directory)
+            self.set_inference_directory(self.temporary_inference_directory)
 
             self.start_flags["webserver"].set()
             await trio.sleep_forever()
 
     def process_camera_upload(self, incoming_file: Path) -> None:
-        if incoming_file.parent == self.image_directory:
-            self.update_image_data(incoming_file)
-            self.update_image_directory(incoming_file)
-        elif incoming_file.parent == self.inferences_directory:
+        if incoming_file.parent == self.temporary_image_directory:
+            self.update_images_display(incoming_file)
+            self.save_into_image_directory(incoming_file)
+        elif incoming_file.parent == self.temporary_inference_directory:
             if self.flatbuffers_schema:
                 self.update_inference_data_flatbuffers(incoming_file)
             else:
                 self.update_inference_data(incoming_file.read_text())
-            self.update_inferences_directory(incoming_file)
+            self.save_into_inferences_directory(incoming_file)
 
     @run_on_ui_thread
-    def update_image_data(self, incoming_file: Path) -> None:
+    def set_image_directory(self, new_dir: Path) -> None:
+        self.image_directory_config = new_dir
+        self.gui.image_dir_path = str(self.image_directory_config)
+
+    @run_on_ui_thread
+    def set_inference_directory(self, new_dir: Path) -> None:
+        self.inference_directory_config = new_dir
+        self.gui.inference_dir_path = str(self.inference_directory_config)
+
+    @run_on_ui_thread
+    def update_images_display(self, incoming_file: Path) -> None:
         self.gui.views[Screen.STREAMING_SCREEN].ids.stream_image.update_image_data(
             incoming_file
         )
@@ -194,65 +206,49 @@ class Driver:
 
     @run_on_ui_thread
     def update_inference_data_flatbuffers(self, incoming_file: Path) -> None:
-        if incoming_file.exists():
-            if self.flatbuffers_schema and incoming_file and self.inferences_directory:
-                output_name = "SmartCamera"
-                if self.flatbuffers.flatbuffer_binary_to_json(
-                    self.flatbuffers_schema,
-                    incoming_file,
-                    output_name,
-                    self.inferences_directory,
-                ):
-                    with open(
-                        self.inferences_directory / f"{output_name}.json"
-                    ) as file:
-                        self.gui.views[
-                            Screen.INFERENCE_SCREEN
-                        ].ids.inference_field.text = file.read()
+        if self.flatbuffers_schema and incoming_file and incoming_file.exists():
+            output_name = "SmartCamera"
+            assert self.temporary_inference_directory  # appease mypy
+            if self.flatbuffers.flatbuffer_binary_to_json(
+                self.flatbuffers_schema,
+                incoming_file,
+                output_name,
+                self.temporary_inference_directory,
+            ):
+                with open(
+                    self.temporary_inference_directory / f"{output_name}.json"
+                ) as file:
+                    self.gui.views[
+                        Screen.INFERENCE_SCREEN
+                    ].ids.inference_field.text = file.read()
 
-    @run_on_ui_thread
-    def update_image_directory(self, incoming_file: Path) -> None:
-        if self.image_directory_config is None:
-            if self.image_directory is not None:
-                self.gui.views[Screen.INFERENCE_SCREEN].ids.lbl_image_path.text = str(
-                    self.image_directory.resolve()
-                )
-        else:
-            shutil.copy(incoming_file, self.image_directory_config)
-            self.gui.views[Screen.INFERENCE_SCREEN].ids.lbl_image_path.text = str(
-                self.image_directory_config.resolve()
-            )
+    def save_into_image_directory(self, incoming_file: Path) -> None:
+        if self.inference_directory_config != self.temporary_inference_directory:
+            assert self.inference_directory_config  # appease mypy
+            shutil.move(incoming_file, self.inference_directory_config)
 
-    @run_on_ui_thread
-    def update_inferences_directory(self, incoming_file: Path) -> None:
-        if self.inferences_directory_config is None:
-            if self.inferences_directory is not None:
-                self.gui.views[
-                    Screen.INFERENCE_SCREEN
-                ].ids.lbl_inference_path.text = str(self.inferences_directory.resolve())
-        else:
-            shutil.copy(incoming_file, self.inferences_directory_config)
-            self.gui.views[Screen.INFERENCE_SCREEN].ids.lbl_inference_path.text = str(
-                self.inferences_directory_config.resolve()
-            )
+    def save_into_inferences_directory(self, incoming_file: Path) -> None:
+        if self.image_directory_config != self.temporary_image_directory:
+            assert self.image_directory_config  # appease mypy
+            shutil.move(incoming_file, self.image_directory_config)
 
     async def streaming_rpc_start(self, roi: Optional[UnitROI] = None) -> None:
         instance_id = "backdoor-EA_Main"
         method = "StartUploadInferenceData"
         upload_url = f"http://{LOCAL_IP}:{self.upload_port}/"
-        assert self.image_directory  # appease mypy
-        assert self.inferences_directory  # appease mypy
+        assert self.temporary_image_directory  # appease mypy
+        assert self.temporary_inference_directory  # appease mypy
 
         (h_offset, v_offset), (h_size, v_size) = pixel_roi_from_normals(roi)
         params = {
             "Mode": 1,
             "UploadMethod": "HttpStorage",
             "StorageName": upload_url,
-            "StorageSubDirectoryPath": self.image_directory.name,
+            "StorageSubDirectoryPath": self.temporary_image_directory.name,
             "UploadMethodIR": "HttpStorage",
             "StorageNameIR": upload_url,
             "UploadInterval": 30,
-            "StorageSubDirectoryPathIR": self.inferences_directory.name,
+            "StorageSubDirectoryPathIR": self.temporary_inference_directory.name,
             "CropHOffset": h_offset,
             "CropVOffset": v_offset,
             "CropHSize": h_size,

@@ -17,6 +17,7 @@ import trio
 from kivy.base import ExceptionHandler
 from kivy.base import ExceptionManager
 from kivy.properties import BooleanProperty
+from kivy.properties import StringProperty
 from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.screenmanager import MDScreenManager
@@ -32,8 +33,10 @@ class WedgeGUIApp(MDApp):
     nursery = None
     driver = None
 
-    # Proxy object leveraged for using Kivy's event dispatching
+    # Proxy objects leveraged for using Kivy's event dispatching
     is_ready = BooleanProperty(False)
+    image_dir_path = StringProperty("")
+    inference_dir_path = StringProperty("")
 
     async def app_main(self) -> None:
         async with trio.open_nursery() as nursery:

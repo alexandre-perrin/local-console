@@ -9,6 +9,7 @@
 
         MDBoxLayout:
         # Top bar
+
             orientation: "horizontal"
             size_hint_y: 0.1
 
@@ -24,9 +25,10 @@
                     size_hint_x: 3
 
         MDBoxLayout:
-        # Path selectors
+        # Configuration controls
+
             orientation: "vertical"
-            padding: "5dp"
+            padding: "15dp"
             spacing: "10dp"
             size_hint_y: 0.2
 
@@ -35,12 +37,14 @@
                 id: image_pick
                 name: 'Image dir:'
                 icon: "folder-cog"
+                path: app.image_dir_path
 
             PathSelectorCombo:
             # Inference dir
                 id: inference_pick
                 name: 'Inference dir:'
                 icon: "folder-cog"
+                path: app.inference_dir_path
 
             MDBoxLayout:
             # Schema
@@ -55,6 +59,7 @@
                 MDButton:
                     id: btn_process_schema
                     on_release: root.controller.process_schema()
+                    pos_hint: {"center_y": 0.5}
 
                     MDButtonText:
                         text: " Process \n schema "
