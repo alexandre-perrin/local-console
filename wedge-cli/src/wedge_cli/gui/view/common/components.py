@@ -52,6 +52,8 @@ class ImageWithROI(Image, HoverBehavior):
         # Should be of type UnitROI but Python tuples are immutable
         # and we need to assign to the tuple elements.
         self._active_subregion: list[tuple[float, float]] = [(0, 0), (0, 0)]
+        # https://www.reddit.com/r/kivy/comments/16qftb0/memory_leak_with_images/
+        self.nocache = True
 
     def start_roi_draw(self) -> None:
         if self.state == ROIState.Disabled:
