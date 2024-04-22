@@ -50,10 +50,7 @@ def test_file_move(tmpdir):
 
 def test_storage_paths(tmpdir):
     tgd = Path(tmpdir.mkdir("images"))
-
-    mock_gui = MagicMock()
-    mock_nursery = MagicMock()
-    driver = Driver(mock_gui, mock_nursery)
+    driver = Driver(MagicMock())
 
     # Set default image dir
     driver.temporary_image_directory = tgd
@@ -78,7 +75,7 @@ def test_save_into_image_directory(tmpdir):
     root = Path(tmpdir)
     tgd = root / "notexists"
 
-    driver = Driver(MagicMock(), MagicMock())
+    driver = Driver(MagicMock())
 
     assert not tgd.exists()
     driver.temporary_image_directory = tgd
@@ -96,7 +93,7 @@ def test_save_into_inferences_directory(tmpdir):
     root = Path(tmpdir)
     tgd = root / "notexists"
 
-    driver = Driver(MagicMock(), MagicMock())
+    driver = Driver(MagicMock())
 
     assert not tgd.exists()
     driver.temporary_inference_directory = tgd
@@ -119,7 +116,7 @@ def test_process_camera_upload_images(tmpdir):
         ) as mock_save_into_image_directory,
         patch.object(Driver, "update_images_display") as mock_update_images_display,
     ):
-        driver = Driver(MagicMock(), MagicMock())
+        driver = Driver(MagicMock())
         file = root / "images/a.png"
         driver.process_camera_upload(file)
         mock_save_into_image_directory.assert_called_once_with(file)
@@ -140,7 +137,7 @@ def test_process_camera_upload_inferences(tmpdir):
             Driver, "update_inference_data_flatbuffers"
         ) as mock_update_inference_data_flatbuffers,
     ):
-        driver = Driver(MagicMock(), MagicMock())
+        driver = Driver(MagicMock())
         file = root / "inferences/a.png"
         driver.process_camera_upload(file)
         mock_save_into_inferences_directory.assert_called_once_with(file)
@@ -162,7 +159,7 @@ def test_process_camera_upload_inferences_with_fb(tmpdir):
             Driver, "update_inference_data_flatbuffers"
         ) as mock_update_inference_data_flatbuffers,
     ):
-        driver = Driver(MagicMock(), MagicMock())
+        driver = Driver(MagicMock())
         driver.flatbuffers_schema = Path(".")
         file = root / "inferences/a.png"
         driver.process_camera_upload(file)
