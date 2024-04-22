@@ -29,17 +29,19 @@ function Main
 
     Get-Mosquitto
     Initialize-Mosquitto
+    Set-MosquittoPath
     Get-Git
     Get-Python311
 
     Wait-UserInput 5
 }
 
+$MosquittoInstallPath = "$(Get-ProgramFilesPath)\mosquitto"
+
 function Get-Mosquitto
 {
-
-    $mosquittoExecPath = "$(Get-ProgramFilesPath)\mosquitto"
-    if (Test-ExecutablePath -Path $mosquittoExecPath)
+    $MosquittoExecPath = Join-Path $MosquittoInstallPath "mosquitto.exe"
+    if (Test-ExecutablePath -Path $MosquittoExecPath)
     {
         Write-LogMessage "Mosquitto is already installed."
         return
@@ -59,12 +61,19 @@ function Get-Mosquitto
     # Cleanup downloaded installer
     Remove-Item -Path $downloadPath -Force
 
-    # Adding the path for the machine
-    Add-EnvPath $mosquittoExecPath "Machine"
-
     Write-LogMessage "Mosquitto installation complete."
 }
 
+function Set-MosquittoPath
+{
+    try {
+        Get-Command -Type Application -ErrorAction Stop -Name "mosquitto" > $null
+        Write-LogMessage "Mosquitto is already in the system's PATH"
+    } catch [System.Management.Automation.CommandNotFoundException] {
+        Write-LogMessage "Adding Mosquitto to the system's PATH"
+        Add-EnvPath $MosquittoInstallPath "Machine"
+    }
+}
 
 function Add-EnvPath {
     param(
