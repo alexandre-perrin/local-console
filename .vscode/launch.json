@@ -5,35 +5,43 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "cli start agent",
-			"type": "python",
+			"name": "Start gui",
+			"type": "debugpy",
 			"request": "launch",
 			"module": "wedge_cli",
 			"args": [
-				"--debug", "start"
+				"--verbose", "gui"
 			],
 			"justMyCode": true
 		},
-
-		{
-			"name": "cli build rpc-ex",
-			"type": "python",
-			"request": "launch",
-			"module": "wedge_cli",
-			"args": [
-				"--debug", "build"
-			],
-			"cwd": "${workspaceFolder}/samples/rpc-example",
-			"justMyCode": true
-		},
-
 		{
 			"name": "Debug tests",
-			"type": "python",
+			"type": "debugpy",
 			"request": "launch",
 			"program": "${file}",
 			"purpose": ["debug-test"],
 			"console": "integratedTerminal",
+			"justMyCode": true
+		},
+		{
+			"name": "cli start agent",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "wedge_cli",
+			"args": [
+				"--verbose", "start"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "cli build rpc-ex",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "wedge_cli",
+			"args": [
+				"--verbose", "build"
+			],
+			"cwd": "${workspaceFolder}/samples/rpc-example",
 			"justMyCode": true
 		}
 	]
