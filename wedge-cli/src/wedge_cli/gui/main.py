@@ -13,7 +13,6 @@ https://en.wikipedia.org/wiki/Model–view–controller
 import logging
 from typing import Any
 
-import trio
 from kivy.base import ExceptionHandler
 from kivy.base import ExceptionManager
 from kivy.properties import BooleanProperty
@@ -85,6 +84,10 @@ class WedgeGUIApp(MDApp):
 
 class GUIExceptionHandler(ExceptionHandler):
     def handle_exception(self, inst: BaseException) -> Any:
+        if isinstance(inst, KeyboardInterrupt):
+            # The user requested cancellation, so this is handled.
+            return ExceptionManager.RAISE
+
         logger.exception("Uncaught Kivy exception ocurred:", exc_info=inst)
         cause = inst.__traceback__
         assert cause  # appease mypy

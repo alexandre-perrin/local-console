@@ -69,6 +69,7 @@ class Driver:
 
         self.bridge = SyncAsyncBridge()
 
+    @trio.lowlevel.disable_ki_protection
     async def main(self) -> None:
         async with trio.open_nursery() as nursery:
             try:
@@ -76,11 +77,6 @@ class Driver:
                 nursery.start_soon(self.services_loop)
                 await self.gui.async_run(async_lib="trio")
             except KeyboardInterrupt:
-                """
-                TODO This achieves the expected closing functionality from
-                     the terminal window, but it still produces an ugly
-                     traceback.
-                """
                 logger.info("Cancelled per user request via keyboard")
             finally:
                 self.bridge.close_task_queue()
