@@ -188,26 +188,35 @@ class Driver:
             await trio.sleep_forever()
 
     def process_camera_upload(self, incoming_file: Path) -> None:
-        if incoming_file.parent == self.temporary_image_directory:
-            self.update_images_display(incoming_file)
-            self.save_into_image_directory(incoming_file)
-        elif incoming_file.parent == self.temporary_inference_directory:
+        if incoming_file.parent.name == "images":
+            final_file = self.save_into_image_directory(incoming_file)
+            self.update_images_display(final_file)
+        elif incoming_file.parent.name == "inferences":
+            final_file = self.save_into_inferences_directory(incoming_file)
             if self.flatbuffers_schema:
-                self.update_inference_data_flatbuffers(incoming_file)
+                self.update_inference_data_flatbuffers(final_file)
             else:
-                self.update_inference_data(incoming_file.read_text())
-            self.save_into_inferences_directory(incoming_file)
+                self.update_inference_data(final_file.read_text())
+        else:
+            logger.warning(f"Unknown incoming file: {incoming_file}")
+
+    def check_and_create_directory(self, directory: Path) -> None:
+        if not directory.exists():
+            logger.warning(f"{directory} does not exists. Creating directory...")
+            directory.mkdir(exist_ok=True)
 
     @run_on_ui_thread
     def set_image_directory(self, new_dir: Path) -> None:
         self.image_directory_config = new_dir
         self.gui.image_dir_path = str(self.image_directory_config)
+        self.check_and_create_directory(new_dir)
         self.image_dir_watcher.set_path(self.image_directory_config)
 
     @run_on_ui_thread
     def set_inference_directory(self, new_dir: Path) -> None:
         self.inference_directory_config = new_dir
         self.gui.inference_dir_path = str(self.inference_directory_config)
+        self.check_and_create_directory(new_dir)
         self.inference_dir_watcher.set_path(self.inference_directory_config)
 
     @run_on_ui_thread
@@ -245,16 +254,18 @@ class Driver:
 
     def save_into_inferences_directory(self, incoming_file: Path) -> Path:
         final = incoming_file
-        if self.inference_directory_config != self.temporary_inference_directory:
-            assert self.inference_directory_config  # appease mypy
+        assert self.inference_directory_config  # appease mypy
+        self.check_and_create_directory(self.inference_directory_config)
+        if incoming_file.parent != self.inference_directory_config:
             final = Path(shutil.move(incoming_file, self.inference_directory_config))
         self.inference_dir_watcher.incoming(final)
         return final
 
     def save_into_image_directory(self, incoming_file: Path) -> Path:
         final = incoming_file
-        if self.image_directory_config != self.temporary_image_directory:
-            assert self.image_directory_config  # appease mypy
+        assert self.image_directory_config  # appease mypy
+        self.check_and_create_directory(self.image_directory_config)
+        if incoming_file.parent != self.image_directory_config:
             final = Path(shutil.move(incoming_file, self.image_directory_config))
         self.image_dir_watcher.incoming(final)
         return final
