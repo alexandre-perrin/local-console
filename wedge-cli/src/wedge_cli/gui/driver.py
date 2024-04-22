@@ -34,9 +34,8 @@ logger = logging.getLogger(__name__)
 
 
 class Driver:
-    def __init__(self, gui: type[MDApp], nursery: trio.Nursery) -> None:
+    def __init__(self, gui: type[MDApp]) -> None:
         self.gui = gui
-        self.nursery = nursery
 
         self.mqtt_client = Agent()
         self.upload_port = 0
@@ -71,26 +70,31 @@ class Driver:
         self.bridge = SyncAsyncBridge()
 
     async def main(self) -> None:
-        self.nursery.start_soon(self.mqtt_setup)
-        self.nursery.start_soon(self.blobs_webserver_task)
+        async with trio.open_nursery() as nursery:
+            try:
+                nursery.start_soon(self.bridge.bridge_listener)
+                nursery.start_soon(self.services_loop)
+                await self.gui.async_run(async_lib="trio")
+            except KeyboardInterrupt:
+                """
+                TODO This achieves the expected closing functionality from
+                     the terminal window, but it still produces an ugly
+                     traceback.
+                """
+                logger.info("Cancelled per user request via keyboard")
+            finally:
+                self.bridge.close_task_queue()
+                nursery.cancel_scope.cancel()
 
-        for flag in self.start_flags.values():
-            await flag.wait()
-
-        self.nursery.start_soon(self.gui_run)
-        self.nursery.start_soon(self.bridge.bridge_listener)
-
-    async def gui_run(self) -> None:
-        await self.gui.async_run(async_lib="trio")
-        self.stop()
-
-    def stop(self) -> None:
-        self.bridge.close_task_queue()
-        self.nursery.cancel_scope.cancel()
+    async def services_loop(self) -> None:
+        async with trio.open_nursery() as nursery:
+            nursery.start_soon(self.mqtt_setup)
+            nursery.start_soon(self.blobs_webserver_task)
 
     async def mqtt_setup(self) -> None:
         async with (
-            spawn_broker(self.config, self.nursery, False, "nicebroker"),
+            trio.open_nursery() as nursery,
+            spawn_broker(self.config, nursery, False, "nicebroker"),
             self.mqtt_client.mqtt_scope(
                 [
                     MQTTTopics.ATTRIBUTES_REQ.value,
@@ -103,8 +107,8 @@ class Driver:
             self.start_flags["mqtt"].set()
 
             assert self.mqtt_client.client  # appease mypy
-            self.periodic_reports.spawn_in(self.nursery)
-            self.connection_status.spawn_in(self.nursery)
+            self.periodic_reports.spawn_in(nursery)
+            self.connection_status.spawn_in(nursery)
             async with self.mqtt_client.client.messages() as mgen:
                 async for msg in mgen:
                     attributes_available = await check_attributes_request(
