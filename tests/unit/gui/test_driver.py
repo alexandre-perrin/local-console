@@ -66,3 +66,121 @@ def test_storage_paths(tmpdir):
         new_image = create_new(tgd)
         saved = driver.save_into_image_directory(new_image)
         assert saved.parent == new_image_dir
+
+
+def test_save_into_image_directory(tmpdir):
+    root = Path(tmpdir)
+    tgd = root / "notexists"
+
+    with (
+        patch("wedge_cli.gui.driver.TimeoutBehavior"),
+        patch("wedge_cli.gui.driver.get_config", get_default_config_as_schema),
+        patch("wedge_cli.gui.driver.Agent"),
+    ):
+        driver = Driver(MagicMock(), MagicMock())
+
+        assert not tgd.exists()
+        driver.temporary_image_directory = tgd
+        driver.set_image_directory(tgd)
+        assert tgd.exists()
+
+        tgd.rmdir()
+
+        assert not tgd.exists()
+        driver.save_into_image_directory(create_new(root))
+        assert tgd.exists()
+
+
+def test_save_into_inferences_directory(tmpdir):
+    root = Path(tmpdir)
+    tgd = root / "notexists"
+
+    with (
+        patch("wedge_cli.gui.driver.TimeoutBehavior"),
+        patch("wedge_cli.gui.driver.get_config", get_default_config_as_schema),
+        patch("wedge_cli.gui.driver.Agent"),
+    ):
+        driver = Driver(MagicMock(), MagicMock())
+
+        assert not tgd.exists()
+        driver.temporary_inference_directory = tgd
+        driver.set_inference_directory(tgd)
+        assert tgd.exists()
+
+        tgd.rmdir()
+
+        assert not tgd.exists()
+        driver.save_into_inferences_directory(create_new(root))
+        assert tgd.exists()
+
+
+def test_process_camera_upload_images(tmpdir):
+    root = Path(tmpdir)
+
+    with (
+        patch("wedge_cli.gui.driver.TimeoutBehavior"),
+        patch("wedge_cli.gui.driver.get_config", get_default_config_as_schema),
+        patch("wedge_cli.gui.driver.Agent"),
+        patch.object(
+            Driver, "save_into_image_directory"
+        ) as mock_save_into_image_directory,
+        patch.object(Driver, "update_images_display") as mock_update_images_display,
+    ):
+        driver = Driver(MagicMock(), MagicMock())
+        file = root / "images/a.png"
+        driver.process_camera_upload(file)
+        mock_save_into_image_directory.assert_called_once_with(file)
+        mock_update_images_display.assert_called_once_with(
+            mock_save_into_image_directory.return_value
+        )
+
+
+def test_process_camera_upload_inferences(tmpdir):
+    root = Path(tmpdir)
+
+    with (
+        patch("wedge_cli.gui.driver.TimeoutBehavior"),
+        patch("wedge_cli.gui.driver.get_config", get_default_config_as_schema),
+        patch("wedge_cli.gui.driver.Agent"),
+        patch.object(
+            Driver, "save_into_inferences_directory"
+        ) as mock_save_into_inferences_directory,
+        patch.object(Driver, "update_inference_data") as mock_update_inference_data,
+        patch.object(
+            Driver, "update_inference_data_flatbuffers"
+        ) as mock_update_inference_data_flatbuffers,
+    ):
+        driver = Driver(MagicMock(), MagicMock())
+        file = root / "inferences/a.png"
+        driver.process_camera_upload(file)
+        mock_save_into_inferences_directory.assert_called_once_with(file)
+        mock_update_inference_data.assert_called_once_with(
+            mock_save_into_inferences_directory.return_value.read_text.return_value
+        )
+        mock_update_inference_data_flatbuffers.assert_not_called()
+
+
+def test_process_camera_upload_inferences(tmpdir):
+    root = Path(tmpdir)
+
+    with (
+        patch("wedge_cli.gui.driver.TimeoutBehavior"),
+        patch("wedge_cli.gui.driver.get_config", get_default_config_as_schema),
+        patch("wedge_cli.gui.driver.Agent"),
+        patch.object(
+            Driver, "save_into_inferences_directory"
+        ) as mock_save_into_inferences_directory,
+        patch.object(Driver, "update_inference_data") as mock_update_inference_data,
+        patch.object(
+            Driver, "update_inference_data_flatbuffers"
+        ) as mock_update_inference_data_flatbuffers,
+    ):
+        driver = Driver(MagicMock(), MagicMock())
+        driver.flatbuffers_schema = Path(".")
+        file = root / "inferences/a.png"
+        driver.process_camera_upload(file)
+        mock_save_into_inferences_directory.assert_called_once_with(file)
+        mock_update_inference_data.assert_not_called()
+        mock_update_inference_data_flatbuffers.assert_called_once_with(
+            mock_save_into_inferences_directory.return_value
+        )
