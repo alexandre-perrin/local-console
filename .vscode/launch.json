@@ -24,7 +24,7 @@
 			"justMyCode": true
 		},
 		{
-			"name": "cli start agent",
+			"name": "CLI start agent",
 			"type": "debugpy",
 			"request": "launch",
 			"module": "wedge_cli",
@@ -34,7 +34,19 @@
 			"justMyCode": true
 		},
 		{
-			"name": "cli build rpc-ex",
+			"name": "CLI logs",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "wedge_cli",
+			"args": [
+				"--verbose", "logs", "-t", "60", "node"
+			],
+			"cwd": "${workspaceFolder}/samples/rpc-example",
+			"justMyCode": true
+		},
+
+		{
+			"name": "CLI build rpc-ex",
 			"type": "debugpy",
 			"request": "launch",
 			"module": "wedge_cli",
@@ -43,6 +55,110 @@
 			],
 			"cwd": "${workspaceFolder}/samples/rpc-example",
 			"justMyCode": true
+		},
+
+		{
+			"name": "CLI deploy rpc-ex",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "wedge_cli",
+			"args": [
+				"--verbose",
+				"deploy"
+			],
+			"cwd": "${workspaceFolder}/samples/rpc-example",
+			"justMyCode": true
+		},
+
+		{
+			"name": "CLI rpc to rpc-ex",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "wedge_cli",
+			"args": [
+				"--verbose",
+				"rpc", "node", "my-method", "{\\\"rgb\\\":\\\"000FF1\\\"}"
+			],
+			"cwd": "${workspaceFolder}/samples/rpc-example",
+			"justMyCode": true
+		},
+
+		{
+			"name": "CLI logs node",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "wedge_cli",
+			"args": [
+				"--verbose",
+				"logs", "node",
+			],
+			"cwd": "${workspaceFolder}/samples/rpc-example",
+			"justMyCode": true
+		},
+
+		{
+			"name": "CLI configure node",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "wedge_cli",
+			"args": [
+				"--verbose",
+				"config", "instance", "node", "test-topic", "some-payload"
+			],
+			"cwd": "${workspaceFolder}/samples/rpc-example",
+			"justMyCode": true
+		},
+
+		{
+			"name": "CLI device config",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "wedge_cli",
+			"args": [
+				"--verbose",
+				"config", "device", "3", "1"
+			],
+			"cwd": "${workspaceFolder}/samples/rpc-example",
+			"justMyCode": true
+		},
+
+		{
+			"name": "E2E",
+			"type": "debugpy",
+			"request": "launch",
+			"program": "${workspaceFolder}/tests/e2e.py",
+			"args": [
+				"--with-tls"
+			],
+			"env": {
+				"WASI_SDK_PATH": "${userHome}/bin/wasi-sdk"
+			},
+			"cwd": "${workspaceFolder}/",
+			"justMyCode": true
+		},
+
+		{
+			"name": "CLI broker",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "wedge_cli",
+			"args": [
+				"broker", "-v"
+			],
+			"cwd": "${workspaceFolder}",
+			"justMyCode": true
+		},
+
+		{
+			"name": "CLI GUI",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "wedge_cli",
+			"args": [
+				"gui"
+			],
+			"cwd": "${workspaceFolder}",
+			"justMyCode": false
 		}
 	]
 }
