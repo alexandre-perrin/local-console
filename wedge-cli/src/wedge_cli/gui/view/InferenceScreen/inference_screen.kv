@@ -32,7 +32,7 @@
                     style: "elevated"
                     pos_hint: {"center_y": 0.5}
                     MDButtonText:
-                        text: "Set Streaming"
+                        text: ("Stop" if app.is_streaming else "Start") + " Streaming"
 
                 MDWidget:
 
