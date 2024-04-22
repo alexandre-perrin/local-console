@@ -28,7 +28,7 @@ from wedge_cli.gui.view.screens import start_screen
 logger = logging.getLogger(__name__)
 
 
-class WedgeGUIApp(MDApp):
+class LocalConsoleGUIAPP(MDApp):
     nursery = None
     driver = None
 

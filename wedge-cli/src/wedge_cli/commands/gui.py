@@ -21,6 +21,6 @@ def gui() -> None:
     Kivy performs several initialization steps during
     imports, that override logging and input handling.
     """
-    from wedge_cli.gui.main import WedgeGUIApp
+    from wedge_cli.gui.main import LocalConsoleGUIAPP
 
-    trio.run(WedgeGUIApp().app_main)
+    trio.run(LocalConsoleGUIAPP().app_main)
