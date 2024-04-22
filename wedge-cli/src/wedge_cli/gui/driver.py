@@ -8,7 +8,6 @@ from typing import Callable
 from typing import Optional
 
 import trio
-from kivy.core.clipboard import Clipboard
 from kivymd.app import MDApp
 from wedge_cli.clients.agent import Agent
 from wedge_cli.clients.agent import check_attributes_request
@@ -173,10 +172,10 @@ class Driver:
             ) as image_serve,
         ):
             logger.info(f"Uploading data into {tempdir}")
-            Clipboard.copy(tempdir)
 
             assert image_serve.port
             self.upload_port = image_serve.port
+            logger.info(f"Webserver listening on port {self.upload_port}")
             self.temporary_image_directory = Path(tempdir) / "images"
             self.temporary_inference_directory = Path(tempdir) / "inferences"
             self.temporary_image_directory.mkdir(exist_ok=True)
