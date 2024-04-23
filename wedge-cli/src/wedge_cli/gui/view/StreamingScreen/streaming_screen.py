@@ -28,7 +28,7 @@ class StreamingScreenView(BaseScreenView):
         roi_state: ROIState = self.ids.stream_image.state
         if roi_state == ROIState.Disabled:
             inform_roi_is_disabled()
-        elif roi_state == ROIState.Enabled:
+        elif roi_state in (ROIState.Enabled, ROIState.Viewing):
             self.ids.stream_image.start_roi_draw()
         else:
             self.ids.stream_image.cancel_roi_draw()

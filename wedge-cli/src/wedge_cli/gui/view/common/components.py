@@ -58,6 +58,7 @@ class ImageWithROI(Image, HoverBehavior):
         self.rect_start: tuple[int, int] = (0, 0)
         self.rect_end: tuple[int, int] = (0, 0)
         self.rect_line: Optional[Line] = None
+        self.dz_line: Optional[Line] = None
         # Should be of type UnitROI but Python tuples are immutable
         # and we need to assign to the tuple elements.
         self._active_subregion: list[tuple[float, float]] = [(0, 0), (0, 0)]
@@ -73,6 +74,7 @@ class ImageWithROI(Image, HoverBehavior):
 
         self.state = ROIState.PickingStartPoint
         self.clear_roi()
+        self.refresh_dead_zone_rectangle()
 
     def cancel_roi_draw(self) -> None:
         self.state = ROIState.Enabled
@@ -80,6 +82,7 @@ class ImageWithROI(Image, HoverBehavior):
 
     def clear_roi(self) -> None:
         self._clear_rect()
+        self._clear_dz_rect()
         self.roi_start = (0, 0)
         self.rect_start = (0, 0)
         self.rect_end = (0, 0)
@@ -89,46 +92,85 @@ class ImageWithROI(Image, HoverBehavior):
             self.canvas.remove(self.rect_line)
             self.rect_line = None
 
+    def _clear_dz_rect(self) -> None:
+        if self.dz_line:
+            self.canvas.remove(self.dz_line)
+            self.dz_line = None
+
+    def _to_widget_coords(self, mouse_pos: tuple[int, int]) -> tuple[int, int]:
+        """
+        Transform a pos tuple from a mouse_pos event from window coordinates
+        into the widget coordinates
+        """
+        return tuple([mouse_pos[dim] - self.pos[dim] for dim in (0, 1)])
+
+    def _from_widget_coords(self, widget_pos: tuple[int, int]) -> tuple[int, int]:
+        """
+        Transform a coordinate tuple in widget coordinates into window coordinates
+        """
+        return tuple([widget_pos[dim] + self.pos[dim] for dim in (0, 1)])
+
     def on_touch_down(self, touch: MotionEvent) -> bool:
+        # touch.pos is in window coordinates, and .to_widget did not remove
+        # the offset from this widget's position in the window, so it is
+        # removed here.
+        pos_in_widget = self._to_widget_coords(touch.pos)
+
         if self.state == ROIState.PickingStartPoint and self.point_is_in_subregion(
             touch.pos
         ):
-            self.rect_start = touch.pos
             # normalize coordinate within the widget space
             w_roi_start: tuple[float, float] = (
-                as_normal_in_set(touch.x, (0, self.size[0])),
-                as_normal_in_set(touch.y, (0, self.size[1])),
+                as_normal_in_set(pos_in_widget[0], (0, self.size[0])),
+                as_normal_in_set(pos_in_widget[1], (0, self.size[1])),
             )
             # normalize coordinate within the image space
             normalized_roi_start = (
                 as_normal_in_set(w_roi_start[0], self._active_subregion[0]),
                 as_normal_in_set(w_roi_start[1], self._active_subregion[1]),
             )
+            # Do snapping into dead zone
             self.roi_start = snap_point_in_deadzone(
                 normalized_roi_start, self._dead_zone_in_image
             )
+            rs_w = [
+                denormalize_in_set(self.roi_start[dim], self._active_subregion[dim])
+                for dim in (0, 1)
+            ]
+            rs = [
+                int(denormalize_in_set(rs_w[dim], (0, self.size[dim])))
+                for dim in (0, 1)
+            ]
+            self.rect_start = rs[0], rs[1]
             self.state = ROIState.PickingEndPoint
             return True  # to consume the event and not propagate it further
 
         elif self.state == ROIState.PickingEndPoint and self.point_is_in_subregion(
             touch.pos
         ):
-            self.rect_end = touch.pos
-            self.draw_rectangle()
-            self.state = ROIState.Viewing
             # normalize coordinate within the widget space
             w_roi_end: tuple[float, float] = (
-                as_normal_in_set(touch.x, (0, self.size[0])),
-                as_normal_in_set(touch.y, (0, self.size[1])),
+                as_normal_in_set(pos_in_widget[0], (0, self.size[0])),
+                as_normal_in_set(pos_in_widget[1], (0, self.size[1])),
             )
             # normalize coordinate within the image space
             normalized_roi_end = (
                 as_normal_in_set(w_roi_end[0], self._active_subregion[0]),
                 as_normal_in_set(w_roi_end[1], self._active_subregion[1]),
             )
+            # Do snapping into dead zone
             roi_end = snap_point_in_deadzone(
                 normalized_roi_end, self._dead_zone_in_image
             )
+            re_w = [
+                denormalize_in_set(roi_end[dim], self._active_subregion[dim])
+                for dim in (0, 1)
+            ]
+            re = [
+                int(denormalize_in_set(re_w[dim], (0, self.size[dim])))
+                for dim in (0, 1)
+            ]
+            self.rect_end = re[0], re[1]
 
             # these are in the image's unit coordinate system
             i_roi_min = (
@@ -141,6 +183,10 @@ class ImageWithROI(Image, HoverBehavior):
             )
             self.roi_start = i_roi_min
             self.roi = (self.roi_start, i_rect_size)
+
+            self.state = ROIState.Viewing
+            self.draw_rectangle()
+            self._clear_dz_rect()
             return True  # to consume the event and not propagate it further
 
         return bool(super().on_touch_down(touch))
@@ -152,7 +198,7 @@ class ImageWithROI(Image, HoverBehavior):
         ) and self.point_is_in_subregion(self.current_point):
             Window.set_system_cursor("crosshair")
             if self.state == ROIState.PickingEndPoint:
-                self.rect_end = self.current_point
+                self.rect_end = self._to_widget_coords(self.current_point)
                 self.draw_rectangle()
         else:
             Window.set_system_cursor("arrow")
@@ -174,9 +220,48 @@ class ImageWithROI(Image, HoverBehavior):
     def refresh_rectangle(self, start: tuple[int, int], size: tuple[int, int]) -> None:
         self._clear_rect()
         if self.state in (ROIState.PickingEndPoint, ROIState.Viewing):
+            # coordinates to the canvas seem to be required in window coordinates
+            start_in_widget = self._from_widget_coords(start)
+
             with self.canvas:
                 Color(1, 0, 0, 1)
-                self.rect_line = Line(rectangle=[*start, size[0], size[1]], width=1.5)
+                self.rect_line = Line(
+                    rectangle=[*start_in_widget, size[0], size[1]],
+                    width=1,
+                    cap="square",
+                    joint="miter",
+                )
+
+            self.refresh_dead_zone_rectangle()
+
+    def refresh_dead_zone_rectangle(self) -> None:
+        self._clear_dz_rect()
+        if self.state in (ROIState.PickingEndPoint, ROIState.PickingStartPoint):
+            dz_start = [
+                denormalize_in_set(
+                    self._dead_zone_in_widget[dim][0], (0, self.size[dim])
+                )
+                - self.dead_zone_px / 2
+                for dim in (0, 1)
+            ]
+            dz_end = [
+                denormalize_in_set(
+                    self._dead_zone_in_widget[dim][1], (0, self.size[dim])
+                )
+                + self.dead_zone_px / 2
+                for dim in (0, 1)
+            ]
+            sz = [dz_end[dim] - dz_start[dim] for dim in (0, 1)]
+            lb = self._from_widget_coords(tuple(dz_start))
+
+            with self.canvas:
+                Color(0.1, 0.6, 0.3, 0.5)
+                self.dz_line = Line(
+                    rectangle=[*lb, *sz],
+                    cap="square",
+                    joint="miter",
+                    width=self.dead_zone_px / 2,
+                )
 
     def update_image_data(self, incoming_file: Path) -> None:
         self.source = str(incoming_file)
@@ -241,10 +326,13 @@ class ImageWithROI(Image, HoverBehavior):
         if all(coord == 0 for axis in self._active_subregion for coord in axis):
             return False
         if self.collide_point(*pos):
+            # pos is in window coordinates and we need it in widget coords
+            pos_in_widget = self._to_widget_coords(pos)
             # Not only must the cursor be within the widget,
             # it must also be within the subregion of the image
             normalized = [
-                as_normal_in_set(pos[dim], (0, self.size[dim])) for dim in (0, 1)
+                as_normal_in_set(pos_in_widget[dim], (0, self.size[dim]))
+                for dim in (0, 1)
             ]
             if all(
                 self._active_subregion[dim][0]

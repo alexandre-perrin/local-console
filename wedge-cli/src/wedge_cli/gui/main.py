@@ -34,6 +34,7 @@ class LocalConsoleGUIAPP(MDApp):
 
     # Proxy objects leveraged for using Kivy's event dispatching
     is_ready = BooleanProperty(False)
+    is_streaming = BooleanProperty(False)
     image_dir_path = StringProperty("")
     inference_dir_path = StringProperty("")
 

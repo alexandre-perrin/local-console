@@ -65,6 +65,10 @@ class Camera:
         self._is_new_device_config = not self._is_new_device_config
         return not self._is_new_device_config
 
+    @property
+    def is_streaming(self) -> bool:
+        return self.sensor_state == StreamStatus.Active
+
     def process_incoming(self, topic: str, payload: dict[str, Any]) -> None:
         sent_from_camera = False
         if topic == MQTTTopics.ATTRIBUTES.value:
