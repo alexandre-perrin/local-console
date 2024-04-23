@@ -1,6 +1,7 @@
 import random
 from collections import OrderedDict
 from pathlib import Path
+from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
@@ -97,6 +98,25 @@ def test_regular_sequence(dir_layout):
         oldest_age, _ = w.get_oldest()
         assert oldest_age == expected_oldest_age
         assert w.storage_usage == st_limit
+
+
+def test_incoming_always_prunes(dir_layout):
+    dir_base, size = dir_layout
+    mock_prune = Mock()
+    with patch("wedge_cli.utils.fswatch.walk_entry", walk_entry_mock()), patch.object(
+        StorageSizeWatcher, "_prune", mock_prune
+    ):
+        w = StorageSizeWatcher(check_frequency=10)
+        w.set_path(dir_base)
+        st_limit = 4
+        assert mock_prune.call_count == 0
+        w.set_storage_limit(st_limit)
+        assert mock_prune.call_count == 1
+
+        num_new_files = random.randint(5, 20)
+        for _ in range(num_new_files):
+            w.incoming(create_new(dir_base))
+        assert mock_prune.call_count == num_new_files + 1
 
 
 def test_age_bookkeeping():
