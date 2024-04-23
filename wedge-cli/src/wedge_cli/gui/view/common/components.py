@@ -381,8 +381,10 @@ class FileSizeCombo(MDBoxLayout):
     and defaults to `0`.
     """
 
+    DEFAULT_SIZE = "10"
+
     _factors = {"kB": 2**10, "MB": 2**20, "GB": 2**30}
-    _spec = StringProperty("10")
+    _spec = StringProperty(DEFAULT_SIZE)
     _selected_unit = StringProperty("MB")
 
     def __init__(self, **kwargs: Any) -> None:
@@ -432,7 +434,11 @@ class FileSizeCombo(MDBoxLayout):
         self.validation_clock()
 
     def update_value(self) -> None:
-        self.value = int(self._spec) * self._factors[self._selected_unit]
+        try:
+            self.value = int(self._spec) * self._factors[self._selected_unit]
+        except ValueError:
+            logger.warning(f"Setting value to default {self.DEFAULT_SIZE}")
+            self._spec = self.DEFAULT_SIZE
 
 
 class CodeInputCustom(CodeInput):
