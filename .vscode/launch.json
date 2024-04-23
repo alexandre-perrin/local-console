@@ -155,7 +155,7 @@
 			"request": "launch",
 			"module": "wedge_cli",
 			"args": [
-				"gui"
+				"--verbose", "gui"
 			],
 			"cwd": "${workspaceFolder}",
 			"justMyCode": false
