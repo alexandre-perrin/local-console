@@ -76,8 +76,9 @@ class StorageSizeWatcher:
             self._remaining_before_check -= 1
             if self._remaining_before_check == 0:
                 self._consistency_check()
-            else:
-                self._prune()
+                self._remaining_before_check = self.check_frequency
+
+            self._prune()
         else:
             logger.warning(
                 f"Deferring update of size statistic for incoming file {path} during state {self.state}"
