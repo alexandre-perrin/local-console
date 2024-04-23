@@ -1,5 +1,7 @@
+import importlib
 import random
 import shutil
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 from unittest.mock import patch
@@ -13,6 +15,8 @@ from wedge_cli.core.schemas.schemas import AgentConfiguration
 # be able to mock the run_on_ui_thread decorator with
 # an identity function
 patch("wedge_cli.gui.utils.sync_async.run_on_ui_thread", lambda fn: fn).start()  # noqa
+# TODO: simplify patching
+importlib.reload(sys.modules["wedge_cli.gui.driver"])
 from wedge_cli.gui.driver import Driver  # noqa
 
 
