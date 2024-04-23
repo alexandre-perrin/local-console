@@ -43,6 +43,7 @@ class ConfigurationScreenView(BaseScreenView):
         self.inference_dir_picker.file_manager.search = "dirs"
 
         self.ids.schema_pick.file_manager.select_path = self.select_path_flatbuffers
+        self.ids.schema_pick.file_manager.selector = "file"
         self.ids.schema_pick.file_manager.ext = [".fbs"]
 
     def select_path_image(self, path: str) -> None:

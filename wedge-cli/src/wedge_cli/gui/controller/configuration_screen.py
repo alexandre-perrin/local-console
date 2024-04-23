@@ -44,8 +44,7 @@ class ConfigurationScreenController:
 
     def process_schema(self) -> None:
         if self.model.flatbuffers_schema is not None:
-            check_file = self.model.flatbuffers_schema.exists()
-            if check_file is True:
+            if self.model.flatbuffers_schema.is_file():
                 result, output = self.flatbuffers.conform_flatbuffer_schema(
                     self.model.flatbuffers_schema
                 )
@@ -53,8 +52,12 @@ class ConfigurationScreenController:
                     self.driver.flatbuffers_schema = self.model.flatbuffers_schema
                     self.model.flatbuffers_process_result = "Success!"
                 else:
-                    self.model.flatbuffers_process_result = output
+                    self.model.flatbuffers_process_result = (
+                        "Not a valid flatbuffers schema"
+                    )
             else:
-                self.model.flatbuffers_process_result = "File not exist!"
+                self.model.flatbuffers_process_result = (
+                    "Not a file or file does not exist!"
+                )
         else:
             self.model.flatbuffers_process_result = "Please select a schema file."
