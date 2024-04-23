@@ -242,12 +242,19 @@ class Driver:
                 output_name,
                 self.temporary_inference_directory,
             ):
-                with open(
-                    self.temporary_inference_directory / f"{output_name}.json"
-                ) as file:
-                    self.gui.views[
-                        Screen.INFERENCE_SCREEN
-                    ].ids.inference_field.text = file.read()
+                try:
+                    with open(
+                        self.temporary_inference_directory / f"{output_name}.json"
+                    ) as file:
+                        self.gui.views[
+                            Screen.INFERENCE_SCREEN
+                        ].ids.inference_field.text = file.read()
+                except FileNotFoundError:
+                    logger.warning(
+                        "Error while reading human-readable. Flatbuffers schema might be different from inference data."
+                    )
+                except Exception as e:
+                    logger.warning(f"Unknown error while reading human-readable {e}")
 
     def save_into_inferences_directory(self, incoming_file: Path) -> Path:
         final = incoming_file
