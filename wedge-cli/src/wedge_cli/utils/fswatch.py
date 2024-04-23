@@ -34,7 +34,7 @@ class StorageSizeWatcher:
                 check_frequency (int, optional): check consistency after this many new files. Defaults to 50.
         """
         self.check_frequency = check_frequency
-        self._path: Optional[Path] = None
+        self._paths: set[Path] = set()
         self.state = self.State.Start
         self._size_limit: Optional[int] = None
         self.content: OrderedDict[tuple[int, Path], int] = OrderedDict()
@@ -45,12 +45,16 @@ class StorageSizeWatcher:
         assert path.is_dir()
 
         p = path.resolve()
-        if p == self._path:
+        if p in self._paths:
             return
-        self._path = p
+        self._paths.add(p)
 
         # Execute regardless of current state
         self._build_content_dict()
+
+    def unwatch_path(self, path: Path) -> None:
+        assert path.is_dir()
+        self._paths.discard(path.resolve())
 
     def set_storage_limit(self, limit: int) -> None:
         assert limit >= 0
@@ -62,12 +66,12 @@ class StorageSizeWatcher:
     def incoming(self, path: Path) -> None:
         assert path.is_file()
 
-        if not self._path:
+        if not self._paths:
             return
 
-        if not path.resolve().is_relative_to(self._path):
+        if not any(path.resolve().is_relative_to(root) for root in self._paths):
             raise WatchException(
-                f"Incoming file {path} does not belong to base directory {self._path}"
+                f"Incoming file {path} does not belong to either of {self._paths}"
             )
 
         if self.state == self.State.Accumulating:
@@ -112,11 +116,12 @@ class StorageSizeWatcher:
         Generate a dictionary ordered first by file age, then by file name
         for disambiguation, with the value being the file size.
         """
-        assert self._path
+        assert self._paths
         self.state = self.State.Accumulating
 
         sorted_e = sorted(
-            (walk_entry(p) for p in walk_files(self._path)), key=lambda e: e[0]
+            (walk_entry(p) for root in self._paths for p in walk_files(root)),
+            key=lambda e: e[0],
         )
         self.content = OrderedDict(sorted_e)
         self.storage_usage = sum(e[1] for e in sorted_e)
@@ -144,9 +149,9 @@ class StorageSizeWatcher:
         # self.state == self.State.Accumulating
 
     def _consistency_check(self) -> bool:
-        assert self._path
+        assert self._paths
         in_memory = {k[1] for k in self.content.keys()}
-        in_storage = set(walk_files(self._path))
+        in_storage = {p for root in self._paths for p in walk_files(root)}
 
         difference = in_storage - in_memory
         if difference:
