@@ -119,6 +119,26 @@ def test_incoming_always_prunes(dir_layout):
         assert mock_prune.call_count == num_new_files + 1
 
 
+def test_remaining_before_consistency_check(dir_layout):
+    check_frequency = 10
+    storage_limit = 4
+
+    dir_base, size = dir_layout
+    mock_prune = Mock()
+    with patch("wedge_cli.utils.fswatch.walk_entry", walk_entry_mock()), patch.object(
+        StorageSizeWatcher, "_prune", mock_prune
+    ):
+        w = StorageSizeWatcher(check_frequency=check_frequency)
+        w.set_path(dir_base)
+        w.set_storage_limit(storage_limit)
+        assert w._remaining_before_check == check_frequency
+
+        for i in range(check_frequency):
+            assert w._remaining_before_check == check_frequency - i
+            w.incoming(create_new(dir_base))
+        assert w._remaining_before_check == check_frequency
+
+
 def test_age_bookkeeping():
     names = "abcdefghijklmn"
     timestamps = list(range(len(names)))
