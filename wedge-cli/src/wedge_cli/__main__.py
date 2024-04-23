@@ -3,6 +3,7 @@ import shutil
 import signal
 import sys
 import urllib.request
+from importlib.metadata import version
 from pathlib import Path
 from types import FrameType
 from typing import Annotated
@@ -115,6 +116,11 @@ def main(
     setup_default_config()
     setup_agent_filesystem()
     setup_default_https_ca()
+
+    try:
+        logger.info(f"Version: {version(__package__)}")
+    except Exception as e:
+        logger.warning(f"Error while getting version from Python package: {e}")
 
     ctx.obj = config_paths.config_path
 
