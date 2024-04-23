@@ -143,12 +143,8 @@ class Driver:
         self.gui.is_ready = self.camera_state.is_ready
         sensor_state = self.camera_state.sensor_state
         self.gui.is_streaming = self.camera_state.is_streaming
-        self.gui.views[
-            Screen.STREAMING_SCREEN
-        ].model.stream_status = sensor_state
-        self.gui.views[
-            Screen.INFERENCE_SCREEN
-        ].model.stream_status = sensor_state
+        self.gui.views[Screen.STREAMING_SCREEN].model.stream_status = sensor_state
+        self.gui.views[Screen.INFERENCE_SCREEN].model.stream_status = sensor_state
         self.gui.views[
             Screen.APPLICATIONS_SCREEN
         ].model.deploy_status = self.camera_state.deploy_status
