@@ -56,6 +56,7 @@
 
         GridLayout:
         # File path
+            md_bg_color: root.theme_cls.backgroundColor
             rows: 2
             cols: 2
             padding: "5dp"
@@ -68,6 +69,8 @@
 
             MDLabel:
                 text: app.image_dir_path
+                allow_selection: True
+                allow_copy: True
                 padding: "5sp"
                 canvas.before:
                     Color:
@@ -81,6 +84,8 @@
 
             MDLabel:
                 text: app.inference_dir_path
+                allow_selection: True
+                allow_copy: True
                 padding: "5sp"
                 canvas.before:
                     Color:
