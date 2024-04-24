@@ -12,6 +12,7 @@ from kivy.graphics import Color
 from kivy.graphics import Line
 from kivy.graphics.texture import Texture
 from kivy.input import MotionEvent
+from kivy.properties import ListProperty
 from kivy.properties import NumericProperty
 from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
@@ -405,22 +406,70 @@ class PathSelectorCombo(MDBoxLayout):
     and defaults to `""`.
     """
 
+    search = StringProperty("all")
+    """
+    Sets the 'search' attribute for the file manager instance
+
+    :attr:`search` is an :class:`~kivy.properties.StringProperty`
+    and defaults to `"all"`.
+    """
+
+    selector = StringProperty("any")
+    """
+    Sets the 'selector' attribute for the file manager instance
+
+    :attr:`selector` is an :class:`~kivy.properties.StringProperty`
+    and defaults to `"any"`.
+    """
+
+    ext = ListProperty()
+    """
+    Sets the 'ext' attribute for the file manager instance
+
+    :attr:`ext` is an :class:`~kivy.properties.ListProperty`
+    and defaults to `[]`.
+    """
+
+    SELECTED_EVENT: str = "on_selected"
+    """
+    Event that is dispatched once the user picks a path in the
+    file manager. It receives the selected path as the `path`
+    argument (see the default `on_selected` implementation)
+    """
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        # Other MDFileManager properties are to be
-        # assigned directly to self.file_manager
-        self.file_manager = FileManager(exit_manager=self.exit_manager)
+        self.register_event_type(self.SELECTED_EVENT)
+        self.file_manager = FileManager(
+            exit_manager=self.exit_manager, select_path=self.select_path
+        )
 
     def accept_path(self, path: str) -> None:
         self.path = path
 
     def open_manager(self) -> None:
+        self.file_manager.search = self.search
+        self.file_manager.selector = self.selector
+        self.file_manager.ext = self.ext
         self.file_manager.open()
 
     def exit_manager(self, *args: Any) -> None:
         """Called when the user reaches the root of the directory tree."""
         self.file_manager.close()
         self.file_manager.refresh_opening_path()
+
+    def select_path(self, path: str) -> None:
+        """
+        It will be called when the user selects the directory.
+        :param path: path to the selected directory;
+        """
+        self.exit_manager()
+        self.dispatch(self.SELECTED_EVENT, path)
+
+    def on_selected(self, path: str) -> None:
+        """
+        Default handler for the selected path event
+        """
 
 
 class NumberInputField(MDTextField):
