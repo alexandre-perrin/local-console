@@ -52,7 +52,8 @@ class Driver:
 
         # This takes care of ensuring the device reports its state
         # with bounded periodicity (expect to receive a message within 6 seconds)
-        self.periodic_reports = TimeoutBehavior(6, self.set_periodic_reports)
+        if not self.evp1_mode:
+            self.periodic_reports = TimeoutBehavior(6, self.set_periodic_reports)
 
         # This timeout behavior takes care of updating the connectivity
         # status in case there are no incoming messages from the camera
@@ -67,6 +68,10 @@ class Driver:
         }
 
         self.bridge = SyncAsyncBridge()
+
+    @property
+    def evp1_mode(self) -> bool:
+        return self.config.evp.iot_platform.lower() == "evp1"
 
     @trio.lowlevel.disable_ki_protection
     async def main(self) -> None:
@@ -102,8 +107,9 @@ class Driver:
             self.start_flags["mqtt"].set()
 
             assert self.mqtt_client.client  # appease mypy
-            self.periodic_reports.spawn_in(nursery)
             self.connection_status.spawn_in(nursery)
+            if not self.evp1_mode:
+                self.periodic_reports.spawn_in(nursery)
             async with self.mqtt_client.client.messages() as mgen:
                 async for msg in mgen:
                     attributes_available = await check_attributes_request(
@@ -117,7 +123,7 @@ class Driver:
                     self.update_camera_status()
                     await self.process_factory_reset()
 
-                    if self.camera_state.is_ready:
+                    if not self.evp1_mode and self.camera_state.is_ready:
                         self.periodic_reports.tap()
 
                     self.connection_status.tap()
@@ -312,6 +318,7 @@ class Driver:
         await self.mqtt_client.rpc(instance_id, method, "{}")
 
     async def set_periodic_reports(self) -> None:
+        assert not self.evp1_mode
         # Configure the device to emit status reports twice
         # as often as the timeout expiration, to avoid that
         # random deviations in reporting periodicity make the timer
