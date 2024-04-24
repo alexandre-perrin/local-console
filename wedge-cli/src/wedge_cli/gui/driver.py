@@ -39,6 +39,7 @@ class Driver:
 
         self.mqtt_client = Agent()
         self.upload_port = 0
+        self.temporary_base: Optional[Path] = None
         self.temporary_image_directory: Optional[Path] = None
         self.temporary_inference_directory: Optional[Path] = None
         self.image_directory_config: TrackingVariable[Path] = TrackingVariable()
@@ -180,6 +181,7 @@ class Driver:
             assert image_serve.port
             self.upload_port = image_serve.port
             logger.info(f"Webserver listening on port {self.upload_port}")
+            self.temporary_base = Path(tempdir)
             self.temporary_image_directory = Path(tempdir) / "images"
             self.temporary_inference_directory = Path(tempdir) / "inferences"
             self.temporary_image_directory.mkdir(exist_ok=True)
@@ -247,17 +249,15 @@ class Driver:
     def update_inference_data_flatbuffers(self, incoming_file: Path) -> None:
         if self.flatbuffers_schema and incoming_file and incoming_file.exists():
             output_name = "SmartCamera"
-            assert self.temporary_inference_directory  # appease mypy
+            assert self.temporary_base  # appease mypy
             if self.flatbuffers.flatbuffer_binary_to_json(
                 self.flatbuffers_schema,
                 incoming_file,
                 output_name,
-                self.temporary_inference_directory,
+                self.temporary_base,
             ):
                 try:
-                    with open(
-                        self.temporary_inference_directory / f"{output_name}.json"
-                    ) as file:
+                    with open(self.temporary_base / f"{output_name}.json") as file:
                         self.gui.views[
                             Screen.INFERENCE_SCREEN
                         ].ids.inference_field.text = file.read()
