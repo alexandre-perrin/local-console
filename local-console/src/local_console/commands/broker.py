@@ -28,11 +28,8 @@ def broker(
     ] = "localhost",
 ) -> None:
     logger.setLevel(logging.DEBUG if verbose else logging.INFO)
-    try:
-        config = get_config()
-        trio.run(broker_task, config, verbose, server_name)
-    except KeyboardInterrupt:
-        logger.warning("Cancelled by the user")
+    config = get_config()
+    trio.run(broker_task, config, verbose, server_name)
 
 
 async def broker_task(
@@ -43,5 +40,8 @@ async def broker_task(
         trio.open_nursery() as nursery,
         spawn_broker(config, nursery, verbose, server_name),
     ):
-        logger.info(f"MQTT broker listening on port {config.mqtt.port}")
-        await trio.sleep_forever()
+        try:
+            logger.info(f"MQTT broker listening on port {config.mqtt.port}")
+            await trio.sleep_forever()
+        except KeyboardInterrupt:
+            logger.warning("Cancelled by the user")
