@@ -37,6 +37,8 @@
                     id: app_file
                     name: 'App location:'
                     icon: "file-cog"
+                    selector: "file"
+                    on_selected: root.select_path(args[1])
 
                 MDButton:
                     id: btn_deploy_file
