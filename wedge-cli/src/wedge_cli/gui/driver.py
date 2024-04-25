@@ -39,6 +39,7 @@ class Driver:
 
         self.mqtt_client = Agent()
         self.upload_port = 0
+        self.temporary_base: Optional[Path] = None
         self.temporary_image_directory: Optional[Path] = None
         self.temporary_inference_directory: Optional[Path] = None
         self.image_directory_config: TrackingVariable[Path] = TrackingVariable()
@@ -52,7 +53,8 @@ class Driver:
 
         # This takes care of ensuring the device reports its state
         # with bounded periodicity (expect to receive a message within 6 seconds)
-        self.periodic_reports = TimeoutBehavior(6, self.set_periodic_reports)
+        if not self.evp1_mode:
+            self.periodic_reports = TimeoutBehavior(6, self.set_periodic_reports)
 
         # This timeout behavior takes care of updating the connectivity
         # status in case there are no incoming messages from the camera
@@ -67,6 +69,10 @@ class Driver:
         }
 
         self.bridge = SyncAsyncBridge()
+
+    @property
+    def evp1_mode(self) -> bool:
+        return self.config.evp.iot_platform.lower() == "evp1"
 
     @trio.lowlevel.disable_ki_protection
     async def main(self) -> None:
@@ -102,8 +108,9 @@ class Driver:
             self.start_flags["mqtt"].set()
 
             assert self.mqtt_client.client  # appease mypy
-            self.periodic_reports.spawn_in(nursery)
             self.connection_status.spawn_in(nursery)
+            if not self.evp1_mode:
+                self.periodic_reports.spawn_in(nursery)
             async with self.mqtt_client.client.messages() as mgen:
                 async for msg in mgen:
                     attributes_available = await check_attributes_request(
@@ -117,7 +124,7 @@ class Driver:
                     self.update_camera_status()
                     await self.process_factory_reset()
 
-                    if self.camera_state.is_ready:
+                    if not self.evp1_mode and self.camera_state.is_ready:
                         self.periodic_reports.tap()
 
                     self.connection_status.tap()
@@ -174,6 +181,7 @@ class Driver:
             assert image_serve.port
             self.upload_port = image_serve.port
             logger.info(f"Webserver listening on port {self.upload_port}")
+            self.temporary_base = Path(tempdir)
             self.temporary_image_directory = Path(tempdir) / "images"
             self.temporary_inference_directory = Path(tempdir) / "inferences"
             self.temporary_image_directory.mkdir(exist_ok=True)
@@ -241,17 +249,15 @@ class Driver:
     def update_inference_data_flatbuffers(self, incoming_file: Path) -> None:
         if self.flatbuffers_schema and incoming_file and incoming_file.exists():
             output_name = "SmartCamera"
-            assert self.temporary_inference_directory  # appease mypy
+            assert self.temporary_base  # appease mypy
             if self.flatbuffers.flatbuffer_binary_to_json(
                 self.flatbuffers_schema,
                 incoming_file,
                 output_name,
-                self.temporary_inference_directory,
+                self.temporary_base,
             ):
                 try:
-                    with open(
-                        self.temporary_inference_directory / f"{output_name}.json"
-                    ) as file:
+                    with open(self.temporary_base / f"{output_name}.json") as file:
                         self.gui.views[
                             Screen.INFERENCE_SCREEN
                         ].ids.inference_field.text = file.read()
@@ -312,6 +318,7 @@ class Driver:
         await self.mqtt_client.rpc(instance_id, method, "{}")
 
     async def set_periodic_reports(self) -> None:
+        assert not self.evp1_mode
         # Configure the device to emit status reports twice
         # as often as the timeout expiration, to avoid that
         # random deviations in reporting periodicity make the timer

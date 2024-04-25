@@ -35,11 +35,7 @@ class ApplicationsScreenView(BaseScreenView):
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-
         self.app.bind(is_ready=self.app_state_refresh)
-
-        self.ids.app_file.file_manager.select_path = self.select_path
-        self.ids.app_file.file_manager.selector = "file"
 
     def select_path(self, path: str) -> None:
         """
@@ -48,8 +44,6 @@ class ApplicationsScreenView(BaseScreenView):
 
         :param path: path to the selected directory or file;
         """
-        self.ids.app_file.file_manager.exit_manager()
-
         if validate_app_file(Path(path)):
             self.ids.app_file.accept_path(path)
             self.ids.btn_deploy_file.disabled = not self.app.is_ready

@@ -75,11 +75,11 @@ def test_flatbuffer_binary_to_json(tmp_path):
                 "--defaults-json",
                 "--strict-json",
                 "-o",
-                tmp_path,
+                str(tmp_path),
                 "--raw-binary",
-                tmp_path / "myschema",
+                str(tmp_path / "myschema"),
                 "--",
-                tmp_path / "myresult.txt",
+                str(tmp_path / "myresult.txt"),
             ]
         )
 

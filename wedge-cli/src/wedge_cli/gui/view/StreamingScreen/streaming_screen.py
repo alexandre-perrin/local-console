@@ -21,9 +21,6 @@ class StreamingScreenView(BaseScreenView):
         self.refresh_roi_state(self.ids.stream_image.state)
         self.model_is_changed()
 
-    def toggle_stream_status(self) -> None:
-        self.controller.toggle_stream_status()
-
     def control_roi(self) -> None:
         roi_state: ROIState = self.ids.stream_image.state
         if roi_state == ROIState.Disabled:
