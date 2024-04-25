@@ -28,6 +28,7 @@ from wedge_cli.utils.flatbuffers import FlatBuffers
 from wedge_cli.utils.fswatch import StorageSizeWatcher
 from wedge_cli.utils.local_network import LOCAL_IP
 from wedge_cli.utils.timing import TimeoutBehavior
+from wedge_cli.utils.tracking import TrackingVariable
 
 logger = logging.getLogger(__name__)
 
@@ -40,10 +41,9 @@ class Driver:
         self.upload_port = 0
         self.temporary_image_directory: Optional[Path] = None
         self.temporary_inference_directory: Optional[Path] = None
-        self.image_dir_watcher = StorageSizeWatcher()
-        self.image_directory_config: Optional[Path] = None
-        self.inference_directory_config: Optional[Path] = None
-        self.inference_dir_watcher = StorageSizeWatcher()
+        self.image_directory_config: TrackingVariable[Path] = TrackingVariable()
+        self.inference_directory_config: TrackingVariable[Path] = TrackingVariable()
+        self.total_dir_watcher = StorageSizeWatcher()
         self.flatbuffers_schema: Optional[Path] = None
         self.config = get_config()
 
@@ -204,17 +204,23 @@ class Driver:
 
     @run_on_ui_thread
     def set_image_directory(self, new_dir: Path) -> None:
-        self.image_directory_config = new_dir
-        self.gui.image_dir_path = str(self.image_directory_config)
+        self.image_directory_config.value = new_dir
+        self.gui.image_dir_path = str(self.image_directory_config.value)
         self.check_and_create_directory(new_dir)
-        self.image_dir_watcher.set_path(self.image_directory_config)
+        if self.image_directory_config.previous:
+            self.total_dir_watcher.unwatch_path(self.image_directory_config.previous)
+        self.total_dir_watcher.set_path(self.image_directory_config.value)
 
     @run_on_ui_thread
     def set_inference_directory(self, new_dir: Path) -> None:
-        self.inference_directory_config = new_dir
-        self.gui.inference_dir_path = str(self.inference_directory_config)
+        self.inference_directory_config.value = new_dir
+        self.gui.inference_dir_path = str(self.inference_directory_config.value)
         self.check_and_create_directory(new_dir)
-        self.inference_dir_watcher.set_path(self.inference_directory_config)
+        if self.inference_directory_config.previous:
+            self.total_dir_watcher.unwatch_path(
+                self.inference_directory_config.previous
+            )
+        self.total_dir_watcher.set_path(self.inference_directory_config.value)
 
     @run_on_ui_thread
     def update_images_display(self, incoming_file: Path) -> None:
@@ -258,20 +264,22 @@ class Driver:
 
     def save_into_inferences_directory(self, incoming_file: Path) -> Path:
         final = incoming_file
-        assert self.inference_directory_config  # appease mypy
-        self.check_and_create_directory(self.inference_directory_config)
-        if incoming_file.parent != self.inference_directory_config:
-            final = Path(shutil.move(incoming_file, self.inference_directory_config))
-        self.inference_dir_watcher.incoming(final)
+        assert self.inference_directory_config.value  # appease mypy
+        self.check_and_create_directory(self.inference_directory_config.value)
+        if incoming_file.parent != self.inference_directory_config.value:
+            final = Path(
+                shutil.move(incoming_file, self.inference_directory_config.value)
+            )
+        self.total_dir_watcher.incoming(final)
         return final
 
     def save_into_image_directory(self, incoming_file: Path) -> Path:
         final = incoming_file
-        assert self.image_directory_config  # appease mypy
-        self.check_and_create_directory(self.image_directory_config)
-        if incoming_file.parent != self.image_directory_config:
-            final = Path(shutil.move(incoming_file, self.image_directory_config))
-        self.image_dir_watcher.incoming(final)
+        assert self.image_directory_config.value  # appease mypy
+        self.check_and_create_directory(self.image_directory_config.value)
+        if incoming_file.parent != self.image_directory_config.value:
+            final = Path(shutil.move(incoming_file, self.image_directory_config.value))
+        self.total_dir_watcher.incoming(final)
         return final
 
     async def streaming_rpc_start(self, roi: Optional[UnitROI] = None) -> None:
