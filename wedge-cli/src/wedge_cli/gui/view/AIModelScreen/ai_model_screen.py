@@ -45,10 +45,7 @@ class AIModelScreenView(BaseScreenView):
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-
         self.app.bind(is_ready=self.app_state_refresh)
-        self.ids.model_pick.file_manager.select_path = self.select_path
-        self.ids.model_pick.file_manager.selector = "file"
 
     def select_path(self, path_str: str) -> None:
         """
@@ -57,7 +54,6 @@ class AIModelScreenView(BaseScreenView):
 
         :param path: path to the selected directory or file;
         """
-        self.ids.model_pick.file_manager.exit_manager()
         path = Path(path_str)
         self.model.model_file = path
 
