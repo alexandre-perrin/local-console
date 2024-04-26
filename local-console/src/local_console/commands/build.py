@@ -24,7 +24,9 @@ logger = logging.getLogger(__name__)
 app = typer.Typer(help="Command for compiling the modules of the application")
 
 
-def compile_wasm(flags: Optional[list[str]]) -> None:
+def compile_wasm(flags: Optional[list[str]]) -> bool:
+    success = False
+
     env = os.environ.copy()
     wasi_sdk_root = get_clang_root(env)
     env["WASI_SDK_PATH"] = str(wasi_sdk_root)
@@ -33,11 +35,14 @@ def compile_wasm(flags: Optional[list[str]]) -> None:
         cmd = [Commands.MAKE.value]
         if flags:
             cmd += flags
-        # TODO: check process return code
-        subprocess.run(cmd, env=env)  # type: ignore
+
+        proc = subprocess.run(cmd, env=env)  # type: ignore
+        success = proc.returncode == 0
     except FileNotFoundError:
         logger.error("Error when running")
         raise typer.Exit(code=1)
+
+    return success
 
 
 def sign_file(file: str, secret_path: Path) -> None:
