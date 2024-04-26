@@ -53,7 +53,7 @@ jobs:
       run: |
         python3 -m venv .venv
         . .venv/bin/activate
-        pip install -e local-console/
+        pip install local-console/
         pip install -r tests/requirements.txt
     - name: Run Unit Test
       id: unit-test
@@ -121,8 +121,7 @@ jobs:
     - name: Extract version
       id: tag
       run: |
-        package_version=$(awk -F' = ' '/^version/ {print $2}' local-console/setup.cfg | tr -d "'")
-        echo "string=v$package_version" >> "$GITHUB_OUTPUT"
+        echo "string=v$(cat VERSION)" >> "$GITHUB_OUTPUT"
     - name: Check
       uses: mukunku/tag-exists-action@v1.6.0
       id: check-tag

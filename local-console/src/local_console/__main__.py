@@ -118,7 +118,7 @@ def main(
     setup_default_https_ca()
 
     try:
-        logger.info(f"Version: {version(__package__)}")
+        logger.info(f"Version: {version('local-console')}")
     except Exception as e:
         logger.warning(f"Error while getting version from Python package: {e}")
 
