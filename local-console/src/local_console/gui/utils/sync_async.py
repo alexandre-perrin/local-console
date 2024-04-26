@@ -31,7 +31,6 @@ class SyncAsyncBridge:
             assert self.tasks_queue
             items = await trio.to_thread.run_sync(self.tasks_queue.get)
             if items is None:
-                # FIXME handle SIGTERM appropriately
                 return
             else:
                 func = items[0]
