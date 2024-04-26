@@ -42,7 +42,7 @@ class ConfigurationScreenController:
     def process_schema(self) -> None:
         if self.model.flatbuffers_schema is not None:
             if self.model.flatbuffers_schema.is_file():
-                result, output = self.flatbuffers.conform_flatbuffer_schema(
+                result, _ = self.flatbuffers.conform_flatbuffer_schema(
                     self.model.flatbuffers_schema
                 )
                 if result is True:
