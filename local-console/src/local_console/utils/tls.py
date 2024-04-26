@@ -161,7 +161,7 @@ def get_certificate_cn(certificate: x509.Certificate) -> Optional[str]:
     if cn is not None:
         return cn
     else:
-        raise Exception("Certificate does not hold a Common Name")
+        raise AttributeError("Certificate does not hold a Common Name")
 
 
 def generate_self_signed_ca(
