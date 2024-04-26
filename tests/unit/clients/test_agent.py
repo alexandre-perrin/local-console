@@ -6,12 +6,12 @@ from unittest.mock import patch
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
+from local_console.clients.agent import Agent
+from local_console.core.camera import MQTTTopics
+from local_console.core.schemas.schemas import AgentConfiguration
+from local_console.core.schemas.schemas import OnWireProtocol
 from paho.mqtt.client import MQTT_ERR_ERRNO
 from paho.mqtt.client import MQTT_ERR_SUCCESS
-from wedge_cli.clients.agent import Agent
-from wedge_cli.core.camera import MQTTTopics
-from wedge_cli.core.schemas.schemas import AgentConfiguration
-from wedge_cli.core.schemas.schemas import OnWireProtocol
 
 from tests.strategies.configs import generate_agent_config
 from tests.strategies.configs import generate_text
@@ -33,14 +33,14 @@ async def test_configure_instance(
     onwire_schema: OnWireProtocol,
 ):
     with (
-        patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
+        patch("local_console.clients.agent.get_config", return_value=agent_config),
         patch(
-            "wedge_cli.clients.agent.OnWireProtocol.from_iot_spec",
+            "local_console.clients.agent.OnWireProtocol.from_iot_spec",
             return_value=onwire_schema,
         ),
-        patch("wedge_cli.clients.agent.paho.Client"),
-        patch("wedge_cli.clients.agent.AsyncClient"),
-        patch("wedge_cli.clients.agent.Agent.publish"),
+        patch("local_console.clients.agent.paho.Client"),
+        patch("local_console.clients.agent.AsyncClient"),
+        patch("local_console.clients.agent.Agent.publish"),
     ):
         agent = Agent()
         async with agent.mqtt_scope([]):
@@ -64,13 +64,13 @@ async def test_rpc(
     instance_id: str, agent_config: AgentConfiguration, onwire_schema: OnWireProtocol
 ):
     with (
-        patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
+        patch("local_console.clients.agent.get_config", return_value=agent_config),
         patch(
-            "wedge_cli.clients.agent.OnWireProtocol.from_iot_spec",
+            "local_console.clients.agent.OnWireProtocol.from_iot_spec",
             return_value=onwire_schema,
         ),
-        patch("wedge_cli.clients.agent.paho.Client"),
-        patch("wedge_cli.clients.agent.AsyncClient"),
+        patch("local_console.clients.agent.paho.Client"),
+        patch("local_console.clients.agent.AsyncClient"),
     ):
         method = "$agent/set"
         params = '{"log_enable": true}'
@@ -90,13 +90,13 @@ async def test_rpc_error(
     instance_id: str, agent_config: AgentConfiguration, onwire_schema: OnWireProtocol
 ):
     with (
-        patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
+        patch("local_console.clients.agent.get_config", return_value=agent_config),
         patch(
-            "wedge_cli.clients.agent.OnWireProtocol.from_iot_spec",
+            "local_console.clients.agent.OnWireProtocol.from_iot_spec",
             return_value=onwire_schema,
         ),
-        patch("wedge_cli.clients.agent.paho.Client"),
-        patch("wedge_cli.clients.agent.AsyncClient"),
+        patch("local_console.clients.agent.paho.Client"),
+        patch("local_console.clients.agent.AsyncClient"),
     ):
         method = "$agent/set"
         params = '{"log_enable": true}'

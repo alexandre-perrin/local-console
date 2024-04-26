@@ -1,0 +1,80 @@
+#:import res_path local_console.gui.config.resource_path
+#:include res_path(components.kv)
+
+<ConfigurationScreenView>
+    md_bg_color: self.theme_cls.backgroundColor
+
+    MDBoxLayout:
+        orientation: "vertical"
+
+        MDBoxLayout:
+        # Top bar
+
+            orientation: "horizontal"
+            size_hint_y: 0.1
+
+            MDBoxLayout:
+            # Controls half
+                orientation: "horizontal"
+                padding: "10dp"
+                spacing: "10dp"
+
+                GoHomeButton:
+
+                MDWidget:
+                    size_hint_x: 3
+
+        MDBoxLayout:
+        # Configuration controls
+
+            orientation: "vertical"
+            padding: "15dp"
+            spacing: "10dp"
+            size_hint_y: 0.6
+
+            PathSelectorCombo:
+            # Image dir
+                id: image_dir_pick
+                name: 'Image dir:'
+                icon: "folder-cog"
+                path: app.image_dir_path
+                search: "dirs"
+                on_selected: root.select_path_image(args[1])
+
+            PathSelectorCombo:
+            # Inference dir
+                id: inference_dir_pick
+                name: 'Inference dir:'
+                icon: "folder-cog"
+                path: app.inference_dir_path
+                search: "dirs"
+                on_selected: root.select_path_inferences(args[1])
+
+            FileSizeCombo:
+                label: "Max total size from image and inference folders:"
+                on_value: root.controller.update_total_max_size(args[1])
+
+            MDBoxLayout:
+            # Schema
+                orientation: "horizontal"
+                spacing: "5dp"
+
+                PathSelectorCombo:
+                    id: schema_pick
+                    name: 'Schema:'
+                    icon: "folder-cog"
+                    selector: "file"
+                    ext: [".fbs"]
+                    on_selected: root.select_path_flatbuffers(args[1])
+
+                MDButton:
+                    id: btn_process_schema
+                    on_release: root.controller.process_schema()
+                    pos_hint: {"center_y": 0.5}
+
+                    MDButtonText:
+                        text: " Process \n schema "
+
+        MDBoxLayout:
+            orientation: "horizontal"
+            size_hint_y: 0.3

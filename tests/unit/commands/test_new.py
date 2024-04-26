@@ -4,8 +4,8 @@ from unittest.mock import patch
 
 from hypothesis import given
 from hypothesis import strategies as st
+from local_console.commands.new import app
 from typer.testing import CliRunner
-from wedge_cli.commands.new import app
 
 from tests.strategies.configs import generate_text
 
@@ -21,9 +21,9 @@ def test_new_command(name: str, path_mock: str):
     assets_mock.__path__ = path_mock
 
     with (
-        patch("wedge_cli.commands.new.assets", assets_mock),
-        patch("wedge_cli.commands.new.shutil.copytree") as mock_copytree,
-        patch("wedge_cli.commands.new.shutil.move") as mock_move,
+        patch("local_console.commands.new.assets", assets_mock),
+        patch("local_console.commands.new.shutil.copytree") as mock_copytree,
+        patch("local_console.commands.new.shutil.move") as mock_move,
     ):
         project_path = Path(name)
         result = runner.invoke(app, ["-p", name])

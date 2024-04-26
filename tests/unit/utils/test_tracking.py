@@ -1,4 +1,4 @@
-from wedge_cli.utils.tracking import TrackingVariable
+from local_console.utils.tracking import TrackingVariable
 
 
 def test_initialization():

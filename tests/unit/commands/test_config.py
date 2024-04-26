@@ -4,15 +4,15 @@ from unittest.mock import patch
 
 from hypothesis import given
 from hypothesis import strategies as st
+from local_console.commands.config import app
+from local_console.core.enums import config_paths
+from local_console.core.enums import GetCommands
+from local_console.core.schemas.schemas import AgentConfiguration
+from local_console.core.schemas.schemas import DesiredDeviceConfig
+from local_console.core.schemas.schemas import IPAddress
+from local_console.core.schemas.schemas import OnWireProtocol
+from local_console.core.schemas.schemas import RemoteConnectionInfo
 from typer.testing import CliRunner
-from wedge_cli.commands.config import app
-from wedge_cli.core.enums import config_paths
-from wedge_cli.core.enums import GetCommands
-from wedge_cli.core.schemas.schemas import AgentConfiguration
-from wedge_cli.core.schemas.schemas import DesiredDeviceConfig
-from wedge_cli.core.schemas.schemas import IPAddress
-from wedge_cli.core.schemas.schemas import OnWireProtocol
-from wedge_cli.core.schemas.schemas import RemoteConnectionInfo
 
 from tests.strategies.configs import generate_agent_config
 from tests.strategies.configs import generate_identifiers
@@ -29,13 +29,14 @@ runner = CliRunner()
 def test_config_get_command(parser_return: str, agent_config: AgentConfiguration):
     with (
         patch(
-            "wedge_cli.commands.config.get_config", return_value=agent_config
+            "local_console.commands.config.get_config", return_value=agent_config
         ) as mock_get_config,
         patch(
-            "wedge_cli.commands.config.parse_section_to_ini", return_value=parser_return
+            "local_console.commands.config.parse_section_to_ini",
+            return_value=parser_return,
         ) as mock_parse_to_ini,
         patch(
-            "wedge_cli.commands.config.check_section_and_params"
+            "local_console.commands.config.check_section_and_params"
         ) as mock_checks_section_and_params,
     ):
         for section_name in agent_config.model_fields.keys():
@@ -60,10 +61,11 @@ def test_config_get_command_section_none(
 ):
     with (
         patch(
-            "wedge_cli.commands.config.get_config", return_value=agent_config
+            "local_console.commands.config.get_config", return_value=agent_config
         ) as mock_get_config,
         patch(
-            "wedge_cli.commands.config.parse_section_to_ini", return_value=parser_return
+            "local_console.commands.config.parse_section_to_ini",
+            return_value=parser_return,
         ) as mock_parse_to_ini,
     ):
         result = runner.invoke(app, [GetCommands.GET.value])
@@ -79,10 +81,11 @@ def test_config_get_command_section_none(
 def test_config_get_command_value_error(agent_config: AgentConfiguration):
     with (
         patch(
-            "wedge_cli.commands.config.get_config", return_value=agent_config
+            "local_console.commands.config.get_config", return_value=agent_config
         ) as mock_get_config,
         patch(
-            "wedge_cli.commands.config.check_section_and_params", side_effect=ValueError
+            "local_console.commands.config.check_section_and_params",
+            side_effect=ValueError,
         ) as mock_checks_section_and_params,
     ):
         for section_name in agent_config.model_fields.keys():
@@ -100,11 +103,13 @@ def test_config_get_command_value_error(agent_config: AgentConfiguration):
 def test_config_set_command(new_value: str, agent_config: AgentConfiguration):
     with (
         patch(
-            "wedge_cli.commands.config.get_config", return_value=agent_config
+            "local_console.commands.config.get_config", return_value=agent_config
         ) as mock_get_config,
-        patch("wedge_cli.commands.config.schema_to_parser") as mock_schema_to_parser,
         patch(
-            "wedge_cli.commands.config.check_section_and_params"
+            "local_console.commands.config.schema_to_parser"
+        ) as mock_schema_to_parser,
+        patch(
+            "local_console.commands.config.check_section_and_params"
         ) as mock_checks_section_and_params,
         patch("builtins.open") as mock_open,
     ):
@@ -146,10 +151,11 @@ def test_config_set_command_value_error(
 ):
     with (
         patch(
-            "wedge_cli.commands.config.get_config", return_value=agent_config
+            "local_console.commands.config.get_config", return_value=agent_config
         ) as mock_get_config,
         patch(
-            "wedge_cli.commands.config.check_section_and_params", side_effect=ValueError
+            "local_console.commands.config.check_section_and_params",
+            side_effect=ValueError,
         ) as mock_checks_section_and_params,
     ):
         for section_name in agent_config.model_fields.keys():
@@ -169,7 +175,7 @@ def test_config_set_command_value_error(
 def test_config_unset_nullable_parameter(agent_config: AgentConfiguration):
     with (
         patch(
-            "wedge_cli.commands.config.get_config", return_value=agent_config
+            "local_console.commands.config.get_config", return_value=agent_config
         ) as mock_get_config,
         patch("pathlib.Path.open") as mock_open,
     ):
@@ -185,7 +191,7 @@ def test_config_unset_nullable_parameter(agent_config: AgentConfiguration):
 def test_config_unset_not_nullable_error(agent_config: AgentConfiguration):
     with (
         patch(
-            "wedge_cli.commands.config.get_config", return_value=agent_config
+            "local_console.commands.config.get_config", return_value=agent_config
         ) as mock_get_config,
     ):
         result = runner.invoke(
@@ -213,9 +219,9 @@ def test_config_send_command(
 ):
     with (
         patch(
-            "wedge_cli.commands.config.get_config", return_value=agent_config
+            "local_console.commands.config.get_config", return_value=agent_config
         ) as mock_get_config,
-        patch("wedge_cli.commands.config.send_config") as mock_send_config,
+        patch("local_console.commands.config.send_config") as mock_send_config,
     ):
         result = runner.invoke(
             app,
@@ -284,8 +290,8 @@ def test_config_send_command_invalid_ip(
 )
 def test_config_instance_command(instance_id: str, method: str, params: str):
     with (
-        patch("wedge_cli.commands.config.Agent"),
-        patch("wedge_cli.commands.config.configure_task") as mock_configure,
+        patch("local_console.commands.config.Agent"),
+        patch("local_console.commands.config.configure_task") as mock_configure,
     ):
         result = runner.invoke(app, ["instance", instance_id, method, params])
         mock_configure.assert_called_with(instance_id, method, params)
@@ -299,8 +305,8 @@ def test_config_instance_command(instance_id: str, method: str, params: str):
 )
 def test_config_instance_command_exception(instance_id: str, method: str, params: str):
     with (
-        patch("wedge_cli.commands.config.Agent") as mock_agent,
-        patch("wedge_cli.commands.config.Agent.mqtt_scope") as mock_mqtt,
+        patch("local_console.commands.config.Agent") as mock_agent,
+        patch("local_console.commands.config.Agent.mqtt_scope") as mock_mqtt,
     ):
         mock_mqtt.side_effect = ConnectionError
         result = runner.invoke(app, ["instance", instance_id, method, params])
@@ -311,10 +317,10 @@ def test_config_instance_command_exception(instance_id: str, method: str, params
 @given(st.integers(min_value=0, max_value=300), st.integers(min_value=0, max_value=300))
 def test_config_device_command(interval_max: int, interval_min: int):
     with (
-        patch("wedge_cli.commands.config.Agent") as mock_agent,
-        # patch("wedge_cli.commands.config.Agent.determine_onwire_schema", return_value=),
+        patch("local_console.commands.config.Agent") as mock_agent,
+        # patch("local_console.commands.config.Agent.determine_onwire_schema", return_value=),
         patch(
-            "wedge_cli.commands.config.config_device_task", return_value=0
+            "local_console.commands.config.config_device_task", return_value=0
         ) as mock_configure,
     ):
         mock_agent.determine_onwire_schema = AsyncMock(return_value=OnWireProtocol.EVP2)
@@ -330,7 +336,7 @@ def test_config_device_command(interval_max: int, interval_min: int):
     st.integers(min_value=-100, max_value=-1), st.integers(min_value=-100, max_value=-1)
 )
 def test_config_device_command_invalid_range(interval_max: int, interval_min: int):
-    with (patch("wedge_cli.commands.config.config_device_task") as mock_configure,):
+    with (patch("local_console.commands.config.config_device_task") as mock_configure,):
         result = runner.invoke(app, ["device", interval_max, interval_min])
         mock_configure.assert_not_awaited()
         assert result.exit_code == 1

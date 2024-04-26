@@ -2,10 +2,10 @@ from unittest.mock import patch
 
 from hypothesis import given
 from hypothesis import strategies as st
+from local_console.commands.logs import app
+from local_console.core.camera import MQTTTopics
+from local_console.core.schemas.schemas import OnWireProtocol
 from typer.testing import CliRunner
-from wedge_cli.commands.logs import app
-from wedge_cli.core.camera import MQTTTopics
-from wedge_cli.core.schemas.schemas import OnWireProtocol
 
 from tests.strategies.configs import generate_text
 
@@ -23,13 +23,13 @@ def test_logs_command(
     onwire_schema: OnWireProtocol,
 ):
     with (
-        patch("wedge_cli.commands.logs.Agent") as mock_agent_client,
+        patch("local_console.commands.logs.Agent") as mock_agent_client,
         patch(
-            "wedge_cli.clients.agent.OnWireProtocol.from_iot_spec",
+            "local_console.clients.agent.OnWireProtocol.from_iot_spec",
             return_value=onwire_schema,
         ),
         patch("trio.run") as mock_run,
-        patch("wedge_cli.commands.logs.on_message_logs") as mock_msg_logs,
+        patch("local_console.commands.logs.on_message_logs") as mock_msg_logs,
     ):
         result = runner.invoke(app, ["--timeout", timeout, instance_id])
         mock_run.assert_called_with(
@@ -49,7 +49,7 @@ def test_logs_command(
 )
 def test_logs_command_exception(instance_id: str, timeout: int):
     with (
-        patch("wedge_cli.commands.logs.Agent") as mock_agent_client,
+        patch("local_console.commands.logs.Agent") as mock_agent_client,
         patch("trio.run") as mock_run,
     ):
         mock_agent_client.return_value.read_only_loop.side_effect = ConnectionError

@@ -1,7 +1,7 @@
 [run]
 relative_files = True
 include =
-    wedge-cli/src/*
+    local-console/src/*
 omit =
-    wedge-cli/src/wedge_cli/assets/*
+    local-console/src/local_console/assets/*
 branch = True

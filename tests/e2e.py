@@ -10,11 +10,11 @@ from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from local_console.core.schemas.schemas import OnWireProtocol
+from local_console.utils.tls import generate_self_signed_ca
 from process_handler import ProcessHandler
 from process_handler import SharedLogger
 from retry import retry
-from wedge_cli.core.schemas.schemas import OnWireProtocol
-from wedge_cli.utils.tls import generate_self_signed_ca
 
 FORMAT = "%(asctime)s %(levelname)s %(message)s"
 logging.basicConfig(format=FORMAT, level=logging.DEBUG)
@@ -42,10 +42,12 @@ def parse_test_arguments() -> argparse.Namespace:
 
 
 @retry(tries=5, exceptions=AssertionError)
-def check_rpc_telemetry(telemetry: subprocess.Popen, wedge_cli_pre: list[str]) -> None:
+def check_rpc_telemetry(
+    telemetry: subprocess.Popen, local_console_pre: list[str]
+) -> None:
     # send rpc
     # 000FF1 = (0,15,241)
-    subprocess.run(wedge_cli_pre + ["rpc", "node", "my-method", '{"rgb":"000FF1"}'])
+    subprocess.run(local_console_pre + ["rpc", "node", "my-method", '{"rgb":"000FF1"}'])
     time.sleep(2)
     log.info("Waiting to get telemetries")
     for line in telemetry.stdout:  # type: ignore
@@ -60,10 +62,13 @@ def check_rpc_telemetry(telemetry: subprocess.Popen, wedge_cli_pre: list[str]) -
         break
 
 
-def check_logs(wedge_cli_pre: list[str]) -> None:
+def check_logs(local_console_pre: list[str]) -> None:
     log.info("Starting to get logs")
     logs = subprocess.Popen(
-        wedge_cli_pre + ["logs", "node"], stdout=subprocess.PIPE, text=True, bufsize=0
+        local_console_pre + ["logs", "node"],
+        stdout=subprocess.PIPE,
+        text=True,
+        bufsize=0,
     )
     log.info("Waiting for logs")
     for line in logs.stdout:  # type: ignore
@@ -75,7 +80,7 @@ def check_logs(wedge_cli_pre: list[str]) -> None:
 
 @retry(tries=5, exceptions=AssertionError)
 def check_configuration_telemetry(
-    telemetry: subprocess.Popen, wedge_cli_pre: list[str]
+    telemetry: subprocess.Popen, local_console_pre: list[str]
 ) -> None:
     # send configuration, expect loopback over telemetry
     topic = "test-topic"
@@ -83,7 +88,7 @@ def check_configuration_telemetry(
 
     telemetry_topic = f"node/{topic}"
 
-    subprocess.run(wedge_cli_pre + ["config", "instance", "node", topic, payload])
+    subprocess.run(local_console_pre + ["config", "instance", "node", topic, payload])
     for i, line in enumerate(telemetry.stdout):  # type: ignore
         telemetry_out = json.loads(line.replace("'", '"'))
         obj = telemetry_out.get(telemetry_topic)
@@ -96,10 +101,15 @@ def check_configuration_telemetry(
 
 
 @retry(tries=5, exceptions=AssertionError)
-def check_deploy_empty(deployment: subprocess.Popen, wedge_cli_pre: list[str]) -> None:
+def check_deploy_empty(
+    deployment: subprocess.Popen, local_console_pre: list[str]
+) -> None:
     try:
         subprocess.run(
-            wedge_cli_pre + ["deploy", "-e"], capture_output=True, text=True, check=True
+            local_console_pre + ["deploy", "-e"],
+            capture_output=True,
+            text=True,
+            check=True,
         )
     except subprocess.CalledProcessError as e:
         log.error("Deploying failed like: %s", e.stderr)
@@ -114,13 +124,13 @@ def check_deploy_empty(deployment: subprocess.Popen, wedge_cli_pre: list[str]) -
         assert i < 10, "Deployment status not empty yet"
 
 
-def build_and_deploy_app(app_dir: Path, wedge_cli_pre: list[str]) -> None:
+def build_and_deploy_app(app_dir: Path, local_console_pre: list[str]) -> None:
     # Build app
-    subprocess.run(wedge_cli_pre + ["build"], cwd=app_dir, check=True)
+    subprocess.run(local_console_pre + ["build"], cwd=app_dir, check=True)
 
     # Deploy app
     deploy = subprocess.run(
-        wedge_cli_pre + ["deploy", "--timeout", "60"],
+        local_console_pre + ["deploy", "--timeout", "60"],
         cwd=app_dir,
         capture_output=True,
         text=True,
@@ -130,7 +140,7 @@ def build_and_deploy_app(app_dir: Path, wedge_cli_pre: list[str]) -> None:
     assert deploy.returncode == 0, f"Error during deploy: {deploy.stderr}"
 
 
-def setup_tls(tls_files_dir: Path, wedge_cli_pre: list[str]) -> None:
+def setup_tls(tls_files_dir: Path, local_console_pre: list[str]) -> None:
     """
     The file paths of files generated here are relative
     to the directory where the MQTT broker configuration
@@ -143,7 +153,7 @@ def setup_tls(tls_files_dir: Path, wedge_cli_pre: list[str]) -> None:
 
     # Configure the CLI with updated TLS parameters
     subprocess.run(
-        wedge_cli_pre
+        local_console_pre
         + [
             "config",
             "set",
@@ -154,16 +164,17 @@ def setup_tls(tls_files_dir: Path, wedge_cli_pre: list[str]) -> None:
         check=True,
     )
     subprocess.run(
-        wedge_cli_pre + ["config", "set", "tls", "ca_key", str(ca_key_path.resolve())],
+        local_console_pre
+        + ["config", "set", "tls", "ca_key", str(ca_key_path.resolve())],
         check=True,
     )
     # TCP port is configured by the broker preparation
 
 
-def setup_no_tls(wedge_cli_pre: list[str]):
+def setup_no_tls(local_console_pre: list[str]):
     # Configure the CLI to avoid TLS
     subprocess.run(
-        wedge_cli_pre
+        local_console_pre
         + [
             "config",
             "unset",
@@ -173,16 +184,16 @@ def setup_no_tls(wedge_cli_pre: list[str]):
         check=True,
     )
     subprocess.run(
-        wedge_cli_pre + ["config", "unset", "tls", "ca_key"],
+        local_console_pre + ["config", "unset", "tls", "ca_key"],
         check=True,
     )
 
 
 def set_onwire_schema_version(
-    onwire_schema: OnWireProtocol, wedge_cli_pre: list[str]
+    onwire_schema: OnWireProtocol, local_console_pre: list[str]
 ) -> None:
     subprocess.run(
-        wedge_cli_pre
+        local_console_pre
         + ["config", "set", "evp", "iot_platform", onwire_schema.for_agent_environ()],
         check=True,
     )
@@ -194,23 +205,23 @@ class LocalBroker(ProcessHandler):
         with_tls: bool,
         tmp_dir: Path,
         log_handler: logging.Logger,
-        wedge_cli_pre: list[str],
+        local_console_pre: list[str],
     ) -> None:
         super().__init__(log_handler)
 
-        self.cmdline = wedge_cli_pre + ["broker", "cool_mqtt_broker"]
-        self.prepare(with_tls, wedge_cli_pre)
+        self.cmdline = local_console_pre + ["broker", "cool_mqtt_broker"]
+        self.prepare(with_tls, local_console_pre)
 
-    def prepare(self, with_tls: bool, wedge_cli_pre: list[str]) -> None:
+    def prepare(self, with_tls: bool, local_console_pre: list[str]) -> None:
         # Configure TCP port
         self._port = 8883 if with_tls else 1883
         subprocess.run(
-            wedge_cli_pre + ["config", "set", "mqtt", "port", str(self._port)],
+            local_console_pre + ["config", "set", "mqtt", "port", str(self._port)],
             check=True,
         )
         self._host = "localhost"
         subprocess.run(
-            wedge_cli_pre + ["config", "set", "mqtt", "host", self._host],
+            local_console_pre + ["config", "set", "mqtt", "host", self._host],
             check=True,
         )
 
@@ -237,9 +248,11 @@ class LocalBroker(ProcessHandler):
 
 
 class LocalAgent(ProcessHandler):
-    def __init__(self, log_handler: logging.Logger, wedge_cli_pre: list[str]) -> None:
+    def __init__(
+        self, log_handler: logging.Logger, local_console_pre: list[str]
+    ) -> None:
         super().__init__(log_handler)
-        self.cmdline = wedge_cli_pre + ["start"]
+        self.cmdline = local_console_pre + ["start"]
         self.options = {}
 
     def start_check(self) -> None:
@@ -251,7 +264,7 @@ def wedge_area(with_tls: bool, onwire_schema: OnWireProtocol) -> None:
     with TemporaryDirectory() as _tempdir:
         tmp_dir = Path(_tempdir)
         config_dir = tmp_dir / "config"
-        cmd_preamble = ["wedge-cli", "-v", "--config-dir", str(config_dir)]
+        cmd_preamble = ["local-console", "-v", "--config-dir", str(config_dir)]
 
         if with_tls:
             tls_dir = tmp_dir / "tls"

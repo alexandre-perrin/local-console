@@ -30,10 +30,10 @@ ArchitecturesInstallIn64BitMode=x64
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "wedge-cli\*";  Excludes: "*.pyc,__pycache__\*,*.egg-info\*"; DestDir: "{tmp}\wedge-cli"; Flags: recursesubdirs
+Source: "local-console\*";  Excludes: "*.pyc,__pycache__\*,*.egg-info\*"; DestDir: "{tmp}\local-console"; Flags: recursesubdirs
 
 [Run]
-Filename: "powershell.exe"; Parameters: "Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser; {tmp}\\wedge-cli\\windows\\install.ps1 ""{app}"""; Flags: waituntilterminated;
+Filename: "powershell.exe"; Parameters: "Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser; {tmp}\\local-console\\windows\\install.ps1 ""{app}"""; Flags: waituntilterminated;
 
 [UninstallDelete]
 Type: files; Name: "{userdesktop}\Wedge GUI.lnk"

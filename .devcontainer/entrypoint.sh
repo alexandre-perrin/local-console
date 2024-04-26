@@ -1,4 +1,4 @@
 #/bin/sh
 
 mosquitto -d -c .devcontainer/mosquitto.conf
-pip install -e wedge-cli/
+pip install -e local-console/

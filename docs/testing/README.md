@@ -12,7 +12,7 @@ Before initiating manual testing, ensure the following prerequisites are in plac
 - pip
 - mosquitto (2.0.11 tested)
 - flatc (23.1.21 tested)
-- wedge-cli
+- local-console
 
 ### Tested Environment
 
@@ -32,7 +32,7 @@ Please note:
 
 - Prerequisite
     - GUI is not running yet.
-    - No other process is listening to the MQTT port `wedge-cli config get mqtt port`
+    - No other process is listening to the MQTT port `local-console config get mqtt port`
       -  You can verify it by running `lsof -i :<PORT>`. It should report no entries.
     - Factory reset camera.
 
@@ -41,7 +41,7 @@ Camera: ES
 1. Run GUI from the terminal
 
 ```
-wedge-cli gui
+local-console gui
 ```
 
 ![homescreen](assets/homescreen.png)

@@ -91,7 +91,7 @@ def main() -> None:
 
         for component in sbom["components"]:
             # ignore self-reference
-            if component["name"] == "wedge-cli":
+            if component["name"] == "local-console":
                 continue
 
             licenses = extract_licenses(

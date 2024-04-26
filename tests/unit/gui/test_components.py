@@ -1,5 +1,5 @@
 from kivy.clock import Clock
-from wedge_cli.gui.view.common.components import CodeInputCustom
+from local_console.gui.view.common.components import CodeInputCustom
 
 
 def test_code_input_custom():

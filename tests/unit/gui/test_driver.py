@@ -7,17 +7,19 @@ from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import pytest
-from wedge_cli.core.config import config_to_schema
-from wedge_cli.core.config import get_default_config
-from wedge_cli.core.schemas.schemas import AgentConfiguration
+from local_console.core.config import config_to_schema
+from local_console.core.config import get_default_config
+from local_console.core.schemas.schemas import AgentConfiguration
 
 # The following lines need to be in this order, in order to
 # be able to mock the run_on_ui_thread decorator with
 # an identity function
-patch("wedge_cli.gui.utils.sync_async.run_on_ui_thread", lambda fn: fn).start()  # noqa
+patch(
+    "local_console.gui.utils.sync_async.run_on_ui_thread", lambda fn: fn
+).start()  # noqa
 # TODO: simplify patching
-importlib.reload(sys.modules["wedge_cli.gui.driver"])
-from wedge_cli.gui.driver import Driver  # noqa
+importlib.reload(sys.modules["local_console.gui.driver"])
+from local_console.gui.driver import Driver  # noqa
 
 
 def get_default_config_as_schema() -> AgentConfiguration:
@@ -33,12 +35,12 @@ def create_new(root: Path) -> Path:
 @pytest.fixture(autouse=True)
 def common_patches():
     with (
-        patch("wedge_cli.gui.driver.TimeoutBehavior"),
+        patch("local_console.gui.driver.TimeoutBehavior"),
         # This test does not use Hypothesis' strategies as they are not readily
         # integrable with the 'tmpdir' fixture, and anyway the functionality tested
         # by this suite is completely independent on the persistent configuration.
-        patch("wedge_cli.gui.driver.get_config", get_default_config_as_schema),
-        patch("wedge_cli.clients.agent.get_config", get_default_config_as_schema),
+        patch("local_console.gui.driver.get_config", get_default_config_as_schema),
+        patch("local_console.clients.agent.get_config", get_default_config_as_schema),
     ):
         yield
 
