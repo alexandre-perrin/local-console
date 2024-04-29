@@ -8,16 +8,16 @@ import hypothesis.strategies as st
 import pytest
 import typer
 from hypothesis import given
+from local_console.commands.build import app
+from local_console.commands.build import COMPILATION_FLAGS
+from local_console.commands.build import compile_aot
+from local_console.commands.build import compile_wasm
+from local_console.commands.build import sign_file
+from local_console.core.enums import Commands
+from local_console.core.enums import ModuleExtension
+from local_console.core.enums import Target
+from local_console.core.schemas.schemas import DeploymentManifest
 from typer.testing import CliRunner
-from wedge_cli.commands.build import app
-from wedge_cli.commands.build import COMPILATION_FLAGS
-from wedge_cli.commands.build import compile_aot
-from wedge_cli.commands.build import compile_wasm
-from wedge_cli.commands.build import sign_file
-from wedge_cli.core.enums import Commands
-from wedge_cli.core.enums import ModuleExtension
-from wedge_cli.core.enums import Target
-from wedge_cli.core.schemas.schemas import DeploymentManifest
 
 from tests.strategies.configs import generate_text
 from tests.strategies.deployment import deployment_manifest_strategy
@@ -37,12 +37,12 @@ def test_build_command_wasm(
     for module_file in deployment_manifest.deployment.modules.keys():
         wasm_files.append(f"{module_file}.{ModuleExtension.WASM}")
     with (
-        patch("wedge_cli.commands.build.compile_wasm") as mock_compile_wasm,
+        patch("local_console.commands.build.compile_wasm") as mock_compile_wasm,
         patch(
-            "wedge_cli.commands.build.os.listdir", return_value=wasm_files
+            "local_console.commands.build.os.listdir", return_value=wasm_files
         ) as mock_os_listdir,
         patch(
-            "wedge_cli.commands.build.get_deployment_schema",
+            "local_console.commands.build.get_deployment_schema",
             return_value=deployment_manifest,
         ) as mock_get_deployment,
     ):
@@ -69,13 +69,13 @@ def test_build_command_target(
     for module_file in deployment_manifest.deployment.modules.keys():
         wasm_files.append(f"{module_file}.{ModuleExtension.WASM}")
     with (
-        patch("wedge_cli.commands.build.compile_wasm") as mock_compile_wasm,
-        patch("wedge_cli.commands.build.compile_aot") as mock_compile_aot,
+        patch("local_console.commands.build.compile_wasm") as mock_compile_wasm,
+        patch("local_console.commands.build.compile_aot") as mock_compile_aot,
         patch(
-            "wedge_cli.commands.build.os.listdir", return_value=wasm_files
+            "local_console.commands.build.os.listdir", return_value=wasm_files
         ) as mock_os_listdir,
         patch(
-            "wedge_cli.commands.build.get_deployment_schema",
+            "local_console.commands.build.get_deployment_schema",
             return_value=deployment_manifest,
         ) as mock_get_deployment,
     ):
@@ -117,13 +117,13 @@ def test_build_command_secret(
     for module_file in deployment_manifest.deployment.modules.keys():
         wasm_files.append(f"{module_file}.{ModuleExtension.WASM}")
     with (
-        patch("wedge_cli.commands.build.compile_wasm") as mock_compile_wasm,
-        patch("wedge_cli.commands.build.sign_file") as mock_sign_file,
+        patch("local_console.commands.build.compile_wasm") as mock_compile_wasm,
+        patch("local_console.commands.build.sign_file") as mock_sign_file,
         patch(
-            "wedge_cli.commands.build.os.listdir", return_value=wasm_files
+            "local_console.commands.build.os.listdir", return_value=wasm_files
         ) as mock_os_listdir,
         patch(
-            "wedge_cli.commands.build.get_deployment_schema",
+            "local_console.commands.build.get_deployment_schema",
             return_value=deployment_manifest,
         ) as mock_get_deployment,
     ):
@@ -145,12 +145,12 @@ def test_build_command_wasm_not_found(
     deployment_manifest: DeploymentManifest, flags: Optional[list[str]]
 ) -> None:
     with (
-        patch("wedge_cli.commands.build.compile_wasm") as mock_compile_wasm,
+        patch("local_console.commands.build.compile_wasm") as mock_compile_wasm,
         patch(
-            "wedge_cli.commands.build.os.listdir", return_value=["whatever"]
+            "local_console.commands.build.os.listdir", return_value=["whatever"]
         ) as mock_os_listdir,
         patch(
-            "wedge_cli.commands.build.get_deployment_schema",
+            "local_console.commands.build.get_deployment_schema",
             return_value=deployment_manifest,
         ) as mock_get_deployment,
     ):
@@ -168,10 +168,10 @@ def test_build_command_wasm_not_found(
 @given(st.lists(generate_text(), max_size=5))
 def test_compile_wasm(flags: Optional[list[str]]):
     with (
-        patch("wedge_cli.commands.build.subprocess.run") as mock_run_agent,
+        patch("local_console.commands.build.subprocess.run") as mock_run_agent,
         patch("os.environ.copy", return_value={}) as mock_environ,
         patch(
-            "wedge_cli.commands.build.get_clang_root",
+            "local_console.commands.build.get_clang_root",
             return_value=Path("/opt/wasi-sdk"),
         ) as mock_clang,
     ):
@@ -191,10 +191,10 @@ def test_compile_wasm(flags: Optional[list[str]]):
 def test_compile_wasm_file_not_found(flags=[]):
     with (
         patch(
-            "wedge_cli.commands.build.subprocess.run", side_effect=FileNotFoundError
+            "local_console.commands.build.subprocess.run", side_effect=FileNotFoundError
         ) as mock_run_agent,
         patch(
-            "wedge_cli.commands.build.get_clang_root",
+            "local_console.commands.build.get_clang_root",
             return_value=Path("/opt/wasi-sdk"),
         ) as mock_clang,
     ):
@@ -207,9 +207,11 @@ def test_compile_wasm_file_not_found(flags=[]):
 @given(generate_text(), path_strategy(), st.binary())
 def test_sign_file(module_name: str, secret_path: Path, bytes_mock: bytes):
     with (
-        patch("wedge_cli.commands.build.Path.exists", return_value=True) as mock_exists,
+        patch(
+            "local_console.commands.build.Path.exists", return_value=True
+        ) as mock_exists,
         patch("builtins.open") as mock_open,
-        patch("wedge_cli.commands.build.sign") as mock_sign,
+        patch("local_console.commands.build.sign") as mock_sign,
     ):
         file = f"{module_name}.{ModuleExtension.WASM}"
         mock_open.return_value.__enter__.return_value.read.return_value = bytes_mock
@@ -224,9 +226,11 @@ def test_sign_file(module_name: str, secret_path: Path, bytes_mock: bytes):
 @given(generate_text(), path_strategy())
 def test_sign_file_exception(module_name: str, secret_path: Path):
     with (
-        patch("wedge_cli.commands.build.Path.exists", return_value=True) as mock_exists,
+        patch(
+            "local_console.commands.build.Path.exists", return_value=True
+        ) as mock_exists,
         patch("builtins.open") as mock_open,
-        patch("wedge_cli.commands.build.sign", side_effect=Exception),
+        patch("local_console.commands.build.sign", side_effect=Exception),
     ):
         file = f"{module_name}.{ModuleExtension.WASM}"
         mock_open.return_value.__enter__.return_value.read.return_value = bytes
@@ -245,7 +249,7 @@ def test_compile_aot(module_name: str, target: Target):
     file = f"{module_name}.{target}.{ModuleExtension.AOT}"
     options += f" -o bin/{file} bin/{module_name}.{ModuleExtension.WASM}"
     with patch(
-        "wedge_cli.commands.build.subprocess.run", return_value=result
+        "local_console.commands.build.subprocess.run", return_value=result
     ) as mock_wamrc:
         compile_aot(module_name, target)
         mock_wamrc.assert_called_with(
@@ -263,7 +267,7 @@ def test_compile_aot_wamrc_fail(module_name: str, target: Target):
     file = f"{module_name}.{target}.{ModuleExtension.AOT}"
     options += f" -o bin/{file} bin/{module_name}.{ModuleExtension.WASM}"
     with patch(
-        "wedge_cli.commands.build.subprocess.run", return_value=result
+        "local_console.commands.build.subprocess.run", return_value=result
     ) as mock_wamrc:
         with pytest.raises(typer.Exit):
             compile_aot(module_name, target)
@@ -277,7 +281,7 @@ def test_compile_aot_wamrc_fail(module_name: str, target: Target):
 @given(generate_text(), st.sampled_from(Target))
 def test_compile_aot_file_not_found(module_name: str, target: Target):
     with patch(
-        "wedge_cli.commands.build.subprocess.run", side_effect=FileNotFoundError
+        "local_console.commands.build.subprocess.run", side_effect=FileNotFoundError
     ):
         with pytest.raises(typer.Exit):
             compile_aot(module_name, target)

@@ -6,7 +6,7 @@ from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
-from wedge_cli.utils.fswatch import StorageSizeWatcher
+from local_console.utils.fswatch import StorageSizeWatcher
 
 
 @pytest.fixture
@@ -48,7 +48,7 @@ def create_new(root: Path) -> Path:
 
 def test_regular_sequence(dir_layout):
     dir_base, size = dir_layout
-    with patch("wedge_cli.utils.fswatch.walk_entry", walk_entry_mock()):
+    with patch("local_console.utils.fswatch.walk_entry", walk_entry_mock()):
         w = StorageSizeWatcher(check_frequency=10)
         assert w.state == StorageSizeWatcher.State.Start
 
@@ -109,9 +109,9 @@ def test_regular_sequence(dir_layout):
 def test_incoming_always_prunes(dir_layout):
     dir_base, size = dir_layout
     mock_prune = Mock()
-    with patch("wedge_cli.utils.fswatch.walk_entry", walk_entry_mock()), patch.object(
-        StorageSizeWatcher, "_prune", mock_prune
-    ):
+    with patch(
+        "local_console.utils.fswatch.walk_entry", walk_entry_mock()
+    ), patch.object(StorageSizeWatcher, "_prune", mock_prune):
         w = StorageSizeWatcher(check_frequency=10)
         w.set_path(dir_base)
         st_limit = 4
@@ -131,9 +131,9 @@ def test_remaining_before_consistency_check(dir_layout):
 
     dir_base, size = dir_layout
     mock_prune = Mock()
-    with patch("wedge_cli.utils.fswatch.walk_entry", walk_entry_mock()), patch.object(
-        StorageSizeWatcher, "_prune", mock_prune
-    ):
+    with patch(
+        "local_console.utils.fswatch.walk_entry", walk_entry_mock()
+    ), patch.object(StorageSizeWatcher, "_prune", mock_prune):
         w = StorageSizeWatcher(check_frequency=check_frequency)
         w.set_path(dir_base)
         w.set_storage_limit(storage_limit)
@@ -203,7 +203,7 @@ def test_regular_sequence_multiple_dirs(multi_dir_layout):
     dir_bases, initial_size = multi_dir_layout
     expected_curr_size = initial_size
     walk_entry_fn = walk_entry_mock()
-    with patch("wedge_cli.utils.fswatch.walk_entry", walk_entry_fn):
+    with patch("local_console.utils.fswatch.walk_entry", walk_entry_fn):
         w = StorageSizeWatcher(check_frequency=10)
         assert w.state == StorageSizeWatcher.State.Start
 

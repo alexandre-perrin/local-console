@@ -1,9 +1,9 @@
 from hypothesis import strategies as st
-from wedge_cli.core.schemas.schemas import Deployment
-from wedge_cli.core.schemas.schemas import DeploymentManifest
-from wedge_cli.core.schemas.schemas import InstanceSpec
-from wedge_cli.core.schemas.schemas import Module
-from wedge_cli.core.schemas.schemas import Topics
+from local_console.core.schemas.schemas import Deployment
+from local_console.core.schemas.schemas import DeploymentManifest
+from local_console.core.schemas.schemas import InstanceSpec
+from local_console.core.schemas.schemas import Module
+from local_console.core.schemas.schemas import Topics
 
 from tests.strategies.configs import generate_text
 

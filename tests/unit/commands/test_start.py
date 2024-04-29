@@ -4,17 +4,17 @@ from uuid import UUID
 
 import hypothesis.strategies as st
 from hypothesis import given
+from local_console.commands.start import app
+from local_console.commands.start import start_agent
+from local_console.core.enums import Commands
+from local_console.core.enums import config_paths
+from local_console.core.enums import EVPEnvVars
+from local_console.core.schemas.schemas import AgentConfiguration
+from local_console.core.schemas.schemas import IPAddress
+from local_console.core.schemas.schemas import Libraries
+from local_console.core.schemas.schemas import RemoteConnectionInfo
+from local_console.core.schemas.schemas import TLSConfiguration
 from typer.testing import CliRunner
-from wedge_cli.commands.start import app
-from wedge_cli.commands.start import start_agent
-from wedge_cli.core.enums import Commands
-from wedge_cli.core.enums import config_paths
-from wedge_cli.core.enums import EVPEnvVars
-from wedge_cli.core.schemas.schemas import AgentConfiguration
-from wedge_cli.core.schemas.schemas import IPAddress
-from wedge_cli.core.schemas.schemas import Libraries
-from wedge_cli.core.schemas.schemas import RemoteConnectionInfo
-from wedge_cli.core.schemas.schemas import TLSConfiguration
 
 from tests.strategies.configs import generate_agent_config
 from tests.strategies.configs import generate_text
@@ -28,7 +28,7 @@ runner = CliRunner()
 @given(generate_valid_ip(), generate_valid_port_number())
 def test_start_remote(remote_host, remote_port) -> None:
     with patch(
-        "wedge_cli.commands.start.start_agent", return_value=0
+        "local_console.commands.start.start_agent", return_value=0
     ) as mock_start_agent:
         result = runner.invoke(app, ["--remote", remote_host, remote_port])
         mock_start_agent.assert_called_once_with(
@@ -43,7 +43,7 @@ def test_start_remote(remote_host, remote_port) -> None:
 @given(st.lists(generate_text(), max_size=5, min_size=1))
 def test_start_libraries(libraries_list) -> None:
     with patch(
-        "wedge_cli.commands.start.start_agent", return_value=0
+        "local_console.commands.start.start_agent", return_value=0
     ) as mock_start_agent:
         libraries_command = []
         for library in libraries_list:
@@ -60,13 +60,13 @@ def test_start_libraries(libraries_list) -> None:
 @given(generate_agent_config())
 def test_start_agent(agent_config: AgentConfiguration) -> None:
     with (
-        patch("wedge_cli.commands.start.run") as mock_run_agent,
+        patch("local_console.commands.start.run") as mock_run_agent,
         patch(
-            "wedge_cli.commands.start.get_config", return_value=agent_config
+            "local_console.commands.start.get_config", return_value=agent_config
         ) as mock_get_config,
         patch("os.environ.copy", return_value=dict()),
         patch("shutil.which", return_value=Commands.EVP_AGENT.value),
-        patch("wedge_cli.commands.start.get_random_identifier", return_value="123"),
+        patch("local_console.commands.start.get_random_identifier", return_value="123"),
     ):
         rc = start_agent(
             connection_info=RemoteConnectionInfo(host=None, port=None),
@@ -95,14 +95,14 @@ def test_start_agent(agent_config: AgentConfiguration) -> None:
 def test_start_agent_file_not_found(agent_config: AgentConfiguration) -> None:
     with (
         patch(
-            "wedge_cli.commands.start.run", side_effect=FileNotFoundError
+            "local_console.commands.start.run", side_effect=FileNotFoundError
         ) as mock_run_agent,
         patch(
-            "wedge_cli.commands.start.get_config", return_value=agent_config
+            "local_console.commands.start.get_config", return_value=agent_config
         ) as mock_get_config,
         patch("os.environ.copy", return_value=dict()),
         patch("shutil.which", return_value=Commands.EVP_AGENT.value),
-        patch("wedge_cli.commands.start.get_random_identifier", return_value="123"),
+        patch("local_console.commands.start.get_random_identifier", return_value="123"),
     ):
         rc = start_agent(
             connection_info=RemoteConnectionInfo(host=None, port=None),
@@ -148,24 +148,24 @@ def test_start_agent_with_tls(
     agent_config: AgentConfiguration, tls_config: TLSConfiguration, random_name: UUID
 ) -> None:
     with (
-        patch("wedge_cli.commands.start.run") as mock_run_agent,
+        patch("local_console.commands.start.run") as mock_run_agent,
         patch(
-            "wedge_cli.commands.start.get_config", return_value=agent_config
+            "local_console.commands.start.get_config", return_value=agent_config
         ) as mock_get_config,
         patch("os.environ.copy", return_value=dict()),
         patch("shutil.which", return_value=Commands.EVP_AGENT.value),
         patch("ctypes.cdll.LoadLibrary"),
         patch(
-            "wedge_cli.commands.start.TemporaryDirectory",
+            "local_console.commands.start.TemporaryDirectory",
             new=MockTemporaryDirectory(f"/tmp/{random_name}"),
         ),
         patch("pathlib.Path.open"),
-        patch("wedge_cli.commands.start.is_localhost", return_value=True),
+        patch("local_console.commands.start.is_localhost", return_value=True),
         patch(
-            "wedge_cli.commands.start.ensure_tls_setup", return_value="brokerhost"
+            "local_console.commands.start.ensure_tls_setup", return_value="brokerhost"
         ) as mock_ensure_tls,
-        patch("wedge_cli.commands.start.is_localhost", return_value=True),
-        patch("wedge_cli.commands.start.ensure_certificate_pair_exists"),
+        patch("local_console.commands.start.is_localhost", return_value=True),
+        patch("local_console.commands.start.ensure_certificate_pair_exists"),
     ):
         agent_config.tls = tls_config
 
@@ -204,11 +204,11 @@ def test_start_agent_with_tls(
 @given(generate_valid_ip(), generate_valid_port_number())
 def test_start_agent_remote(valid_ip: str, port: int) -> None:
     with (
-        patch("wedge_cli.commands.start.Listener") as mock_listener,
-        patch("wedge_cli.commands.start.run") as mock_run_agent,
-        patch("wedge_cli.commands.start.get_config") as mock_get_config,
-        patch("wedge_cli.commands.start.is_localhost", return_value=False),
-        patch("wedge_cli.commands.start.get_agent_environment") as mock_get_env,
+        patch("local_console.commands.start.Listener") as mock_listener,
+        patch("local_console.commands.start.run") as mock_run_agent,
+        patch("local_console.commands.start.get_config") as mock_get_config,
+        patch("local_console.commands.start.is_localhost", return_value=False),
+        patch("local_console.commands.start.get_agent_environment") as mock_get_env,
         patch("shutil.which", return_value=Commands.EVP_AGENT.value),
     ):
         start_agent(
@@ -235,13 +235,13 @@ def test_start_agent_libraries(
     libraries_list: list[str], agent_config: AgentConfiguration
 ) -> None:
     with (
-        patch("wedge_cli.commands.start.run") as mock_run_agent,
+        patch("local_console.commands.start.run") as mock_run_agent,
         patch(
-            "wedge_cli.commands.start.get_config", return_value=agent_config
+            "local_console.commands.start.get_config", return_value=agent_config
         ) as mock_get_config,
         patch("os.environ.copy", return_value=dict()),
         patch("shutil.which", return_value=Commands.EVP_AGENT.value),
-        patch("wedge_cli.commands.start.get_random_identifier", return_value="123"),
+        patch("local_console.commands.start.get_random_identifier", return_value="123"),
     ):
         rc = start_agent(
             connection_info=RemoteConnectionInfo(host=None, port=None),

@@ -3,13 +3,13 @@ from contextlib import contextmanager
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
-from wedge_cli.utils.logger import configure_logger
-from wedge_cli.utils.logger import LOG_FORMAT
+from local_console.utils.logger import configure_logger
+from local_console.utils.logger import LOG_FORMAT
 
 
 @contextmanager
 def mock_logging() -> Iterator[MagicMock]:
-    with patch("wedge_cli.utils.logger.logging") as mock_logging:
+    with patch("local_console.utils.logger.logging") as mock_logging:
         yield mock_logging
 
 

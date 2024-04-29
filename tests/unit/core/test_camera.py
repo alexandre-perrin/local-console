@@ -3,11 +3,11 @@ from unittest.mock import patch
 
 import hypothesis.strategies as st
 from hypothesis import given
-from wedge_cli.core.camera import Camera
-from wedge_cli.core.camera import get_qr_object
-from wedge_cli.core.camera import qr_string
-from wedge_cli.core.camera import StreamStatus
-from wedge_cli.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
+from local_console.core.camera import Camera
+from local_console.core.camera import get_qr_object
+from local_console.core.camera import qr_string
+from local_console.core.camera import StreamStatus
+from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 
 from tests.strategies.configs import generate_invalid_ip
 from tests.strategies.configs import generate_invalid_port_number
@@ -28,7 +28,9 @@ def test_get_qr_object(
     tls_enabled: bool,
     border: int,
 ) -> None:
-    with patch("wedge_cli.core.camera.qr_string", return_value="") as mock_qr_string:
+    with patch(
+        "local_console.core.camera.qr_string", return_value=""
+    ) as mock_qr_string:
         qr_code = get_qr_object(
             mqtt_host=ip,
             mqtt_port=port,
@@ -66,7 +68,9 @@ def test_get_qr_object_invalid(
     tls_enabled: bool,
     border: int,
 ) -> None:
-    with patch("wedge_cli.core.camera.qr_string", return_value="") as mock_qr_string:
+    with patch(
+        "local_console.core.camera.qr_string", return_value=""
+    ) as mock_qr_string:
         qr_code = get_qr_object(
             mqtt_host=ip,
             mqtt_port=port,

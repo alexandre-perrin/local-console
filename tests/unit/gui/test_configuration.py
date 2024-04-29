@@ -2,15 +2,19 @@ from pathlib import Path
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
-from wedge_cli.gui.controller.configuration_screen import ConfigurationScreenController
+from local_console.gui.controller.configuration_screen import (
+    ConfigurationScreenController,
+)
 
 
 def test_a(tmpdir):
     mock_model, mock_driver = MagicMock(), MagicMock()
     with (
-        patch("wedge_cli.gui.controller.configuration_screen.ConfigurationScreenView"),
         patch(
-            "wedge_cli.gui.controller.configuration_screen.FlatBuffers"
+            "local_console.gui.controller.configuration_screen.ConfigurationScreenView"
+        ),
+        patch(
+            "local_console.gui.controller.configuration_screen.FlatBuffers"
         ) as mock_flatbuffers,
     ):
         ctrl = ConfigurationScreenController(mock_model, mock_driver)

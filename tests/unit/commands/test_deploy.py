@@ -7,16 +7,16 @@ import hypothesis.strategies as st
 import pytest
 from hypothesis import given
 from hypothesis import settings
+from local_console.clients.agent import Agent
+from local_console.clients.agent import check_attributes_request
+from local_console.commands.deploy import app
+from local_console.core.camera import MQTTTopics
+from local_console.core.commands.deploy import get_empty_deployment
+from local_console.core.enums import Target
+from local_console.core.schemas.schemas import AgentConfiguration
+from local_console.core.schemas.schemas import DeploymentManifest
+from local_console.core.schemas.schemas import OnWireProtocol
 from typer.testing import CliRunner
-from wedge_cli.clients.agent import Agent
-from wedge_cli.clients.agent import check_attributes_request
-from wedge_cli.commands.deploy import app
-from wedge_cli.core.camera import MQTTTopics
-from wedge_cli.core.commands.deploy import get_empty_deployment
-from wedge_cli.core.enums import Target
-from wedge_cli.core.schemas.schemas import AgentConfiguration
-from wedge_cli.core.schemas.schemas import DeploymentManifest
-from wedge_cli.core.schemas.schemas import OnWireProtocol
 
 from tests.strategies.configs import generate_agent_config
 from tests.strategies.deployment import deployment_manifest_strategy
@@ -34,11 +34,13 @@ def test_get_empty_deployment():
 @given(generate_agent_config())
 def test_deploy_empty_command(agent_config: AgentConfiguration) -> None:
     with (
-        patch("wedge_cli.commands.deploy.Agent") as mock_agent_client,
-        patch("wedge_cli.commands.deploy.get_empty_deployment") as mock_get_deployment,
-        patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
-        patch("wedge_cli.commands.deploy.is_localhost", return_value=True),
-        patch("wedge_cli.commands.deploy.exec_deployment") as mock_exec_deploy,
+        patch("local_console.commands.deploy.Agent") as mock_agent_client,
+        patch(
+            "local_console.commands.deploy.get_empty_deployment"
+        ) as mock_get_deployment,
+        patch("local_console.commands.deploy.get_config", return_value=agent_config),
+        patch("local_console.commands.deploy.is_localhost", return_value=True),
+        patch("local_console.commands.deploy.exec_deployment") as mock_exec_deploy,
     ):
         result = runner.invoke(app, ["-e"])
         mock_agent_client.assert_called_once()
@@ -56,18 +58,18 @@ def test_deploy_command_target(
     agent_config: AgentConfiguration,
 ) -> None:
     with (
-        patch("wedge_cli.commands.deploy.Agent") as mock_agent_client,
-        patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
-        patch("wedge_cli.commands.deploy.is_localhost", return_value=True),
-        patch("wedge_cli.commands.deploy.exec_deployment") as mock_exec_deploy,
+        patch("local_console.commands.deploy.Agent") as mock_agent_client,
+        patch("local_console.commands.deploy.get_config", return_value=agent_config),
+        patch("local_console.commands.deploy.is_localhost", return_value=True),
+        patch("local_console.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
-            "wedge_cli.commands.deploy.update_deployment_manifest"
+            "local_console.commands.deploy.update_deployment_manifest"
         ) as mock_update_manifest,
         patch(
-            "wedge_cli.commands.deploy.make_unique_module_ids"
+            "local_console.commands.deploy.make_unique_module_ids"
         ) as mock_make_unique_ids,
         patch(
-            "wedge_cli.commands.deploy.get_deployment_schema",
+            "local_console.commands.deploy.get_deployment_schema",
             return_value=deployment_manifest,
         ) as mock_get_deployment,
         patch("pathlib.Path.is_dir") as mock_check_dir,
@@ -97,18 +99,18 @@ def test_deploy_command_signed(
     deployment_manifest: DeploymentManifest, agent_config: AgentConfiguration
 ) -> None:
     with (
-        patch("wedge_cli.commands.deploy.Agent") as mock_agent_client,
-        patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
-        patch("wedge_cli.commands.deploy.is_localhost", return_value=True),
-        patch("wedge_cli.commands.deploy.exec_deployment") as mock_exec_deploy,
+        patch("local_console.commands.deploy.Agent") as mock_agent_client,
+        patch("local_console.commands.deploy.get_config", return_value=agent_config),
+        patch("local_console.commands.deploy.is_localhost", return_value=True),
+        patch("local_console.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
-            "wedge_cli.commands.deploy.update_deployment_manifest"
+            "local_console.commands.deploy.update_deployment_manifest"
         ) as mock_update_manifest,
         patch(
-            "wedge_cli.commands.deploy.make_unique_module_ids"
+            "local_console.commands.deploy.make_unique_module_ids"
         ) as mock_make_unique_ids,
         patch(
-            "wedge_cli.commands.deploy.get_deployment_schema",
+            "local_console.commands.deploy.get_deployment_schema",
             return_value=deployment_manifest,
         ) as mock_get_deployment,
         patch("pathlib.Path.is_dir") as mock_check_dir,
@@ -140,18 +142,18 @@ def test_deploy_command_timeout(
     # TODO: improve timeout management
     timeout = 6
     with (
-        patch("wedge_cli.commands.deploy.Agent") as mock_agent_client,
-        patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
-        patch("wedge_cli.commands.deploy.is_localhost", return_value=True),
-        patch("wedge_cli.commands.deploy.exec_deployment") as mock_exec_deploy,
+        patch("local_console.commands.deploy.Agent") as mock_agent_client,
+        patch("local_console.commands.deploy.get_config", return_value=agent_config),
+        patch("local_console.commands.deploy.is_localhost", return_value=True),
+        patch("local_console.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
-            "wedge_cli.commands.deploy.update_deployment_manifest"
+            "local_console.commands.deploy.update_deployment_manifest"
         ) as mock_update_manifest,
         patch(
-            "wedge_cli.commands.deploy.make_unique_module_ids"
+            "local_console.commands.deploy.make_unique_module_ids"
         ) as mock_make_unique_ids,
         patch(
-            "wedge_cli.commands.deploy.get_deployment_schema",
+            "local_console.commands.deploy.get_deployment_schema",
             return_value=deployment_manifest,
         ) as mock_get_deployment,
         patch("pathlib.Path.is_dir") as mock_check_dir,
@@ -188,11 +190,11 @@ def test_deploy_manifest_no_bin(
     agent_config: AgentConfiguration,
 ):
     with (
-        patch("wedge_cli.commands.deploy.is_localhost", return_value=True),
-        patch("wedge_cli.commands.deploy.Agent") as mock_agent_client,
-        patch("wedge_cli.commands.deploy.get_config", return_value=agent_config),
+        patch("local_console.commands.deploy.is_localhost", return_value=True),
+        patch("local_console.commands.deploy.Agent") as mock_agent_client,
+        patch("local_console.commands.deploy.get_config", return_value=agent_config),
         patch(
-            "wedge_cli.commands.deploy.Path.is_dir", return_value=False
+            "local_console.commands.deploy.Path.is_dir", return_value=False
         ) as mock_is_dir,
     ):
         result = runner.invoke(
@@ -213,13 +215,13 @@ async def test_attributes_request_handling(
     onwire_schema: OnWireProtocol,
 ):
     with (
-        patch("wedge_cli.clients.agent.get_config", return_value=agent_config),
+        patch("local_console.clients.agent.get_config", return_value=agent_config),
         patch(
-            "wedge_cli.clients.agent.OnWireProtocol.from_iot_spec",
+            "local_console.clients.agent.OnWireProtocol.from_iot_spec",
             return_value=onwire_schema,
         ),
-        patch("wedge_cli.clients.agent.paho.Client"),
-        patch("wedge_cli.clients.agent.AsyncClient"),
+        patch("local_console.clients.agent.paho.Client"),
+        patch("local_console.clients.agent.AsyncClient"),
     ):
         request_topic = MQTTTopics.ATTRIBUTES_REQ.value.replace("+", str(mqtt_req_id))
 

@@ -3,12 +3,12 @@ from unittest.mock import patch
 
 import hypothesis.strategies as st
 from hypothesis import given
+from local_console.core.config import config_to_schema
+from local_console.core.config import get_default_config
+from local_console.gui.model.connection_screen import ConnectionScreenModel
+from local_console.gui.utils.observer import Observer
 from pytest import fixture
 from pytest import mark
-from wedge_cli.core.config import config_to_schema
-from wedge_cli.core.config import get_default_config
-from wedge_cli.gui.model.connection_screen import ConnectionScreenModel
-from wedge_cli.gui.utils.observer import Observer
 
 from tests.strategies.configs import generate_invalid_hostname_long
 from tests.strategies.configs import generate_invalid_ip
@@ -26,7 +26,7 @@ def mock_get_config():
 @fixture(autouse=True)
 def fixture_get_config():
     with patch(
-        "wedge_cli.gui.model.connection_screen.get_config",
+        "local_console.gui.model.connection_screen.get_config",
         mock_get_config,
     ) as _fixture:
         yield _fixture

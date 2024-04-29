@@ -49,11 +49,11 @@ jobs:
       run: |
         curl -sL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-20/wasi-sdk-20.0-linux.tar.gz | tar zxvf - -C /tmp && \
             mv /tmp/wasi-sdk-20.0 /opt/wasi-sdk
-    - name: Install wedge-cli
+    - name: Install local-console
       run: |
         python3 -m venv .venv
         . .venv/bin/activate
-        pip install -e wedge-cli/
+        pip install -e local-console/
         pip install -r tests/requirements.txt
     - name: Run Unit Test
       id: unit-test
@@ -121,7 +121,7 @@ jobs:
     - name: Extract version
       id: tag
       run: |
-        package_version=$(awk -F' = ' '/^version/ {print $2}' wedge-cli/setup.cfg | tr -d "'")
+        package_version=$(awk -F' = ' '/^version/ {print $2}' local-console/setup.cfg | tr -d "'")
         echo "string=v$package_version" >> "$GITHUB_OUTPUT"
     - name: Check
       uses: mukunku/tag-exists-action@v1.6.0
@@ -149,11 +149,11 @@ jobs:
     - name: Build wheel
       run: |
         python3 -m pip install build
-        python3 -m build wedge-cli/ --wheel
+        python3 -m build local-console/ --wheel
     - name: Upload to AZ
       uses: bacongobbler/azure-blob-storage-upload@main
       with:
-        source_dir: wedge-cli/dist
+        source_dir: local-console/dist
         container_name: main
         connection_string: ${{ secrets.CEDATA_CONNECTION_STRING }}
         extra_args: '--pattern *.whl'
@@ -170,4 +170,4 @@ jobs:
         generate_release_notes: true
         files: |
           local-console-setup.exe
-          wedge-cli/dist/*.whl
+          local-console/dist/*.whl

@@ -3,18 +3,18 @@ from socket import inet_ntoa
 from struct import pack
 
 from hypothesis import strategies as st
-from wedge_cli.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
-from wedge_cli.core.schemas.edge_cloud_if_v1 import Hardware
-from wedge_cli.core.schemas.edge_cloud_if_v1 import OTA
-from wedge_cli.core.schemas.edge_cloud_if_v1 import Permission
-from wedge_cli.core.schemas.edge_cloud_if_v1 import Status
-from wedge_cli.core.schemas.edge_cloud_if_v1 import Version
-from wedge_cli.core.schemas.schemas import AgentConfiguration
-from wedge_cli.core.schemas.schemas import EVPParams
-from wedge_cli.core.schemas.schemas import IPAddress
-from wedge_cli.core.schemas.schemas import MQTTParams
-from wedge_cli.core.schemas.schemas import TLSConfiguration
-from wedge_cli.core.schemas.schemas import WebserverParams
+from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
+from local_console.core.schemas.edge_cloud_if_v1 import Hardware
+from local_console.core.schemas.edge_cloud_if_v1 import OTA
+from local_console.core.schemas.edge_cloud_if_v1 import Permission
+from local_console.core.schemas.edge_cloud_if_v1 import Status
+from local_console.core.schemas.edge_cloud_if_v1 import Version
+from local_console.core.schemas.schemas import AgentConfiguration
+from local_console.core.schemas.schemas import EVPParams
+from local_console.core.schemas.schemas import IPAddress
+from local_console.core.schemas.schemas import MQTTParams
+from local_console.core.schemas.schemas import TLSConfiguration
+from local_console.core.schemas.schemas import WebserverParams
 
 
 @st.composite

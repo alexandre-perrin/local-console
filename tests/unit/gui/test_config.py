@@ -1,22 +1,22 @@
 from pathlib import Path
 from unittest.mock import patch
 
-import wedge_cli.gui.config as config
-from wedge_cli.gui.config import CONFIG_PATH
-from wedge_cli.gui.config import configure
-from wedge_cli.gui.config import resource_path
+import local_console.gui.config as config
+from local_console.gui.config import CONFIG_PATH
+from local_console.gui.config import configure
+from local_console.gui.config import resource_path
 
 
 def test_configure():
-    with patch("wedge_cli.gui.config.Config.read") as mock_read:
+    with patch("local_console.gui.config.Config.read") as mock_read:
         configure()
         mock_read.assert_called_once_with(CONFIG_PATH)
 
 
 def test_configure_file_no_exists():
     with (
-        patch("wedge_cli.gui.config.Path.is_file") as mock_is_file,
-        patch("wedge_cli.gui.config.Config.read") as mock_read,
+        patch("local_console.gui.config.Path.is_file") as mock_is_file,
+        patch("local_console.gui.config.Config.read") as mock_read,
     ):
         mock_is_file.return_value = False
         configure()

@@ -1,8 +1,6 @@
-# WEdge CLI
+# Local Console
 
-Command line experience for *WEdge Agent*.
-
-This tool simplifies the development of applications in a local environment by providing commands to build and interact with the agent to deploy and get the status.
+This program provides a CLI and a GUI which simplify offline usage of IMX500-equipped smart cameras, and development of applications to deploy on them.
 
 ## Getting Started
 
@@ -21,7 +19,7 @@ Make sure your system has installed:
 In order to build the agent, first clone the following repository
 
 ```sh
-git clone git@github.com:midokura/evp-device-agent.git
+git clone git@github.com:midokura/wedge-agent.git
 ```
 and update the wedge agent submodule in the repo.
 
@@ -34,7 +32,7 @@ you have successfully built the agent, the `build` folder will be created.
 Now, add the agent to the shell `$PATH`:
 
 ```sh
-export PATH=/path/to/evp-device-agent/build/:$PATH
+export PATH=/path/to/wedge-agent/build/:$PATH
 ```
 
 > [!WARNING]
@@ -105,7 +103,7 @@ This action is only necessary once (i.e. after installing the software).
 ### Installation
 
 ```sh
-pip install wedge-cli/
+pip install local-console/
 ```
 
 ## Usage
@@ -113,7 +111,7 @@ pip install wedge-cli/
 For a comprehensive list of commands and their usage, check:
 
 ```sh
-wedge-cli -h
+local-console -h
 ```
 
 ### Example: Create an application and deploy
@@ -123,19 +121,19 @@ In this section, we explain how to deploy the sample application from [source-si
 1. Execute agent
 
 ```sh
-wedge-cli start
+local-console start
 ```
 
 2. Build an application
 
 ```sh
-wedge-cli build
+local-console build
 ```
 
 3. Deploy the application
 
 ```sh
-wedge-cli --verbose deploy
+local-console --verbose deploy
 ```
 
 it will show the following logs in between the topics received (this can be avoided by removing the `--verbose` option)
@@ -155,7 +153,7 @@ The application will be deployed. Note that the final module identifiers to be u
 
 To retrieve the deployment status, use the following command:
 ```sh
-wedge-cli get deployment
+local-console get deployment
 ```
 This command will display information similar to:
 ```
@@ -197,7 +195,7 @@ This command will display information similar to:
 
 If you're interested in telemetry data, you can retrieve it using the following command:
 ```sh
-wedge-cli get telemetry
+local-console get telemetry
 ```
 Example below:
 ```
@@ -215,12 +213,12 @@ If you have to configure parameters for the Wedge agent, the MQTT broker or the 
 download the modules you can use
 
 ```sh
-wedge-cli config set <section> <option> <value>
+local-console config set <section> <option> <value>
 ```
 and you can consult the values by using
 
 ```sh
-wedge-cli config get <section> <option>
+local-console config get <section> <option>
 ```
 
 ##### Optional parameters
@@ -228,7 +226,7 @@ wedge-cli config get <section> <option>
 Some parameters are nullable, such as `device_id` in the `mqtt` section. If you need to set such a parameter back to null (i.e. clear the parameter), you may use the `unset` action as follows:
 
 ```sh
-wedge-cli config unset <section> <option>
+local-console config unset <section> <option>
 ```
 
 Nullable parameters will show up in the output of `config get` as assigned with `= None`
@@ -238,8 +236,8 @@ Nullable parameters will show up in the output of `config get` as assigned with 
 The CLI supports connecting to the broker (and issuing a client certificate for the device) when the paths to a CA certificate and its private key are registered, by doing:
 
 ```sh
-wedge-cli config set tls ca_certificate path/to/ca/certificate_file
-wedge-cli config set tls ca_key path/to/ca/private_key_file
+local-console config set tls ca_certificate path/to/ca/certificate_file
+local-console config set tls ca_key path/to/ca/private_key_file
 ```
 
 > [!TIP]
@@ -253,7 +251,7 @@ wedge-cli config set tls ca_key path/to/ca/private_key_file
 The CLI includes a graphical interface that you may start with
 
 ```sh
-wedge-cli gui
+local-console gui
 ```
 
 On start up, it spawns a MQTT broker instance listening on the configured port. Then a camera can connect to this broker, so that the GUI can provide access to camera actions such as image streaming.
@@ -271,7 +269,7 @@ The GUI supports running on Linux and Windows.
 The CLI can generate a QR code for camera onboarding, so that the camera can connect to its broker:
 
 ```sh
-wedge-cli qr
+local-console qr
 ```
 
 By default, it will use the settings of the CLI. If the MQTT host is set to localhost, it will produce the QR code with the IP address of the externally-accessible interface to the local machine. For other settings, try the `--help` flag.

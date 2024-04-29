@@ -4,7 +4,7 @@ from unittest.mock import Mock
 from unittest.mock import patch
 
 from hypothesis import given
-from wedge_cli.utils.flatbuffers import FlatBuffers
+from local_console.utils.flatbuffers import FlatBuffers
 
 from tests.strategies.configs import generate_text
 
@@ -12,7 +12,7 @@ fb = FlatBuffers()
 
 
 def test_flatc_conform():
-    with patch("wedge_cli.utils.flatbuffers.subprocess") as mock_subprocess:
+    with patch("local_console.utils.flatbuffers.subprocess") as mock_subprocess:
         path = Mock()
         assert (True, "Success!") == fb.conform_flatbuffer_schema(path)
         mock_subprocess.check_output.assert_called_once_with(
@@ -23,7 +23,7 @@ def test_flatc_conform():
 @given(generate_text())
 def test_flatc_conform_called_process_error(output: str):
     with patch(
-        "wedge_cli.utils.flatbuffers.subprocess.check_output",
+        "local_console.utils.flatbuffers.subprocess.check_output",
         side_effect=subprocess.CalledProcessError(
             1, Mock(), output=output.encode("utf-8")
         ),
@@ -36,7 +36,7 @@ def test_flatc_conform_called_process_error(output: str):
 
 def test_flatc_conform_file_not_found_error():
     with patch(
-        "wedge_cli.utils.flatbuffers.subprocess.check_output",
+        "local_console.utils.flatbuffers.subprocess.check_output",
         side_effect=FileNotFoundError,
     ):
         path = Mock()
@@ -63,7 +63,7 @@ def test_flatbuffer_binary_to_json(tmp_path):
             f,
         )
     with patch(
-        "wedge_cli.utils.flatbuffers.subprocess.call",
+        "local_console.utils.flatbuffers.subprocess.call",
     ) as mock_call:
         assert fb.flatbuffer_binary_to_json(
             tmp_path / "myschema", path_txt, "myresult", tmp_path

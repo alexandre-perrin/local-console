@@ -13,7 +13,7 @@ Make sure that you have the agent running and follow the next steps:
 Move to the [source-sink sample directory](../../samples/source-sink) path and build the application by running
 
 ```sh
-wedge-cli build
+local-console build
 ```
 
 2. Deploy the application
@@ -21,14 +21,14 @@ wedge-cli build
 Once the applicattion is built deploy it to the agent by running
 
 ```sh
-wedge-cli --verbose deploy
+local-console --verbose deploy
 ```
 
 
 3. Retrieve the telemetry data sent by the sink by using the following command
 
 ```sh
-wedge-cli get telemetry
+local-console get telemetry
 ```
 
 and the report will look like this,
@@ -36,5 +36,3 @@ and the report will look like this,
 ```
 {'sink_instance/my-topic': {'date': 'Mon Oct  2 13:55:40 2023', 'my-key': 'my-value'}}
 ```
-
-

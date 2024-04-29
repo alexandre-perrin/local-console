@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 import trio
-from wedge_cli.utils.timing import TimeoutBehavior
+from local_console.utils.timing import TimeoutBehavior
 
 
 @pytest.mark.trio
