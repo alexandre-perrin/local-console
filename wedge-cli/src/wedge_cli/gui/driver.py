@@ -28,6 +28,7 @@ from wedge_cli.utils.flatbuffers import FlatBuffers
 from wedge_cli.utils.fswatch import StorageSizeWatcher
 from wedge_cli.utils.local_network import LOCAL_IP
 from wedge_cli.utils.timing import TimeoutBehavior
+from wedge_cli.utils.tracking import TrackingVariable
 
 logger = logging.getLogger(__name__)
 
@@ -38,12 +39,12 @@ class Driver:
 
         self.mqtt_client = Agent()
         self.upload_port = 0
+        self.temporary_base: Optional[Path] = None
         self.temporary_image_directory: Optional[Path] = None
         self.temporary_inference_directory: Optional[Path] = None
-        self.image_dir_watcher = StorageSizeWatcher()
-        self.image_directory_config: Optional[Path] = None
-        self.inference_directory_config: Optional[Path] = None
-        self.inference_dir_watcher = StorageSizeWatcher()
+        self.image_directory_config: TrackingVariable[Path] = TrackingVariable()
+        self.inference_directory_config: TrackingVariable[Path] = TrackingVariable()
+        self.total_dir_watcher = StorageSizeWatcher()
         self.flatbuffers_schema: Optional[Path] = None
         self.config = get_config()
 
@@ -52,7 +53,8 @@ class Driver:
 
         # This takes care of ensuring the device reports its state
         # with bounded periodicity (expect to receive a message within 6 seconds)
-        self.periodic_reports = TimeoutBehavior(6, self.set_periodic_reports)
+        if not self.evp1_mode:
+            self.periodic_reports = TimeoutBehavior(6, self.set_periodic_reports)
 
         # This timeout behavior takes care of updating the connectivity
         # status in case there are no incoming messages from the camera
@@ -67,6 +69,10 @@ class Driver:
         }
 
         self.bridge = SyncAsyncBridge()
+
+    @property
+    def evp1_mode(self) -> bool:
+        return self.config.evp.iot_platform.lower() == "evp1"
 
     @trio.lowlevel.disable_ki_protection
     async def main(self) -> None:
@@ -102,8 +108,9 @@ class Driver:
             self.start_flags["mqtt"].set()
 
             assert self.mqtt_client.client  # appease mypy
-            self.periodic_reports.spawn_in(nursery)
             self.connection_status.spawn_in(nursery)
+            if not self.evp1_mode:
+                self.periodic_reports.spawn_in(nursery)
             async with self.mqtt_client.client.messages() as mgen:
                 async for msg in mgen:
                     attributes_available = await check_attributes_request(
@@ -117,7 +124,7 @@ class Driver:
                     self.update_camera_status()
                     await self.process_factory_reset()
 
-                    if self.camera_state.is_ready:
+                    if not self.evp1_mode and self.camera_state.is_ready:
                         self.periodic_reports.tap()
 
                     self.connection_status.tap()
@@ -174,6 +181,7 @@ class Driver:
             assert image_serve.port
             self.upload_port = image_serve.port
             logger.info(f"Webserver listening on port {self.upload_port}")
+            self.temporary_base = Path(tempdir)
             self.temporary_image_directory = Path(tempdir) / "images"
             self.temporary_inference_directory = Path(tempdir) / "inferences"
             self.temporary_image_directory.mkdir(exist_ok=True)
@@ -204,17 +212,23 @@ class Driver:
 
     @run_on_ui_thread
     def set_image_directory(self, new_dir: Path) -> None:
-        self.image_directory_config = new_dir
-        self.gui.image_dir_path = str(self.image_directory_config)
+        self.image_directory_config.value = new_dir
+        self.gui.image_dir_path = str(self.image_directory_config.value)
         self.check_and_create_directory(new_dir)
-        self.image_dir_watcher.set_path(self.image_directory_config)
+        if self.image_directory_config.previous:
+            self.total_dir_watcher.unwatch_path(self.image_directory_config.previous)
+        self.total_dir_watcher.set_path(self.image_directory_config.value)
 
     @run_on_ui_thread
     def set_inference_directory(self, new_dir: Path) -> None:
-        self.inference_directory_config = new_dir
-        self.gui.inference_dir_path = str(self.inference_directory_config)
+        self.inference_directory_config.value = new_dir
+        self.gui.inference_dir_path = str(self.inference_directory_config.value)
         self.check_and_create_directory(new_dir)
-        self.inference_dir_watcher.set_path(self.inference_directory_config)
+        if self.inference_directory_config.previous:
+            self.total_dir_watcher.unwatch_path(
+                self.inference_directory_config.previous
+            )
+        self.total_dir_watcher.set_path(self.inference_directory_config.value)
 
     @run_on_ui_thread
     def update_images_display(self, incoming_file: Path) -> None:
@@ -235,17 +249,15 @@ class Driver:
     def update_inference_data_flatbuffers(self, incoming_file: Path) -> None:
         if self.flatbuffers_schema and incoming_file and incoming_file.exists():
             output_name = "SmartCamera"
-            assert self.temporary_inference_directory  # appease mypy
+            assert self.temporary_base  # appease mypy
             if self.flatbuffers.flatbuffer_binary_to_json(
                 self.flatbuffers_schema,
                 incoming_file,
                 output_name,
-                self.temporary_inference_directory,
+                self.temporary_base,
             ):
                 try:
-                    with open(
-                        self.temporary_inference_directory / f"{output_name}.json"
-                    ) as file:
+                    with open(self.temporary_base / f"{output_name}.json") as file:
                         self.gui.views[
                             Screen.INFERENCE_SCREEN
                         ].ids.inference_field.text = file.read()
@@ -258,20 +270,22 @@ class Driver:
 
     def save_into_inferences_directory(self, incoming_file: Path) -> Path:
         final = incoming_file
-        assert self.inference_directory_config  # appease mypy
-        self.check_and_create_directory(self.inference_directory_config)
-        if incoming_file.parent != self.inference_directory_config:
-            final = Path(shutil.move(incoming_file, self.inference_directory_config))
-        self.inference_dir_watcher.incoming(final)
+        assert self.inference_directory_config.value  # appease mypy
+        self.check_and_create_directory(self.inference_directory_config.value)
+        if incoming_file.parent != self.inference_directory_config.value:
+            final = Path(
+                shutil.move(incoming_file, self.inference_directory_config.value)
+            )
+        self.total_dir_watcher.incoming(final)
         return final
 
     def save_into_image_directory(self, incoming_file: Path) -> Path:
         final = incoming_file
-        assert self.image_directory_config  # appease mypy
-        self.check_and_create_directory(self.image_directory_config)
-        if incoming_file.parent != self.image_directory_config:
-            final = Path(shutil.move(incoming_file, self.image_directory_config))
-        self.image_dir_watcher.incoming(final)
+        assert self.image_directory_config.value  # appease mypy
+        self.check_and_create_directory(self.image_directory_config.value)
+        if incoming_file.parent != self.image_directory_config.value:
+            final = Path(shutil.move(incoming_file, self.image_directory_config.value))
+        self.total_dir_watcher.incoming(final)
         return final
 
     async def streaming_rpc_start(self, roi: Optional[UnitROI] = None) -> None:
@@ -304,6 +318,7 @@ class Driver:
         await self.mqtt_client.rpc(instance_id, method, "{}")
 
     async def set_periodic_reports(self) -> None:
+        assert not self.evp1_mode
         # Configure the device to emit status reports twice
         # as often as the timeout expiration, to avoid that
         # random deviations in reporting periodicity make the timer

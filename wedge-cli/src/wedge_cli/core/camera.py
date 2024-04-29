@@ -128,7 +128,7 @@ class StreamStatus(enum.Enum):
 
     @classmethod
     def from_string(cls, value: str) -> "StreamStatus":
-        if value == "Standby":
+        if value in ("Standby", "Error"):
             return cls.Inactive
         elif value == "Streaming":
             return cls.Active

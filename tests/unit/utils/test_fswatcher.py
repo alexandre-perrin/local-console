@@ -1,5 +1,6 @@
 import random
 from collections import OrderedDict
+from itertools import cycle
 from pathlib import Path
 from unittest.mock import Mock
 from unittest.mock import patch
@@ -26,11 +27,16 @@ def dir_layout(tmpdir):
 class walk_entry_mock:
     def __init__(self) -> None:
         self.age = 0
+        self.cache: dict[Path, int] = {}
 
     def __call__(self, path: Path) -> tuple[tuple[int, Path], int]:
         size = 1
-        age = self.age
-        self.age += 1
+        if path in self.cache:
+            age = self.cache[path]
+        else:
+            age = self.age
+            self.cache[path] = age
+            self.age += 1
         return (age, path), size
 
 
@@ -169,3 +175,84 @@ def test_age_bookkeeping():
 
     popped_first, _ = odd.popitem(last=False)
     assert first_key == popped_first
+
+
+@pytest.fixture
+def multi_dir_layout(tmpdir):
+    bases = [tmpdir.mkdir("sub_X"), tmpdir.mkdir("sub_Y")]
+    entries = [
+        bases[0].join("file0"),
+        bases[0].mkdir("internal").join("file1"),
+        bases[1].join("fileA"),
+        bases[1].join("fileB"),
+    ]
+    # Make all entries, files of size 1
+    for e in entries:
+        e.write_binary(b"0")
+
+    return [Path(b) for b in bases], len(entries)
+
+
+def create_new_agename(root: Path, age_name: int) -> Path:
+    new_file = root / f"age_{age_name}"
+    new_file.write_bytes(b"0")
+    return new_file
+
+
+def test_regular_sequence_multiple_dirs(multi_dir_layout):
+    dir_bases, initial_size = multi_dir_layout
+    expected_curr_size = initial_size
+    walk_entry_fn = walk_entry_mock()
+    with patch("wedge_cli.utils.fswatch.walk_entry", walk_entry_fn):
+        w = StorageSizeWatcher(check_frequency=10)
+        assert w.state == StorageSizeWatcher.State.Start
+
+        w.set_path(dir_bases[0])
+        assert w.state == StorageSizeWatcher.State.Accumulating
+        assert w.storage_usage < expected_curr_size
+        oldest_age, _ = w.get_oldest()
+        assert oldest_age == 0
+
+        w.set_path(dir_bases[1])
+        assert w.storage_usage == expected_curr_size
+        assert w.state == StorageSizeWatcher.State.Accumulating
+        oldest_age, _ = w.get_oldest()
+        assert oldest_age == 0
+
+        # Test that adding a new file while no limit has been set yet,
+        # does not invoke pruning, so the previous oldest file remains.
+        w.incoming(create_new_agename(dir_bases[0], walk_entry_fn.age))
+        expected_curr_size += 1
+        assert w.storage_usage == expected_curr_size
+        assert w.state == StorageSizeWatcher.State.Accumulating
+        oldest_age, _ = w.get_oldest()
+        assert oldest_age == 0
+
+        # Test that setting the size limit, invokes pruning, making
+        # the oldest file, a more recent one.
+        st_limit = 4
+        w.set_storage_limit(st_limit)
+        expected_curr_size = st_limit
+        assert w.storage_usage == expected_curr_size
+        oldest_age, _ = w.get_oldest()
+        assert oldest_age == 1
+
+        # Test creating and registering new files in lockstep
+        num_new_files = random.randint(5, 20)
+        for _, base in zip(range(num_new_files), cycle(dir_bases)):
+            w.incoming(create_new_agename(base, walk_entry_fn.age))
+            assert w._consistency_check()
+            assert w.storage_usage <= st_limit
+
+        files_created_up_to_now = initial_size + 1 + num_new_files
+        expected_newest_age = files_created_up_to_now - 1
+        expected_oldest_age = expected_newest_age - st_limit + 1
+        oldest_age, _ = w.get_oldest()
+        assert oldest_age == expected_oldest_age
+
+        # Test setting a limit larger than current usage
+        st_limit = 7
+        w.set_storage_limit(st_limit)
+        # expected_curr_size is unchanged as the limit
+        # is greater than the current size.
+        assert w.storage_usage == expected_curr_size

@@ -98,15 +98,15 @@ class FlatBuffers:
                     "--defaults-json",
                     "--strict-json",
                     "-o",
-                    out_dir,
+                    str(out_dir),
                     "--raw-binary",
-                    fbs,
+                    str(fbs),
                     "--",
-                    out_path,
+                    str(out_path),
                 ]
             )
 
         except Exception as e:
-            logger.error(f"Unexpected format: {e}")
+            logger.error("Unexpected error decoding flatbuffers:", exc_info=e)
             return False
         return True

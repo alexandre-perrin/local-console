@@ -37,7 +37,7 @@ class StreamingScreenController:
     def set_roi(self, roi: UnitROI) -> None:
         self.model.image_roi = roi
 
-        camera_status = self.driver.camera_state.sensor_state
+        camera_status = self.model.stream_status
         if camera_status == StreamStatus.Transitioning:
             return
 
