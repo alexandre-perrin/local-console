@@ -1,6 +1,6 @@
 from local_console.gui.driver import Driver
 from local_console.gui.model.base_model import BaseScreenModel
-from local_console.gui.view.HomeScreen.home_screen import HomeScreenView
+from local_console.gui.view.home_screen.home_screen import HomeScreenView
 
 
 class HomeScreenController:
