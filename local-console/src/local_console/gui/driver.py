@@ -11,11 +11,12 @@ import trio
 from kivymd.app import MDApp
 from local_console.clients.agent import Agent
 from local_console.clients.agent import check_attributes_request
-from local_console.core.camera import Camera, StreamStatus
+from local_console.core.camera import Camera
 from local_console.core.camera import MQTTTopics
 from local_console.core.config import get_config
 from local_console.core.schemas.edge_cloud_if_v1 import Permission
 from local_console.core.schemas.edge_cloud_if_v1 import SetFactoryReset
+from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
 from local_console.core.schemas.schemas import DesiredDeviceConfig
 from local_console.gui.utils.axis_mapping import pixel_roi_from_normals
 from local_console.gui.utils.axis_mapping import UnitROI
@@ -302,21 +303,21 @@ class Driver:
         assert self.temporary_inference_directory  # appease mypy
 
         (h_offset, v_offset), (h_size, v_size) = pixel_roi_from_normals(roi)
-        params = {
-            "Mode": 1,
-            "UploadMethod": "HttpStorage",
-            "StorageName": upload_url,
-            "StorageSubDirectoryPath": self.temporary_image_directory.name,
-            "UploadMethodIR": "HttpStorage",
-            "StorageNameIR": upload_url,
-            "UploadInterval": 30,
-            "StorageSubDirectoryPathIR": self.temporary_inference_directory.name,
-            "CropHOffset": h_offset,
-            "CropVOffset": v_offset,
-            "CropHSize": h_size,
-            "CropVSize": v_size,
-        }
-        await self.mqtt_client.rpc(instance_id, method, json.dumps(params))
+
+        await self.mqtt_client.rpc(
+            instance_id,
+            method,
+            StartUploadInferenceData(
+                StorageName=upload_url,
+                StorageSubDirectoryPath=self.temporary_image_directory.name,
+                StorageNameIR=upload_url,
+                StorageSubDirectoryPathIR=self.temporary_inference_directory.name,
+                CropHOffset=h_offset,
+                CropVOffset=v_offset,
+                CropHSize=h_size,
+                CropVSize=v_size,
+            ).model_dump_json(),
+        )
 
     async def streaming_rpc_stop(self) -> None:
         instance_id = "backdoor-EA_Main"

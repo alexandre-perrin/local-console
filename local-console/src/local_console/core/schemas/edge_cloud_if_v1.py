@@ -74,3 +74,18 @@ class DnnDelete(BaseModel):
 
 class SetFactoryReset(BaseModel):
     Permission: Permission
+
+
+class StartUploadInferenceData(BaseModel):
+    Mode: int = 1
+    UploadMethod: str = "HttpStorage"
+    StorageName: str
+    StorageSubDirectoryPath: str
+    UploadMethodIR: str = "HttpStorage"
+    StorageNameIR: str
+    UploadInterval: int = 30
+    StorageSubDirectoryPathIR: str
+    CropHOffset: int
+    CropVOffset: int
+    CropHSize: int
+    CropVSize: int
