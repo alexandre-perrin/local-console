@@ -67,12 +67,77 @@ jobs:
         retention-days: 21
         path: local_console-*-py3-*.whl
 
-  test:
-    name: Test (E2E for ${{ matrix.ows-version }} with${{ matrix.with-tls == false && 'out' || '' }} TLS${{ matrix.with-tls && ' & Unit' || '' }})
+  pre-commit:
+    name: Pre-commit
+    runs-on: [self-hosted, X64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Run Pre-commit
+        uses: pre-commit/action@v3.0.1
+
+  unit-tests:
+    name: Unit Tests
     runs-on: [self-hosted, X64]
     container: ubuntu:22.04
     timeout-minutes: 20
-    needs: [wheel]
+    needs: [pre-commit]
+    steps:
+    - name: Install system requirements
+      run: |
+        apt-get -y update && \
+        apt install -y curl gcc python3-dev make \
+                       software-properties-common git \
+                       xvfb libgl1-mesa-glx libxrender1 libglib2.0-0
+
+    - name: Setup Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      id: py
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Mock wasi-sdk
+      run: |
+        mkdir /opt/wasi-sdk
+        touch /opt/wasi-sdk/bin
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install local-console in editable mode
+      # This is required in order for coverage.py
+      # to be able to catch coverage data.
+      run: |
+        ${{ steps.py.outputs.python-path }} -m venv .venv
+        . .venv/bin/activate
+        pip install -e local-console/
+        pip install -r tests/requirements.txt
+
+    - name: Run Unit Test
+      id: unit-test
+      run: |
+        . .venv/bin/activate
+        xvfb-run coverage run -m pytest tests -o junit_family=xunit1 --junitxml=xunit-result.xml --hypothesis-seed=42
+        coverage xml
+
+    - name: SonarCloud Scan
+      uses: SonarSource/sonarcloud-github-action@v2.1.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  e2e-tests:
+    name: E2E Test for ${{ matrix.ows-version }} with${{ matrix.with-tls == false && 'out' || '' }} TLS
+    runs-on: [self-hosted, X64]
+    container: ubuntu:22.04
+    timeout-minutes: 20
+    needs: [wheel, pre-commit]
     strategy:
       fail-fast: true
       matrix:
@@ -86,10 +151,9 @@ jobs:
     - name: Install system requirements
       run: |
         apt-get -y update && \
-        apt install -y tree curl gcc python3-dev make cmake \
-                       software-properties-common git \
-                       mosquitto libnss-wrapper \
-                       xvfb libgl1-mesa-glx libxrender1 libglib2.0-0
+        apt install -y tree curl gcc python3-dev make \
+                       software-properties-common git cmake \
+                       mosquitto libnss-wrapper
 
     - name: Setup Python ${{ env.PYTHON_VERSION }}
       uses: actions/setup-python@v5
@@ -128,23 +192,6 @@ jobs:
         tree .venv/lib/python${{ env.PYTHON_VERSION }}/site-packages/local*console*
         echo "::endgroup::"
 
-    - name: Run Unit Test
-      id: unit-test
-      # The unit test suites test E2E independently of the environment,
-      # so we don't need to run them more than once.
-      if: ${{ matrix.with-tls }}
-      run: |
-        . .venv/bin/activate
-        xvfb-run coverage run -m pytest tests -o junit_family=xunit1 --junitxml=xunit-result.xml --hypothesis-seed=42
-        coverage xml
-
-    - name: SonarCloud Scan
-      if: ${{ matrix.with-tls }}
-      uses: SonarSource/sonarcloud-github-action@v2.1.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
     - name: Run E2E with${{ matrix.with-tls == false && 'out' || '' }} TLS (for ${{ matrix.ows-version }})
       id: e2e
       # It seems that mosquitto will not load a self-signed CA
@@ -156,21 +203,6 @@ jobs:
         chown -R testbot .
         . .venv/bin/activate
         runuser -u testbot -- python tests/e2e.py ${{ matrix.with-tls == true && '--with-tls' || '' }} -s ${{ matrix.ows-version }}
-
-  pre-commit:
-    name: Pre-commit
-    runs-on: [self-hosted, X64]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Run Pre-commit
-        uses: pre-commit/action@v3.0.1
 
   installer:
     name: Windows installer
@@ -202,7 +234,7 @@ jobs:
   publish:
     name: Publish and tag
     runs-on: [self-hosted, X64]
-    needs: [pre-commit, wheel, test, installer, verify]
+    needs: [pre-commit, wheel, unit-tests, e2e-tests, installer, verify]
     if: needs.verify.outputs.exists == 'false'
     steps:
     - name: Checkout
@@ -247,4 +279,4 @@ jobs:
         generate_release_notes: true
         files: |
           local-console-setup.exe
-          local-console/*.whl
+          local_console-*-py3-*.whl
