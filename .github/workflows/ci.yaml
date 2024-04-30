@@ -224,7 +224,7 @@ jobs:
     - name: Extract version
       id: tag
       run: |
-        echo "string=v$(cat VERSION)" >> "$GITHUB_OUTPUT"
+        echo "string=v$(cat local-console/VERSION)" >> "$GITHUB_OUTPUT"
     - name: Check
       uses: mukunku/tag-exists-action@v1.6.0
       id: check-tag
