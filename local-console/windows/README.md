@@ -46,10 +46,10 @@ Removing the Mosquitto service...
 [2024-04-02 09:35:25] Downloading installer for Python 3.11...
 [2024-04-02 09:36:11] Installing Python 3.11...
 [2024-04-02 09:36:55] Python 3.11 installation complete.
-[2024-04-02 09:36:55] Directory created successfully: C:\Users\User\AppData\Roaming\WedgeCLI
-Virtual environment will be created in C:\Users\User\AppData\Roaming\WedgeCLI\virtualenv
+[2024-04-02 09:36:55] Directory created successfully: C:\Users\User\AppData\Roaming\LocalConsole
+Virtual environment will be created in C:\Users\User\AppData\Roaming\LocalConsole\virtualenv
 Virtual environment created.
-Requirement already satisfied: pip in c:\users\user\appdata\roaming\wedgecli\virtualenv\lib\site-packages (24.0)
+Requirement already satisfied: pip in c:\users\user\appdata\roaming\localconsole\virtualenv\lib\site-packages (24.0)
 Processing z:\local-console
   Installing build dependencies ... done
   Getting requirements to build wheel ... done
@@ -59,10 +59,10 @@ Processing z:\local-console
 Successfully built local-console paho-mqtt kivymd
 Installing collected packages: types-retry...
 Successfully installed Kivy-2.3.0 ... local-console-1.7.0 ...
-[2024-04-02 09:38:47] Wedge CLI has been installed.
+[2024-04-02 09:38:47] Local Console has been installed.
 [2024-04-02 09:38:47] Virtual environment has been updated.
 [2024-04-02 09:38:50] Flatc Zipball downloaded.
-[2024-04-02 09:38:51] Flatc Executable unpacked into C:\Users\User\AppData\Roaming\WedgeCLI\virtualenv\Scripts
+[2024-04-02 09:38:51] Flatc Executable unpacked into C:\Users\User\AppData\Roaming\LocalConsole\virtualenv\Scripts
 Created desktop shortcut at: C:\Users\User\Desktop\Wedge GUI.lnk
 ```
 
