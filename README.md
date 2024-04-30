@@ -98,7 +98,7 @@ sudo systemctl stop mosquitto.service
 This action is only necessary once (i.e. after installing the software).
 
 > [!TIP]
-> If you configure the broker to listen on a port `XXXX` other than the default 1883, you can specify it in the WEdge CLI config by doing `wedge config set mqtt port XXXX`
+> If you configure the broker to listen on a port `XXXX` other than the default 1883, you can specify it in the CLI config by doing `local-console config set mqtt port XXXX`
 
 ### Installation
 
