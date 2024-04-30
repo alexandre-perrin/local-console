@@ -5,10 +5,10 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "Start gui",
+			"name": "GUI start",
 			"type": "debugpy",
 			"request": "launch",
-			"module": "wedge_cli",
+			"module": "local_console",
 			"args": [
 				"--verbose", "gui"
 			],
@@ -27,7 +27,7 @@
 			"name": "CLI start agent",
 			"type": "debugpy",
 			"request": "launch",
-			"module": "wedge_cli",
+			"module": "local_console",
 			"args": [
 				"--verbose", "start"
 			],
@@ -37,7 +37,7 @@
 			"name": "CLI logs",
 			"type": "debugpy",
 			"request": "launch",
-			"module": "wedge_cli",
+			"module": "local_console",
 			"args": [
 				"--verbose", "logs", "-t", "60", "node"
 			],
@@ -49,7 +49,7 @@
 			"name": "CLI build rpc-ex",
 			"type": "debugpy",
 			"request": "launch",
-			"module": "wedge_cli",
+			"module": "local_console",
 			"args": [
 				"--verbose", "build"
 			],
@@ -61,7 +61,7 @@
 			"name": "CLI deploy rpc-ex",
 			"type": "debugpy",
 			"request": "launch",
-			"module": "wedge_cli",
+			"module": "local_console",
 			"args": [
 				"--verbose",
 				"deploy"
@@ -74,7 +74,7 @@
 			"name": "CLI rpc to rpc-ex",
 			"type": "debugpy",
 			"request": "launch",
-			"module": "wedge_cli",
+			"module": "local_console",
 			"args": [
 				"--verbose",
 				"rpc", "node", "my-method", "{\\\"rgb\\\":\\\"000FF1\\\"}"
@@ -87,7 +87,7 @@
 			"name": "CLI logs node",
 			"type": "debugpy",
 			"request": "launch",
-			"module": "wedge_cli",
+			"module": "local_console",
 			"args": [
 				"--verbose",
 				"logs", "node",
@@ -100,7 +100,7 @@
 			"name": "CLI configure node",
 			"type": "debugpy",
 			"request": "launch",
-			"module": "wedge_cli",
+			"module": "local_console",
 			"args": [
 				"--verbose",
 				"config", "instance", "node", "test-topic", "some-payload"
@@ -113,7 +113,7 @@
 			"name": "CLI device config",
 			"type": "debugpy",
 			"request": "launch",
-			"module": "wedge_cli",
+			"module": "local_console",
 			"args": [
 				"--verbose",
 				"config", "device", "3", "1"
@@ -141,7 +141,7 @@
 			"name": "CLI broker",
 			"type": "debugpy",
 			"request": "launch",
-			"module": "wedge_cli",
+			"module": "local_console",
 			"args": [
 				"broker", "-v"
 			],
@@ -153,7 +153,7 @@
 			"name": "CLI GUI",
 			"type": "debugpy",
 			"request": "launch",
-			"module": "wedge_cli",
+			"module": "local_console",
 			"args": [
 				"--verbose", "gui"
 			],

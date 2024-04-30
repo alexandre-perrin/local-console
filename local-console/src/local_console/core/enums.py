@@ -1,14 +1,14 @@
+import os
+import platform
 from enum import Enum
 from pathlib import Path
 
 from local_console.utils.enums import StrEnum
 
-DEFAULT_HOME = "~/.config/wedge"
-
 
 class Config:
     def __init__(self) -> None:
-        self.home = DEFAULT_HOME  # type: ignore
+        self.home = get_default_home()
         self._config_file = "config.ini"
         self._https_ca_file = "mozilla-root-ca.pem"
         self._https_ca_url = "https://ccadb-public.secure.force.com/mozilla/IncludedRootsPEMTxt?TrustBitsInclude=Websites"
@@ -60,7 +60,26 @@ class Config:
 
     @home.setter
     def home(self, value: str) -> None:
-        self._home = Path(value).expanduser()
+        self._home = Path(value).expanduser().resolve()
+
+
+def get_default_home() -> Path:
+    app_subdir = Path("local-console")
+    os_name = platform.system()
+    if os_name == "Linux":
+        # https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
+        return Path.home() / ".config" / app_subdir
+    elif os_name == "Windows":
+        # https://learn.microsoft.com/en-us/dotnet/api/system.environment.specialfolder?view=netframework-4.8
+        app_data_root = os.getenv("APPDATA")
+        if not app_data_root:
+            raise OSError("Could not resolve this machine's %APPDATA% folder!")
+        return Path(app_data_root) / app_subdir
+    elif os_name == "Darwin":
+        # https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPFileSystem/Articles/WhereToPutFiles.html
+        return Path.home() / "Library/Application Support" / app_subdir
+    else:
+        raise OSError(f"Unsupported runtime: {os_name}")
 
 
 config_paths = Config()
