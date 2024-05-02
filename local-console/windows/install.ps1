@@ -1,6 +1,8 @@
 Param (
-	[String] $AppInstallPath
+	[String] $AppInstallPath,
+    [String] $WheelPath
 )
+$UseWheel = -not [string]::IsNullOrWhiteSpace($WheelPath)
 
 $RedirectLogPath = [System.Environment]::GetEnvironmentVariable("LOG_PS1", [System.EnvironmentVariableTarget]::Process)
 $DoRedirect = -not [string]::IsNullOrWhiteSpace($RedirectLogPath)
@@ -42,8 +44,11 @@ function Main
     $AppInstallArgs = "-InstallPath `"$AppInstallPath`""
     $AppRedirectArgs = ""
     $AppLogFile = "$RedirectLogPath-app"
+    if ($UseWheel) {
+        $AppRedirectArgs += " -WheelPath `"$WheelPath`""
+    }
     if ($DoRedirect) {
-        $AppRedirectArgs = "-TranscriptPath `"$AppLogFile`""
+        $AppRedirectArgs += " -TranscriptPath `"$AppLogFile`""
     }
     Run-Unprivileged "$scriptApp" "$AppInstallArgs $AppRedirectArgs"
     if ($DoRedirect) {

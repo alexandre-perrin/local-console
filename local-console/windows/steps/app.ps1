@@ -1,6 +1,7 @@
 Param (
 	[String] $InstallPath,
-	[String] $TranscriptPath
+	[String] $WheelPath,
+    [String] $TranscriptPath
 )
 $DoRedirect = -not [string]::IsNullOrWhiteSpace($TranscriptPath)
 
@@ -20,14 +21,14 @@ function Main
     Refresh-Path
     Create-AppDataDirectory -Path $InstallPath
     $virtualenvDir = Join-Path $InstallPath "virtualenv"
-    Create-PythonEnvWithExecutable -VirtualenvDir $virtualenvDir
+    Create-PythonEnvWithExecutable -VirtualenvDir $virtualenvDir -WheelPath $WheelPath
 
     $binPath = Join-Path $VirtualenvDir "Scripts"
     Get-FlatcBinary -ScriptsDir $binPath
     Create-DesktopShortcut -VirtualenvDir $virtualenvDir
 }
 
-function Create-PythonEnvWithExecutable([string]$VirtualenvDir)
+function Create-PythonEnvWithExecutable([string]$VirtualenvDir, [string]$WheelPath)
 {
     # Check if the directory already exists
     if (Test-Path -Path $VirtualenvDir -PathType Container) {
@@ -52,11 +53,17 @@ function Create-PythonEnvWithExecutable([string]$VirtualenvDir)
         Write-LogMessage "Virtual environment created."
     }
 
-    # Update pip and Install the repo within the virtual environment
-    $repoPath = Split-Path -parent $Script:MyInvocation.MyCommand.Path `
-              | Split-Path -parent `
-              | Split-Path -parent
-    & $PythonAtVenv -m pip install "$repoPath"
+    $UseWheel = -not [string]::IsNullOrWhiteSpace($WheelPath)
+    if ($UseWheel) {
+        & $PythonAtVenv -m pip install "$WheelPath"
+    }
+    else {
+        # Install from the repo sources
+        $repoPath = Split-Path -parent $Script:MyInvocation.MyCommand.Path `
+                  | Split-Path -parent `
+                  | Split-Path -parent
+        & $PythonAtVenv -m pip install "$repoPath"
+    }
 
     if ($LASTEXITCODE -eq 0) {
         Write-LogMessage "Local Console has been installed."

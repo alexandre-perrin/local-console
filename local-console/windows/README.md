@@ -1,8 +1,37 @@
-# Alternative management of the Local Console CLI+GUI for Windows
+# Windows install scripts
+
+## Preparation of the executable installer
+
+The executable installer now bundles the python wheel, which enhances reproducibility of installations across the various target environments. Hence, the wheel must be created as a prerequisite to compiling the installer with InnoSetup. Here are the steps, to be performed from the root of your clone of this git repository:
+
+1. Prepare a python 3.11 virtual environment
+
+```powershell
+python -m venv buildenv
+```
+
+2. Install the `build` tool in that environment
+
+```powershell
+.\buildenv\Scripts\python.exe -m pip install build
+```
+
+3. Compile the wheel
+
+```powershell
+.\buildenv\Scripts\python.exe -m build --wheel --outdir . local-console/
+```
+
+You should have a new file named like `local_console-*.whl` in your repository clone's root.
+
+
+4. Run InnoSetup, load `inno-setup.iss` onto it and build the installer. By default, it produces the installer under the `Output\` subfolder.
+
+## Alternative management of the Local Console & GUI for Windows
 
 Follow this procedure in case your Windows installation rejects the executable installer (e.g. Windows Defender throws a virus false-positive or unsigned installers are disallowed).
 
-## Installing
+### Installing
 
 Prior to starting, make sure you have either cloned the [local-console repository](https://github.com/midokura/local-console) or you have unpacked a source tarball into your machine. We shall refer to its location at `$local_console_repository_root`. Now, open a PowerShell window at that location and proceed with the steps below:
 
@@ -68,6 +97,6 @@ Created desktop shortcut at: C:\Users\User\Desktop\Wedge GUI.lnk
 
 3. The script created a shortcut icon at your Windows desktop. Please click on it, and if asked allow network connections through the Windows firewall. You are now ready to use the GUI.
 
-## Uninstalling
+### Uninstalling
 
 Just repeat the same procedure as above, but targeting the `uninstall.ps1` script instead of `install.ps1`. The script will remove the desktop shortcut and all files within your user's `%APPDATA%` folder. System dependencies such as Git, Mosquitto and Python 3.11 will remain installed. Should you want to remove them, you'll need to do so manually.

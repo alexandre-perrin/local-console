@@ -30,12 +30,14 @@ ArchitecturesInstallIn64BitMode=x64
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "local-console\*";  Excludes: "*.pyc,__pycache__\*,*.egg-info\*"; DestDir: "{tmp}\local-console"; Flags: recursesubdirs
+Source: "local-console\windows\*";  DestDir: "{tmp}\local-console"; Flags: recursesubdirs
+Source: "local_console*.whl";  DestDir: "{tmp}\local-console";
 
 [Run]
-Filename: "powershell.exe"; Parameters: "Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser; {tmp}\\local-console\\windows\\install.ps1 ""{app}"""; Flags: waituntilterminated;
+Filename: "powershell.exe"; Parameters: "Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser; {tmp}\\local-console\\install.ps1 -AppInstallPath ""{app}"" -WheelPath $((Get-ChildItem {tmp}\\local-console\\local_console*.whl).FullName)"; Flags: waituntilterminated;
 
 [UninstallDelete]
 Type: files; Name: "{userdesktop}\Wedge GUI.lnk"
 Type: files; Name: "{userdesktop}\Local Console.lnk"
 Type: filesandordirs; Name: "{app}"
+Type: filesandordirs; Name: "{userappdata}\local-console"
