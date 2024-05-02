@@ -30,6 +30,10 @@ function Main
         Remove-Item -Path $IconPath -Force
     }
 
+    Write-LogMessage "Removing configuration directory"
+    $ConfigPath = Join-Path $env:APPDATA -ChildPath "local-console"
+    Remove-Item -Path $ConfigPath -Recurse -Force
+
     Restore-DefaultExecutionPolicy
     Wait-UserInput
 }

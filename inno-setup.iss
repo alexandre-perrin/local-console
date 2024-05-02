@@ -40,3 +40,4 @@ Filename: "powershell.exe"; Parameters: "Set-ExecutionPolicy -ExecutionPolicy Re
 Type: files; Name: "{userdesktop}\Wedge GUI.lnk"
 Type: files; Name: "{userdesktop}\Local Console.lnk"
 Type: filesandordirs; Name: "{app}"
+Type: filesandordirs; Name: "{userappdata}\local-console"
