@@ -12,7 +12,7 @@ from local_console.core.schemas.schemas import Deployment
 from local_console.core.schemas.schemas import DeploymentManifest
 from local_console.gui.driver import Driver
 from local_console.gui.model.applications_screen import ApplicationsScreenModel
-from local_console.gui.view.ApplicationsScreen.applications_screen import (
+from local_console.gui.view.applications_screen.applications_screen import (
     ApplicationsScreenView,
 )
 from local_console.utils.local_network import get_my_ip_by_routing

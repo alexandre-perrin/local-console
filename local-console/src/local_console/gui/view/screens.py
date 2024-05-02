@@ -20,7 +20,7 @@ from local_console.gui.model.connection_screen import ConnectionScreenModel
 from local_console.gui.model.home_screen import HomeScreenModel
 from local_console.gui.model.inference_screen import InferenceScreenModel
 from local_console.gui.model.streaming_screen import StreamingScreenModel
-from local_console.gui.view.AIModelScreen.ai_model_screen import AIModelScreenView
+from local_console.gui.view.ai_model_screen.ai_model_screen import AIModelScreenView
 
 screen_dict = {
     "home screen": {

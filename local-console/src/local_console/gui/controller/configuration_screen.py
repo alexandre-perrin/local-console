@@ -2,7 +2,7 @@ from pathlib import Path
 
 from local_console.gui.driver import Driver
 from local_console.gui.model.configuration_screen import ConfigurationScreenModel
-from local_console.gui.view.ConfigurationScreen.configuration_screen import (
+from local_console.gui.view.configuration_screen.configuration_screen import (
     ConfigurationScreenView,
 )
 from local_console.utils.flatbuffers import FlatBuffers

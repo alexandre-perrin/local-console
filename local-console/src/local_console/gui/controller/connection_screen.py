@@ -3,7 +3,7 @@ from local_console.gui.driver import Driver
 from local_console.gui.model.connection_screen import ConnectionScreenModel
 from local_console.gui.utils.qr import Color
 from local_console.gui.utils.qr import qr_object_as_texture
-from local_console.gui.view.ConnectionScreen.connection_screen import (
+from local_console.gui.view.connection_screen.connection_screen import (
     ConnectionScreenView,
 )
 from local_console.utils.local_network import get_my_ip_by_routing
