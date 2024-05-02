@@ -3,13 +3,19 @@ import random
 import shutil
 import sys
 from pathlib import Path
+from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 from local_console.core.config import config_to_schema
 from local_console.core.config import get_default_config
 from local_console.core.schemas.schemas import AgentConfiguration
+
+from tests.mocks.mock_paho_mqtt import MockAsyncIterator
+from tests.mocks.mock_paho_mqtt import MockMQTTMessage
 
 # The following lines need to be in this order, in order to
 # be able to mock the run_on_ui_thread decorator with
@@ -18,7 +24,10 @@ patch(
     "local_console.gui.utils.sync_async.run_on_ui_thread", lambda fn: fn
 ).start()  # noqa
 # TODO: simplify patching
-importlib.reload(sys.modules["local_console.gui.driver"])
+try:
+    importlib.reload(sys.modules["local_console.gui.driver"])
+except Exception as e:
+    print(f"Error while reloading: {e}")
 from local_console.gui.driver import Driver  # noqa
 
 
@@ -174,3 +183,25 @@ def test_process_camera_upload_inferences_with_fb(tmpdir):
         mock_update_inference_data_flatbuffers.assert_called_once_with(
             mock_save_into_inferences_directory.return_value
         )
+
+
+@pytest.mark.trio
+@given(st.integers(min_value=0, max_value=65535))
+async def test_streaming_stop_required(req_id: int):
+    with (
+        patch("local_console.gui.driver.Agent") as mock_agent,
+        patch("local_console.gui.driver.spawn_broker"),
+        patch.object(
+            Driver, "streaming_rpc_stop", AsyncMock()
+        ) as mock_streaming_rpc_stop,
+    ):
+        mock_agent.return_value.publish = AsyncMock()
+        mock_agent.return_value.rpc = AsyncMock()
+
+        msg = MockMQTTMessage(f"v1/devices/me/attributes/request/{req_id}", b"{}")
+        mock_agent.return_value.client.messages.return_value.__aenter__.return_value = (
+            MockAsyncIterator([msg])
+        )
+        driver = Driver(MagicMock())
+        await driver.mqtt_setup()
+        mock_streaming_rpc_stop.assert_awaited_once()
