@@ -12,7 +12,10 @@ from hypothesis import given
 from hypothesis import strategies as st
 from local_console.core.config import config_to_schema
 from local_console.core.config import get_default_config
+from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
 from local_console.core.schemas.schemas import AgentConfiguration
+from local_console.gui.utils.axis_mapping import SENSOR_SIZE
+from local_console.utils.local_network import LOCAL_IP
 
 from tests.mocks.mock_paho_mqtt import MockAsyncIterator
 from tests.mocks.mock_paho_mqtt import MockMQTTMessage
@@ -205,3 +208,53 @@ async def test_streaming_stop_required(req_id: int):
         driver = Driver(MagicMock())
         await driver.mqtt_setup()
         mock_streaming_rpc_stop.assert_awaited_once()
+
+
+@pytest.mark.trio
+async def test_streaming_rpc_stop():
+    with (
+        patch("local_console.gui.driver.Agent") as mock_agent,
+        patch("local_console.gui.driver.spawn_broker"),
+    ):
+        mock_agent.return_value.publish = AsyncMock()
+        mock_rpc = AsyncMock()
+        mock_agent.return_value.rpc = mock_rpc
+
+        driver = Driver(MagicMock())
+        await driver.streaming_rpc_stop()
+        mock_rpc.assert_awaited_with(
+            "backdoor-EA_Main", "StopUploadInferenceData", "{}"
+        )
+
+
+@pytest.mark.trio
+async def test_streaming_rpc_start():
+    with (
+        patch("local_console.gui.driver.Agent") as mock_agent,
+        patch("local_console.gui.driver.spawn_broker"),
+    ):
+        mock_agent.return_value.publish = AsyncMock()
+        mock_rpc = AsyncMock()
+        mock_agent.return_value.rpc = mock_rpc
+
+        driver = Driver(MagicMock())
+        driver.temporary_image_directory = Path("my_image_path")
+        driver.temporary_inference_directory = Path("my_inference_path")
+        upload_url = f"http://{LOCAL_IP}:{driver.upload_port}"
+        h_size, v_size = SENSOR_SIZE
+
+        await driver.streaming_rpc_start()
+        mock_rpc.assert_awaited_with(
+            "backdoor-EA_Main",
+            "StartUploadInferenceData",
+            StartUploadInferenceData(
+                StorageName=upload_url,
+                StorageSubDirectoryPath=driver.temporary_image_directory.name,
+                StorageNameIR=upload_url,
+                StorageSubDirectoryPathIR=driver.temporary_inference_directory.name,
+                CropHOffset=0,
+                CropVOffset=0,
+                CropHSize=h_size,
+                CropVSize=v_size,
+            ).model_dump_json(),
+        )
