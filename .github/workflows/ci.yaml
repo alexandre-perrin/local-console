@@ -204,12 +204,37 @@ jobs:
         . .venv/bin/activate
         runuser -u testbot -- python tests/e2e.py ${{ matrix.with-tls == true && '--with-tls' || '' }} -s ${{ matrix.ows-version }}
 
-  installer:
-    name: Windows installer
-    # TODO use wheel in windows installer
-    needs: [pre-commit]
-    uses: ./.github/workflows/windows-installer.yaml
-    secrets: inherit
+  windows-installer:
+    name: Windows Installer
+    runs-on: windows-latest
+    needs: [pre-commit, wheel]
+    env:
+      ARTIFACT_NAME: windows-installer
+    outputs:
+      artifact: ${{ env.ARTIFACT_NAME }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get local-console wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.wheel.outputs.artifact }}
+          merge-multiple: true
+
+      - name: Build the Inno Setup Installer
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.4
+        with:
+          path: ./inno-setup.iss
+          options: /O+
+
+      - name: Upload the Inno Setup Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ./Output/local-console-setup.exe
 
   verify:
     name: Verify if already published
@@ -234,7 +259,7 @@ jobs:
   publish:
     name: Publish and tag
     runs-on: [self-hosted, X64]
-    needs: [pre-commit, wheel, unit-tests, e2e-tests, installer, verify]
+    needs: [pre-commit, wheel, unit-tests, e2e-tests, windows-installer, verify]
     if: needs.verify.outputs.exists == 'false'
     steps:
     - name: Checkout
@@ -269,7 +294,7 @@ jobs:
     - name: Get Windows Installer
       uses: actions/download-artifact@v4
       with:
-        name: ${{ needs.installer.outputs.artifact }}
+        name: ${{ needs.windows-installer.outputs.artifact }}
         merge-multiple: true
 
     - uses: softprops/action-gh-release@v2
