@@ -204,6 +204,15 @@ jobs:
         . .venv/bin/activate
         runuser -u testbot -- python tests/e2e.py ${{ matrix.with-tls == true && '--with-tls' || '' }} -s ${{ matrix.ows-version }}
 
+  system-tests:
+    name: Run System Tests
+    needs: [wheel, pre-commit]
+    uses: ./.github/workflows/execute-system-tests.yaml
+    secrets: inherit
+    with:
+      lc-run-id: ${{ github.run_id }}
+      lc-wheel-artifact: ${{ needs.wheel.outputs.artifact }}
+
   windows-installer:
     name: Windows Installer
     runs-on: windows-latest
@@ -259,7 +268,14 @@ jobs:
   publish:
     name: Publish and tag
     runs-on: [self-hosted, X64]
-    needs: [pre-commit, wheel, unit-tests, e2e-tests, windows-installer, verify]
+    needs:
+    - verify
+    - pre-commit
+    - wheel
+    - unit-tests
+    - e2e-tests
+    - system-tests
+    - windows-installer
     if: needs.verify.outputs.exists == 'false'
     steps:
     - name: Checkout

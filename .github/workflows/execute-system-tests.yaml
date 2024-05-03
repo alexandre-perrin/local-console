@@ -1,0 +1,151 @@
+---
+name: Execute System Tests
+
+on:
+  workflow_call:
+    inputs:
+      lc-run-id:
+        required: true
+        type: string
+        description: |
+          Workflow run id from the build python wheel job,
+          used for downloading the compiled wheel artifact
+      lc-wheel-artifact:
+        required: false
+        type: string
+        default: "python-wheel"
+        description: |
+          Name of the wheel artifact compiled by the build python wheel job
+      v17ref:
+        required: false
+        type: string
+        default: hiiragi
+        description: Branch reference for CamFW v1.7
+      v15ref:
+        required: false
+        type: string
+        default: t3p_v1x
+        description: Branch reference for CamFW v1.5
+
+jobs:
+
+  build-v1x:
+    name: Build Type3 Camera Firmware (v1x)
+    #runs-on: gdo-shr-runner-cam-allEnv-04
+    runs-on: [self-hosted, amd64, stable]
+    #container: ubuntu:22.04
+    timeout-minutes: 25
+    env:
+      ARTIFACT_NAME: firmware-v1x
+    outputs:
+      artifact: ${{ env.ARTIFACT_NAME }}
+    steps:
+    - name: Git | Checkout
+      uses: actions/checkout@v4
+      with:
+        repository: SonySemiconductorSolutions/EdgeAIPF.smartcamera.type3.mirror
+        ref: ${{ inputs.v15ref || 't3p_v1x' }}
+        token: ${{ secrets.TEMPORARY_PAT_TOKEN }}
+
+    - name: Git | Update Submodules
+      run: |
+        sed -i '/RUN kconfig-tweak --disable CONFIG_DEV_CONSOLE/s/^/#/g' Dockerfile
+        echo "${{ secrets.TEMPORARY_PAT_USER }}" > cred.txt
+        echo "${{ secrets.TEMPORARY_PAT_TOKEN }}" >> cred.txt
+        sed -i 's@checkoutTree "nuttx" "https://${login}www.tool.sony.biz/bitbucket/scm/imx500/incubator-nuttx.git" ${REV_NUTTX}@checkoutTree "nuttx" "https://${login}github.com/SonySemiconductorSolutions/CameraBase_incubator-nuttx.git" ${REV_NUTTX}@g' setupenv.sh
+        sed -i 's@checkoutTree "apps" "https://${login}www.tool.sony.biz/bitbucket/scm/imx500/incubator-nuttx-apps.git" ${REV_APPS}@checkoutTree "apps" "https://${login}github.com/SonySemiconductorSolutions/CameraBase_incubator-nuttx-apps.git" ${REV_APPS}@g' setupenv.sh
+
+    - name: Docker | Setup Buildx
+      uses: docker/setup-buildx-action@v3.2.0
+
+    - name: Docker | Build DevContainer
+      uses: docker/build-push-action@v5
+      with:
+        push: false
+        tags: devcontainer:latest
+        context: .
+        load: true
+
+    - name: Docker | Copy NuttX Folder
+      run: |
+        docker run --rm -dt --name devcontainer devcontainer:latest /bin/bash
+        docker cp  devcontainer:/src/nuttx nuttx
+        docker container stop devcontainer
+
+    - name: Artifact | Upload Firmware
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.ARTIFACT_NAME }}
+        path: |
+          nuttx/partitions.bin
+          nuttx/nuttx.bin
+          nuttx/bootloader.bin
+
+  test-v1x:
+    name: 'Test Type3 Camera Firmware - Onwire: EVP1 - Interface v1'
+    runs-on: [self-hosted, amd64, stable]
+    needs: [build-v1x]
+    steps:
+    - name: System dependencies
+      run: |
+        sudo apt update && \
+          sudo apt install --yes \
+              tree gcc python3-dev make cmake \
+              software-properties-common git mosquitto
+
+    - name: Python | Setup
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Git | Checkout
+      uses: actions/checkout@v4
+
+    - name: Artifact | Download
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.lc-wheel-artifact }}
+        run-id: ${{ inputs.lc-run-id }}
+
+    - name: Python | Install Requirements
+      run: |
+        pip install -r system-tests/requirements.txt
+        pip install ./local_console-*-py3-*.whl
+
+    - name: Artifact | Download
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ needs.build-v1x.outputs.artifact }}
+        path: firmware-v1x
+
+    - name: Artifact | Tar Firmware
+      run: |
+        tar -czvf firmware-v1x.tar.gz -C firmware-v1x .
+
+    - name: Run tests via Pytest
+      run: |
+        pytest system-tests/tests/v1 \
+        --frp-host=frp.mido-tools.midokura.com \
+        --frp-port=8035 \
+        --frp-token=${{ secrets.FRP_TOKEN }} \
+        --devispare-firmware=firmware-v1x.tar.gz \
+        --devispare-host=https://devispare-sss.japaneast.cloudapp.azure.com/api/v1 \
+        --devispare-token=${{ secrets.DEVISPARE_TOKEN }} \
+        --onwire-version=evp1
+
+    - name: Artifact | Upload Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: results-interface-v1
+        path: results/*
+        overwrite: true
+
+    - name: Artifact | Upload Allure Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: allure-results-onwire-evp1-interface-v1
+        path: allure-results/*.json
+        overwrite: true
+        retention-days: 1
