@@ -84,6 +84,9 @@ class Camera:
                 sent_from_camera = True
                 self.process_deploy_status_topic(payload)
 
+        if topic == MQTTTopics.TELEMETRY.value:
+            sent_from_camera = True
+
         if sent_from_camera:
             self._last_reception = datetime.now()
             logger.debug("Incoming on %s: %s", topic, str(payload))

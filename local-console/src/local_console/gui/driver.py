@@ -16,6 +16,7 @@ from local_console.core.camera import MQTTTopics
 from local_console.core.config import get_config
 from local_console.core.schemas.edge_cloud_if_v1 import Permission
 from local_console.core.schemas.edge_cloud_if_v1 import SetFactoryReset
+from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
 from local_console.core.schemas.schemas import DesiredDeviceConfig
 from local_console.gui.utils.axis_mapping import pixel_roi_from_normals
 from local_console.gui.utils.axis_mapping import UnitROI
@@ -111,13 +112,19 @@ class Driver:
             self.connection_status.spawn_in(nursery)
             if not self.evp1_mode:
                 self.periodic_reports.spawn_in(nursery)
+
+            streaming_stop_required = True
             async with self.mqtt_client.client.messages() as mgen:
                 async for msg in mgen:
-                    attributes_available = await check_attributes_request(
+                    if await check_attributes_request(
                         self.mqtt_client, msg.topic, msg.payload.decode()
-                    )
-                    if attributes_available:
+                    ):
                         self.camera_state.attributes_available = True
+                        # attributes request handshake is performed at (re)connect
+                        # when reconnecting, multiple requests might be made
+                        if streaming_stop_required:
+                            await self.streaming_rpc_stop()
+                            streaming_stop_required = False
 
                     payload = json.loads(msg.payload)
                     self.camera_state.process_incoming(msg.topic, payload)
@@ -291,26 +298,26 @@ class Driver:
     async def streaming_rpc_start(self, roi: Optional[UnitROI] = None) -> None:
         instance_id = "backdoor-EA_Main"
         method = "StartUploadInferenceData"
-        upload_url = f"http://{LOCAL_IP}:{self.upload_port}/"
+        upload_url = f"http://{LOCAL_IP}:{self.upload_port}"
         assert self.temporary_image_directory  # appease mypy
         assert self.temporary_inference_directory  # appease mypy
 
         (h_offset, v_offset), (h_size, v_size) = pixel_roi_from_normals(roi)
-        params = {
-            "Mode": 1,
-            "UploadMethod": "HttpStorage",
-            "StorageName": upload_url,
-            "StorageSubDirectoryPath": self.temporary_image_directory.name,
-            "UploadMethodIR": "HttpStorage",
-            "StorageNameIR": upload_url,
-            "UploadInterval": 30,
-            "StorageSubDirectoryPathIR": self.temporary_inference_directory.name,
-            "CropHOffset": h_offset,
-            "CropVOffset": v_offset,
-            "CropHSize": h_size,
-            "CropVSize": v_size,
-        }
-        await self.mqtt_client.rpc(instance_id, method, json.dumps(params))
+
+        await self.mqtt_client.rpc(
+            instance_id,
+            method,
+            StartUploadInferenceData(
+                StorageName=upload_url,
+                StorageSubDirectoryPath=self.temporary_image_directory.name,
+                StorageNameIR=upload_url,
+                StorageSubDirectoryPathIR=self.temporary_inference_directory.name,
+                CropHOffset=h_offset,
+                CropVOffset=v_offset,
+                CropHSize=h_size,
+                CropVSize=v_size,
+            ).model_dump_json(),
+        )
 
     async def streaming_rpc_stop(self) -> None:
         instance_id = "backdoor-EA_Main"
