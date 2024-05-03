@@ -39,6 +39,7 @@ jobs:
       ARTIFACT_NAME: firmware-v1x
     outputs:
       artifact: ${{ env.ARTIFACT_NAME }}
+      sha: ${{ steps.git-fw.outputs.sha }}
     steps:
     - name: Git | Checkout
       uses: actions/checkout@v4
@@ -47,7 +48,26 @@ jobs:
         ref: ${{ inputs.v15ref || 't3p_v1x' }}
         token: ${{ secrets.TEMPORARY_PAT_TOKEN }}
 
+    - name: Git | HEAD SHA
+      id: git-fw
+      run: echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+    - name: Cache firmware build
+      id: cache
+      uses: buildjet/cache@v4
+      env:
+        cache-name: cache-fw-v1x
+      with:
+        key: fw-v1x-${{ steps.git-fw.outputs.sha }}
+        restore-keys: |
+          fw-v1x
+        path: |
+          nuttx/partitions.bin
+          nuttx/nuttx.bin
+          nuttx/bootloader.bin
+
     - name: Git | Update Submodules
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
       run: |
         sed -i '/RUN kconfig-tweak --disable CONFIG_DEV_CONSOLE/s/^/#/g' Dockerfile
         echo "${{ secrets.TEMPORARY_PAT_USER }}" > cred.txt
@@ -56,9 +76,11 @@ jobs:
         sed -i 's@checkoutTree "apps" "https://${login}www.tool.sony.biz/bitbucket/scm/imx500/incubator-nuttx-apps.git" ${REV_APPS}@checkoutTree "apps" "https://${login}github.com/SonySemiconductorSolutions/CameraBase_incubator-nuttx-apps.git" ${REV_APPS}@g' setupenv.sh
 
     - name: Docker | Setup Buildx
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
       uses: docker/setup-buildx-action@v3.2.0
 
     - name: Docker | Build DevContainer
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
       uses: docker/build-push-action@v5
       with:
         push: false
@@ -67,6 +89,7 @@ jobs:
         load: true
 
     - name: Docker | Copy NuttX Folder
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
       run: |
         docker run --rm -dt --name devcontainer devcontainer:latest /bin/bash
         docker cp  devcontainer:/src/nuttx nuttx
