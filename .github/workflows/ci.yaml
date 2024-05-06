@@ -21,24 +21,6 @@ jobs:
     outputs:
       artifact: ${{ env.ARTIFACT_NAME }}
     steps:
-    - name: Install system requirements
-      run: |
-        apt-get -y update && \
-        apt install -y gcc python3-dev make cmake \
-                       software-properties-common git
-
-    - name: Setup Python ${{ env.PYTHON_VERSION }}
-      uses: actions/setup-python@v5
-      id: py
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-
-    - name: Create unprivileged user
-      # Building the python wheel as root was not working
-      # as expected, with setuptools-scm failing to detect
-      # the git repo, and hence not including important files
-      # Hence, we need an unprivileged user
-      run: useradd -m testbot
 
     - name: Checkout
       uses: actions/checkout@v4
@@ -48,12 +30,56 @@ jobs:
         # detecting the git repository with its objects.
         fetch-depth: 0
 
+    - name: Hash of inputs to wheel build
+      id: hash
+      run: |
+        hash=$(tar -cf - --sort=name --mode=777 --mtime='UTC 2019-01-01' \
+                         --group=0 --owner=0 --numeric-owner \
+                         --no-xattrs --no-acls \
+                         -C ./repo/ local-console \
+               | sha1sum)
+        echo "value=$hash" >> "$GITHUB_OUTPUT"
+
+    - name: Cache wheel build
+      id: cache
+      uses: buildjet/cache@v4
+      env:
+        cache-name: cache-wheel
+      with:
+        key: local-console-wheel-${{ steps.hash.outputs.value }}
+        path: |
+          local_console-*-py3-*.whl
+
+    - name: Install system requirements
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
+      run: |
+        apt-get -y update && \
+        apt install -y gcc python3-dev make cmake \
+                       software-properties-common git
+
+    - name: Setup Python ${{ env.PYTHON_VERSION }}
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
+      uses: actions/setup-python@v5
+      id: py
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Create unprivileged user
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
+      # Building the python wheel as root was not working
+      # as expected, with setuptools-scm failing to detect
+      # the git repo, and hence not including important files
+      # Hence, we need an unprivileged user
+      run: useradd -m testbot
+
     - name: Post-checkout chown and move
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
       run: |
         mv repo ~testbot/
         chown -R testbot ~testbot/repo
 
     - name: Build wheel
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
       run: |
         runuser -u testbot -- ${{ steps.py.outputs.python-path }} -m venv ~testbot/build_env
         runuser -u testbot -- ~testbot/build_env/bin/python -m pip install build
