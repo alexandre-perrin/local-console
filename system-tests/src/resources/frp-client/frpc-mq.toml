@@ -1,0 +1,13 @@
+# FRPC MQTT Client
+
+serverAddr = "FRP_HOST"
+serverPort = 7000
+auth.method = "token"
+auth.token = "FRP_TOKEN"
+
+[[proxies]]
+name = "mqtt-tcp-demo"
+type = "tcp"
+localIP = "mqtt"
+localPort = 8883
+remotePort = 1000
