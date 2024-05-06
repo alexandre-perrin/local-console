@@ -123,6 +123,11 @@ jobs:
 
     - name: Git | Checkout
       uses: actions/checkout@v4
+      with:
+        sparse-checkout: |
+          system-tests
+          samples
+          sonar-project.properties
 
     - name: Artifact | Download
       uses: actions/download-artifact@v4
