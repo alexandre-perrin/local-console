@@ -1,10 +1,11 @@
 #!/bin/sh
-
 set -e
 
-mkdir -p src/resources/mqtt-broker/certificates
+HERE=$(cd $(dirname $0); pwd -P)
 
-cd src/resources/mqtt-broker/certificates
+mkdir -p ${HERE}/certificates
+
+cd ${HERE}/certificates
 
 # $1 - base file name
 # $2 - subject common name
@@ -25,7 +26,7 @@ make_cert () {
     rm ${TMPFILE}
 }
 
-rm -rf src/resources/mqtt-broker/certificates/*
+rm -rf ${HERE}/certificates/*
 # CA
 openssl req -new -x509 -days 365 -extensions v3_ca -keyout ca.key -out ca.crt -nodes \
     -subj "/C=ES/ST=BCN/L=Barcelona/O=Midokura/OU=Wedge/CN=Wedge CA/"

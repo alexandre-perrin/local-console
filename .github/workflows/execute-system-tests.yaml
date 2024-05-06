@@ -154,7 +154,8 @@ jobs:
         --devispare-firmware=firmware-v1x.tar.gz \
         --devispare-host=https://devispare-sss.japaneast.cloudapp.azure.com/api/v1 \
         --devispare-token=${{ secrets.DEVISPARE_TOKEN }} \
-        --onwire-version=evp1
+        --onwire-version=evp1 \
+        --certs-folder=system-tests/src/resources/mqtt-broker/certificates
 
     - name: Artifact | Upload Results
       uses: actions/upload-artifact@v4

@@ -25,6 +25,8 @@ from src.interface import OnWireSchema
 
 K = TypeVar("K", bound=Hashable)
 
+BASE_DIR = Path(__file__).parent
+
 
 class MQTTBroker:
     _topics: ClassVar = [
@@ -117,7 +119,7 @@ class MQTTBroker:
         self, name: str, tag: str, args: dict, network: str | None = None
     ) -> Container:
         self._dockerc.images.build(
-            path=f"src/resources/{tag}",
+            path=f"{BASE_DIR}/resources/{tag}",
             rm=True,
             tag=f"{tag}:latest",
             buildargs=args,
@@ -146,15 +148,14 @@ class MQTTBroker:
 
         return container
 
-    def start(self, local: bool, frp_host: str, frp_port: int, frp_token: str) -> None:
+    def start(self, local: bool, frp_host: str, frp_port: int, frp_token: str) -> str:
         if local:
             self._mqtt_container = self._start(
                 name="mqtt",
                 tag="mqtt-broker",
                 args={},
             )
-
-            self._connect("127.0.0.1")
+            broker_addr = "127.0.0.1"
 
         else:
             self._network = self._dockerc.networks.create(name="frp")
@@ -178,8 +179,10 @@ class MQTTBroker:
             )
 
             network = self._mqtt_container.attrs["NetworkSettings"]["Networks"][self._network.name]
+            broker_addr = network["IPAddress"]
 
-            self._connect(network["IPAddress"])
+        self._connect(broker_addr)
+        return broker_addr
 
     def _stop(self, container: None | Container, log_file: Path) -> None:
         if container:

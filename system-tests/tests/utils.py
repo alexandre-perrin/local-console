@@ -4,12 +4,15 @@ import tarfile
 from collections.abc import Generator
 from contextlib import suppress
 from dataclasses import dataclass
+from pathlib import Path
 
 import docker
 import pytest
 
 from src.interface import OnWireSchema
 from src.interface import OnwireVersion
+
+BASE_DIR = Path(__file__).parent
 
 
 class InvalidInput(Exception):
@@ -29,6 +32,7 @@ class Options:
     devispare_token: str
 
     local: bool
+    certs_folder: Path
 
     @classmethod
     def get(cls) -> Generator:
@@ -51,6 +55,18 @@ class Options:
             raise InvalidInput(
                 f"Onwire Version must be: {' or '.join(onwire_versions)}"
             )
+
+        certs_dir = (
+            self.certs_folder
+            if self.certs_folder
+            else BASE_DIR.parent.joinpath("src/resources/mqtt-broker/certificates")
+        )
+        if not (
+            certs_dir.is_dir()
+            and certs_dir.joinpath("ca.crt").is_file()
+            and certs_dir.joinpath("ca.key").is_file()
+        ):
+            raise InvalidInput(f"Invalid certificates path: {certs_dir}")
 
         if not self.local:
             if not self.frp_token:

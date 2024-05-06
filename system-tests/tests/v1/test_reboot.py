@@ -1,12 +1,12 @@
 import allure
+from src.lc_adapter import LocalConsoleAdapter
 
-from src.mqtt import MQTTBroker
 from tests.matchers.is_equal import equal_to
 
 
 @allure.parent_suite("Module Direct Command")
 @allure.suite("Reboot")
-def test_reboot(mqtt_broker: MQTTBroker) -> None:
+def test_reboot(mqtt_broker: LocalConsoleAdapter) -> None:
     allure.dynamic.title("Reboot - Onwire: EVP1 - Interface v1")
 
     mqtt_broker.publish_mdc(

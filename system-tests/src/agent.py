@@ -22,6 +22,8 @@ from littlefs import LittleFS
 from pydantic import BaseModel
 from src.interface import OnWireSchema
 
+BASE_DIR = Path(__file__).parent
+
 
 class DeviSpareAgent:
     target: None | str = None
@@ -54,7 +56,7 @@ class DeviSpareAgent:
         keyfile: Path,
         onwire_schema: OnWireSchema,
     ) -> None:
-        https_ca_cert = Path("src/resources/mozilla-root-ca.pem").read_bytes()
+        https_ca_cert = BASE_DIR.joinpath("resources/mozilla-root-ca.pem").read_bytes()
         mqtt_ca_cert = cafile.read_bytes()
         client_key = keyfile.read_bytes()
         client_cert = certfile.read_bytes()

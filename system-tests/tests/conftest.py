@@ -4,9 +4,9 @@ from pathlib import Path
 
 import allure
 import pytest
-
 from src.agent import T3P
-from src.lc_adapter import MQTTBroker
+from src.lc_adapter import LocalConsoleAdapter
+
 from tests.utils import Options
 
 
@@ -58,7 +58,7 @@ def tmp_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
 @pytest.fixture(scope="session", autouse=True)
 @allure.title("Start MQTT Broker")
 def mqtt_broker(options: Options, results_folder: Path, tmp_dir: Path) -> Generator:
-    broker = MQTTBroker(options.onwire_schema, Path("src/resources/mqtt-broker/certificates"))
+    broker = LocalConsoleAdapter(options.onwire_schema, options.certs_folder)
 
     try:
         broker.start(
@@ -76,9 +76,14 @@ def mqtt_broker(options: Options, results_folder: Path, tmp_dir: Path) -> Genera
 
 @pytest.fixture(scope="session", autouse=True)
 @allure.title("Start Agent")
-def _agent(options: Options, results_folder: Path, tmp_dir: Path, mqtt_broker: MQTTBroker) -> Generator:
-    certfile = Path("src/resources/mqtt-broker/certificates/client.crt")
-    keyfile = Path("src/resources/mqtt-broker/certificates/client.key")
+def _agent(
+    options: Options,
+    results_folder: Path,
+    tmp_dir: Path,
+    mqtt_broker: LocalConsoleAdapter,
+) -> Generator:
+    certfile = options.certs_folder / "client.crt"
+    keyfile = options.certs_folder / "client.key"
 
     if not options.local:
         agent = T3P(
