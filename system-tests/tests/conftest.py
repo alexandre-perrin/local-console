@@ -64,8 +64,9 @@ def mqtt_broker(options: Options, results_folder: Path, tmp_dir: Path) -> Genera
         broker.start(
             options.local,
             options.frp_host,
-            options.frp_port,
+            options.frp_port_mqtt,
             options.frp_token,
+            options.frp_port_http
         )
 
         yield broker
@@ -96,7 +97,7 @@ def _agent(
                 tmp_dir,
                 options.devispare_firmware,
                 options.frp_host,
-                options.frp_port,
+                options.frp_port_mqtt,
                 mqtt_broker.cafile,
                 certfile,
                 keyfile,

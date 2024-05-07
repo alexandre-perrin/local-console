@@ -159,7 +159,7 @@ class MQTTBroker:
 
         if not local:
             self._frpc_container = self._start(
-                name="frp",
+                name="frp-mqtt",
                 tag="frp-client",
                 args={
                     "FRP_HOST": frp_host,

@@ -150,6 +150,19 @@ jobs:
       run: |
         tar -czvf firmware-v1x.tar.gz -C firmware-v1x .
 
+    - name: Determine two open ports at reverse proxy
+      # The ports excluded below are hard coded in CI jobs
+      # on other Midokura repositories
+      id: rproxy
+      run: |
+        ports=$(python system-tests/ports_range.py \
+                       frp.mido-tools.midokura.com \
+                       8000 8099 \
+                       -e 8057 -e 8058)
+        echo "port-mqtt=$(echo $ports | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+        echo "port-http=$(echo $ports | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
+        echo "Chosen ports: $ports"
+
     - name: Run tests via Pytest
       run: |
         pytest --capture=tee-sys \
@@ -160,7 +173,8 @@ jobs:
         --log-file-date-format="%Y-%m-%d %H:%M:%S" \
         system-tests/tests/v1 \
         --frp-host=frp.mido-tools.midokura.com \
-        --frp-port=8035 \
+        --frp-port-mqtt=${{ steps.rproxy.outputs.port-mqtt }} \
+        --frp-port-http=${{ steps.rproxy.outputs.port-http }} \
         --frp-token=${{ secrets.FRP_TOKEN }} \
         --devispare-firmware=firmware-v1x.tar.gz \
         --devispare-host=https://devispare-sss.japaneast.cloudapp.azure.com/api/v1 \

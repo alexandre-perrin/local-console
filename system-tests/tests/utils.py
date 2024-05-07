@@ -25,7 +25,8 @@ class Options:
 
     frp_token: str
     frp_host: str
-    frp_port: int
+    frp_port_mqtt: int
+    frp_port_http: int
 
     devispare_firmware: str
     devispare_host: str
@@ -75,8 +76,11 @@ class Options:
             if not self.frp_host:
                 raise InvalidInput("FRP Host is a required value")
 
-            if not self.frp_port:
-                raise InvalidInput("FRP Port is a required value")
+            if not self.frp_port_mqtt:
+                raise InvalidInput("FRP Port for MQTT is a required value")
+
+            if not self.frp_port_http:
+                raise InvalidInput("FRP Port for HTTP is a required value")
 
             if not re.match(r"^http(?:s)?:\/\/.*$", self.devispare_host):
                 raise InvalidInput(
