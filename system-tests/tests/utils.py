@@ -27,6 +27,7 @@ class Options:
     frp_host: str
     frp_port_mqtt: int
     frp_port_http: int
+    frp_name_suffix: str
 
     devispare_firmware: str
     devispare_host: str

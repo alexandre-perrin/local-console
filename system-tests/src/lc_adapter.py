@@ -57,8 +57,16 @@ class LocalConsoleAdapter(MQTTBroker):
             str(self.cafile.with_suffix(".key").resolve()),
         )
 
-    def start(self, local: bool, frp_host: str, frp_port_mqtt: int, frp_token: str) -> None:
-        super().start(local, frp_host, frp_port_mqtt, frp_token)
+    def start(
+        self,
+        local: bool,
+        frp_host: str,
+        frp_port_mqtt: int,
+        frp_token: str,
+        frp_name_suffix: str,
+    ) -> None:
+        # MQTT setup
+        super().start(local, frp_host, frp_port_mqtt, frp_token, frp_name_suffix)
         if not self._knock_on_broker_port(frp_host, frp_port_mqtt):
             raise ConnectionError("Could not contact MQTT broker over FRP")
 

@@ -176,6 +176,7 @@ jobs:
         --frp-port-mqtt=${{ steps.rproxy.outputs.port-mqtt }} \
         --frp-port-http=${{ steps.rproxy.outputs.port-http }} \
         --frp-token=${{ secrets.FRP_TOKEN }} \
+        --frp-name-suffix=local-console-${{ github.run_id }} \
         --devispare-firmware=firmware-v1x.tar.gz \
         --devispare-host=https://devispare-sss.japaneast.cloudapp.azure.com/api/v1 \
         --devispare-token=${{ secrets.DEVISPARE_TOKEN }} \

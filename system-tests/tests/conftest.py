@@ -66,7 +66,8 @@ def mqtt_broker(options: Options, results_folder: Path, tmp_dir: Path) -> Genera
             options.frp_host,
             options.frp_port_mqtt,
             options.frp_token,
-            options.frp_port_http
+            options.frp_port_http,
+            options.frp_name_suffix,
         )
 
         yield broker

@@ -148,8 +148,14 @@ class MQTTBroker:
 
         return container
 
-    def start(self, local: bool, frp_host: str, frp_port: int, frp_token: str) -> None:
-
+    def start(
+        self,
+        local: bool,
+        frp_host: str,
+        frp_port: int,
+        frp_token: str,
+        frp_name_suffix: str,
+    ) -> None:
         self._mqtt_container = self._start(
             name="mqtt",
             tag="mqtt-broker",
@@ -168,7 +174,9 @@ class MQTTBroker:
                     "INTERNAL_PORT": "8883",
                     "SERVICE_NAME": "mqtt",
                     "INTERNAL_HOST": broker_addr,
-                    "FRP_NAME_SUFFIX": "" if not frp_name_suffix else f"-{frp_name_suffix}",
+                    "FRP_NAME_SUFFIX": ""
+                    if not frp_name_suffix
+                    else f"-{frp_name_suffix}",
                 },
             )
 
