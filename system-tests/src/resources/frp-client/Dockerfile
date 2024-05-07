@@ -7,8 +7,12 @@ ARG BUILDARCH=amd64
 ARG BUILDOS=linux
 
 ARG FRP_HOST
-ARG FRP_PORT
+ARG FRP_EXTERNAL_PORT
+ARG INTERNAL_PORT
 ARG FRP_TOKEN
+ARG FRP_NAME_SUFFIX
+ARG INTERNAL_HOST
+ARG SERVICE_NAME
 
 RUN wget -O frp.tar.gz https://github.com/fatedier/frp/releases/download/v${FRP_VERSION}/frp_${FRP_VERSION}_${BUILDOS}_${BUILDARCH}.tar.gz \
 && tar -xzf frp.tar.gz && mv /frp_${FRP_VERSION}_${BUILDOS}_${BUILDARCH} /frp
@@ -16,8 +20,12 @@ RUN wget -O frp.tar.gz https://github.com/fatedier/frp/releases/download/v${FRP_
 COPY frpc-mq.toml frpc.toml
 
 RUN sed -i "s/FRP_HOST/${FRP_HOST}/g" frpc.toml && \
-    sed -i "s/1000/${FRP_PORT}/g" frpc.toml && \
-    sed -i "s/FRP_TOKEN/${FRP_TOKEN}/g" frpc.toml
+    sed -i "s/FRP_EXTERNAL_PORT/${FRP_EXTERNAL_PORT}/g" frpc.toml && \
+    sed -i "s/FRP_TOKEN/${FRP_TOKEN}/g" frpc.toml && \
+    sed -i "s/FRP_NAME_SUFFIX/${FRP_NAME_SUFFIX}/g" frpc.toml && \
+    sed -i "s/INTERNAL_PORT/${INTERNAL_PORT}/g" frpc.toml && \
+    sed -i "s/INTERNAL_HOST/${INTERNAL_HOST}/g" frpc.toml && \
+    sed -i "s/SERVICE_NAME/${SERVICE_NAME}/g" frpc.toml
 
 FROM scratch
 

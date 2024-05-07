@@ -148,41 +148,31 @@ class MQTTBroker:
 
         return container
 
-    def start(self, local: bool, frp_host: str, frp_port: int, frp_token: str) -> str:
-        if local:
-            self._mqtt_container = self._start(
-                name="mqtt",
-                tag="mqtt-broker",
-                args={},
-            )
-            broker_addr = "127.0.0.1"
+    def start(self, local: bool, frp_host: str, frp_port: int, frp_token: str) -> None:
 
-        else:
-            self._network = self._dockerc.networks.create(name="frp")
+        self._mqtt_container = self._start(
+            name="mqtt",
+            tag="mqtt-broker",
+            args={},
+        )
+        broker_addr = "localhost"
 
-            self._mqtt_container = self._start(
-                name="mqtt",
-                tag="mqtt-broker",
-                args={},
-                network=self._network.name,
-            )
-
+        if not local:
             self._frpc_container = self._start(
                 name="frp",
                 tag="frp-client",
                 args={
                     "FRP_HOST": frp_host,
-                    "FRP_PORT": str(frp_port),
+                    "FRP_EXTERNAL_PORT": str(frp_port),
                     "FRP_TOKEN": frp_token,
+                    "INTERNAL_PORT": "8883",
+                    "SERVICE_NAME": "mqtt",
+                    "INTERNAL_HOST": broker_addr,
+                    "FRP_NAME_SUFFIX": "" if not frp_name_suffix else f"-{frp_name_suffix}",
                 },
-                network=self._network.name,
             )
 
-            network = self._mqtt_container.attrs["NetworkSettings"]["Networks"][self._network.name]
-            broker_addr = network["IPAddress"]
-
         self._connect(broker_addr)
-        return broker_addr
 
     def _stop(self, container: None | Container, log_file: Path) -> None:
         if container:

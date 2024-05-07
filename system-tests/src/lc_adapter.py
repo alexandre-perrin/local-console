@@ -58,13 +58,9 @@ class LocalConsoleAdapter(MQTTBroker):
         )
 
     def start(self, local: bool, frp_host: str, frp_port: int, frp_token: str) -> str:
-        broker_addr = super().start(local, frp_host, frp_port, frp_token)
-        if broker_addr == "127.0.0.1":
-            broker_host = "localhost"
-        else:
-            broker_host = frp_host
-        self._knock_on_broker_port(broker_host, frp_port)
-        self.invoke_cli("config", "set", "mqtt", "host", broker_host)
+        super().start(local, frp_host, frp_port, frp_token)
+        self._knock_on_broker_port(frp_host, frp_port)
+        self.invoke_cli("config", "set", "mqtt", "host", frp_host)
         self.invoke_cli("config", "set", "mqtt", "port", str(frp_port))
 
     def _on_message(self, mqttc: mqtt.Client, obj: Any, msg: MQTTMessage) -> None:

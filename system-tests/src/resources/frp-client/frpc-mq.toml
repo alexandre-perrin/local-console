@@ -6,8 +6,8 @@ auth.method = "token"
 auth.token = "FRP_TOKEN"
 
 [[proxies]]
-name = "mqtt-tcp-demo"
+name = "SERVICE_NAME-tcpFRP_NAME_SUFFIX"
 type = "tcp"
-localIP = "mqtt"
-localPort = 8883
-remotePort = 1000
+localIP = "INTERNAL_HOST"
+localPort = INTERNAL_PORT
+remotePort = FRP_EXTERNAL_PORT
