@@ -9,6 +9,7 @@ from typing import Any
 import allure
 import paho.mqtt.client as mqtt
 from devispare import EvpIotPlatform
+from docker.models.containers import Container
 from paho.mqtt.client import MQTTMessage
 from src.interface import OnWireSchema
 from src.mqtt import MQTTBroker
@@ -39,6 +40,8 @@ class LocalConsoleAdapter(MQTTBroker):
     def __init__(self, onwire_schema: OnWireSchema, certificates: Path) -> None:
         super().__init__(onwire_schema, certificates)
 
+        self._frpc_http_container: Container | None = None
+
         # Configure the CLI
         platform = self.iot_platform_from_schema(self._onwire_schema.platform)
         self.invoke_cli("config", "set", "evp", "iot_platform", platform)
@@ -63,6 +66,7 @@ class LocalConsoleAdapter(MQTTBroker):
         frp_host: str,
         frp_port_mqtt: int,
         frp_token: str,
+        frp_port_http: int,
         frp_name_suffix: str,
     ) -> None:
         # MQTT setup
@@ -72,6 +76,33 @@ class LocalConsoleAdapter(MQTTBroker):
 
         self.invoke_cli("config", "set", "mqtt", "host", frp_host)
         self.invoke_cli("config", "set", "mqtt", "port", str(frp_port_mqtt))
+
+        # HTTP setup
+        if not local:
+            """
+            This setup makes equal the exposed webserver port in the FRP server
+            and the internal port exposed in the machine. This is required as
+            the local-console's web server listens on the configured webserver
+            port, and it emits deployment manifests with the server URL having
+            the same port, so they must match on the local and remote ends.
+            """
+            self._frpc_http_container = self._start(
+                name="frp-http",
+                tag="frp-client",
+                args={
+                    "SERVICE_NAME": "http",
+                    "INTERNAL_PORT": str(frp_port_http),
+                    "INTERNAL_HOST": "localhost",
+                    "FRP_EXTERNAL_PORT": str(frp_port_http),
+                    "FRP_HOST": frp_host,
+                    "FRP_TOKEN": frp_token,
+                    "FRP_NAME_SUFFIX": ""
+                    if not frp_name_suffix
+                    else f"-{frp_name_suffix}",
+                },
+            )
+        self.invoke_cli("config", "set", "webserver", "host", frp_host)
+        self.invoke_cli("config", "set", "webserver", "port", str(frp_port_http))
 
     def _on_message(self, mqttc: mqtt.Client, obj: Any, msg: MQTTMessage) -> None:
         """
@@ -139,3 +170,7 @@ class LocalConsoleAdapter(MQTTBroker):
                 break
 
         return could_connect
+
+    def stop(self, logs_folder: Path) -> None:
+        self._stop(self._frpc_http_container, logs_folder / "frpc_http.logs")
+        super().stop(logs_folder)
