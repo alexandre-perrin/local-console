@@ -70,6 +70,7 @@ jobs:
       if: ${{ steps.cache.outputs.cache-hit != 'true' }}
       run: |
         sed -i '/RUN kconfig-tweak --disable CONFIG_DEV_CONSOLE/s/^/#/g' Dockerfile
+        sed -i '/ENV SECURITY_SWAF_KEY "DEV"/s/#//g' Dockerfile
         echo "${{ secrets.TEMPORARY_PAT_USER }}" > cred.txt
         echo "${{ secrets.TEMPORARY_PAT_TOKEN }}" >> cred.txt
         sed -i 's@checkoutTree "nuttx" "https://${login}www.tool.sony.biz/bitbucket/scm/imx500/incubator-nuttx.git" ${REV_NUTTX}@checkoutTree "nuttx" "https://${login}github.com/SonySemiconductorSolutions/CameraBase_incubator-nuttx.git" ${REV_NUTTX}@g' setupenv.sh
@@ -109,6 +110,13 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [build-v1x]
     steps:
+    - name: Log into GHCR
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
     - name: System dependencies
       run: |
         sudo apt update && \
@@ -121,13 +129,41 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Git | Checkout
+    - name: Download install wasi-sdk 19
+      run: |
+        curl -sL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-19/wasi-sdk-19.0-linux.tar.gz | tar zxvf - -C /tmp && \
+            sudo mv /tmp/wasi-sdk-19.0 /opt/wasi-sdk
+
+    - name: Get wamrc to match this wasi-sdk and camera firmware
+      run: |
+        docker run --rm ghcr.io/midokura/wamrc-xtensa:1.1.2 cat /opt/wamrc/bin/wamrc > wamrc
+        sudo install -o root -m 0777 wamrc /usr/local/bin/
+
+    - name: Git | Checkout our tests
       uses: actions/checkout@v4
       with:
         sparse-checkout: |
           system-tests
           samples
           sonar-project.properties
+
+    - name: Git | Checkout AoT signing key
+      uses: actions/checkout@v4
+      with:
+        repository: SonySemiconductorSolutions/EdgeAIPF.smartcamera.type3.mirror
+        ref: ${{ inputs.v15ref || 't3p_v1x' }}
+        token: ${{ secrets.TEMPORARY_PAT_TOKEN }}
+        sparse-checkout: |
+          tool/internal/swaf_tools/generate_swaf_key/sample_output/swaf_private_key_der.bin
+        sparse-checkout-cone-mode: false
+        path: "res"
+
+    - name: Set signing key path
+      id: sign-key
+      run: |
+        SKEY=$PWD/res/tool/internal/swaf_tools/generate_swaf_key/sample_output/swaf_private_key_der.bin
+        [ -f $SKEY ] || (echo "Bad path to signing key: $SKEY"; exit 1)
+        echo "path=$SKEY" >> "$GITHUB_OUTPUT"
 
     - name: Artifact | Download
       uses: actions/download-artifact@v4
@@ -181,7 +217,8 @@ jobs:
         --devispare-host=https://devispare-sss.japaneast.cloudapp.azure.com/api/v1 \
         --devispare-token=${{ secrets.DEVISPARE_TOKEN }} \
         --onwire-version=evp1 \
-        --certs-folder=system-tests/src/resources/mqtt-broker/certificates
+        --certs-folder=system-tests/src/resources/mqtt-broker/certificates \
+        --signing-key=${{ steps.sign-key.outputs.path }}
 
     - name: Artifact | Upload Results
       uses: actions/upload-artifact@v4

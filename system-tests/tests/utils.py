@@ -8,7 +8,7 @@ from pathlib import Path
 
 import docker
 import pytest
-
+from cryptography.hazmat.primitives.serialization.base import load_der_private_key
 from src.interface import OnWireSchema
 from src.interface import OnwireVersion
 
@@ -35,6 +35,7 @@ class Options:
 
     local: bool
     certs_folder: Path
+    signing_key: Path
 
     @classmethod
     def get(cls) -> Generator:
@@ -69,6 +70,14 @@ class Options:
             and certs_dir.joinpath("ca.key").is_file()
         ):
             raise InvalidInput(f"Invalid certificates path: {certs_dir}")
+
+        if self.signing_key:
+            try:
+                load_der_private_key(self.signing_key.read_bytes(), password=None)
+            except Exception as e:
+                raise InvalidInput(
+                    f"Failed to read private key at {self.signing_key}: {e}"
+                )
 
         if not self.local:
             if not self.frp_token:

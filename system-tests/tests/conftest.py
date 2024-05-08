@@ -58,7 +58,9 @@ def tmp_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
 @pytest.fixture(scope="session", autouse=True)
 @allure.title("Start MQTT Broker")
 def mqtt_broker(options: Options, results_folder: Path, tmp_dir: Path) -> Generator:
-    broker = LocalConsoleAdapter(options.onwire_schema, options.certs_folder)
+    broker = LocalConsoleAdapter(
+        options.onwire_schema, options.certs_folder, options.signing_key
+    )
 
     try:
         broker.start(

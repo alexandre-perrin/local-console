@@ -1,0 +1,22 @@
+{
+  "deployment": {
+    "deploymentId": "simplest",
+    "instanceSpecs": {
+      "node": {
+        "moduleId": "node",
+        "subscribe": {},
+        "publish": {}
+      }
+    },
+    "modules": {
+      "node": {
+        "entryPoint": "main",
+        "moduleImpl": "wasm",
+        "downloadUrl": "http://",
+        "hash": ""
+      }
+    },
+    "publishTopics": {},
+    "subscribeTopics": {}
+  }
+}

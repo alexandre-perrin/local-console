@@ -37,9 +37,12 @@ class LocalConsoleAdapter(MQTTBroker):
             return "tb"
         raise NotImplementedError(f"Unknown Platform {platform}")
 
-    def __init__(self, onwire_schema: OnWireSchema, certificates: Path) -> None:
+    def __init__(
+        self, onwire_schema: OnWireSchema, certificates: Path, signing_key: Path
+    ) -> None:
         super().__init__(onwire_schema, certificates)
 
+        self.signing_key = signing_key
         self._frpc_http_container: Container | None = None
 
         # Configure the CLI
@@ -143,6 +146,26 @@ class LocalConsoleAdapter(MQTTBroker):
             json.dumps(config),
         )
 
+    @allure.step("Build a signed WASM AoT module")
+    def build_module(self, module_dir: Path) -> None:
+        assert module_dir.is_dir(), "must be a directory holding a WASM module project"
+        self.invoke_cli(
+            "build", "--secret", str(self.signing_key), "xtensa", cwd=module_dir
+        )
+
+    @allure.step("Deploy a signed WASM AoT module")
+    def deploy_module(self, module_dir: Path, timeout: int = 60) -> None:
+        assert module_dir.is_dir(), "must be a directory holding a WASM module project"
+        return self.invoke_cli(
+            "deploy",
+            "--signed",
+            "--timeout",
+            str(timeout),
+            "xtensa",
+            cwd=module_dir,
+            capture_output=True,
+            text=True,
+        )
 
     def _knock_on_broker_port(
         self, host: str, port: int, max_attempts: int = 10
