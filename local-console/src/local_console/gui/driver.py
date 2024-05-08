@@ -214,7 +214,7 @@ class Driver:
 
     def check_and_create_directory(self, directory: Path) -> None:
         if not directory.exists():
-            logger.warning(f"{directory} does not exists. Creating directory...")
+            logger.warning(f"{directory} does not exist. Creating directory...")
             directory.mkdir(exist_ok=True)
 
     @run_on_ui_thread
