@@ -106,7 +106,7 @@ jobs:
 
   test-v1x:
     name: 'Test Type3 Camera Firmware - Onwire: EVP1 - Interface v1'
-    runs-on: [self-hosted, amd64, stable]
+    runs-on: ubuntu-22.04
     needs: [build-v1x]
     steps:
     - name: System dependencies
