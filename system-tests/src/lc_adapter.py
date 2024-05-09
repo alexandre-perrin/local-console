@@ -159,6 +159,7 @@ class LocalConsoleAdapter(MQTTBroker):
         return self.invoke_cli(
             "deploy",
             "--signed",
+            "--force-webserver",
             "--timeout",
             str(timeout),
             "xtensa",
