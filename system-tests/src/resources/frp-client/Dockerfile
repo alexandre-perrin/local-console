@@ -27,9 +27,10 @@ RUN sed -i "s/FRP_HOST/${FRP_HOST}/g" frpc.toml && \
     sed -i "s/INTERNAL_HOST/${INTERNAL_HOST}/g" frpc.toml && \
     sed -i "s/SERVICE_NAME/${SERVICE_NAME}/g" frpc.toml
 
-FROM scratch
+FROM busybox:latest
 
 COPY --from=base /frp/frpc /frpc
 COPY --from=base /frpc.toml /frpc.toml
+COPY retry.sh /retry.sh
 
-CMD ["/frpc", "-c", "/frpc.toml"]
+CMD ["sh", "/retry.sh", "/frpc", "-c", "/frpc.toml"]
