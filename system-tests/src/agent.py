@@ -127,6 +127,7 @@ class DeviSpareAgent:
             },
             flash_images=[
                 {"address": 0x20000, "image": nuttx},
+                {"address": 0x320000, "image": nuttx},
             ],
             iot_platform=onwire_schema.platform,
         )
