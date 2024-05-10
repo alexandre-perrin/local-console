@@ -68,7 +68,7 @@
                     cols: 2
                     adaptive_height: True
                     padding: "5dp"
-                    spacing: "25dp", "5dp"
+                    spacing: "25dp", "20dp"
 
                     EntryLabel:
                         text: "Local IP Address:"
@@ -86,6 +86,9 @@
                         id: txt_mqtt_host
                         on_text: root.validate_mqtt_host(*args)
                         multiline: False
+                        size_hint_y: None
+                        max_height: "40dp"
+                        height: "40dp"
                         MDTextFieldHelperText:
                             text: "Enter a valid host address"
                             mode: "on_focus"
@@ -96,6 +99,9 @@
                         id: txt_mqtt_port
                         on_text: root.validate_mqtt_port(*args)
                         multiline: False
+                        size_hint_y: None
+                        max_height: "40dp"
+                        height: "40dp"
                         focus_previous: txt_mqtt_host
                         MDTextFieldHelperText:
                             text: "Enter a valid port number"
@@ -107,6 +113,9 @@
                         id: txt_ntp_host
                         on_text: root.validate_ntp_host(*args)
                         multiline: False
+                        size_hint_y: None
+                        max_height: "40dp"
+                        height: "40dp"
                         focus_previous: txt_mqtt_port
                         focus_next: txt_ip_address
                         MDTextFieldHelperText:
@@ -119,6 +128,9 @@
                         id: txt_ip_address
                         on_text: root.validate_ip_address(*args)
                         multiline: False
+                        size_hint_y: None
+                        max_height: "40dp"
+                        height: "40dp"
                         focus_previous: txt_ntp_host
                         focus_next: txt_subnet_mask
                         MDTextFieldHelperText:
@@ -131,6 +143,9 @@
                         id: txt_subnet_mask
                         on_text: root.validate_subnet_mask(*args)
                         multiline: False
+                        size_hint_y: None
+                        max_height: "40dp"
+                        height: "40dp"
                         focus_previous: txt_ip_address
                         focus_next: txt_gateway
                         MDTextFieldHelperText:
@@ -143,6 +158,9 @@
                         id: txt_gateway
                         on_text: root.validate_gateway(*args)
                         multiline: False
+                        size_hint_y: None
+                        max_height: "40dp"
+                        height: "40dp"
                         focus_previous: txt_subnet_mask
                         focus_next: txt_dns_server
                         MDTextFieldHelperText:
@@ -155,6 +173,9 @@
                         id: txt_dns_server
                         on_text: root.validate_dns_server(*args)
                         multiline: False
+                        size_hint_y: None
+                        max_height: "40dp"
+                        height: "40dp"
                         focus_previous: txt_gateway
                         focus_next: txt_mqtt_host
                         MDTextFieldHelperText:
