@@ -273,6 +273,16 @@ class MQTTBroker:
         if not reqid:
             self.reqid += 1
 
+    def wait_telemetry(self, matcher: Matcher[Mapping[K, Any]], timeout: int) -> None:
+        with _allure.StepContext("Await Telemetry message", {"expected": str(matcher)}):
+            for _ in range(timeout):
+                res = self.received_telemetry
+                try:
+                    assert_that(self._onwire_schema.from_telemetry(res), matcher)
+                    return
+                except AssertionError:
+                    sleep(1)
+
     def _pop_message(self, topic: str) -> dict:
         try:
             message = self._messages[topic].popleft()

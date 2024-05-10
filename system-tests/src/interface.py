@@ -32,6 +32,9 @@ class OnWireSchema:
     def from_config(self, config: dict) -> dict:
         return self._schema.from_config(config)
 
+    def from_telemetry(self, telemetry: dict) -> dict:
+        return self._schema.from_telemetry(telemetry)
+
     def to_rpc(
         self, reqid: int | str, instance: str, method: str, params: dict
     ) -> dict:
@@ -65,6 +68,10 @@ class BaseOnWireSchema:
     ) -> dict:
         raise NotImplementedError
 
+    @staticmethod
+    def from_telemetry(telemetry: dict) -> dict:
+        raise NotImplementedError
+
 
 class OnWireSchemaEVP1(BaseOnWireSchema):
     @staticmethod
@@ -74,6 +81,13 @@ class OnWireSchemaEVP1(BaseOnWireSchema):
                 json.dumps(config).encode()
             ).decode()
         }
+
+    @staticmethod
+    def from_telemetry(telemetry: dict) -> dict:
+        for key in telemetry:
+            if type(telemetry[key]) in [str, bytes, bytearray]:
+                telemetry[key] = json.loads(telemetry[key])
+        return telemetry
 
     @staticmethod
     def from_direct_command_response(res: dict) -> dict:
