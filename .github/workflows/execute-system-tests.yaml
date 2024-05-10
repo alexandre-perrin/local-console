@@ -207,6 +207,7 @@ jobs:
         --log-cli-format="%(asctime)s %(message)s" \
         --log-file-format="%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)" \
         --log-file-date-format="%Y-%m-%d %H:%M:%S" \
+        --alluredir=allure-results \
         system-tests/tests/v1 \
         --frp-host=frp.mido-tools.midokura.com \
         --frp-port-mqtt=${{ steps.rproxy.outputs.port-mqtt }} \
@@ -238,3 +239,18 @@ jobs:
         path: allure-results/*.json
         overwrite: true
         retention-days: 1
+
+  upload-report:
+    name: Allure
+    uses: midokura/report-system/.github/workflows/upload-report.yaml@main
+    needs: [test-v1x]
+    if: always()
+    with:
+      artifact: allure-results-onwire-evp1-interface-v1
+      allure-artifact: allure-report
+      host: https://report-system.qa.midokura.com
+      directory: midokura/wedge-cli
+      folder: ${{ github.event.number }}
+      folder-expiration: P1D
+      artifact-expiration: 1
+    secrets: inherit
