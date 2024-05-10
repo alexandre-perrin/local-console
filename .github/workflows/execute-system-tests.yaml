@@ -59,3 +59,21 @@ jobs:
       fw-artifact: ${{ needs.build-v1_5.outputs.artifact }}
       lc-run-id: ${{ inputs.lc-run-id }}
       lc-wheel-artifact: ${{ inputs.lc-wheel-artifact }}
+
+  ota-v1_4-test:
+    name: OTA v1.4 test
+    uses: ./.github/workflows/system-tests-ota-v1.4.yaml
+    needs:
+      - build-v1_4
+      - build-v1_5
+      # There seems to be an issue with having two concurrent
+      # MQTT brokers.
+      - main-tests
+    secrets: inherit
+    with:
+      v15ref: 't3p_v1x'
+      fw-run-id: ${{ github.run_id }}
+      fw-v1_4-artifact: ${{ needs.build-v1_4.outputs.artifact }}
+      fw-v1_5-artifact: ${{ needs.build-v1_5.outputs.artifact }}
+      lc-run-id: ${{ inputs.lc-run-id }}
+      lc-wheel-artifact: ${{ inputs.lc-wheel-artifact }}

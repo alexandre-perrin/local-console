@@ -38,3 +38,27 @@ def configuration_spec(
 
 def get_network_ids(dnn_model_version: DnnModelVersion) -> list[str]:
     return [desired_version[6 : 6 + 6] for desired_version in dnn_model_version]
+
+
+def get_apfw_version_string(fw_binary: bytes) -> str:
+    # See: https://github.com/SonySemiconductorSolutions/EdgeAIPF.smartcamera.type3.mirror/blob/aa66e6ec772a9bd3577061d1767870b906751e94/src/imx_app/adapter/app_desc_nx_adp.c#L19
+    # Note that the following only holds if the binary is UNENCRYPTED
+    offset = fw_binary.index(b"PROJECT_NAME")
+    if offset < 0:
+        raise ValueError("Cannot find esp_app_desc_nx_adp_t struct in firmware")
+    # Now, look the version string up, as it is located
+    # contiguously before the `PROJECT_NAME` string,
+    # with some surrounding zero padding.
+    while offset > 0 and fw_binary[offset - 1] == 0:
+        offset -= 1
+    if fw_binary[offset - 1] == 0:
+        raise ValueError("Could not locate the end of version string")
+    end = offset
+
+    while offset > 0 and fw_binary[offset - 1] != 0:
+        offset -= 1
+    if fw_binary[offset - 1] != 0:
+        raise ValueError("Could not locate the start of version string")
+    start = offset
+
+    return fw_binary[start:end].decode()

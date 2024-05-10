@@ -83,10 +83,20 @@ class OnWireSchemaEVP1(BaseOnWireSchema):
         }
 
     @staticmethod
+    def from_config(config: dict) -> dict:
+        for key, value in config.items():
+            if type(value) in [str, bytes, bytearray]:
+                try:
+                    config[key] = base64.b64decode(value, validate=False)
+                except base64.binascii.Error:
+                    config[key] = value
+        return config
+
+    @staticmethod
     def from_telemetry(telemetry: dict) -> dict:
-        for key in telemetry:
-            if type(telemetry[key]) in [str, bytes, bytearray]:
-                telemetry[key] = json.loads(telemetry[key])
+        for key, value in telemetry.items():
+            if type(value) in [str, bytes, bytearray]:
+                telemetry[key] = json.loads(value)
         return telemetry
 
     @staticmethod
