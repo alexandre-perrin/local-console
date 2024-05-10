@@ -1,21 +1,18 @@
 import logging
 import shutil
-from base64 import b64encode
 from pathlib import Path
-from pathlib import PurePosixPath
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
 
 import trio
-from cryptography.hazmat.primitives import hashes
 from local_console.clients.agent import Agent
 from local_console.core.camera import MQTTTopics
+from local_console.core.commands.ota_deploy import configuration_spec
+from local_console.core.commands.ota_deploy import get_network_id
+from local_console.core.commands.ota_deploy import get_network_ids
 from local_console.core.config import get_config
 from local_console.core.schemas.edge_cloud_if_v1 import DnnDelete
 from local_console.core.schemas.edge_cloud_if_v1 import DnnDeleteBody
-from local_console.core.schemas.edge_cloud_if_v1 import DnnModelVersion
-from local_console.core.schemas.edge_cloud_if_v1 import DnnOta
-from local_console.core.schemas.edge_cloud_if_v1 import DnnOtaBody
 from local_console.gui.driver import Driver
 from local_console.gui.model.ai_model_screen import AIModelScreenModel
 from local_console.servers.webserver import AsyncWebserver
@@ -93,11 +90,14 @@ class AIModelScreenController:
         ephemeral_agent = Agent()
         webserver_port = config.webserver.port
 
-        with TemporaryDirectory(prefix="wedge_deploy_") as temporary_dir:
+        with TemporaryDirectory(prefix="lc_deploy_") as temporary_dir:
             tmp_dir = Path(temporary_dir)
             tmp_module = tmp_dir / package_file.name
             shutil.copy(package_file, tmp_module)
-            spec = configuration_spec(tmp_module, tmp_dir, webserver_port)
+            ip_addr = get_my_ip_by_routing()
+            spec = configuration_spec(
+                tmp_module, tmp_dir, webserver_port, ip_addr
+            ).model_dump_json()
 
             # In my tests, the "Updating" phase may take this long:
             timeout_secs = 90
@@ -142,36 +142,3 @@ class AIModelScreenController:
         await self.undeploy_step(network_id)
         logger.debug("Deploying network")
         await self.deploy_step(network_id, package_file)
-
-
-def get_package_hash(package_file: Path) -> str:
-    digest = hashes.Hash(hashes.SHA256())
-    digest.update(package_file.read_bytes())
-    return b64encode(digest.finalize()).decode()
-
-
-def get_package_version(package_file: Path) -> str:
-    ver_bytes = package_file.read_bytes()[0x30:0x40]
-    return ver_bytes.decode()
-
-
-def get_network_id(package_file: Path) -> str:
-    ver_bytes = get_package_version(package_file)
-    return ver_bytes[6 : 6 + 6]
-
-
-def configuration_spec(
-    package_file: Path, webserver_root: Path, webserver_port: int
-) -> str:
-    file_hash = get_package_hash(package_file)
-    version_str = get_package_version(package_file)
-    ip_addr = get_my_ip_by_routing()
-    rel_path = PurePosixPath(package_file.relative_to(webserver_root))
-    url = f"http://{ip_addr}:{webserver_port}/{rel_path}"
-    return DnnOta(
-        OTA=DnnOtaBody(DesiredVersion=version_str, PackageUri=url, HashValue=file_hash)
-    ).model_dump_json()
-
-
-def get_network_ids(dnn_model_version: DnnModelVersion) -> list[str]:
-    return [desired_version[6 : 6 + 6] for desired_version in dnn_model_version]
