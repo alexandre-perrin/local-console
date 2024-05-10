@@ -22,6 +22,14 @@ def test_wasm_deployment(mqtt_broker: LocalConsoleAdapter) -> None:
     assert "WARNING" not in deploy.stdout
     assert deploy.returncode == 0, f"Error during deploy: {deploy.stderr}"
 
+    # then, clear deployment
+    deploy = mqtt_broker.empty_deployment()
+    assert "WARNING" not in deploy.stdout
+    assert deploy.returncode == 0, f"Error during deploy: {deploy.stderr}"
 
+    # then, deploy the a more complex app
+    app_dir = sample_projects_dir / "rpc-example"
+    mqtt_broker.build_module(app_dir)
+    deploy = mqtt_broker.deploy_module(app_dir)
     assert "WARNING" not in deploy.stdout
     assert deploy.returncode == 0, f"Error during deploy: {deploy.stderr}"

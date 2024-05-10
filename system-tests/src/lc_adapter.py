@@ -168,6 +168,17 @@ class LocalConsoleAdapter(MQTTBroker):
             text=True,
         )
 
+    @allure.step("Empty deployment")
+    def empty_deployment(self, timeout: int = 60) -> None:
+        return self.invoke_cli(
+            "deploy",
+            "--empty",
+            "--timeout",
+            str(timeout),
+            capture_output=True,
+            text=True,
+        )
+
     def _knock_on_broker_port(
         self, host: str, port: int, max_attempts: int = 10
     ) -> bool:
