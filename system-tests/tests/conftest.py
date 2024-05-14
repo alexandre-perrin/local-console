@@ -19,10 +19,12 @@ from pathlib import Path
 
 import allure
 import pytest
-from src.agent import T3P
+from devicetools import DeviSpareClient
 from src.lc_adapter import LocalConsoleAdapter
 
 from tests.utils import Options
+
+BASE_DIR = Path(__file__).parent
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -103,23 +105,28 @@ def _agent(
 ) -> Generator:
     certfile = options.certs_folder / "client.crt"
     keyfile = options.certs_folder / "client.key"
+    https_ca_cert = BASE_DIR.joinpath("../src/resources/mozilla-root-ca.pem").resolve()
 
     if not options.local:
-        agent = T3P(
+        client = DeviSpareClient(
             options.devispare_host,
             options.devispare_token,
         )
+        device = client.t3p_device(
+            b_bootloader=options.bin_bootloader,
+            b_partitions=options.bin_partitions,
+            b_nuttx=options.bin_system,
+        )
 
         try:
-            agent.run(
-                tmp_dir,
-                options.devispare_firmware,
+            device.run(
                 options.frp_host,
                 options.frp_port_mqtt,
+                options.onwire_schema.platform,
                 mqtt_broker.cafile,
                 certfile,
                 keyfile,
-                options.onwire_schema,
+                https_ca_cert,
             )
 
             if not mqtt_broker.is_device_connected.wait(timeout=5 * 60):
@@ -128,7 +135,8 @@ def _agent(
             yield
 
         finally:
-            agent.stop(logs_folder=results_folder)
+            device.stop()
+            device.save_logs(results_folder)
 
     else:
         print("\n\nMQTT\n")
