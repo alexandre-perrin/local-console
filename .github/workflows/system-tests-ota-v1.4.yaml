@@ -1,0 +1,177 @@
+---
+name: OTA test from FW v1.4
+
+on:
+  workflow_call:
+    inputs:
+      v14ref:
+        required: false
+        type: string
+        default: vD7.00.T0
+        description: |
+          git reference in repo SonySemiconductorSolutions/EdgeAIPF.smartcamera.type3.mirror
+          to checkout for building the firmware v1.4
+      v15ref:
+        required: false
+        type: string
+        default: t3p_v1x
+        description: |
+          git reference in repo SonySemiconductorSolutions/EdgeAIPF.smartcamera.type3.mirror
+          to checkout for building the firmware v1.5
+      fw-run-id:
+        required: true
+        type: string
+        description: |
+          Workflow run id from the Type 3 FW build job,
+          used for downloading the compiled binaries artifact
+      fw-v1_4-artifact:
+        required: true
+        type: string
+        description: |
+          Name of the artifact compiled by the Type 3 FW v1.4 build job
+      fw-v1_5-artifact:
+        required: true
+        type: string
+        description: |
+          Name of the artifact compiled by the Type 3 FW v1.5 build job
+      lc-run-id:
+        required: true
+        type: string
+        description: |
+          Workflow run id from the build python wheel job,
+          used for downloading the compiled wheel artifact
+      lc-wheel-artifact:
+        required: false
+        type: string
+        default: "python-wheel"
+        description: |
+          Name of the wheel artifact compiled by the build python wheel job
+
+jobs:
+  test:
+    name: 'Test OTA FW update from v1.4.3 to 1.5x'
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Log into GHCR
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: System dependencies
+      run: |
+        sudo apt update && \
+          sudo apt install --yes \
+              tree gcc python3-dev make cmake \
+              software-properties-common git mosquitto
+
+    - name: Python | Setup
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Git | Checkout our tests
+      uses: actions/checkout@v4
+      with:
+        sparse-checkout: |
+          system-tests
+
+    - name: Artifact | Download
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.lc-wheel-artifact }}
+        run-id: ${{ inputs.lc-run-id }}
+
+    - name: Python | Install Requirements
+      run: |
+        pip install -r system-tests/requirements.txt
+        pip install ./local_console-*-py3-*.whl
+
+    - name: Artifact | Download v1.4 FW
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.fw-v1_4-artifact }}
+        run-id: ${{ inputs.fw-run-id }}
+        path: firmware-v1.4
+
+    - name: Artifact | Download v1.5 FW
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.fw-v1_5-artifact }}
+        run-id: ${{ inputs.fw-run-id }}
+        path: firmware-v1.5
+
+    - name: Artifact | Tar v1.4 FW for DeviSpare
+      run: |
+        tar -czvf firmware-v1.4.tar.gz -C firmware-v1.4 .
+
+    - name: Determine two open ports at reverse proxy
+      # The ports excluded below are hard coded in CI jobs
+      # on other Midokura repositories
+      id: rproxy
+      run: |
+        ports=$(python system-tests/ports_range.py \
+                       frp.mido-tools.midokura.com \
+                       8000 8099 \
+                       -e 8057 -e 8058)
+        echo "port-mqtt=$(echo $ports | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+        echo "port-http=$(echo $ports | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
+        echo "Chosen ports: $ports"
+
+    - name: Run tests via Pytest
+      run: |
+        export FW_V1_5_PATH=$PWD/firmware-v1.5/nuttx.bin
+        [ -f $FW_V1_5_PATH ] || (echo "bad file!"; exit 1)
+        pytest --capture=tee-sys \
+        --log-cli-level=INFO --log-file-level=DEBUG \
+        --log-file="pytest.log" \
+        --log-cli-format="%(asctime)s %(message)s" \
+        --log-file-format="%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)" \
+        --log-file-date-format="%Y-%m-%d %H:%M:%S" \
+        --alluredir=allure-results \
+        system-tests/tests/ota_upd_v1_4_to_v1_5 \
+        --frp-host=frp.mido-tools.midokura.com \
+        --frp-port-mqtt=${{ steps.rproxy.outputs.port-mqtt }} \
+        --frp-port-http=${{ steps.rproxy.outputs.port-http }} \
+        --frp-token=${{ secrets.FRP_TOKEN }} \
+        --frp-name-suffix=local-console-${{ github.run_id }} \
+        --devispare-firmware=firmware-v1.4.tar.gz \
+        --devispare-host=https://devispare-sss.japaneast.cloudapp.azure.com/api/v1 \
+        --devispare-token=${{ secrets.DEVISPARE_TOKEN }} \
+        --onwire-version=evp1 \
+        --certs-folder=system-tests/src/resources/mqtt-broker/certificates
+
+    - name: Artifact | Upload Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: results-ota-v1_4-v1_5-update
+        path: |
+          results/*
+          pytest.log
+        overwrite: true
+
+    - name: Artifact | Upload Allure Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: allure-results-onwire-ota-v1_4-v1_5-update
+        path: allure-results/*.json
+        overwrite: true
+        retention-days: 1
+
+  upload-report:
+    name: Allure
+    uses: midokura/report-system/.github/workflows/upload-report.yaml@main
+    needs: [test]
+    if: always()
+    with:
+      artifact: allure-results-onwire-ota-v1_4-v1_5-update
+      allure-artifact: allure-report
+      host: https://report-system.qa.midokura.com
+      directory: midokura/wedge-cli
+      folder: ${{ github.event.number }}
+      folder-expiration: P1D
+      artifact-expiration: 1
+    secrets: inherit

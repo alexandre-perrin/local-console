@@ -1,0 +1,129 @@
+---
+name: Type 3 Firmware build
+
+on:
+  workflow_call:
+    inputs:
+      t3ref:
+        required: true
+        type: string
+        description: |
+          git reference in repo SonySemiconductorSolutions/EdgeAIPF.smartcamera.type3.mirror
+          to checkout for building the firmware
+      cache-key:
+        required: false
+        type: string
+        default: ''
+        description: |
+          Name of the cache key to use. If none given, it
+          defaults to "t3fw-{{inputs.t3ref}}"
+
+    outputs:
+      artifact:
+        description: artifact identifier for built binaries
+        value: ${{ jobs.build.outputs.artifact }}
+      sha:
+        description: SHA of the checked out git reference
+        value: ${{ jobs.build.outputs.sha }}
+
+    secrets:
+      sss-token:
+        description: 'Token used to checkout the type3.mirror repo from SSS'
+        required: true
+      sss-user:
+        description: 'User to which the token belongs'
+        required: true
+
+jobs:
+  build:
+    name: Build Type3 Camera Firmware (@${{inputs.t3ref}})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      artifact: ${{ steps.git-fw.outputs.build-id }}
+      sha: ${{ steps.git-fw.outputs.sha }}
+    steps:
+
+    - name: Git | Checkout
+      uses: actions/checkout@v4
+      with:
+        repository: SonySemiconductorSolutions/EdgeAIPF.smartcamera.type3.mirror
+        ref: ${{ inputs.t3ref }}
+        token: ${{ secrets.sss-token }}
+
+    - name: Git | HEAD SHA
+      id: git-fw
+      run: |
+        SHA=$(git rev-parse --short HEAD)
+        echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+        if [ -n "${{ inputs.cache-key }}" ]; then
+            echo "build-id=${{ inputs.cache-key }}" >> "$GITHUB_OUTPUT"
+        else
+            echo "build-id=t3fw-${{ inputs.t3ref }}-${SHA}" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Cache firmware build
+      id: cache
+      uses: buildjet/cache@v4
+      env:
+        cache-name: cache-t3fw
+      with:
+        key: ${{ steps.git-fw.outputs.build-id }}
+        path: |
+          nuttx/partitions.bin
+          nuttx/nuttx.bin
+          nuttx/bootloader.bin
+
+    - name: Git | Update Submodules
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
+      run: |
+        sed -i '/RUN kconfig-tweak --disable CONFIG_DEV_CONSOLE/s/^/#/g' Dockerfile
+        sed -i '/ENV SECURITY_SWAF_KEY "DEV"/s/#//g' Dockerfile
+        echo "${{ secrets.sss-user }}" > cred.txt
+        echo "${{ secrets.sss-token }}" >> cred.txt
+        sed -i 's@checkoutTree "nuttx" "https://${login}www.tool.sony.biz/bitbucket/scm/imx500/incubator-nuttx.git" ${REV_NUTTX}@checkoutTree "nuttx" "https://${login}github.com/SonySemiconductorSolutions/CameraBase_incubator-nuttx.git" ${REV_NUTTX}@g' setupenv.sh
+        sed -i 's@checkoutTree "apps" "https://${login}www.tool.sony.biz/bitbucket/scm/imx500/incubator-nuttx-apps.git" ${REV_APPS}@checkoutTree "apps" "https://${login}github.com/SonySemiconductorSolutions/CameraBase_incubator-nuttx-apps.git" ${REV_APPS}@g' setupenv.sh
+
+    - name: Build optimization
+      # After the `make` step finishes successfully, the image
+      # is exported as is, and the original image derives from
+      # the massive midokura/nuttx-ci-linux:20211022 image, which
+      # sometimes leads to a disk-full situation in a public runner.
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
+      run: |
+        sed -i '/^FROM/s/$/ AS build/g' Dockerfile
+        echo >> Dockerfile
+        echo "FROM busybox" >> Dockerfile
+        echo "COPY --from=build /src/nuttx/partitions.bin /nuttx/partitions.bin" >> Dockerfile
+        echo "COPY --from=build /src/nuttx/nuttx.bin      /nuttx/nuttx.bin" >> Dockerfile
+        echo "COPY --from=build /src/nuttx/bootloader.bin /nuttx/bootloader.bin" >> Dockerfile
+
+    - name: Docker | Setup Buildx
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
+      uses: docker/setup-buildx-action@v3.2.0
+
+    - name: Docker | Build DevContainer
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
+      uses: docker/build-push-action@v5
+      with:
+        push: false
+        tags: devcontainer:latest
+        context: .
+        load: true
+
+    - name: Docker | Copy NuttX Folder
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
+      run: |
+        docker run --rm -dt --name devcontainer devcontainer:latest /bin/sh
+        docker cp devcontainer:/nuttx nuttx
+        docker container stop devcontainer
+
+    - name: Artifact | Upload Firmware
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.git-fw.outputs.build-id }}
+        path: |
+          nuttx/partitions.bin
+          nuttx/nuttx.bin
+          nuttx/bootloader.bin
+        if-no-files-found: error

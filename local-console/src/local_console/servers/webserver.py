@@ -2,6 +2,8 @@ import http.server
 import logging
 import socketserver
 import threading
+from abc import ABC
+from abc import abstractmethod
 from collections.abc import Sequence
 from pathlib import Path
 from types import TracebackType
@@ -47,10 +49,59 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     do_POST = do_PUT
 
 
-class SyncWebserver:
+class GenericWebserver(ABC):
     """
-    This class exposes the HTTP server classes defined above
-    as a convenient context manager.
+    This class connects an HTTP server class such as the one
+    defined above, with an HTTP handler class, into a convenient
+    context manager. The handler class must be returned from
+    the handler() method, to be implemented.
+    """
+
+    def __init__(self, port: int, deploy: bool = True) -> None:
+        self.port = port
+        self.deploy = deploy
+
+    @abstractmethod
+    def handler(self, *args: Any, **kwargs: Any) -> http.server.BaseHTTPRequestHandler:
+        "Must return an specialization of BaseHTTPRequestHandler"
+
+    def start(self) -> None:
+        if self.deploy:
+            # Create the server object
+            self.server = ThreadedHTTPServer(("0.0.0.0", self.port), self.handler)
+
+            # Start the server in a new thread
+            self.thread = threading.Thread(target=self.server.serve_forever)
+            self.thread.start()
+
+            self.port = self.server.server_port
+            logger.debug("Serving at port %d", self.port)
+
+    def stop(self) -> None:
+        if not self.deploy:
+            return
+
+        # Shutdown the server after exiting the context
+        self.server.shutdown()
+        self.server.server_close()
+
+    def __enter__(self) -> "GenericWebserver":
+        self.start()
+        return self
+
+    def __exit__(
+        self,
+        _exc_type: Optional[type[BaseException]],
+        _exc_val: Optional[BaseException],
+        _exc_tb: Optional[TracebackType],
+    ) -> None:
+        self.stop()
+
+
+class SyncWebserver(GenericWebserver):
+    """
+    This class applies the generic webserver class above for providing
+    the HTTP file server required in deployment workflows.
     """
 
     def __init__(
@@ -60,40 +111,14 @@ class SyncWebserver:
         on_incoming: Optional[Callable] = None,
         deploy: bool = True,
     ) -> None:
+        super().__init__(port, deploy)
         self.dir = directory
-        self.port = port
         self.on_incoming = on_incoming
-        self.deploy = deploy
 
-    def __enter__(self) -> "SyncWebserver":
-        if self.deploy:
-            # Create the server object
-            handler = lambda *args, **kwargs: CustomHTTPRequestHandler(
-                *args, on_incoming=self.on_incoming, directory=str(self.dir), **kwargs
-            )
-            self.server = ThreadedHTTPServer(("0.0.0.0", self.port), handler)
-
-            # Start the server in a new thread
-            self.thread = threading.Thread(target=self.server.serve_forever)
-            self.thread.start()
-
-            self.port = self.server.server_port
-            logger.debug("Serving at port %d", self.port)
-
-        return self
-
-    def __exit__(
-        self,
-        _exc_type: Optional[type[BaseException]],
-        _exc_val: Optional[BaseException],
-        _exc_tb: Optional[TracebackType],
-    ) -> None:
-        if not self.deploy:
-            return
-
-        # Shutdown the server after exiting the context
-        self.server.shutdown()
-        self.server.server_close()
+    def handler(self, *args: Any, **kwargs: Any) -> CustomHTTPRequestHandler:
+        return CustomHTTPRequestHandler(
+            *args, on_incoming=self.on_incoming, directory=str(self.dir), **kwargs
+        )
 
 
 class AsyncWebserver(SyncWebserver):
@@ -103,7 +128,7 @@ class AsyncWebserver(SyncWebserver):
     enables managing the webserver from async contexts.
     """
 
-    async def __aenter__(self) -> "SyncWebserver":
+    async def __aenter__(self) -> "GenericWebserver":
         return self.__enter__()
 
     async def __aexit__(

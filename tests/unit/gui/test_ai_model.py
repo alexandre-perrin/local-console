@@ -10,7 +10,7 @@ from local_console.core.config import get_default_config
 sys.modules["local_console.gui.driver"] = MagicMock()
 
 from local_console.gui.controller.ai_model_screen import AIModelScreenController
-from local_console.gui.controller.ai_model_screen import get_package_hash
+from local_console.core.commands.ota_deploy import get_package_hash
 from local_console.utils.local_network import get_my_ip_by_routing
 
 # To allow other tests to load driver
