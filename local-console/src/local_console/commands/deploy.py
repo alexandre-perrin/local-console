@@ -57,12 +57,23 @@ def deploy(
             help="Optional argument to specify which AoT compilation to deploy. If not defined it will deploy the plain WASM"
         ),
     ] = None,
+    force_webserver: Annotated[
+        bool,
+        typer.Option(
+            "-f",
+            "--force-webserver",
+            help=(
+                "If passed, the command will deploy the webserver locally, even if the "
+                "configured webserver host does not resolve to localhost"
+            ),
+        ),
+    ] = False,
 ) -> None:
     agent = Agent()
     config: AgentConfiguration = get_config()  # type: ignore
     port = config.webserver.port
     host = config.webserver.host.ip_value
-    deploy_webserver = False
+    deploy_webserver = force_webserver
 
     local_ip = get_my_ip_by_routing()
     if is_localhost(host) or host == local_ip:

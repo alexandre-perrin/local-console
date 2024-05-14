@@ -102,6 +102,8 @@ class Agent:
         await self.publish(MQTTTopics.ATTRIBUTES.value, payload=deployment)
 
     async def rpc(self, instance_id: str, method: str, params: str) -> None:
+        # TODO Schematize this across the on-wire schema versions
+
         reqid = str(random.randint(0, 10**8))
         RPC_TOPIC = f"v1/devices/me/rpc/request/{reqid}"
         if self.onwire_schema == OnWireProtocol.EVP2:
@@ -143,6 +145,12 @@ class Agent:
         await self.publish(RPC_TOPIC, payload=payload)
 
     async def configure(self, instance_id: str, topic: str, config: str) -> None:
+        # TODO Schematize this across the on-wire schema versions
+        # FIXME EVP2 does not enforce base64 encoding. Decide how to handle it here
+        #       see:
+        #       https://github.com/SonySemiconductorSolutions/EdgeAIPF.smartcamera.type3.system-test/blob/a66d25ed6a4efbf0bffb593bc7013b098dd35786/src/interface.py#L82
+        #       https://github.com/midokura/wedge-agent/blob/ee08d254658177ddfa3f75b7d1f09922104a2427/src/libwedge-agent/instance_config.c#L339
+
         # The following stanza matches the implementation at:
         # https://github.com/midokura/wedge-agent/blob/ee08d254658177ddfa3f75b7d1f09922104a2427/src/libwedge-agent/instance_config.c#L324
         config = base64.b64encode(config.encode("utf-8")).decode("utf-8")

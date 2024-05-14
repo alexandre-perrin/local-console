@@ -11,61 +11,13 @@ env:
   PYTHON_VERSION: '3.11'
 
 jobs:
+
   wheel:
     name: Build python wheel
-    runs-on: [self-hosted, X64]
-    container: ubuntu:22.04
-    timeout-minutes: 7
-    env:
-      ARTIFACT_NAME: python-wheel
-    outputs:
-      artifact: ${{ env.ARTIFACT_NAME }}
-    steps:
-    - name: Install system requirements
-      run: |
-        apt-get -y update && \
-        apt install -y gcc python3-dev make cmake \
-                       software-properties-common git
-
-    - name: Setup Python ${{ env.PYTHON_VERSION }}
-      uses: actions/setup-python@v5
-      id: py
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-
-    - name: Create unprivileged user
-      # Building the python wheel as root was not working
-      # as expected, with setuptools-scm failing to detect
-      # the git repo, and hence not including important files
-      # Hence, we need an unprivileged user
-      run: useradd -m testbot
-
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        path: "repo"
-        # Shallow checkouts were not conducive to setuptools-scm
-        # detecting the git repository with its objects.
-        fetch-depth: 0
-
-    - name: Post-checkout chown and move
-      run: |
-        mv repo ~testbot/
-        chown -R testbot ~testbot/repo
-
-    - name: Build wheel
-      run: |
-        runuser -u testbot -- ${{ steps.py.outputs.python-path }} -m venv ~testbot/build_env
-        runuser -u testbot -- ~testbot/build_env/bin/python -m pip install build
-        runuser -u testbot -- ~testbot/build_env/bin/python -m build --wheel --outdir ~testbot/ ~testbot/repo/local-console/
-        mv ~testbot/local_console-*-py3-*.whl .
-
-    - name: Upload wheel
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.ARTIFACT_NAME }}
-        retention-days: 21
-        path: local_console-*-py3-*.whl
+    uses: ./.github/workflows/build-wheel.yaml
+    secrets: inherit
+    with:
+      python-version: '3.11'
 
   pre-commit:
     name: Pre-commit
@@ -204,6 +156,15 @@ jobs:
         . .venv/bin/activate
         runuser -u testbot -- python tests/e2e.py ${{ matrix.with-tls == true && '--with-tls' || '' }} -s ${{ matrix.ows-version }}
 
+  system-tests:
+    name: Run System Tests
+    needs: [wheel, pre-commit]
+    uses: ./.github/workflows/execute-system-tests.yaml
+    secrets: inherit
+    with:
+      lc-run-id: ${{ github.run_id }}
+      lc-wheel-artifact: ${{ needs.wheel.outputs.artifact }}
+
   windows-installer:
     name: Windows Installer
     runs-on: windows-latest
@@ -259,7 +220,14 @@ jobs:
   publish:
     name: Publish and tag
     runs-on: [self-hosted, X64]
-    needs: [pre-commit, wheel, unit-tests, e2e-tests, windows-installer, verify]
+    needs:
+    - verify
+    - pre-commit
+    - wheel
+    - unit-tests
+    - e2e-tests
+    - system-tests
+    - windows-installer
     if: needs.verify.outputs.exists == 'false'
     steps:
     - name: Checkout

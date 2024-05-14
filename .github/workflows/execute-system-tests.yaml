@@ -1,0 +1,256 @@
+---
+name: Execute System Tests
+
+on:
+  workflow_call:
+    inputs:
+      lc-run-id:
+        required: true
+        type: string
+        description: |
+          Workflow run id from the build python wheel job,
+          used for downloading the compiled wheel artifact
+      lc-wheel-artifact:
+        required: false
+        type: string
+        default: "python-wheel"
+        description: |
+          Name of the wheel artifact compiled by the build python wheel job
+      v17ref:
+        required: false
+        type: string
+        default: hiiragi
+        description: Branch reference for CamFW v1.7
+      v15ref:
+        required: false
+        type: string
+        default: t3p_v1x
+        description: Branch reference for CamFW v1.5
+
+jobs:
+
+  build-v1x:
+    name: Build Type3 Camera Firmware (v1x)
+    #runs-on: gdo-shr-runner-cam-allEnv-04
+    runs-on: [self-hosted, amd64, stable]
+    #container: ubuntu:22.04
+    timeout-minutes: 25
+    env:
+      ARTIFACT_NAME: firmware-v1x
+    outputs:
+      artifact: ${{ env.ARTIFACT_NAME }}
+      sha: ${{ steps.git-fw.outputs.sha }}
+    steps:
+    - name: Git | Checkout
+      uses: actions/checkout@v4
+      with:
+        repository: SonySemiconductorSolutions/EdgeAIPF.smartcamera.type3.mirror
+        ref: ${{ inputs.v15ref || 't3p_v1x' }}
+        token: ${{ secrets.TEMPORARY_PAT_TOKEN }}
+
+    - name: Git | HEAD SHA
+      id: git-fw
+      run: echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+    - name: Cache firmware build
+      id: cache
+      uses: buildjet/cache@v4
+      env:
+        cache-name: cache-fw-v1x
+      with:
+        key: fw-v1x-${{ steps.git-fw.outputs.sha }}
+        restore-keys: |
+          fw-v1x
+        path: |
+          nuttx/partitions.bin
+          nuttx/nuttx.bin
+          nuttx/bootloader.bin
+
+    - name: Git | Update Submodules
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
+      run: |
+        sed -i '/RUN kconfig-tweak --disable CONFIG_DEV_CONSOLE/s/^/#/g' Dockerfile
+        sed -i '/ENV SECURITY_SWAF_KEY "DEV"/s/#//g' Dockerfile
+        echo "${{ secrets.TEMPORARY_PAT_USER }}" > cred.txt
+        echo "${{ secrets.TEMPORARY_PAT_TOKEN }}" >> cred.txt
+        sed -i 's@checkoutTree "nuttx" "https://${login}www.tool.sony.biz/bitbucket/scm/imx500/incubator-nuttx.git" ${REV_NUTTX}@checkoutTree "nuttx" "https://${login}github.com/SonySemiconductorSolutions/CameraBase_incubator-nuttx.git" ${REV_NUTTX}@g' setupenv.sh
+        sed -i 's@checkoutTree "apps" "https://${login}www.tool.sony.biz/bitbucket/scm/imx500/incubator-nuttx-apps.git" ${REV_APPS}@checkoutTree "apps" "https://${login}github.com/SonySemiconductorSolutions/CameraBase_incubator-nuttx-apps.git" ${REV_APPS}@g' setupenv.sh
+
+    - name: Docker | Setup Buildx
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
+      uses: docker/setup-buildx-action@v3.2.0
+
+    - name: Docker | Build DevContainer
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
+      uses: docker/build-push-action@v5
+      with:
+        push: false
+        tags: devcontainer:latest
+        context: .
+        load: true
+
+    - name: Docker | Copy NuttX Folder
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
+      run: |
+        docker run --rm -dt --name devcontainer devcontainer:latest /bin/bash
+        docker cp  devcontainer:/src/nuttx nuttx
+        docker container stop devcontainer
+
+    - name: Artifact | Upload Firmware
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.ARTIFACT_NAME }}
+        path: |
+          nuttx/partitions.bin
+          nuttx/nuttx.bin
+          nuttx/bootloader.bin
+
+  test-v1x:
+    name: 'Test Type3 Camera Firmware - Onwire: EVP1 - Interface v1'
+    runs-on: ubuntu-22.04
+    needs: [build-v1x]
+    steps:
+    - name: Log into GHCR
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: System dependencies
+      run: |
+        sudo apt update && \
+          sudo apt install --yes \
+              tree gcc python3-dev make cmake \
+              software-properties-common git mosquitto
+
+    - name: Python | Setup
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Download install wasi-sdk 19
+      run: |
+        curl -sL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-19/wasi-sdk-19.0-linux.tar.gz | tar zxvf - -C /tmp && \
+            sudo mv /tmp/wasi-sdk-19.0 /opt/wasi-sdk
+
+    - name: Get wamrc to match this wasi-sdk and camera firmware
+      run: |
+        docker run --rm ghcr.io/midokura/wamrc-xtensa:1.1.2 cat /opt/wamrc/bin/wamrc > wamrc
+        sudo install -o root -m 0777 wamrc /usr/local/bin/
+
+    - name: Git | Checkout our tests
+      uses: actions/checkout@v4
+      with:
+        sparse-checkout: |
+          system-tests
+          samples
+          sonar-project.properties
+
+    - name: Git | Checkout AoT signing key
+      uses: actions/checkout@v4
+      with:
+        repository: SonySemiconductorSolutions/EdgeAIPF.smartcamera.type3.mirror
+        ref: ${{ inputs.v15ref || 't3p_v1x' }}
+        token: ${{ secrets.TEMPORARY_PAT_TOKEN }}
+        sparse-checkout: |
+          tool/internal/swaf_tools/generate_swaf_key/sample_output/swaf_private_key_der.bin
+        sparse-checkout-cone-mode: false
+        path: "res"
+
+    - name: Set signing key path
+      id: sign-key
+      run: |
+        SKEY=$PWD/res/tool/internal/swaf_tools/generate_swaf_key/sample_output/swaf_private_key_der.bin
+        [ -f $SKEY ] || (echo "Bad path to signing key: $SKEY"; exit 1)
+        echo "path=$SKEY" >> "$GITHUB_OUTPUT"
+
+    - name: Artifact | Download
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.lc-wheel-artifact }}
+        run-id: ${{ inputs.lc-run-id }}
+
+    - name: Python | Install Requirements
+      run: |
+        pip install -r system-tests/requirements.txt
+        pip install ./local_console-*-py3-*.whl
+
+    - name: Artifact | Download
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ needs.build-v1x.outputs.artifact }}
+        path: firmware-v1x
+
+    - name: Artifact | Tar Firmware
+      run: |
+        tar -czvf firmware-v1x.tar.gz -C firmware-v1x .
+
+    - name: Determine two open ports at reverse proxy
+      # The ports excluded below are hard coded in CI jobs
+      # on other Midokura repositories
+      id: rproxy
+      run: |
+        ports=$(python system-tests/ports_range.py \
+                       frp.mido-tools.midokura.com \
+                       8000 8099 \
+                       -e 8057 -e 8058)
+        echo "port-mqtt=$(echo $ports | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+        echo "port-http=$(echo $ports | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
+        echo "Chosen ports: $ports"
+
+    - name: Run tests via Pytest
+      run: |
+        pytest --capture=tee-sys \
+        --log-cli-level=INFO --log-file-level=DEBUG \
+        --log-file="pytest.log" \
+        --log-cli-format="%(asctime)s %(message)s" \
+        --log-file-format="%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)" \
+        --log-file-date-format="%Y-%m-%d %H:%M:%S" \
+        --alluredir=allure-results \
+        system-tests/tests/v1 \
+        --frp-host=frp.mido-tools.midokura.com \
+        --frp-port-mqtt=${{ steps.rproxy.outputs.port-mqtt }} \
+        --frp-port-http=${{ steps.rproxy.outputs.port-http }} \
+        --frp-token=${{ secrets.FRP_TOKEN }} \
+        --frp-name-suffix=local-console-${{ github.run_id }} \
+        --devispare-firmware=firmware-v1x.tar.gz \
+        --devispare-host=https://devispare-sss.japaneast.cloudapp.azure.com/api/v1 \
+        --devispare-token=${{ secrets.DEVISPARE_TOKEN }} \
+        --onwire-version=evp1 \
+        --certs-folder=system-tests/src/resources/mqtt-broker/certificates \
+        --signing-key=${{ steps.sign-key.outputs.path }}
+
+    - name: Artifact | Upload Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: results-interface-v1
+        path: |
+          results/*
+          pytest.log
+        overwrite: true
+
+    - name: Artifact | Upload Allure Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: allure-results-onwire-evp1-interface-v1
+        path: allure-results/*.json
+        overwrite: true
+        retention-days: 1
+
+  upload-report:
+    name: Allure
+    uses: midokura/report-system/.github/workflows/upload-report.yaml@main
+    needs: [test-v1x]
+    if: always()
+    with:
+      artifact: allure-results-onwire-evp1-interface-v1
+      allure-artifact: allure-report
+      host: https://report-system.qa.midokura.com
+      directory: midokura/wedge-cli
+      folder: ${{ github.event.number }}
+      folder-expiration: P1D
+      artifact-expiration: 1
+    secrets: inherit
