@@ -34,7 +34,7 @@ dependencies = [
 	"cryptography==42.0.5",
 	"decorator==5.1.1",
 	"docutils==0.20.1",
-	"exceptiongroup==1.2.0",
+	"exceptiongroup==1.2.1",
 	"idna==3.6",
 	"importlib_metadata==7.1.0",
 	"Kivy==2.3.0",
