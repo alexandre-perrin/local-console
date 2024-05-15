@@ -92,11 +92,11 @@
       ]
     },
     {
-      "bom-ref": "exceptiongroup==1.2.0",
+      "bom-ref": "exceptiongroup==1.2.1",
       "externalReferences": [
         {
           "type": "license",
-          "url": "https://github.com/agronholm/exceptiongroup/blob/1.2.0/LICENSE"
+          "url": "https://github.com/agronholm/exceptiongroup/blob/1.2.1/LICENSE"
         }
       ]
     },
