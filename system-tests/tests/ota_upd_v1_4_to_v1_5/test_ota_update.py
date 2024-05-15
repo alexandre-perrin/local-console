@@ -19,7 +19,7 @@ from tests.matchers.ota import ota_has_succeeded
 @allure.parent_suite("OTA FW update version 1.4.3 to 1.5.1")
 @allure.suite("FW update")
 def test_ota_update(mqtt_broker: LocalConsoleAdapter) -> None:
-    allure.dynamic.title("WASM module - Onwire: EVP1 - Interface v1")
+    allure.dynamic.title("OTA update - Onwire: EVP1 - Interface v1")
 
     # Set EVP1
     mqtt_broker.invoke_cli("config", "set", "evp", "iot_platform", "evp1")
