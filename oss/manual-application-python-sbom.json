@@ -1,11 +1,11 @@
 {
   "components": [
     {
-      "bom-ref": "idna==3.6",
+      "bom-ref": "idna==3.7",
       "externalReferences": [
         {
           "type": "license",
-          "url": "https://github.com/kjd/idna/blob/v3.6/LICENSE.md"
+          "url": "https://github.com/kjd/idna/blob/v3.7/LICENSE.md"
         }
       ],
       "licenses": [
@@ -92,11 +92,11 @@
       ]
     },
     {
-      "bom-ref": "exceptiongroup==1.2.0",
+      "bom-ref": "exceptiongroup==1.2.1",
       "externalReferences": [
         {
           "type": "license",
-          "url": "https://github.com/agronholm/exceptiongroup/blob/1.2.0/LICENSE"
+          "url": "https://github.com/agronholm/exceptiongroup/blob/1.2.1/LICENSE"
         }
       ]
     },
