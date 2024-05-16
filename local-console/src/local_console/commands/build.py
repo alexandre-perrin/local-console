@@ -45,13 +45,13 @@ def compile_wasm(flags: Optional[list[str]]) -> bool:
     return success
 
 
-def sign_file(file: str, secret_path: Path) -> None:
-    if not secret_path.exists():
+def sign_file(file: str, secret_path: str) -> None:
+    if not Path(secret_path).exists():
         logger.error("Secret does not exist")
         raise typer.Exit(code=1)
 
     logger.info(f"Signing {file}")
-    with open(f"bin/{file}", "rb") as f:
+    with open(f"{file}", "rb") as f:
         aot_bytes = f.read()
     with open(secret_path, "rb") as f:
         secret_bytes = f.read()
@@ -62,7 +62,7 @@ def sign_file(file: str, secret_path: Path) -> None:
         raise typer.Exit(code=1)
 
     file = f"{file}.{ModuleExtension.SIGNED}"
-    with open(f"bin/{file}", "wb") as f:
+    with open(f"{file}", "wb") as f:
         f.write(signed_aot_bytes)
 
 
@@ -135,4 +135,4 @@ def build(
         if target:
             file = compile_aot(module_name, target)
         if secret:
-            sign_file(file, secret)
+            sign_file(f"bin/{file}", str(secret))
