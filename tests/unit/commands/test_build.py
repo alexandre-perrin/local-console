@@ -133,7 +133,7 @@ def test_build_command_secret(
         mock_os_listdir.assert_called_once_with("bin")
         mock_get_deployment.assert_called_once()
         for file in wasm_files:
-            mock_sign_file.assert_any_call(file, Path(secret))
+            mock_sign_file.assert_any_call(f"bin/{file}", secret)
         assert result.exit_code == 0
 
 
@@ -215,11 +215,11 @@ def test_sign_file(module_name: str, secret_path: Path, bytes_mock: bytes):
     ):
         file = f"{module_name}.{ModuleExtension.WASM}"
         mock_open.return_value.__enter__.return_value.read.return_value = bytes_mock
-        sign_file(file, secret_path)
+        sign_file(file, str(secret_path))
         mock_exists.assert_called_once()
-        mock_open.assert_any_call(secret_path, "rb")
-        mock_open.assert_any_call(f"bin/{file}", "rb")
-        mock_open.assert_any_call(f"bin/{file}.{ModuleExtension.SIGNED}", "wb")
+        mock_open.assert_any_call(str(secret_path), "rb")
+        mock_open.assert_any_call(file, "rb")
+        mock_open.assert_any_call(f"{file}.{ModuleExtension.SIGNED}", "wb")
         mock_sign.assert_called_once_with(bytes_mock, bytes_mock)
 
 
@@ -235,10 +235,10 @@ def test_sign_file_exception(module_name: str, secret_path: Path):
         file = f"{module_name}.{ModuleExtension.WASM}"
         mock_open.return_value.__enter__.return_value.read.return_value = bytes
         with pytest.raises(typer.Exit):
-            sign_file(file, secret_path)
+            sign_file(file, str(secret_path))
         mock_exists.assert_called_once()
-        mock_open.assert_any_call(secret_path, "rb")
-        mock_open.assert_any_call(f"bin/{file}", "rb")
+        mock_open.assert_any_call(str(secret_path), "rb")
+        mock_open.assert_any_call(file, "rb")
 
 
 @given(generate_text(), st.sampled_from(Target))
