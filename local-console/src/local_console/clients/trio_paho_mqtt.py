@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2024 Sony Semiconductor Solutions Corp.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,8 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# This file incorporates material from the original trio-paho-mqtt project and
+# a fork of it, both of which are licensed under the Apache License, Version 2.0:
+#
+#     Apache License
+#     Version 2.0, January 2004
+#     http://www.apache.org/licenses/
+#
+# Original Project (https://github.com/bkanuka/trio-paho-mqtt):
+#     Copyright [2020] Bennett Kanuka
+#
+# Forked Project (https://github.com/lexknuther/trio-paho-mqtt):
+#     Copyright [2021] Lex Knuther
+#
+# The following modifications have been made to the original trio-paho-mqtt code and
+# the forked code:
+# - Added typing annotations
+# - Added methods for publish and wait
+#
 # SPDX-License-Identifier: Apache-2.0
-
 import socket
 from collections import defaultdict
 from collections.abc import AsyncIterator
@@ -27,11 +43,6 @@ from trio_util import trio_async_generator
 
 
 class AsyncClient:
-    """
-    This has been adapted from:
-    https://github.com/lexknuther/trio-paho-mqtt
-    """
-
     def __init__(
         self,
         sync_client: mqtt.Client,
