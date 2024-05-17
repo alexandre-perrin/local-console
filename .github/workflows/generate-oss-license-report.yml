@@ -78,3 +78,15 @@ jobs:
           name: local-console-package-sbom-report.csv
           retention-days: 21
           path: oss/local-console-package-sbom-report.csv
+
+  check-headers:
+    name: Check license headers
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check licensing
+        run: |
+          docker run --network=none -v ${PWD}:/src ghcr.io/google/addlicense:latest \
+                  -c 'Sony Semiconductor Solutions Corp.' -l apache -check .
