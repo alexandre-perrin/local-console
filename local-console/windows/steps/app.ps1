@@ -103,9 +103,22 @@ function Get-FlatcBinary([string]$ScriptsDir)
     }
     Write-LogMessage "Flatc Zipball downloaded."
 
-    # Unpack the zip file directly into the virtual environment's Scripts/ directory
-    Expand-Archive -Path $zipPath -DestinationPath $ScriptsDir -Force
-    Write-LogMessage "Flatc Executable unpacked into $ScriptsDir"
+
+    # Initialize a flag to indicate the download success status
+    $unpackSuccesful = $false
+    # Loop until the download is successful
+    while (-not $unpackSuccesful) {
+        try {
+            $ProgressPreference = 'SilentlyContinue'
+            # Unpack the zip file directly into the virtual environment's Scripts/ directory
+            Expand-Archive -Path $zipPath -DestinationPath $ScriptsDir -Force -Verbose:$false
+            Write-LogMessage "Flatc Executable unpacked into $ScriptsDir"
+            $unpackSuccesful = $true
+        } catch {
+            Write-Output "Unpack failed (got $($_.Exception)). Retrying..."
+            Start-Sleep -Seconds 2
+        }
+    }
 
     # Cleanup the downloaded zip file
     Remove-Item -Path $zipPath
