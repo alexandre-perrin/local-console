@@ -13,6 +13,7 @@ from local_console.clients.agent import Agent
 from local_console.clients.agent import check_attributes_request
 from local_console.core.camera import Camera
 from local_console.core.camera import MQTTTopics
+from local_console.core.camera import StreamStatus
 from local_console.core.config import get_config
 from local_console.core.schemas.edge_cloud_if_v1 import Permission
 from local_console.core.schemas.edge_cloud_if_v1 import SetFactoryReset
@@ -340,4 +341,5 @@ class Driver:
 
     async def connection_status_timeout(self) -> None:
         logger.debug("Connection status timed out: camera is disconnected")
+        self.camera_state.sensor_state = StreamStatus.Disabled
         self.update_camera_status()
