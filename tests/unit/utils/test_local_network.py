@@ -13,46 +13,31 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-from unittest.mock import MagicMock
+import re
 from unittest.mock import patch
 
 from hypothesis import given
 from local_console.utils.local_network import get_my_ip_by_routing
+from local_console.utils.local_network import get_network_ifaces
 from local_console.utils.local_network import is_localhost
 from local_console.utils.local_network import LOCAL_IP
 from local_console.utils.local_network import replace_local_address
 
-from tests.strategies.configs import generate_invalid_ip
 from tests.strategies.configs import generate_text
-from tests.strategies.configs import generate_valid_port_number
 
 
-@given(generate_invalid_ip(), generate_valid_port_number())
-def test_get_my_ip_by_routing(ip: str, port: int):
-    mock_socket = MagicMock()
-    mock_socket.socket.return_value.getsockname.return_value = (ip, port)
-    with patch("local_console.utils.local_network.socket", mock_socket):
-        assert get_my_ip_by_routing() == ip
-        mock_socket.socket.assert_called_once_with(
-            mock_socket.AF_INET, mock_socket.SOCK_DGRAM
-        )
-        mock_socket.socket.return_value.connect.assert_called_once_with(("9.9.9.9", 53))
-        mock_socket.socket.return_value.close.assert_called_once()
+def test_detect_interfaces():
+    interfaces = get_network_ifaces()
+
+    assert "lo" not in interfaces
+    assert all("docker" not in iface for iface in interfaces)
+    assert all("ppp" not in iface for iface in interfaces)
 
 
-@given(generate_invalid_ip(), generate_valid_port_number())
-def test_get_my_ip_by_routing_no_connection(ip: str, port: int):
-    mock_socket = MagicMock()
-    mock_socket.socket.return_value.getsockname.return_value = (ip, port)
-    mock_socket.socket.return_value.connect.side_effect = OSError("Connection Failed")
-    with patch("local_console.utils.local_network.socket", mock_socket):
-        assert get_my_ip_by_routing() == ""
-        mock_socket.socket.assert_called_once_with(
-            mock_socket.AF_INET, mock_socket.SOCK_DGRAM
-        )
-        mock_socket.socket.return_value.connect.assert_called_once_with(("9.9.9.9", 53))
-        mock_socket.socket.return_value.getsockname.assert_not_called()
-        mock_socket.socket.return_value.close.assert_not_called()
+def test_get_my_ip_by_routing():
+    # Ensure we get an IPv4 address
+    local_ip = get_my_ip_by_routing()
+    assert re.match(r"\d+\.\d+\.\d+\.\d+", local_ip)
 
 
 def test_is_localhost():

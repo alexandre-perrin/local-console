@@ -17,23 +17,46 @@ import ipaddress
 import logging
 import socket
 
+import psutil
+
 logger = logging.getLogger(__file__)
 
 
-def get_my_ip_by_routing(probe_host: str = "9.9.9.9") -> str:
+def get_network_ifaces() -> list[str]:
     """
-    This gets the machine's IP by means of a traceroute
-    command to a stable public service such as Quad9 DNS.
+    Gets network interfaces over which a local server could be
+    reached in the local network.
+
+    Returns:
+        list[str]: List of network interface names
     """
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        s.connect((probe_host, 53))
-        this_machine_ip = str(s.getsockname()[0])
-        s.close()
-    except OSError as e:
-        logger.warning(f"Socket connect error: {e}")
-        this_machine_ip = ""
-    return this_machine_ip
+    stats = psutil.net_if_stats()
+    return list(
+        k
+        for k, v in stats.items()
+        if v.isup
+        and "running" in v.flags
+        and "loopback" not in v.flags
+        and "pointopoint" not in v.flags
+    )
+
+
+def get_my_ip_by_routing() -> str:
+    """
+    This gets the machine's IP by checking assigned IPv4
+    addresses to network interfaces determined to be
+    accessible by other devices in the local network.
+    """
+    ifaces = get_network_ifaces()
+    infos = psutil.net_if_addrs()
+    addr_info = {
+        iface: [
+            info for info in infos[iface] if info.family == socket.AddressFamily.AF_INET
+        ]
+        for iface in ifaces
+    }
+    chosen = next(addrs[0] for iface, addrs in addr_info.items() if addrs)
+    return chosen.address
 
 
 LOCAL_IP: str = get_my_ip_by_routing()
