@@ -15,6 +15,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import ipaddress
 import logging
+import platform
 import socket
 
 import psutil
@@ -31,14 +32,21 @@ def get_network_ifaces() -> list[str]:
         list[str]: List of network interface names
     """
     stats = psutil.net_if_stats()
-    return list(
-        k
-        for k, v in stats.items()
-        if v.isup
-        and "running" in v.flags
-        and "loopback" not in v.flags
-        and "pointopoint" not in v.flags
-    )
+    os_name = platform.system()
+    if os_name == "Windows":
+        chosen = list(
+            k for k, v in stats.items() if v.isup and "loopback" not in k.lower()
+        )
+    else:
+        chosen = list(
+            k
+            for k, v in stats.items()
+            if v.isup
+            and "running" in v.flags
+            and "loopback" not in v.flags
+            and "pointopoint" not in v.flags
+        )
+    return chosen
 
 
 def get_my_ip_by_routing() -> str:
