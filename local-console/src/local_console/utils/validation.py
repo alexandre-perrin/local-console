@@ -13,7 +13,10 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+import logging
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 AOT_XTENSA_HEADER = (
     0x00,
@@ -70,14 +73,22 @@ IMX500_MODEL_HEADER = (0x34, 0x36, 0x34, 0x39)
 
 
 def validate_app_file(app_file: Path) -> bool:
-    with app_file.open("rb") as file_in:
-        file_header = file_in.read(len(AOT_XTENSA_HEADER))
+    try:
+        with app_file.open("rb") as file_in:
+            file_header = file_in.read(len(AOT_XTENSA_HEADER))
+    except Exception as e:
+        logger.warning(f"Exception: {e}")
+        return False
 
     return file_header == bytes(AOT_XTENSA_HEADER)
 
 
-def validate_imx500_model_file(app_file: Path) -> bool:
-    with app_file.open("rb") as file_in:
-        file_header = file_in.read(len(IMX500_MODEL_HEADER))
+def validate_imx500_model_file(model_file: Path) -> bool:
+    try:
+        with model_file.open("rb") as file_in:
+            file_header = file_in.read(len(IMX500_MODEL_HEADER))
+    except Exception as e:
+        logger.warning(f"Exception: {e}")
+        return False
 
     return file_header == bytes(IMX500_MODEL_HEADER)
