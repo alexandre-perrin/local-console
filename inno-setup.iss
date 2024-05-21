@@ -1,20 +1,25 @@
 ; Inno Setup Script for generating Windows Installer of Local Console.
 
 #define MyAppName "Local Console"
-#define MyAppVersion "0.1.0"
 #define MyAppPublisher "Sony Semiconductor Solutions Corporation"
 #define MyAppExeName "local-console.exe"
 #define MyAppAssocName MyAppName + " File"
 #define MyAppAssocExt ".myp"
 #define MyAppCanonical StringChange(MyAppName, " ", "")
 #define MyAppAssocKey MyAppCanonical + MyAppAssocExt
+; Define the path to the version file
+#define FileHandle = FileOpen("local-console\VERSION")
+#define VersionString = FileRead(FileHandle)
+#if FileHandle
+  #expr FileClose(FileHandle)
+#endif
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{63A38119-1103-4ED1-AD9B-0D873FB090B5}}
 AppName={#MyAppName}
-AppVersion={#MyAppVersion}
+AppVersion={#VersionString}
 AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\{#MyAppCanonical}
 PrivilegesRequired=lowest

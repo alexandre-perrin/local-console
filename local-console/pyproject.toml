@@ -80,6 +80,9 @@ homepage = "https://github.com/midokura/wedge-cli"
 [tool.setuptools.dynamic]
 version = {file = ["VERSION"]}
 
+[tool.setuptools]
+license-files = ["*LICENSE"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
