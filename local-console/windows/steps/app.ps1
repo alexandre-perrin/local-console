@@ -77,21 +77,48 @@ function Create-PythonEnvWithExecutable([string]$VirtualenvDir, [string]$WheelPa
 
 function Get-FlatcBinary([string]$ScriptsDir)
 {
-    $flatcPath = Join-Path "$ScriptsDir" "flatc.exe"
+    $flatcPath = Join-Path $ScriptsDir "flatc.exe"
 
-    if (Test-Path "$flatcPath" -PathType Leaf) {
+    if (Test-Path $flatcPath -PathType Leaf) {
         Write-LogMessage "Flatc already installed at $ScriptsDir"
         return
     }
 
     # Download the zip file
     $zipPath = Join-Path $env:TEMP "tempExecutable.zip"
-    Invoke-WebRequest -Uri $DepURLFlatc -OutFile $zipPath
+
+    # Initialize a flag to indicate the download success status
+    $downloadSuccessful = $false
+    # Loop until the download is successful
+    while (-not $downloadSuccessful) {
+        try {
+            $ProgressPreference = 'SilentlyContinue'
+            Invoke-WebRequest -Uri $DepURLFlatc -OutFile $zipPath -Verbose:$false
+            $downloadSuccessful = $true
+        } catch {
+            $statusCode = $_.Exception.Response.StatusCode.value__
+            Write-Output "Download failed (got code $statusCode). Retrying..."
+            Start-Sleep -Seconds 5
+        }
+    }
     Write-LogMessage "Flatc Zipball downloaded."
 
-    # Unpack the zip file directly into the virtual environment's bin/ directory
-    Expand-Archive -Path $zipPath -DestinationPath $ScriptsDir -Force
-    Write-LogMessage "Flatc Executable unpacked into $ScriptsDir"
+
+    # Initialize a flag to indicate the download success status
+    $unpackSuccesful = $false
+    # Loop until the download is successful
+    while (-not $unpackSuccesful) {
+        try {
+            $ProgressPreference = 'SilentlyContinue'
+            # Unpack the zip file directly into the virtual environment's Scripts/ directory
+            Expand-Archive -Path $zipPath -DestinationPath $ScriptsDir -Force -Verbose:$false
+            Write-LogMessage "Flatc Executable unpacked into $ScriptsDir"
+            $unpackSuccesful = $true
+        } catch {
+            Write-Output "Unpack failed (got $($_.Exception)). Retrying..."
+            Start-Sleep -Seconds 2
+        }
+    }
 
     # Cleanup the downloaded zip file
     Remove-Item -Path $zipPath

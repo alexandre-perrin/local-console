@@ -29,11 +29,18 @@ function Main
     if ($DoRedirect) {
         $SysRedirectArgs = "-TranscriptPath `"$SysLogFile`""
     }
-    Run-Privileged "$scriptSys" "$SysRedirectArgs"
-    if ($DoRedirect) {
-        cat "$SysLogFile" >> $RedirectLogPath
-        rm "$SysLogFile"
+    try {
+        Run-Privileged "$scriptSys" "$SysRedirectArgs"
+        if ($DoRedirect) {
+            cat "$SysLogFile" >> $RedirectLogPath
+            rm "$SysLogFile"
+        }
     }
+    catch {
+        Write-LogMessage "Could not install system dependencies"
+        return 1
+    }
+
     Write-LogMessage "Done installing system dependencies"
 
     if ([string]::IsNullOrWhiteSpace($AppInstallPath)) {
