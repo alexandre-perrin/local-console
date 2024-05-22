@@ -20,12 +20,12 @@ import trio
 import typer
 from local_console.clients.agent import Agent
 
-app = typer.Typer(help="Command to send RPC to a module instance")
+app = typer.Typer()
 
 logger = logging.getLogger(__name__)
 
 
-@app.callback(invoke_without_command=True)
+@app.command(help="Command to send RPC to a module instance")
 def rpc(
     instance_id: Annotated[
         str,

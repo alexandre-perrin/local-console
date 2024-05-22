@@ -48,7 +48,6 @@ app = typer.Typer(
     add_completion=False,
     context_settings={"help_option_names": ["-h", "--help"]},
 )
-app.add_typer(rpc.app, name="rpc")
 app.add_typer(get.app, name="get")
 app.add_typer(config.app, name="config")
 app.add_typer(broker.app, name="broker")
@@ -59,6 +58,7 @@ app.registered_commands += deploy.app.registered_commands
 app.registered_commands += start.app.registered_commands
 app.registered_commands += new.app.registered_commands
 app.registered_commands += logs.app.registered_commands
+app.registered_commands += rpc.app.registered_commands
 
 
 def handle_exit(signal: int, frame: Optional[FrameType]) -> None:
