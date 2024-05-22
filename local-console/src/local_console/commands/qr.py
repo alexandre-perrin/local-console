@@ -27,15 +27,15 @@ from local_console.utils.local_network import is_localhost
 
 logger = logging.getLogger(__name__)
 
-app = typer.Typer(
+app = typer.Typer()
+
+
+@app.command(
     help=(
         "Command to generate a QR code for camera onboarding. "
         "Host and port options default to the configured values in the CLI"
     )
 )
-
-
-@app.callback(invoke_without_command=True)
 def qr(
     host: Annotated[
         Optional[str],
