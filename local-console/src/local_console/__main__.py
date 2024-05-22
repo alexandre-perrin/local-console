@@ -50,7 +50,6 @@ app = typer.Typer(
 )
 app.add_typer(get.app, name="get")
 app.add_typer(config.app, name="config")
-app.add_typer(gui.app, name="gui")
 app.add_typer(qr.app, name="qr")
 app.registered_commands += build.app.registered_commands
 app.registered_commands += deploy.app.registered_commands
@@ -59,6 +58,7 @@ app.registered_commands += new.app.registered_commands
 app.registered_commands += logs.app.registered_commands
 app.registered_commands += rpc.app.registered_commands
 app.registered_commands += broker.app.registered_commands
+app.registered_commands += gui.app.registered_commands
 
 
 def handle_exit(signal: int, frame: Optional[FrameType]) -> None:
