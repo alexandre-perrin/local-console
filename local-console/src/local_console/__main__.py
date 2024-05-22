@@ -18,7 +18,7 @@ import shutil
 import signal
 import sys
 import urllib.request
-from importlib.metadata import version
+from importlib.metadata import version as version_info
 from pathlib import Path
 from types import FrameType
 from typing import Annotated
@@ -124,8 +124,12 @@ def main(
             "--verbose", "-v", help="Increase log verbosity (show debug messages too)"
         ),
     ] = False,
+    version: Annotated[
+        bool,
+        typer.Option("--version", "-V", help="Display this program's version"),
+    ] = False,
 ) -> None:
-    if not ctx.invoked_subcommand:
+    if not ctx.invoked_subcommand and not version:
         print(ctx.get_help())
         return
 
@@ -135,10 +139,11 @@ def main(
     setup_agent_filesystem()
     setup_default_https_ca()
 
-    try:
-        logger.info(f"Version: {version('local-console')}")
-    except Exception as e:
-        logger.warning(f"Error while getting version from Python package: {e}")
+    if version:
+        try:
+            print(f"Version: {version_info('local-console')}")
+        except Exception as e:
+            logger.warning(f"Error while getting version from Python package: {e}")
 
     ctx.obj = config_paths.config_path
 
