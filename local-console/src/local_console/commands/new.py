@@ -24,12 +24,12 @@ import typer
 
 logger = logging.getLogger(__name__)
 
-app = typer.Typer(
-    help="Generates the necessary files to start a new project. It will be generated in the current directory. Can be used as template"
+app = typer.Typer()
+
+
+@app.command(
+    help="Command for generating the boilerplate to start a new project. It will be generated in the current directory."
 )
-
-
-@app.callback(invoke_without_command=True)
 def new(
     project_name: Annotated[
         str,
