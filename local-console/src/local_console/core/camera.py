@@ -43,7 +43,7 @@ class Camera:
     CONNECTION_STATUS_TIMEOUT = timedelta(seconds=180)
 
     def __init__(self) -> None:
-        self.sensor_state = StreamStatus.Disabled
+        self.sensor_state = StreamStatus.Inactive
         self.app_state = ""
         self.deploy_status: dict[str, str] = {}
         self.device_config: DeviceConfiguration | None = None
@@ -139,21 +139,21 @@ class Camera:
 
 
 class StreamStatus(enum.Enum):
-    Disabled = "Disabled"
+    # Camera states:
+    # https://github.com/SonySemiconductorSolutions/EdgeAIPF.smartcamera.type3.mirror/blob/vD7.00.F6/src/edge_agent/edge_agent_config_state_private.h#L309-L314
     Inactive = "Inactive"
     Active = "Active"
-    Transitioning = "..."
+    Transitioning = (
+        "..."  # Not a CamFW state. Used to describe transition in Local Console.
+    )
 
     @classmethod
     def from_string(cls, value: str) -> "StreamStatus":
-        if value in ("Standby", "Error"):
+        if value in ("Standby", "Error", "PowerOff"):
             return cls.Inactive
         elif value == "Streaming":
             return cls.Active
-        elif value == "...":
-            return cls.Transitioning
-
-        return cls.Disabled
+        return cls.Transitioning
 
 
 class MQTTTopics(enum.Enum):

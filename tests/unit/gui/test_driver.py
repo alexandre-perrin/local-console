@@ -280,4 +280,4 @@ async def test_connection_status_timeout():
     driver = Driver(MagicMock())
     driver.camera_state.sensor_state = StreamStatus.Active
     await driver.connection_status_timeout()
-    assert driver.camera_state.sensor_state == StreamStatus.Disabled
+    assert driver.camera_state.sensor_state == StreamStatus.Inactive

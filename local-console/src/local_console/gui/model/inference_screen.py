@@ -29,7 +29,7 @@ class InferenceScreenModel(BaseScreenModel):
     """
 
     def __init__(self) -> None:
-        self._stream_status = StreamStatus.Disabled
+        self._stream_status = StreamStatus.Inactive
         self._image_directory: Optional[Path] = None
         self._inferences_directory: Optional[Path] = None
 

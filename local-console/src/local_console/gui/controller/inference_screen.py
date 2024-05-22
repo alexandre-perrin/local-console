@@ -40,9 +40,9 @@ class InferenceScreenController:
 
     def toggle_stream_status(self) -> None:
         camera_status = self.model.stream_status
-        if camera_status == StreamStatus.Inactive:
-            self.driver.from_sync(self.driver.streaming_rpc_start)
-        elif camera_status == StreamStatus.Active:
+        if camera_status == StreamStatus.Active:
             self.driver.from_sync(self.driver.streaming_rpc_stop)
+        else:
+            self.driver.from_sync(self.driver.streaming_rpc_start)
 
         self.model.stream_status = StreamStatus.Transitioning
