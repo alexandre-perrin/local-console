@@ -15,13 +15,10 @@
 # SPDX-License-Identifier: Apache-2.0
 import dataclasses
 import re
-import tarfile
 from collections.abc import Generator
-from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 
-import docker
 import pytest
 from cryptography.hazmat.primitives.serialization.base import load_der_private_key
 from src.interface import OnWireSchema
@@ -44,9 +41,11 @@ class Options:
     frp_port_http: int
     frp_name_suffix: str
 
-    devispare_firmware: str
     devispare_host: str
     devispare_token: str
+    bin_system: Path
+    bin_partitions: Path
+    bin_bootloader: Path
 
     local: bool
     certs_folder: Path
@@ -112,12 +111,12 @@ class Options:
                     "DeviSpare host must match regexp: '^http(?:s)?://.*$'"
                 )
 
-            if not self._is_firmware_valid():
-                raise InvalidInput(
-                    "Firmware is not a Tarfile nor a valid Docker Image. "
-                    "Review that the File or Image exists. "
-                    "Review your Docker credentials or VPN."
-                )
+            if not self.bin_bootloader.is_file():
+                raise InvalidInput("Provided path for the booloader binary is invalid")
+            if not self.bin_partitions.is_file():
+                raise InvalidInput("Provided path for the partitions binary is invalid")
+            if not self.bin_system.is_file():
+                raise InvalidInput("Provided path for the OS binary is invalid")
 
             if not self.devispare_token:
                 raise InvalidInput("DeviSpare Token is a required value")
@@ -125,18 +124,3 @@ class Options:
     @property
     def onwire_schema(self) -> OnWireSchema:
         return OnWireSchema(self.onwire_version)
-
-    def _is_firmware_valid(self) -> bool:
-        dockerc = docker.from_env()
-
-        if dockerc.images.list(name=self.devispare_firmware):
-            return True
-
-        with suppress(Exception):
-            dockerc.images.pull(self.devispare_firmware)
-            return True
-
-        with suppress(Exception):
-            return tarfile.is_tarfile(self.devispare_firmware)
-
-        return False

@@ -100,6 +100,8 @@ jobs:
         run-id: ${{ inputs.lc-run-id }}
 
     - name: Python | Install Requirements
+      env:
+        PIP_EXTRA_INDEX_URL: ${{ secrets.AITRIOS_PIP_INDEX_URL_RO }}
       run: |
         pip install -r system-tests/requirements.txt
         pip install ./local_console-*-py3-*.whl
@@ -117,10 +119,6 @@ jobs:
         name: ${{ inputs.fw-v1_5-artifact }}
         run-id: ${{ inputs.fw-run-id }}
         path: firmware-v1.5
-
-    - name: Artifact | Tar v1.4 FW for DeviSpare
-      run: |
-        tar -czvf firmware-v1.4.tar.gz -C firmware-v1.4 .
 
     - name: Determine two open ports at reverse proxy
       # The ports excluded below are hard coded in CI jobs
@@ -152,7 +150,9 @@ jobs:
         --frp-port-http=${{ steps.rproxy.outputs.port-http }} \
         --frp-token=${{ secrets.FRP_TOKEN }} \
         --frp-name-suffix=local-console-${{ github.run_id }} \
-        --devispare-firmware=firmware-v1.4.tar.gz \
+        --bin-system=firmware-v1.4/nuttx.bin \
+        --bin-bootloader=firmware-v1.4/bootloader.bin \
+        --bin-partitions=firmware-v1.4/partitions.bin \
         --devispare-host=https://devispare-sss.japaneast.cloudapp.azure.com/api/v1 \
         --devispare-token=${{ secrets.DEVISPARE_TOKEN }} \
         --onwire-version=evp1 \
