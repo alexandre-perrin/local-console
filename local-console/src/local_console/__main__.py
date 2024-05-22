@@ -48,8 +48,11 @@ app = typer.Typer(
     add_completion=False,
     context_settings={"help_option_names": ["-h", "--help"]},
 )
+# Multi-command groups
 app.add_typer(get.app, name="get")
 app.add_typer(config.app, name="config")
+
+# Single-command groups
 app.registered_commands += build.app.registered_commands
 app.registered_commands += deploy.app.registered_commands
 app.registered_commands += start.app.registered_commands
