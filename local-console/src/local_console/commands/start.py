@@ -45,7 +45,7 @@ from local_console.utils.tls import verify_certificate_against_ca
 from pydantic import ValidationError
 
 logger = logging.getLogger(__name__)
-app = typer.Typer(help="Command that starts the agent up")
+app = typer.Typer()
 
 
 def start_agent(connection_info: RemoteConnectionInfo, libraries: Libraries) -> int:
@@ -212,7 +212,7 @@ def run_agent_tls_with_custom_localhost(
         run(agent_command, env=agent_env, check=True)
 
 
-@app.callback(invoke_without_command=True)
+@app.command(help="Command that starts the agent up")
 def start(
     remote: Annotated[
         tuple[str, int],
