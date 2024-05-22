@@ -356,5 +356,5 @@ class Driver:
 
     async def connection_status_timeout(self) -> None:
         logger.debug("Connection status timed out: camera is disconnected")
-        self.camera_state.sensor_state = StreamStatus.Disabled
+        self.camera_state.sensor_state = StreamStatus.Inactive
         self.update_camera_status()

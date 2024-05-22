@@ -41,11 +41,11 @@ class StreamingScreenController:
 
     def toggle_stream_status(self) -> None:
         camera_status = self.model.stream_status
-        if camera_status == StreamStatus.Inactive:
+        if camera_status == StreamStatus.Active:
+            self.driver.from_sync(self.driver.streaming_rpc_stop)
+        else:
             self.driver.from_sync(self.driver.streaming_rpc_start, self.model.image_roi)
             self.view.ids.stream_image.cancel_roi_draw()
-        elif camera_status == StreamStatus.Active:
-            self.driver.from_sync(self.driver.streaming_rpc_stop)
 
         self.model.stream_status = StreamStatus.Transitioning
 

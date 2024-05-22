@@ -27,7 +27,7 @@ class StreamingScreenModel(BaseScreenModel):
     """
 
     def __init__(self) -> None:
-        self._stream_status = StreamStatus.Disabled
+        self._stream_status = StreamStatus.Inactive
         self._image_roi: UnitROI = DEFAULT_ROI
 
     @property
