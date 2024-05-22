@@ -36,7 +36,7 @@ from local_console.core.schemas.schemas import RemoteConnectionInfo
 
 logger = logging.getLogger(__name__)
 app = typer.Typer(
-    help="Commands to read and write the different configuration parameters of the agent"
+    help="Command to get or set configuration parameters of a camera or a module instance"
 )
 
 
