@@ -36,7 +36,7 @@ COMPILATION_FLAGS = {
 
 logger = logging.getLogger(__name__)
 
-app = typer.Typer(help="Command for compiling the modules of the application")
+app = typer.Typer()
 
 
 def compile_wasm(flags: Optional[list[str]]) -> bool:
@@ -118,7 +118,7 @@ def compile_aot(module_name: str, target: Target) -> str:
     return file
 
 
-@app.callback(invoke_without_command=True)
+@app.command(help="Command for compiling the modules of the application")
 def build(
     target: Annotated[
         Optional[Target],
