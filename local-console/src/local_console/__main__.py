@@ -18,7 +18,7 @@ import shutil
 import signal
 import sys
 import urllib.request
-from importlib.metadata import version
+from importlib.metadata import version as version_info
 from pathlib import Path
 from types import FrameType
 from typing import Annotated
@@ -48,17 +48,20 @@ app = typer.Typer(
     add_completion=False,
     context_settings={"help_option_names": ["-h", "--help"]},
 )
-app.add_typer(start.app, name="start")
-app.add_typer(deploy.app, name="deploy")
-app.add_typer(build.app, name="build")
-app.add_typer(new.app, name="new")
-app.add_typer(logs.app, name="logs")
-app.add_typer(rpc.app, name="rpc")
+# Multi-command groups
 app.add_typer(get.app, name="get")
 app.add_typer(config.app, name="config")
-app.add_typer(broker.app, name="broker")
-app.add_typer(gui.app, name="gui")
-app.add_typer(qr.app, name="qr")
+
+# Single-command groups
+app.registered_commands += build.app.registered_commands
+app.registered_commands += deploy.app.registered_commands
+app.registered_commands += start.app.registered_commands
+app.registered_commands += new.app.registered_commands
+app.registered_commands += logs.app.registered_commands
+app.registered_commands += rpc.app.registered_commands
+app.registered_commands += broker.app.registered_commands
+app.registered_commands += gui.app.registered_commands
+app.registered_commands += qr.app.registered_commands
 
 
 def handle_exit(signal: int, frame: Optional[FrameType]) -> None:
@@ -121,8 +124,12 @@ def main(
             "--verbose", "-v", help="Increase log verbosity (show debug messages too)"
         ),
     ] = False,
+    version: Annotated[
+        bool,
+        typer.Option("--version", "-V", help="Display this program's version"),
+    ] = False,
 ) -> None:
-    if not ctx.invoked_subcommand:
+    if not ctx.invoked_subcommand and not version:
         print(ctx.get_help())
         return
 
@@ -132,10 +139,11 @@ def main(
     setup_agent_filesystem()
     setup_default_https_ca()
 
-    try:
-        logger.info(f"Version: {version('local-console')}")
-    except Exception as e:
-        logger.warning(f"Error while getting version from Python package: {e}")
+    if version:
+        try:
+            print(f"Version: {version_info('local-console')}")
+        except Exception as e:
+            logger.warning(f"Error while getting version from Python package: {e}")
 
     ctx.obj = config_paths.config_path
 

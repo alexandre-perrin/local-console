@@ -37,10 +37,10 @@ from local_console.utils.local_network import is_localhost
 
 logger = logging.getLogger(__name__)
 
-app = typer.Typer(help="Command for deploying application to the agent")
+app = typer.Typer()
 
 
-@app.callback(invoke_without_command=True)
+@app.command(help="Command for deploying application to the agent")
 def deploy(
     empty: Annotated[
         bool,

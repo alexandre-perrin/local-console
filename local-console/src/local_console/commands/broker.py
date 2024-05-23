@@ -22,14 +22,14 @@ from local_console.core.config import get_config
 from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.servers.broker import spawn_broker
 
-app = typer.Typer(
-    help="Command to start a MQTT broker. It will fail if there is already a broker listening in the port specified in config"
-)
+app = typer.Typer()
 
 logger = logging.getLogger(__name__)
 
 
-@app.callback(invoke_without_command=True)
+@app.command(
+    help="Command to start a MQTT broker. It will fail if there is already a broker listening in the port specified in config."
+)
 def broker(
     verbose: Annotated[
         bool,

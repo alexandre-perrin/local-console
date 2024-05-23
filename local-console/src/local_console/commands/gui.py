@@ -20,10 +20,10 @@ import trio
 import typer
 
 logger = logging.getLogger(__name__)
-app = typer.Typer(help="Command to start the GUI mode")
+app = typer.Typer()
 
 
-@app.callback(invoke_without_command=True)
+@app.command(help="Command to start the GUI mode")
 def gui() -> None:
     os.environ["KIVY_LOG_MODE"] = "PYTHON"
     os.environ["KIVY_NO_ARGS"] = "1"

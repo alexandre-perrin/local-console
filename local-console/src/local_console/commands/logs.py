@@ -26,12 +26,10 @@ from local_console.core.camera import MQTTTopics
 
 logger = logging.getLogger(__name__)
 
-app = typer.Typer(
-    help="Command for getting logs reported by a specific module instance"
-)
+app = typer.Typer()
 
 
-@app.callback(invoke_without_command=True)
+@app.command(help="Command for getting logs reported by a specific module instance")
 def logs(
     instance_id: Annotated[
         str,
