@@ -44,7 +44,7 @@ def handle_exit(signal: int, frame: Optional[FrameType]) -> None:
 signal.signal(signal.SIGTERM, handle_exit)
 
 
-@app.callback(invoke_without_command=True)
+@app.callback(invoke_without_command=True, context_settings={"obj": cmds})
 def main(
     ctx: typer.Context,
     config_dir: Annotated[
@@ -83,6 +83,11 @@ def main(
             print(f"Version: {version_info('local-console')}")
         except Exception as e:
             logger.warning(f"Error while getting version from Python package: {e}")
+
+    loaded_commands = ctx.obj
+    for name, command_class in loaded_commands.items():
+        logger.debug(f"Invoking pre-setup callback for command {name}")
+        command_class.pre_setup_callback(config_paths)
 
     ctx.obj = config_paths.config_path
 

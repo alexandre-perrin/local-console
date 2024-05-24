@@ -16,6 +16,7 @@
 from abc import ABC
 from importlib.metadata import entry_points
 
+from local_console.core.enums import Config
 from typer import Typer
 
 
@@ -36,6 +37,10 @@ class PluginBase(ABC):
             main_handle.add_typer(cls.implementer, name=name)
         else:
             main_handle.registered_commands += cls.implementer.registered_commands
+
+    @classmethod
+    def pre_setup_callback(cls, config_paths: Config) -> None:
+        pass
 
 
 def populate_commands(main_handle: Typer) -> dict[str, type[PluginBase]]:
