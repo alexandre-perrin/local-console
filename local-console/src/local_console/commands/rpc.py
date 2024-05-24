@@ -19,6 +19,7 @@ from typing import Annotated
 import trio
 import typer
 from local_console.clients.agent import Agent
+from local_console.plugin import PluginBase
 
 app = typer.Typer()
 
@@ -51,3 +52,7 @@ async def rpc_task(instance_id: str, method: str, params: str) -> None:
     await agent.initialize_handshake()
     async with agent.mqtt_scope([]):
         await agent.rpc(instance_id, method, params)
+
+
+class RPCCommand(PluginBase):
+    implementer = app

@@ -22,7 +22,6 @@ from typing import Annotated
 from typing import Optional
 
 import typer
-from local_console.commands import rpc
 from local_console.core.config import setup_default_config
 from local_console.core.enums import config_paths
 from local_console.plugin import populate_commands
@@ -36,9 +35,6 @@ app = typer.Typer(
     context_settings={"help_option_names": ["-h", "--help"]},
 )
 cmds = populate_commands(app)
-
-# Single-command groups
-app.registered_commands += rpc.app.registered_commands
 
 
 def handle_exit(signal: int, frame: Optional[FrameType]) -> None:
