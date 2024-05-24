@@ -15,7 +15,6 @@
 # SPDX-License-Identifier: Apache-2.0
 import os
 import platform
-from enum import Enum
 from pathlib import Path
 
 from local_console.utils.enums import StrEnum
@@ -25,27 +24,12 @@ class Config:
     def __init__(self) -> None:
         self.home = get_default_home()
         self._config_file = "config.ini"
-        self._https_ca_file = "mozilla-root-ca.pem"
-        self._https_ca_url = "https://ccadb-public.secure.force.com/mozilla/IncludedRootsPEMTxt?TrustBitsInclude=Websites"
-        self._evp_data = "evp_data"
         self.deployment_json = "deployment.json"
         self.bin = "bin"
 
     @property
     def config_path(self) -> Path:
         return self.home / self._config_file
-
-    @property
-    def https_ca_path(self) -> Path:
-        return self.home / self._https_ca_file
-
-    @property
-    def https_ca_url(self) -> str:
-        return self._https_ca_url
-
-    @property
-    def evp_data_path(self) -> Path:
-        return self.home / self._evp_data
 
     @property
     def tls_cert_root(self) -> Path:
@@ -100,13 +84,6 @@ def get_default_home() -> Path:
 config_paths = Config()
 
 
-class Commands(str, Enum):
-    WAMRC = "wamrc"
-    EVP_AGENT = "evp_agent"
-    MAKE = "make"
-    CLEAN = "clean"
-
-
 class GetObjects(StrEnum):
     INSTANCE = "instance"
     DEPLOYMENT = "deployment"
@@ -118,20 +95,6 @@ class GetCommands(StrEnum):
     SET = "set"
     UNSET = "unset"
     SEND = "send"
-
-
-class EVPEnvVars:
-    EVP_IOT_PLATFORM = "EVP_IOT_PLATFORM"
-    EVP_MQTT_HOST = "EVP_MQTT_HOST"
-    EVP_MQTT_PORT = "EVP_MQTT_PORT"
-    EVP_MQTT_CLIENTID = "EVP_MQTT_CLIENTID"
-    EVP_DATA_DIR = "EVP_DATA_DIR"
-    EVP_HTTPS_CA_CERT = "EVP_HTTPS_CA_CERT"
-    EVP_REPORT_STATUS_INTERVAL_MIN_SEC = "EVP_REPORT_STATUS_INTERVAL_MIN_SEC"
-    EVP_REPORT_STATUS_INTERVAL_MAX_SEC = "EVP_REPORT_STATUS_INTERVAL_MAX_SEC"
-    EVP_MQTT_TLS_CA_CERT = "EVP_MQTT_TLS_CA_CERT"
-    EVP_MQTT_TLS_CLIENT_CERT = "EVP_MQTT_TLS_CLIENT_CERT"
-    EVP_MQTT_TLS_CLIENT_KEY = "EVP_MQTT_TLS_CLIENT_KEY"
 
 
 class Target(StrEnum):

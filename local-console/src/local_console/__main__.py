@@ -14,10 +14,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 import logging
-import shutil
 import signal
-import sys
-import urllib.request
 from importlib.metadata import version as version_info
 from pathlib import Path
 from types import FrameType
@@ -34,7 +31,6 @@ from local_console.commands import logs
 from local_console.commands import qr
 from local_console.commands import rpc
 from local_console.core.config import setup_default_config
-from local_console.core.enums import Config
 from local_console.core.enums import config_paths
 from local_console.utils.logger import configure_logger
 
@@ -63,38 +59,6 @@ def handle_exit(signal: int, frame: Optional[FrameType]) -> None:
 
 
 signal.signal(signal.SIGTERM, handle_exit)
-
-
-def setup_agent_filesystem() -> None:
-    evp_data = config_paths.evp_data_path
-    if not evp_data.exists():
-        logger.debug("Generating evp_data")
-        evp_data.mkdir(parents=True, exist_ok=True)
-
-
-def setup_default_https_ca() -> None:
-    default_config_home = Config()
-    target_https_ca = config_paths.https_ca_path
-    source_https_ca = default_config_home.https_ca_path
-
-    assert target_https_ca.parent.is_dir()
-    if not source_https_ca.parent.is_dir():
-        source_https_ca.parent.mkdir(parents=True, exist_ok=True)
-
-    if not source_https_ca.is_file():
-        logger.debug("Downloading trusted CA bundle into cache")
-        try:
-            response = urllib.request.urlopen(config_paths.https_ca_url)
-            with open(source_https_ca, "wb") as f:
-                f.write(response.read())
-            response.close()
-        except Exception as e:
-            logger.error(f"Error while downloading HTTPS CA: {e}")
-            sys.exit(1)
-
-    if not target_https_ca.is_file():
-        logger.debug("Copying trusted CA bundle from cache")
-        shutil.copy(source_https_ca, target_https_ca)
 
 
 @app.callback(invoke_without_command=True)
@@ -130,8 +94,6 @@ def main(
     config_paths.home = config_dir
     configure_logger(silent, verbose)
     setup_default_config()
-    setup_agent_filesystem()
-    setup_default_https_ca()
 
     if version:
         try:
