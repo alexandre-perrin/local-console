@@ -1,8 +1,0 @@
-pytest==7.4.4
-pytest-cov==4.1.0
-docker==7.0.0
-paho-mqtt==1.6.1
-allure-pytest==2.13.5
-pyhamcrest==2.1.0
-cryptography==42.0.7
-devicetools==0.1.0

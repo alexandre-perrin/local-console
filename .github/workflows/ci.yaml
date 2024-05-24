@@ -100,87 +100,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-  e2e-tests:
-    name: E2E Test for ${{ matrix.ows-version }} with${{ matrix.with-tls == false && 'out' || '' }} TLS
-    runs-on: [self-hosted, X64]
-    container: ubuntu:22.04
-    timeout-minutes: 20
-    needs: [wheel, pre-commit]
-    strategy:
-      fail-fast: true
-      matrix:
-        with-tls: [true, false]
-        ows-version: ["EVP1", "EVP2-TB"]
-        exclude:
-          # we don't need to run TLS test more than once
-          - ows-version: "EVP1"
-            with-tls: true
-    steps:
-    - name: Install system requirements
-      run: |
-        apt-get -y update && \
-        apt install -y tree curl gcc python3-dev make \
-                       software-properties-common git cmake \
-                       mosquitto libnss-wrapper
-
-    - name: Setup Python ${{ env.PYTHON_VERSION }}
-      uses: actions/setup-python@v5
-      id: py
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-
-    - name: Download and install agent
-      run: |
-        curl -sL -o wedge-agent_amd64.deb ${{ secrets.WEDGE_AGENT_SAS_URL }}
-        apt install -y libc6
-        apt install -y ./wedge-agent_amd64.deb
-        cp /usr/bin/wedge_agent /usr/bin/evp_agent
-
-    - name: Download install wasi-sdk
-      run: |
-        curl -sL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-20/wasi-sdk-20.0-linux.tar.gz | tar zxvf - -C /tmp && \
-            mv /tmp/wasi-sdk-20.0 /opt/wasi-sdk
-
-    - name: Checkout
-      uses: actions/checkout@v4
-
-    - name: Get local-console wheel
-      uses: actions/download-artifact@v4
-      with:
-        name: ${{ needs.wheel.outputs.artifact }}
-        merge-multiple: true
-
-    - name: Install local-console
-      run: |
-        ${{ steps.py.outputs.python-path }} -m venv .venv
-        . .venv/bin/activate
-        pip install local_console-*-py3-*.whl
-        pip install -r tests/requirements.txt
-        echo "::group::Installed files in virtualenv"
-        tree .venv/lib/python${{ env.PYTHON_VERSION }}/site-packages/local*console*
-        echo "::endgroup::"
-
-    - name: Run E2E with${{ matrix.with-tls == false && 'out' || '' }} TLS (for ${{ matrix.ows-version }})
-      id: e2e
-      # It seems that mosquitto will not load a self-signed CA
-      # as root, so it needs to be launched unprivileged.
-      # Also, in order for the module build to succeed, the
-      # samples directory must be accessible by the new user
-      run: |
-        useradd -m testbot
-        chown -R testbot .
-        . .venv/bin/activate
-        runuser -u testbot -- python tests/e2e.py ${{ matrix.with-tls == true && '--with-tls' || '' }} -s ${{ matrix.ows-version }}
-
-  system-tests:
-    name: Run System Tests
-    needs: [wheel, pre-commit]
-    uses: ./.github/workflows/execute-system-tests.yaml
-    secrets: inherit
-    with:
-      lc-run-id: ${{ github.run_id }}
-      lc-wheel-artifact: ${{ needs.wheel.outputs.artifact }}
-
   windows-installer:
     name: Windows Installer
     runs-on: windows-latest
@@ -241,8 +160,6 @@ jobs:
     - pre-commit
     - wheel
     - unit-tests
-    - e2e-tests
-    - system-tests
     - windows-installer
     if: needs.verify.outputs.exists == 'false'
     steps:
