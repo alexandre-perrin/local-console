@@ -28,6 +28,7 @@ from local_console.core.enums import config_paths
 from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.core.schemas.schemas import DesiredDeviceConfig
 from local_console.core.schemas.schemas import OnWireProtocol
+from local_console.plugin import PluginBase
 
 logger = logging.getLogger(__name__)
 app = typer.Typer(
@@ -196,3 +197,7 @@ async def config_device_task(desired_device_config: DesiredDeviceConfig) -> int:
             f"Unsupported on-wire schema {agent.onwire_schema} for this command."
         )
     return retcode
+
+
+class ConfigCommand(PluginBase):
+    implementer = app

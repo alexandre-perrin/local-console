@@ -90,6 +90,7 @@ where = ["src"]
 [project.entry-points."local_console.plugin"]
 base = "local_console.cli:PluginBase"
 broker = "local_console.commands.broker:BrokerCommand"
+config = "local_console.commands.config:ConfigCommand"
 
 [project.scripts]
 local-console = "local_console.__main__:app"
