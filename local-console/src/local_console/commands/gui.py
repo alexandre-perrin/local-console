@@ -18,6 +18,7 @@ import os
 
 import trio
 import typer
+from local_console.plugin import PluginBase
 
 logger = logging.getLogger(__name__)
 app = typer.Typer()
@@ -39,3 +40,7 @@ def gui() -> None:
     from local_console.gui.main import LocalConsoleGUIAPP
 
     trio.run(LocalConsoleGUIAPP().app_main)
+
+
+class GUICommand(PluginBase):
+    implementer = app
