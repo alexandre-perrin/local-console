@@ -6,11 +6,10 @@ This program provides a CLI and a GUI which simplify offline usage of IMX500-equ
 
 ### Prerequisites
 
-#### 0. Language support
+#### 0. System support
 
 Make sure your system has installed:
 
-* GNU make
 * Python 3.10 (or higher)
 * pip
 
@@ -52,9 +51,9 @@ For a comprehensive list of commands and their usage, check:
 local-console -h
 ```
 
-### Example: Create an application and deploy
+### Example: Deploy an application
 
-In this section, we explain how to deploy the sample application from [source-sink](./samples/source-sink)
+In this section, we explain how to deploy the sample application from [source-sink](./sample-apps/source-sink)
 
 1. Run the MQTT broker and wait for the camera to connect
 
@@ -62,16 +61,11 @@ In this section, we explain how to deploy the sample application from [source-si
 local-console broker
 ```
 
-2. Build an application
+2. In a separate terminal, go to the sample app folder and deploy it onto the camera
 
 ```sh
-local-console build
-```
-
-3. Deploy the application
-
-```sh
-local-console --verbose deploy
+cd sample-apps/source-sink
+local-console --verbose deploy xtensa
 ```
 
 it will show the following logs in between the topics received (this can be avoided by removing the `--verbose` option)
@@ -211,7 +205,3 @@ local-console qr
 ```
 
 By default, it will use the settings of the CLI. If the MQTT host is set to localhost, it will produce the QR code with the IP address of the externally-accessible interface to the local machine. For other settings, try the `--help` flag.
-
-## App samples
-
-You can find examples of apps in the [samples](./samples) folder and the documentation for each sample app in the [docs](./docs) folder.
