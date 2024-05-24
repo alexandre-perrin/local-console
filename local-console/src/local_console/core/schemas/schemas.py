@@ -45,15 +45,6 @@ class IPAddress(BaseModel):
 IPPortNumber = Field(ge=0, le=65535)
 
 
-class RemoteConnectionInfo(BaseModel):
-    host: Optional[IPAddress]
-    port: Optional[Annotated[int, IPPortNumber]]
-
-    @property
-    def is_enabled(self) -> bool:
-        return not (self.host is None or self.port is None)
-
-
 class TLSConfiguration(BaseModel):
     ca_certificate: Optional[Path]
     ca_key: Optional[Path]

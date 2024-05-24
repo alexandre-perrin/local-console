@@ -24,18 +24,13 @@ from local_console.core.enums import config_paths
 from local_console.core.enums import GetCommands
 from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.core.schemas.schemas import DesiredDeviceConfig
-from local_console.core.schemas.schemas import IPAddress
 from local_console.core.schemas.schemas import OnWireProtocol
-from local_console.core.schemas.schemas import RemoteConnectionInfo
 from typer.testing import CliRunner
 
 from tests.strategies.configs import generate_agent_config
 from tests.strategies.configs import generate_identifiers
-from tests.strategies.configs import generate_invalid_ip
 from tests.strategies.configs import generate_text
 from tests.strategies.configs import generate_valid_ip
-from tests.strategies.configs import generate_valid_port_number
-from tests.strategies.path import path_strategy
 
 runner = CliRunner()
 
@@ -221,81 +216,6 @@ def test_config_unset_not_nullable_error(agent_config: AgentConfiguration):
         assert type(result.exception) is SystemExit
         assert result.exception.args[0].startswith("Error unsetting config param")
         mock_get_config.assert_called()
-
-
-@given(
-    path_strategy(),
-    generate_valid_ip(),
-    generate_valid_port_number(),
-    generate_agent_config(),
-)
-def test_config_send_command(
-    config_filepath: str, ip: str, port: int, agent_config: AgentConfiguration
-):
-    with (
-        patch(
-            "local_console.commands.config.get_config", return_value=agent_config
-        ) as mock_get_config,
-        patch("local_console.commands.config.send_config") as mock_send_config,
-    ):
-        result = runner.invoke(
-            app,
-            [
-                GetCommands.SEND.value,
-                "--config-file",
-                str(config_filepath) + ".ini",
-                "--ip",
-                ip,
-                "--port",
-                port,
-            ],
-        )
-        mock_get_config.assert_called()
-        mock_send_config.assert_called_with(
-            agent_config.model_dump(),
-            RemoteConnectionInfo(host=IPAddress(ip_value=ip), port=port),
-        )
-        assert result.exit_code == 0
-
-
-@given(
-    path_strategy(),
-    generate_valid_ip(),
-    generate_valid_port_number(),
-)
-def test_config_send_command_no_ini(config_filepath: str, ip: str, port: int):
-    result = runner.invoke(
-        app,
-        [
-            GetCommands.SEND.value,
-            "--config-file",
-            str(config_filepath),
-            "--ip",
-            ip,
-            "--port",
-            port,
-        ],
-    )
-    assert result.exit_code == 1
-
-
-@given(path_strategy(), generate_invalid_ip(), generate_valid_port_number())
-def test_config_send_command_invalid_ip(
-    config_filepath: str, invalid_ip: str, port: int
-):
-    result = runner.invoke(
-        app,
-        [
-            GetCommands.SEND.value,
-            "--config-file",
-            str(config_filepath) + ".ini",
-            "--ip",
-            invalid_ip,
-            "--port",
-            port,
-        ],
-    )
-    assert result.exit_code == 1
 
 
 @given(
