@@ -22,7 +22,6 @@ from typing import Annotated
 from typing import Optional
 
 import typer
-from local_console.commands import deploy
 from local_console.commands import get
 from local_console.commands import gui
 from local_console.commands import logs
@@ -46,7 +45,6 @@ cmds = populate_commands(app)
 app.add_typer(get.app, name="get")
 
 # Single-command groups
-app.registered_commands += deploy.app.registered_commands
 app.registered_commands += logs.app.registered_commands
 app.registered_commands += rpc.app.registered_commands
 app.registered_commands += gui.app.registered_commands
