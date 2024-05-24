@@ -22,7 +22,6 @@ from typing import Annotated
 from typing import Optional
 
 import typer
-from local_console.commands import qr
 from local_console.commands import rpc
 from local_console.core.config import setup_default_config
 from local_console.core.enums import config_paths
@@ -40,7 +39,6 @@ cmds = populate_commands(app)
 
 # Single-command groups
 app.registered_commands += rpc.app.registered_commands
-app.registered_commands += qr.app.registered_commands
 
 
 def handle_exit(signal: int, frame: Optional[FrameType]) -> None:

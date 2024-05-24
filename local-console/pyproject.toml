@@ -95,6 +95,7 @@ deploy = "local_console.commands.deploy:DeployCommand"
 get = "local_console.commands.get:GetCommand"
 gui = "local_console.commands.gui:GUICommand"
 logs = "local_console.commands.logs:LogsCommand"
+qr = "local_console.commands.qr:QRCommand"
 
 [project.scripts]
 local-console = "local_console.__main__:app"
