@@ -1,6 +1,0 @@
-{
-  "name": "Devcontainer",
-  "dockerFile": "Dockerfile",
-  "context": "..",
-  "postCreateCommand": ".devcontainer/entrypoint.sh"
-}
