@@ -82,7 +82,7 @@ class ApplicationsScreenController:
             }
         )
 
-        with TemporaryDirectory(prefix="wedge_deploy_") as temporary_dir:
+        with TemporaryDirectory(prefix="lc_deploy_") as temporary_dir:
             tmpdir = Path(temporary_dir)
             named_module = tmpdir / "".join([node] + module_file.suffixes)
             shutil.copy(module_file, named_module)

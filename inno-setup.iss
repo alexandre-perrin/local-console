@@ -42,7 +42,6 @@ Source: "local_console*.whl";  DestDir: "{tmp}\local-console";
 StatusMsg: "Installing Local Console..."; Filename: "powershell.exe"; Parameters: "Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser; {tmp}\\local-console\\install.ps1 -AppInstallPath ""{app}"" -WheelPath $((Get-ChildItem {tmp}\\local-console\\local_console*.whl).FullName)"; Flags: waituntilterminated;
 
 [UninstallDelete]
-Type: files; Name: "{userdesktop}\Wedge GUI.lnk"
 Type: files; Name: "{userdesktop}\Local Console.lnk"
 Type: filesandordirs; Name: "{app}"
 Type: filesandordirs; Name: "{userappdata}\local-console"

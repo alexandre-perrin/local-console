@@ -141,8 +141,7 @@ Example below:
 
 #### Configuration
 
-If you have to configure parameters for the Wedge agent, the MQTT broker or the webserver used by the agent to
-download the modules you can use
+You need to configure the MQTT broker and the webserver expected by a camera when connecting to the console. For such purpose, you may use the `config` command like:
 
 ```sh
 local-console config set <section> <option> <value>
