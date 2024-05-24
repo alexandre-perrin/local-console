@@ -22,7 +22,6 @@ from typing import Annotated
 from typing import Optional
 
 import typer
-from local_console.commands import broker
 from local_console.commands import config
 from local_console.commands import deploy
 from local_console.commands import get
@@ -32,6 +31,7 @@ from local_console.commands import qr
 from local_console.commands import rpc
 from local_console.core.config import setup_default_config
 from local_console.core.enums import config_paths
+from local_console.plugin import populate_commands
 from local_console.utils.logger import configure_logger
 
 logger = logging.getLogger(__name__)
@@ -41,6 +41,8 @@ app = typer.Typer(
     add_completion=False,
     context_settings={"help_option_names": ["-h", "--help"]},
 )
+cmds = populate_commands(app)
+
 # Multi-command groups
 app.add_typer(get.app, name="get")
 app.add_typer(config.app, name="config")
@@ -49,7 +51,6 @@ app.add_typer(config.app, name="config")
 app.registered_commands += deploy.app.registered_commands
 app.registered_commands += logs.app.registered_commands
 app.registered_commands += rpc.app.registered_commands
-app.registered_commands += broker.app.registered_commands
 app.registered_commands += gui.app.registered_commands
 app.registered_commands += qr.app.registered_commands
 
@@ -105,4 +106,5 @@ def main(
 
 
 if __name__ == "__main__":
+    logger.debug(f"Loaded commands: {cmds}")
     app()

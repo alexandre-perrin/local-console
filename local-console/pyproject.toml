@@ -86,6 +86,11 @@ license-files = ["*LICENSE"]
 [tool.setuptools.packages.find]
 where = ["src"]
 
+# Plugin architecture via Entry-points
+[project.entry-points."local_console.plugin"]
+base = "local_console.cli:PluginBase"
+broker = "local_console.commands.broker:BrokerCommand"
+
 [project.scripts]
 local-console = "local_console.__main__:app"
 
