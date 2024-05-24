@@ -26,16 +26,13 @@ from typing import Optional
 
 import typer
 from local_console.commands import broker
-from local_console.commands import build
 from local_console.commands import config
 from local_console.commands import deploy
 from local_console.commands import get
 from local_console.commands import gui
 from local_console.commands import logs
-from local_console.commands import new
 from local_console.commands import qr
 from local_console.commands import rpc
-from local_console.commands import start
 from local_console.core.config import setup_default_config
 from local_console.core.enums import Config
 from local_console.core.enums import config_paths
@@ -53,10 +50,7 @@ app.add_typer(get.app, name="get")
 app.add_typer(config.app, name="config")
 
 # Single-command groups
-app.registered_commands += build.app.registered_commands
 app.registered_commands += deploy.app.registered_commands
-app.registered_commands += start.app.registered_commands
-app.registered_commands += new.app.registered_commands
 app.registered_commands += logs.app.registered_commands
 app.registered_commands += rpc.app.registered_commands
 app.registered_commands += broker.app.registered_commands

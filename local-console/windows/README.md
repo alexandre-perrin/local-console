@@ -92,7 +92,7 @@ Successfully installed Kivy-2.3.0 ... local-console-1.7.0 ...
 [2024-04-02 09:38:47] Virtual environment has been updated.
 [2024-04-02 09:38:50] Flatc Zipball downloaded.
 [2024-04-02 09:38:51] Flatc Executable unpacked into C:\Users\User\AppData\Roaming\LocalConsole\virtualenv\Scripts
-Created desktop shortcut at: C:\Users\User\Desktop\Wedge GUI.lnk
+Created desktop shortcut at: C:\Users\User\Desktop\Local Console.lnk
 ```
 
 3. The script created a shortcut icon at your Windows desktop. Please click on it, and if asked allow network connections through the Windows firewall. You are now ready to use the GUI.

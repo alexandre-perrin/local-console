@@ -13,10 +13,7 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-import json
 import logging
-import socket
-from pathlib import Path
 from typing import Annotated
 from typing import Optional
 
@@ -30,28 +27,12 @@ from local_console.core.config import schema_to_parser
 from local_console.core.enums import config_paths
 from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.core.schemas.schemas import DesiredDeviceConfig
-from local_console.core.schemas.schemas import IPAddress
 from local_console.core.schemas.schemas import OnWireProtocol
-from local_console.core.schemas.schemas import RemoteConnectionInfo
 
 logger = logging.getLogger(__name__)
 app = typer.Typer(
     help="Command to get or set configuration parameters of a camera or a module instance"
 )
-
-
-def send_config(config_dict: dict, connection_info: RemoteConnectionInfo) -> None:
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((connection_info.host.ip_value, connection_info.port))  # type: ignore
-    s.send(bytes(json.dumps(config_dict), "utf-8"))
-
-    while True:
-        reply = s.recv(1024)
-        if not reply:
-            continue
-        elif reply:
-            logger.info(reply.decode("utf-8"))
-            break
 
 
 @app.command(
@@ -145,37 +126,6 @@ def config_unset(
 
     with config_paths.config_path.open("w") as f:
         config_parser.write(f)
-
-
-@app.command(
-    "send", help="Send the configuration to an agent started with the remote option"
-)
-def config_send(
-    config_file: Annotated[
-        Path,
-        typer.Option(
-            help="Path to a .ini file where the configuration to be sent is defined, it should have the same format as the one in ~/.config/wedge"
-        ),
-    ],
-    ip: Annotated[str, typer.Option(help="IP where the configuration is send")],
-    port: Annotated[int, typer.Option(help="Port where the configuration is send")],
-) -> None:
-    if config_file.suffix != ".ini":
-        logger.error("Specified file is not a .ini file")
-        raise typer.Exit(code=1)
-
-    else:
-        try:
-            connection_info = RemoteConnectionInfo(
-                host=IPAddress(ip_value=ip), port=port
-            )
-        except ValueError:
-            logger.warning("Invalid IP address used")
-            raise typer.Exit(code=1)
-
-        agent_config: AgentConfiguration = get_config(config_file)
-        config_dict: dict = agent_config.model_dump()
-        send_config(config_dict, connection_info)
 
 
 @app.command("instance", help="Configure an application module instance")

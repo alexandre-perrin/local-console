@@ -242,16 +242,3 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
-
-################################
-# WASM
-################################
-
-*.wasm
-*.aot
-*.signed
-
-################################
-# TLS
-################################
-.devcontainer/tls
