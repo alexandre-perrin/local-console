@@ -14,69 +14,7 @@ Make sure your system has installed:
 * Python 3.10 (or higher)
 * pip
 
-#### 1. WEdge Agent
-
-In order to build the agent, first clone the following repository
-
-```sh
-git clone git@github.com:midokura/wedge-agent.git
-```
-and update the wedge agent submodule in the repo.
-
-```sh
-git submodule update --init
-```
-Follow the instructions in `wedge-agent/BUILD.md` to build the WEdge agent. Once
-you have successfully built the agent, the `build` folder will be created.
-
-Now, add the agent to the shell `$PATH`:
-
-```sh
-export PATH=/path/to/wedge-agent/build/:$PATH
-```
-
-> [!WARNING]
-> Use agent version 1.21.0 or higher.
-
-Depending on what WEdge Agent version you mean to manage, the next prerequisites to put in place have version constraints as summarized below:
-
-| Agent version | wasi-sdk version | wamrc version |
-| ------------- | ---------------- | ------------- |
-| older versions | Unsupported |
-| 1.21 - 1.22 | 19 | 1.1.2 |
-| 1.23 - 1.24 | 19 | 1.2.2 |
-| 1.25+ | 20 | 1.3.0 |
-
-We denote the versions required for wasi-sdk and wamrc as `$WASI_SDK_VER` and `$WAMRC_VER`, respectively.
-
-#### 2. wasi-sdk
-
-Download the software distribution and place it in a standard location:
-
-```sh
-curl -sL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-$WASI_SDK_VER/wasi-sdk-$WASI_SDK_VER.0-linux.tar.gz | \
-	tar zxvf - -C /tmp && \
-	sudo mv /tmp/wasi-sdk-$WASI_SDK_VER.0 /opt/wasi-sdk
-```
-Optionally, you may avoid installing in a system-wide location such as `/opt`. If you do so, make sure that the environment variable `WASI_SDK_PATH` is exported in the shell where you will run the `wedge build` command.
-
-#### 3. wamrc, the compiler from WAMR (WebAssembly Micro Runtime)
-
-It is to be built with support for the Xtensa target, so that modules can be deployed on Type 3 cameras:
-
-```sh
-git clone https://github.com/bytecodealliance/wasm-micro-runtime.git wamr
-git -C wamr checkout WAMR-$WAMRC_VER
-cd wamr/wamr-compiler/
-./build_llvm_xtensa.sh
-mkdir build
-(cd build; cmake .. && make)
-sudo install -o root -g root -m 0755 ./build/wamrc /opt/wamrc/bin/wamrc
-```
-
-Make sure that `/opt/wamrc/bin` is present in your `$PATH`. If it is not, you may change the destination of `sudo install` (the last argument) to be somewhere already included in your `$PATH`.
-
-#### 4. Mosquitto
+#### 1. Mosquitto
 
 In order to provide a local MQTT broker, we use `mosquitto`. Install [the software](https://mosquitto.org/download/). After installation, you can check it by using
 
@@ -118,10 +56,10 @@ local-console -h
 
 In this section, we explain how to deploy the sample application from [source-sink](./samples/source-sink)
 
-1. Execute agent
+1. Run the MQTT broker and wait for the camera to connect
 
 ```sh
-local-console start
+local-console broker
 ```
 
 2. Build an application
