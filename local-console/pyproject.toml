@@ -75,7 +75,7 @@ dependencies = [
 
 [project.urls]
 # All options at https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#urls
-homepage = "https://github.com/midokura/wedge-cli"
+homepage = "https://github.com/midokura/local-console"
 
 [tool.setuptools.dynamic]
 version = {file = ["VERSION"]}
