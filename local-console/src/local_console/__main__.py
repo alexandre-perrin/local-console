@@ -22,7 +22,6 @@ from typing import Annotated
 from typing import Optional
 
 import typer
-from local_console.commands import get
 from local_console.commands import gui
 from local_console.commands import logs
 from local_console.commands import qr
@@ -40,9 +39,6 @@ app = typer.Typer(
     context_settings={"help_option_names": ["-h", "--help"]},
 )
 cmds = populate_commands(app)
-
-# Multi-command groups
-app.add_typer(get.app, name="get")
 
 # Single-command groups
 app.registered_commands += logs.app.registered_commands

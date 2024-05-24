@@ -92,6 +92,7 @@ base = "local_console.cli:PluginBase"
 broker = "local_console.commands.broker:BrokerCommand"
 config = "local_console.commands.config:ConfigCommand"
 deploy = "local_console.commands.deploy:DeployCommand"
+get = "local_console.commands.get:GetCommand"
 
 [project.scripts]
 local-console = "local_console.__main__:app"
