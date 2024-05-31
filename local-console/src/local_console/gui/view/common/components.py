@@ -535,7 +535,7 @@ class FileSizeCombo(MDBoxLayout):
 
     DEFAULT_SIZE = "10"
 
-    _factors = {"kB": 2**10, "MB": 2**20, "GB": 2**30}
+    _factors = {"KB": 2**10, "MB": 2**20, "GB": 2**30}
     _spec = StringProperty(DEFAULT_SIZE)
     _selected_unit = StringProperty("MB")
 
