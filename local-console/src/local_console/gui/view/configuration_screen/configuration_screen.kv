@@ -57,7 +57,7 @@
             MDBoxLayout:
             # Schema
                 orientation: "horizontal"
-                spacing: "5dp"
+                spacing: "15dp"
 
                 PathSelectorCombo:
                     id: schema_pick
@@ -66,13 +66,15 @@
                     selector: "file"
                     ext: [".fbs"]
                     on_selected: root.select_path_flatbuffers(args[1])
+                    size_hint_x: 0.85
 
-                MDButton:
+                MDExtendedFabButton:
                     id: btn_process_schema
                     on_release: root.controller.process_schema()
                     pos_hint: {"center_y": 0.5}
+                    size_hint_x: 0.15
 
-                    MDButtonText:
+                    MDExtendedFabButtonText:
                         text: " Process \n schema "
 
         MDBoxLayout:
