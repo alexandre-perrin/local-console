@@ -20,6 +20,7 @@ import trio
 import typer
 from local_console.core.config import get_config
 from local_console.core.schemas.schemas import AgentConfiguration
+from local_console.plugin import PluginBase
 from local_console.servers.broker import spawn_broker
 
 app = typer.Typer()
@@ -60,3 +61,7 @@ async def broker_task(
             await trio.sleep_forever()
         except KeyboardInterrupt:
             logger.warning("Cancelled by the user")
+
+
+class BrokerCommand(PluginBase):
+    implementer = app

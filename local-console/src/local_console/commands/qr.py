@@ -22,6 +22,7 @@ from typing import Optional
 import typer
 from local_console.core.camera import get_qr_object
 from local_console.core.config import get_config
+from local_console.plugin import PluginBase
 from local_console.utils.local_network import get_my_ip_by_routing
 from local_console.utils.local_network import is_localhost
 
@@ -78,3 +79,7 @@ def qr(
     qr_code.print_ascii(out=f)
     f.seek(0)
     print(f.read())
+
+
+class QRCommand(PluginBase):
+    implementer = app

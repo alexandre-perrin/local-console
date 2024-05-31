@@ -32,6 +32,7 @@ from local_console.core.config import get_config
 from local_console.core.config import get_deployment_schema
 from local_console.core.enums import config_paths
 from local_console.core.enums import Target
+from local_console.plugin import PluginBase
 from local_console.utils.local_network import get_my_ip_by_routing
 from local_console.utils.local_network import is_localhost
 
@@ -128,3 +129,7 @@ def deploy(
         logger.info("Cancelled by the user")
     finally:
         sys.exit(0 if success else 1)
+
+
+class DeployCommand(PluginBase):
+    implementer = app

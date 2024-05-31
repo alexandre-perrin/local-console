@@ -22,6 +22,7 @@ import trio
 import typer
 from local_console.clients.agent import Agent
 from local_console.core.camera import MQTTTopics
+from local_console.plugin import PluginBase
 
 logger = logging.getLogger(__name__)
 
@@ -107,3 +108,7 @@ def on_message_instance(instance_id: str) -> Callable:
                     cs.cancel()
 
     return __task
+
+
+class GetCommand(PluginBase):
+    implementer = app

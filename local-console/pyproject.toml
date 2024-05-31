@@ -8,7 +8,7 @@ description = "Local Console for offline camera operation"
 license = {file = "LICENSE"}
 dynamic = ["version"]
 authors = [
-	{name = "Developer Tools and SDK Team", email = "engineering@midokura.com"}
+	{name = "DevTools and SDKs team", email = "engineering@midokura.com"}
 ]
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
@@ -85,6 +85,18 @@ license-files = ["*LICENSE"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+# Plugin architecture via entry points
+[project.entry-points."local_console.plugin"]
+base = "local_console.cli:PluginBase"
+broker = "local_console.commands.broker:BrokerCommand"
+config = "local_console.commands.config:ConfigCommand"
+deploy = "local_console.commands.deploy:DeployCommand"
+get = "local_console.commands.get:GetCommand"
+gui = "local_console.commands.gui:GUICommand"
+logs = "local_console.commands.logs:LogsCommand"
+qr = "local_console.commands.qr:QRCommand"
+rpc = "local_console.commands.rpc:RPCCommand"
 
 [project.scripts]
 local-console = "local_console.__main__:app"
