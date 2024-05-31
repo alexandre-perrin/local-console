@@ -183,15 +183,6 @@ jobs:
         name: ${{ needs.wheel.outputs.artifact }}
         merge-multiple: true
 
-    - name: Upload to AZ
-      uses: bacongobbler/azure-blob-storage-upload@main
-      with:
-        source_dir: '.'
-        container_name: main
-        connection_string: ${{ secrets.CEDATA_CONNECTION_STRING }}
-        extra_args: '--pattern *.whl'
-        overwrite: 'true'
-
     - name: Get Windows Installer
       uses: actions/download-artifact@v4
       with:
