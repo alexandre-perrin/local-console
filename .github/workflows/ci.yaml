@@ -152,6 +152,38 @@ jobs:
       with:
         tag: ${{ steps.tag.outputs.string }}
 
+  system-tests:
+    name: System Tests
+    needs: [pre-commit]
+    runs-on: [self-hosted, X64]
+    steps:
+    - name: Run external System Tests
+      uses: convictional/trigger-workflow-and-wait@v1.6.5
+      with:
+        owner: midokura
+        repo: wedge-cli
+        github_token: ${{ secrets.TEMPORARY_PAT_TOKEN }}
+        github_user: ${{ secrets.TEMPORARY_PAT_USER }}
+        workflow_file_name: execute-system-tests.yaml
+        ref: dev # TODO: update to main
+        client_payload: '{"lc-commit":"${{ github.event.pull_request.head.sha }}"}'
+
+  e2e-tests:
+    name: E2E Tests
+    needs: [pre-commit]
+    runs-on: [self-hosted, X64]
+    steps:
+    - name: Run external System Tests
+      uses: convictional/trigger-workflow-and-wait@v1.6.5
+      with:
+        owner: midokura
+        repo: wedge-cli
+        github_token: ${{ secrets.TEMPORARY_PAT_TOKEN }}
+        github_user: ${{ secrets.TEMPORARY_PAT_USER }}
+        workflow_file_name: execute-e2e.yaml
+        ref: dev # TODO: update to main
+        client_payload: '{"lc-commit":"${{ github.event.pull_request.head.sha }}"}'
+
   publish:
     name: Publish and tag
     runs-on: [self-hosted, X64]
@@ -160,6 +192,8 @@ jobs:
     - pre-commit
     - wheel
     - unit-tests
+    - e2e-tests
+    - system-tests
     - windows-installer
     if: needs.verify.outputs.exists == 'false'
     steps:
