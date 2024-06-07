@@ -26,6 +26,7 @@ from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 
 from tests.strategies.configs import generate_invalid_ip
 from tests.strategies.configs import generate_invalid_port_number
+from tests.strategies.configs import generate_random_characters
 from tests.strategies.configs import generate_valid_device_configuration
 from tests.strategies.configs import generate_valid_ip
 from tests.strategies.configs import generate_valid_port_number
@@ -36,12 +37,14 @@ from tests.strategies.configs import generate_valid_port_number
     generate_valid_port_number(),
     st.booleans(),
     st.integers(min_value=-1, max_value=100),
+    generate_random_characters(min_size=1, max_size=32),
 )
 def test_get_qr_object(
     ip: str,
     port: str,
     tls_enabled: bool,
     border: int,
+    text: str,
 ) -> None:
     with patch(
         "local_console.core.camera.qr_string", return_value=""
@@ -55,6 +58,8 @@ def test_get_qr_object(
             subnet_mask=ip,
             gateway=ip,
             dns_server=ip,
+            wifi_ssid=text,
+            wifi_password=text,
             border=border,
         )
         assert qr_code is not None
@@ -68,6 +73,8 @@ def test_get_qr_object(
             ip,
             ip,
             ip,
+            text,
+            text,
         )
 
 
@@ -76,12 +83,14 @@ def test_get_qr_object(
     generate_invalid_port_number(),
     st.booleans(),
     st.integers(min_value=-1, max_value=100),
+    generate_random_characters(min_size=1, max_size=32),
 )
 def test_get_qr_object_invalid(
     ip: str,
     port: str,
     tls_enabled: bool,
     border: int,
+    text: str,
 ) -> None:
     with patch(
         "local_console.core.camera.qr_string", return_value=""
@@ -95,6 +104,8 @@ def test_get_qr_object_invalid(
             subnet_mask=ip,
             gateway=ip,
             dns_server=ip,
+            wifi_ssid=text,
+            wifi_password=text,
             border=border,
         )
         assert qr_code is not None
@@ -108,6 +119,8 @@ def test_get_qr_object_invalid(
             ip,
             ip,
             ip,
+            text,
+            text,
         )
 
 
@@ -115,11 +128,13 @@ def test_get_qr_object_invalid(
     generate_valid_ip(),
     generate_valid_port_number(),
     st.booleans(),
+    generate_random_characters(min_size=1, max_size=32),
 )
 def test_get_qr_string(
     ip: str,
     port: str,
     tls_enabled: bool,
+    text: str,
 ) -> None:
     output = qr_string(
         mqtt_host=ip,
@@ -129,13 +144,15 @@ def test_get_qr_string(
         ip_address=ip,
         subnet_mask=ip,
         gateway=ip,
+        wifi_ssid=text,
+        wifi_password=text,
         dns_server=ip,
     )
 
     tls_flag = 0 if tls_enabled else 1
     assert (
         output
-        == f"AAIAAAAAAAAAAAAAAAAAAA==N=11;E={ip};H={port};t={tls_flag};I={ip};K={ip};G={ip};D={ip};T={ip};U1FS"
+        == f"AAIAAAAAAAAAAAAAAAAAAA==N=11;E={ip};H={port};t={tls_flag};S={text};P={text};I={ip};K={ip};G={ip};D={ip};T={ip};U1FS"
     )
 
 

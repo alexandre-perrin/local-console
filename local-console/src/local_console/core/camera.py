@@ -172,6 +172,8 @@ def get_qr_object(
     subnet_mask: str = "",
     gateway: str = "",
     dns_server: str = "",
+    wifi_ssid: str = "",
+    wifi_password: str = "",
     border: int = 5,
 ) -> qrcode.main.QRCode:
     """
@@ -186,6 +188,8 @@ def get_qr_object(
     :param subnet_mask: Address of Subnet Mask
     :param gateway:     Address of Gateway
     :param dns_server:  Address of DNS server
+    :param wifi_ssid:   Wireless LAN router SSID
+    :param wifi_password: Wireless LAN router connection password
     :param border:      size of padding around the QR code
     :return: the QR object containing the code for the camera
     """
@@ -210,6 +214,8 @@ def get_qr_object(
             subnet_mask,
             gateway,
             dns_server,
+            wifi_ssid,
+            wifi_password,
         )
     )
     qr_code.make(fit=True)
@@ -226,10 +232,16 @@ def qr_string(
     subnet_mask: str = "",
     gateway: str = "",
     dns_server: str = "",
+    wifi_ssid: str = "",
+    wifi_password: str = "",
 ) -> str:
     # Followed the order of the Setup Enrollment on the Console.
     tls_flag = 0 if tls_enabled else 1
     output = f"AAIAAAAAAAAAAAAAAAAAAA==N=11;E={mqtt_host};H={mqtt_port};t={tls_flag}"
+    if wifi_ssid:
+        output += f";S={wifi_ssid}"
+    if wifi_password:
+        output += f";P={wifi_password}"
     if ip_address:
         output += f";I={ip_address}"
     if subnet_mask:

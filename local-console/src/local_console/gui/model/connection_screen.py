@@ -37,6 +37,8 @@ class ConnectionScreenModel(BaseScreenModel):
     MAX_LEN_PORT = int(5)
     MAX_LEN_IP_ADDRESS = int(39)
     MAX_LEN_DOMAIN_NAME = int(64)
+    MAX_LEN_WIFI_SSID = int(32)
+    MAX_LEN_WIFI_PASSWORD = int(32)
 
     def __init__(self) -> None:
         config = get_config()
@@ -49,6 +51,10 @@ class ConnectionScreenModel(BaseScreenModel):
         self._subnet_mask = ""
         self._gateway = ""
         self._dns_server = ""
+        self._wifi_ssid = ""
+        self._wifi_password = ""
+        self._wifi_password_hidden = True
+        self._wifi_icon_eye = "eye-off"
         # Settings validity
         self._mqtt_host_error = False
         self._mqtt_port_error = False
@@ -276,6 +282,46 @@ class ConnectionScreenModel(BaseScreenModel):
     @property
     def dns_server_error(self) -> bool:
         return self._dns_server_error
+
+    # Wi-Fi SSID
+    @property
+    def wifi_ssid(self) -> str:
+        return self._wifi_ssid
+
+    @wifi_ssid.setter
+    def wifi_ssid(self, ssid: str) -> None:
+        self._wifi_ssid = ssid[: self.MAX_LEN_WIFI_SSID]
+        self.notify_observers()
+
+    # Wi-Fi Password
+    @property
+    def wifi_password(self) -> str:
+        return self._wifi_password
+
+    @wifi_password.setter
+    def wifi_password(self, password: str) -> None:
+        self._wifi_password = password[: self.MAX_LEN_WIFI_PASSWORD]
+        self.notify_observers()
+
+    # Wi-Fi Password hidden/unhidden
+    @property
+    def wifi_password_hidden(self) -> bool:
+        return self._wifi_password_hidden
+
+    @wifi_password_hidden.setter
+    def wifi_password_hidden(self, hidden: bool) -> None:
+        self._wifi_password_hidden = hidden
+        self.notify_observers()
+
+    # Wi-Fi Password icon eye/eye-off
+    @property
+    def wifi_icon_eye(self) -> str:
+        return self._wifi_icon_eye
+
+    @wifi_icon_eye.setter
+    def wifi_icon_eye(self, icon: str) -> None:
+        self._wifi_icon_eye = icon
+        self.notify_observers()
 
     # Others
     @property

@@ -1,5 +1,6 @@
 #:import res_path local_console.gui.config.resource_path
 #:import get_my_ip local_console.utils.local_network.get_my_ip_by_routing
+#:import utils kivy.utils
 #:include res_path(components.kv)
 
 <EntryLabel@MDLabel>:
@@ -165,10 +166,60 @@
                     max_height: root.INPUTBOX_HEIGHT
                     height: root.INPUTBOX_HEIGHT
                     focus_previous: txt_gateway
-                    focus_next: txt_mqtt_host
+                    focus_next: txt_wifi_ssid
                     MDTextFieldHelperText:
                         text: "Enter a valid DNS server"
                         mode: "on_focus"
+
+                EntryLabel:
+                    text: "Wi-Fi SSID"
+                FocusText:
+                    id: txt_wifi_ssid
+                    on_text: root.validate_wifi_ssid(*args)
+                    multiline: False
+                    size_hint_y: None
+                    max_height: root.INPUTBOX_HEIGHT
+                    height: root.INPUTBOX_HEIGHT
+                    focus_previous: txt_dns_server
+                    focus_next: txt_wifi_password
+                    MDTextFieldHelperText:
+                        text: "Enter a valid Wi-Fi SSID"
+                        mode: "on_focus"
+
+                EntryLabel:
+                    text: "Wi-Fi Password"
+                MDGridLayout:
+                    size_hint_y: None
+                    max_height: root.INPUTBOX_HEIGHT
+                    height: root.INPUTBOX_HEIGHT
+                    cols: 2
+                    FocusText:
+                        id: txt_wifi_password
+                        on_text: root.validate_wifi_password(*args)
+                        multiline: False
+                        max_height: root.INPUTBOX_HEIGHT
+                        height: root.INPUTBOX_HEIGHT
+                        focus_previous: txt_wifi_ssid
+                        focus_next: txt_mqtt_host
+                        password: True
+                        MDTextFieldHelperText:
+                            text: "Enter a valid Wi-Fi password"
+                            mode: "on_focus"
+                    MDIconButton:
+                        id: btn_icon_eye
+                        icon: "eye-off"
+                        width: "27dp"
+                        style: "tonal"
+                        max_height: root.INPUTBOX_HEIGHT
+                        height: root.INPUTBOX_HEIGHT
+                        on_release: root.controller.toggle_password_visibile()
+                        radius: 5, 5, 5, 5
+                        canvas.before:
+                            Color:
+                                rgba: utils.get_color_from_hex("#7A848D")
+                            Line:
+                                width: 1.1
+                                rounded_rectangle: self.x, self.y, self.width, self.height, 5, 5, 5, 5
 
                 # Spacer
                 MDWidget:
@@ -194,3 +245,7 @@
                     id: img_qr_display
                     color: root.theme_cls.backgroundColor
                     fit_mode: "contain"
+
+                # Spacer
+                MDWidget:
+                    size_hint_y: .1
