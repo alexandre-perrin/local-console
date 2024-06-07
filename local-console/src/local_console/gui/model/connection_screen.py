@@ -171,8 +171,7 @@ class ConnectionScreenModel(BaseScreenModel):
 
     @mqtt_host.setter
     def mqtt_host(self, host: str) -> None:
-        if len(host) <= self.MAX_LEN_DOMAIN_NAME:
-            self._mqtt_host = host
+        self._mqtt_host = host[: self.MAX_LEN_DOMAIN_NAME]
         # Maybe commit the new value into the persistent configuration
         self.notify_observers()
 
@@ -214,8 +213,7 @@ class ConnectionScreenModel(BaseScreenModel):
 
     @ntp_host.setter
     def ntp_host(self, host: str) -> None:
-        if len(host) <= self.MAX_LEN_DOMAIN_NAME:
-            self._ntp_host = host
+        self._ntp_host = host[: self.MAX_LEN_DOMAIN_NAME]
         # Maybe commit the new value into the persistent configuration
         self.notify_observers()
 
@@ -230,8 +228,7 @@ class ConnectionScreenModel(BaseScreenModel):
 
     @ip_address.setter
     def ip_address(self, ip: str) -> None:
-        if len(ip) <= self.MAX_LEN_IP_ADDRESS:
-            self._ip_address = ip
+        self._ip_address = ip[: self.MAX_LEN_IP_ADDRESS]
         self.notify_observers()
 
     @property
@@ -245,8 +242,7 @@ class ConnectionScreenModel(BaseScreenModel):
 
     @subnet_mask.setter
     def subnet_mask(self, mask: str) -> None:
-        if len(mask) <= self.MAX_LEN_IP_ADDRESS:
-            self._subnet_mask = mask
+        self._subnet_mask = mask[: self.MAX_LEN_IP_ADDRESS]
         self.notify_observers()
 
     @property
@@ -260,8 +256,7 @@ class ConnectionScreenModel(BaseScreenModel):
 
     @gateway.setter
     def gateway(self, gateway: str) -> None:
-        if len(gateway) <= self.MAX_LEN_IP_ADDRESS:
-            self._gateway = gateway
+        self._gateway = gateway[: self.MAX_LEN_IP_ADDRESS]
         self.notify_observers()
 
     @property
@@ -275,8 +270,7 @@ class ConnectionScreenModel(BaseScreenModel):
 
     @dns_server.setter
     def dns_server(self, server: str) -> None:
-        if len(server) <= self.MAX_LEN_IP_ADDRESS:
-            self._dns_server = server
+        self._dns_server = server[: self.MAX_LEN_IP_ADDRESS]
         self.notify_observers()
 
     @property
