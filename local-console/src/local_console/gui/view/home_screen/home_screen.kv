@@ -81,3 +81,12 @@
             orientation: "vertical"
             adaptive_height: False
             size_hint_x: 2
+
+            MDBoxLayout:
+                size_hint_y: 0.9
+
+            MDLabel:
+                text: root.version_number
+                size_hint_y: 0.1
+                padding: "30dp"
+                halign: "right"
