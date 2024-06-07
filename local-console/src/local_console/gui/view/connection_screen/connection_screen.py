@@ -37,6 +37,8 @@ class LocalIPInput(GUITooltip, FocusText):
 
 
 class ConnectionScreenView(BaseScreenView):
+    INPUTBOX_HEIGHT = "40dp"
+
     def entry_actions(self) -> None:
         self.model_is_changed()
 
