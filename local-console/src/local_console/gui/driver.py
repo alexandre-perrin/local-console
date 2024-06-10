@@ -34,6 +34,7 @@ from local_console.core.schemas.edge_cloud_if_v1 import Permission
 from local_console.core.schemas.edge_cloud_if_v1 import SetFactoryReset
 from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
 from local_console.core.schemas.schemas import DesiredDeviceConfig
+from local_console.gui.enums import ApplicationConfiguration
 from local_console.gui.utils.axis_mapping import pixel_roi_from_normals
 from local_console.gui.utils.axis_mapping import UnitROI
 from local_console.gui.utils.enums import Screen
@@ -358,3 +359,10 @@ class Driver:
         logger.debug("Connection status timed out: camera is disconnected")
         self.camera_state.sensor_state = StreamStatus.Inactive
         self.update_camera_status()
+
+    async def send_app_config(self, config: str) -> None:
+        await self.mqtt_client.configure(
+            ApplicationConfiguration.NAME,
+            ApplicationConfiguration.CONFIG_TOPIC,
+            config,
+        )

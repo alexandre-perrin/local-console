@@ -30,11 +30,13 @@ from local_console.core.config import config_to_schema
 from local_console.core.config import get_default_config
 from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
 from local_console.core.schemas.schemas import AgentConfiguration
+from local_console.gui.enums import ApplicationConfiguration
 from local_console.gui.utils.axis_mapping import SENSOR_SIZE
 from local_console.utils.local_network import LOCAL_IP
 
 from tests.mocks.mock_paho_mqtt import MockAsyncIterator
 from tests.mocks.mock_paho_mqtt import MockMQTTMessage
+from tests.strategies.configs import generate_text
 
 # The following lines need to be in this order, in order to
 # be able to mock the run_on_ui_thread decorator with
@@ -281,3 +283,21 @@ async def test_connection_status_timeout():
     driver.camera_state.sensor_state = StreamStatus.Active
     await driver.connection_status_timeout()
     assert driver.camera_state.sensor_state == StreamStatus.Inactive
+
+
+@pytest.mark.trio
+@given(generate_text())
+async def test_connection_status_timeout(config: str):
+    mock_configure = AsyncMock()
+    with (
+        patch("local_console.gui.driver.Agent") as mock_agent,
+        patch("local_console.gui.driver.spawn_broker"),
+    ):
+        mock_agent.return_value.configure = mock_configure
+        driver = Driver(MagicMock())
+        await driver.send_app_config(config)
+        mock_configure.assert_awaited_with(
+            ApplicationConfiguration.NAME,
+            ApplicationConfiguration.CONFIG_TOPIC,
+            config,
+        )
