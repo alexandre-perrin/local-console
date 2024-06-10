@@ -17,10 +17,16 @@ from pathlib import Path
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
+import hypothesis.strategies as st
+from hypothesis import given
 from local_console.gui.controller.configuration_screen import (
     ConfigurationScreenController,
 )
+from local_console.gui.enums import ApplicationSchemaFilePath
+from local_console.gui.enums import ApplicationType
 from local_console.gui.model.configuration_screen import ConfigurationScreenModel
+
+from tests.strategies.configs import generate_text
 
 
 def test_apply_configuration():
@@ -99,9 +105,151 @@ def test_apply_application_configuration(tmpdir):
 
         file.write_text("{")
         ctrl.apply_application_configuration()
-        assert model.flatbuffers_process_result == "Error parsin app configuration JSON"
+        assert (
+            model.flatbuffers_process_result == "Error parsing app configuration JSON"
+        )
 
         file.write_text('{"a": 3}')
         model.flatbuffers_process_result = ""
         ctrl.apply_application_configuration()
         assert model.flatbuffers_process_result == ""
+
+
+def test_apply_application_configuration_error(tmpdir):
+    model, mock_driver = ConfigurationScreenModel(), MagicMock()
+    with (
+        patch(
+            "local_console.gui.controller.configuration_screen.ConfigurationScreenView"
+        ),
+        patch("local_console.gui.controller.configuration_screen.json") as mock_json,
+    ):
+        ctrl = ConfigurationScreenController(model, mock_driver)
+
+        file = Path(tmpdir) / "config.json"
+        file.write_text('{"a": 3}')
+
+        mock_json.load.side_effect = Exception
+        ctrl.update_app_configuration(str(file))
+        ctrl.apply_application_configuration()
+        assert model.flatbuffers_process_result == "App configuration unknown error"
+
+        mock_json.load.side_effect = PermissionError
+        ctrl.apply_application_configuration()
+        assert model.flatbuffers_process_result == "App configuration permission error"
+
+
+def test_update_application_type():
+    model, mock_driver = ConfigurationScreenModel(), MagicMock()
+    with (
+        patch(
+            "local_console.gui.controller.configuration_screen.ConfigurationScreenView"
+        ),
+    ):
+        ctrl = ConfigurationScreenController(model, mock_driver)
+
+        ctrl.update_application_type(ApplicationType.CUSTOM)
+        assert model.app_type == ApplicationType.CUSTOM
+        assert ctrl.view.ids.labels_pick.disabled
+        assert not ctrl.view.ids.schema_pick.disabled
+
+        ctrl.update_application_type(ApplicationType.CLASSIFICATION)
+        assert model.app_type == ApplicationType.CLASSIFICATION
+        assert model.flatbuffers_schema == ApplicationSchemaFilePath.CLASSIFICATION
+        assert not ctrl.view.ids.labels_pick.disabled
+        assert ctrl.view.ids.schema_pick.disabled
+
+        ctrl.update_application_type(ApplicationType.DETECTION)
+        assert model.app_type == ApplicationType.DETECTION
+        assert model.flatbuffers_schema == ApplicationSchemaFilePath.DETECTION
+        assert not ctrl.view.ids.labels_pick.disabled
+        assert ctrl.view.ids.schema_pick.disabled
+
+        ctrl.update_application_type(ApplicationType.CUSTOM)
+        assert ctrl.view.ids.labels_pick.disabled
+        assert not ctrl.view.ids.schema_pick.disabled
+
+
+@given(generate_text())
+def test_update_labels(path: str):
+    model = ConfigurationScreenModel()
+
+    with (
+        patch(
+            "local_console.gui.controller.configuration_screen.ConfigurationScreenView"
+        ),
+    ):
+        ctrl = ConfigurationScreenController(model, MagicMock())
+        ctrl.update_app_labels(path)
+
+        assert model.app_labels == path
+
+
+@given(generate_text())
+def test_update_flatbuffers_schema(path: str):
+    model = ConfigurationScreenModel()
+
+    with (
+        patch(
+            "local_console.gui.controller.configuration_screen.ConfigurationScreenView"
+        ),
+    ):
+        ctrl = ConfigurationScreenController(model, MagicMock())
+        ctrl.update_flatbuffers_schema(path)
+
+        assert model.flatbuffers_schema == path
+
+
+@given(st.integers(min_value=1))
+def test_update_total_max_size(value: int):
+    driver = MagicMock()
+    with (
+        patch(
+            "local_console.gui.controller.configuration_screen.ConfigurationScreenView"
+        ),
+    ):
+        ctrl = ConfigurationScreenController(MagicMock(), driver)
+        ctrl.update_total_max_size(value)
+
+        driver.total_dir_watcher.set_storage_limit.assert_called_once_with(value)
+
+
+@given(generate_text())
+def test_update_image_directory(path: str):
+    driver = MagicMock()
+    model = ConfigurationScreenModel()
+    with (
+        patch(
+            "local_console.gui.controller.configuration_screen.ConfigurationScreenView"
+        ),
+    ):
+        ctrl = ConfigurationScreenController(model, driver)
+        ctrl.update_image_directory(path)
+
+        driver.set_image_directory.assert_called_once_with(path)
+        assert model.image_directory == path
+
+
+@given(generate_text())
+def test_update_inferences_directory(path: str):
+    driver = MagicMock()
+    model = ConfigurationScreenModel()
+    with (
+        patch(
+            "local_console.gui.controller.configuration_screen.ConfigurationScreenView"
+        ),
+    ):
+        ctrl = ConfigurationScreenController(model, driver)
+        ctrl.update_inferences_directory(path)
+
+        driver.set_inference_directory.assert_called_once_with(path)
+        assert model.inferences_directory == path
+
+
+def test_get_view():
+    with (
+        patch(
+            "local_console.gui.controller.configuration_screen.ConfigurationScreenView"
+        ),
+    ):
+        ctrl = ConfigurationScreenController(MagicMock(), MagicMock())
+        assert ctrl.view == ctrl.get_view()

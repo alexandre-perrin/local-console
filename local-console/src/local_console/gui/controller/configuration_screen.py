@@ -85,9 +85,9 @@ class ConfigurationScreenController:
             self.driver.from_sync(self.driver.send_app_config, json.dumps(config))
         except FileNotFoundError:
             self.model.flatbuffers_process_result = "App configuration does not exist"
-        except json.decoder.JSONDecodeError:
+        except ValueError:
             self.model.flatbuffers_process_result = (
-                "Error parsin app configuration JSON"
+                "Error parsing app configuration JSON"
             )
         except PermissionError:
             self.model.flatbuffers_process_result = "App configuration permission error"

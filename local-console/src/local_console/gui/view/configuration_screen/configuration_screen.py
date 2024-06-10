@@ -36,22 +36,20 @@ class ConfigurationScreenView(BaseScreenView):
             self.ids.inference_dir_pick.accept_path(
                 str(self.model.inferences_directory)
             )
-        if self.model.flatbuffers_schema is not None:
-            self.ids.schema_pick.accept_path(str(self.model.flatbuffers_schema))
-        else:
-            self.ids.schema_pick.accept_path("")
 
-        if self.model.app_configuration is not None:
-            self.ids.app_configuration_pick.accept_path(
-                str(self.model.app_configuration)
-            )
-        else:
-            self.ids.app_configuration_pick.accept_path("")
-
-        if self.model.app_labels is not None:
-            self.ids.labels_pick.accept_path(str(self.model.app_labels))
-        else:
-            self.ids.labels_pick.accept_path("")
+        self.ids.schema_pick.accept_path(
+            ""
+            if self.model.flatbuffers_schema is None
+            else str(self.model.flatbuffers_schema)
+        )
+        self.ids.app_configuration_pick.accept_path(
+            ""
+            if self.model.app_configuration is None
+            else str(self.model.app_configuration)
+        )
+        self.ids.labels_pick.accept_path(
+            "" if self.model.app_labels is None else str(self.model.app_labels)
+        )
 
         if self.model.flatbuffers_process_result is not None:
             self.show_flatbuffers_process_result(self.model.flatbuffers_process_result)
