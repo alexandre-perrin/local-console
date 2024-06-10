@@ -13,10 +13,14 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+from importlib.metadata import version as version_info
+
 from local_console.gui.view.base_screen import BaseScreenView
 
 
 class HomeScreenView(BaseScreenView):
+    version_number = f"Version: {version_info('local-console')}"
+
     def model_is_changed(self) -> None:
         """
         Called whenever any change has occurred in the data model.
