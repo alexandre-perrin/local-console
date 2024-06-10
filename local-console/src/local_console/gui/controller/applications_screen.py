@@ -26,6 +26,7 @@ from local_console.core.config import get_config
 from local_console.core.schemas.schemas import Deployment
 from local_console.core.schemas.schemas import DeploymentManifest
 from local_console.gui.driver import Driver
+from local_console.gui.enums import ApplicationConfiguration
 from local_console.gui.model.applications_screen import ApplicationsScreenModel
 from local_console.gui.view.applications_screen.applications_screen import (
     ApplicationsScreenView,
@@ -62,7 +63,7 @@ class ApplicationsScreenController:
 
         module_file = Path(self.view.ids.app_file.path)
 
-        node = "node"
+        node = ApplicationConfiguration.NAME
         deployment = Deployment.model_validate(
             {
                 "deploymentId": "",
