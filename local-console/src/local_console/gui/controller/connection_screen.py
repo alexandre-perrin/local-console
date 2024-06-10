@@ -41,6 +41,14 @@ class ConnectionScreenController:
     def get_view(self) -> ConnectionScreenView:
         return self.view
 
+    def toggle_password_visibile(self) -> None:
+        if self.model.wifi_password_hidden:
+            self.model.wifi_password_hidden = False
+            self.model.wifi_icon_eye = "eye"
+        else:
+            self.model.wifi_password_hidden = True
+            self.model.wifi_icon_eye = "eye-off"
+
     def qr_generate(self) -> None:
         # Get the local IP since it might be updated.
         self.model.local_ip = get_my_ip_by_routing()
@@ -55,6 +63,8 @@ class ConnectionScreenController:
             self.model.subnet_mask,
             self.model.gateway,
             self.model.dns_server,
+            self.model.wifi_ssid,
+            self.model.wifi_password,
             border=4,
         )
         background: Color = tuple(

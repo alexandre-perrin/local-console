@@ -15,6 +15,7 @@
 # SPDX-License-Identifier: Apache-2.0
 from pathlib import Path
 from socket import inet_ntoa
+from string import printable
 from struct import pack
 
 from hypothesis import strategies as st
@@ -38,6 +39,11 @@ def generate_text(draw: st.DrawFn, min_size: int = 1, max_size: int = 5):
         whitelist_categories=("Lu", "Ll", "Nd"), min_codepoint=0, max_codepoint=0x10FFFF
     )
     return draw(st.text(alphabet=characters, min_size=min_size, max_size=max_size))
+
+
+@st.composite
+def generate_random_characters(draw: st.DrawFn, min_size: int, max_size: int) -> str:
+    return draw(st.text(alphabet=printable, min_size=min_size, max_size=max_size))
 
 
 @st.composite

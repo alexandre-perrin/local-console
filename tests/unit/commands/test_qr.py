@@ -48,6 +48,8 @@ def test_qr_with_defaults(config: AgentConfiguration) -> None:
             "",
             "",
             "",
+            "",
+            "",
         )
 
 
@@ -94,6 +96,8 @@ def test_qr_with_overrides(
             "",
             "",
             "",
+            "",
+            "",
         )
 
 
@@ -118,6 +122,8 @@ def test_qr_for_local_host(config: AgentConfiguration, local_host_alias: str) ->
             config.mqtt.port,
             config.is_tls_enabled,
             "pool.ntp.org",
+            "",
+            "",
             "",
             "",
             "",

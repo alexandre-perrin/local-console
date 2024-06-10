@@ -14,12 +14,14 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 from contextlib import contextmanager
+from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import hypothesis.strategies as st
 from hypothesis import given
 from local_console.core.config import config_to_schema
 from local_console.core.config import get_default_config
+from local_console.gui.controller.connection_screen import ConnectionScreenController
 from local_console.gui.model.connection_screen import ConnectionScreenModel
 from local_console.gui.utils.observer import Observer
 from pytest import fixture
@@ -29,6 +31,7 @@ from tests.strategies.configs import generate_invalid_hostname_long
 from tests.strategies.configs import generate_invalid_ip
 from tests.strategies.configs import generate_invalid_ip_long
 from tests.strategies.configs import generate_invalid_port_number
+from tests.strategies.configs import generate_random_characters
 from tests.strategies.configs import generate_valid_ip
 from tests.strategies.configs import generate_valid_ip_strict
 from tests.strategies.configs import generate_valid_port_number
@@ -74,6 +77,10 @@ def test_initialization():
     assert model.subnet_mask == ""
     assert model.gateway == ""
     assert model.dns_server == ""
+    assert model.wifi_ssid == ""
+    assert model.wifi_password == ""
+    assert model.wifi_password_hidden is True
+    assert model.wifi_icon_eye == "eye-off"
     # Settings validity
     assert not model.mqtt_host_error
     assert not model.mqtt_port_error
@@ -88,7 +95,7 @@ def test_initialization():
 
 
 # local ip
-@given(generate_valid_ip())
+@given(st.ip_addresses(v=4))
 def test_local_ip_valid_updated(valid_ip: str):
     with create_model() as model:
         model.local_ip = valid_ip
@@ -509,6 +516,58 @@ def test_dns_server_invalid_long(ip: str):
         model.dns_server = ip
         assert not model.dns_server_error
         assert len(model.dns_server) <= model.MAX_LEN_IP_ADDRESS
+
+
+# wifi ssid / password
+@given(
+    generate_random_characters(min_size=0, max_size=32),
+    generate_random_characters(min_size=0, max_size=32),
+)
+def test_wifi_ssid_password(ssid: str, password: str):
+    with (
+        create_model() as model,
+        patch("local_console.gui.controller.connection_screen.ConnectionScreenView"),
+    ):
+        mock_driver = MagicMock()
+        controller = ConnectionScreenController(model, mock_driver)
+        model.wifi_ssid = ssid
+        assert model.wifi_ssid == ssid
+        assert len(model.wifi_ssid) <= model.MAX_LEN_WIFI_SSID
+        model.wifi_password = password
+        assert model.wifi_password == password
+        assert len(model.wifi_password) <= model.MAX_LEN_WIFI_PASSWORD
+        assert model.wifi_password_hidden is True
+        assert model.wifi_icon_eye == "eye-off"
+        controller.toggle_password_visibile()
+        assert model.wifi_password_hidden is False
+        assert model.wifi_icon_eye == "eye"
+
+
+@given(
+    generate_random_characters(min_size=33, max_size=35),
+    generate_random_characters(min_size=33, max_size=35),
+)
+def test_wifi_ssid_password_long(ssid: str, password: str):
+    with (
+        create_model() as model,
+        patch("local_console.gui.controller.connection_screen.ConnectionScreenView"),
+    ):
+        mock_driver = MagicMock()
+        controller = ConnectionScreenController(model, mock_driver)
+        model.wifi_ssid = ssid
+        assert model.wifi_ssid == ssid[: model.MAX_LEN_WIFI_SSID]
+        assert len(model.wifi_ssid) <= model.MAX_LEN_WIFI_SSID
+        model.wifi_password = password
+        assert model.wifi_password == password[: model.MAX_LEN_WIFI_PASSWORD]
+        assert len(model.wifi_password) <= model.MAX_LEN_WIFI_PASSWORD
+        assert model.wifi_password_hidden is True
+        assert model.wifi_icon_eye == "eye-off"
+        controller.toggle_password_visibile()
+        assert model.wifi_password_hidden is False
+        assert model.wifi_icon_eye == "eye"
+        controller.toggle_password_visibile()
+        assert model.wifi_password_hidden is True
+        assert model.wifi_icon_eye == "eye-off"
 
 
 # connection status

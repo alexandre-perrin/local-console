@@ -37,6 +37,8 @@ class LocalIPInput(GUITooltip, FocusText):
 
 
 class ConnectionScreenView(BaseScreenView):
+    INPUTBOX_HEIGHT = "32dp"
+
     def entry_actions(self) -> None:
         self.model_is_changed()
 
@@ -61,6 +63,12 @@ class ConnectionScreenView(BaseScreenView):
     def validate_dns_server(self, widget: Widget, text: str) -> None:
         self.model.dns_server = text
 
+    def validate_wifi_ssid(self, widget: Widget, text: str) -> None:
+        self.model.wifi_ssid = text
+
+    def validate_wifi_password(self, widget: Widget, text: str) -> None:
+        self.model.wifi_password = text
+
     def model_is_changed(self) -> None:
         self.ids.lbl_conn_status.text = (
             "Connected [No TLS]" if self.model.connected else "Disconnected"
@@ -73,6 +81,11 @@ class ConnectionScreenView(BaseScreenView):
         self.ids.txt_subnet_mask.text = self.model.subnet_mask
         self.ids.txt_gateway.text = self.model.gateway
         self.ids.txt_dns_server.text = self.model.dns_server
+        self.ids.txt_wifi_ssid.text = self.model.wifi_ssid
+        self.ids.txt_wifi_password.text = self.model.wifi_password
+
+        self.ids.txt_wifi_password.password = self.model.wifi_password_hidden
+        self.ids.btn_icon_eye.icon = self.model.wifi_icon_eye
 
         if self.model.warning_message != "":
             self.show_message_at_bottom(self.model.warning_message)
