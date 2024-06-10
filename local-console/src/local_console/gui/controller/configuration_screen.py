@@ -13,9 +13,13 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+import json
 from pathlib import Path
+from typing import Optional
 
 from local_console.gui.driver import Driver
+from local_console.gui.enums import ApplicationSchemaFilePath
+from local_console.gui.enums import ApplicationType
 from local_console.gui.model.configuration_screen import ConfigurationScreenModel
 from local_console.gui.view.configuration_screen.configuration_screen import (
     ConfigurationScreenView,
@@ -51,10 +55,46 @@ class ConfigurationScreenController:
     def update_total_max_size(self, size: int) -> None:
         self.driver.total_dir_watcher.set_storage_limit(size)
 
-    def update_flatbuffers_schema(self, path: Path) -> None:
+    def update_flatbuffers_schema(self, path: Optional[Path]) -> None:
         self.model.flatbuffers_schema = path
 
-    def process_schema(self) -> None:
+    def update_app_labels(self, path: str) -> None:
+        self.model.app_labels = path
+
+    def update_app_configuration(self, path: Optional[str]) -> None:
+        self.model.app_configuration = path
+
+    def update_application_type(self, app: str) -> None:
+        self.model.app_type = app
+        self.view.ids.labels_pick.disabled = app == ApplicationType.CUSTOM.value
+        self.view.ids.schema_pick.disabled = app != ApplicationType.CUSTOM.value
+
+        if app == ApplicationType.CUSTOM.value:
+            self.update_flatbuffers_schema(None)
+        elif app == ApplicationType.CLASSIFICATION.value:
+            self.update_flatbuffers_schema(ApplicationSchemaFilePath.CLASSIFICATION)
+        else:
+            self.update_flatbuffers_schema(ApplicationSchemaFilePath.DETECTION)
+
+    def apply_application_configuration(self) -> None:
+        if self.model.app_configuration is None:
+            return
+        try:
+            with open(self.model.app_configuration) as f:
+                config = json.load(f)
+            self.driver.from_sync(self.driver.send_app_config, json.dumps(config))
+        except FileNotFoundError:
+            self.model.flatbuffers_process_result = "App configuration does not exist"
+        except json.decoder.JSONDecodeError:
+            self.model.flatbuffers_process_result = (
+                "Error parsin app configuration JSON"
+            )
+        except PermissionError:
+            self.model.flatbuffers_process_result = "App configuration permission error"
+        except Exception:
+            self.model.flatbuffers_process_result = "App configuration unknown error"
+
+    def apply_flatbuffers_schema(self) -> None:
         if self.model.flatbuffers_schema is not None:
             if self.model.flatbuffers_schema.is_file():
                 result, _ = self.flatbuffers.conform_flatbuffer_schema(
@@ -73,3 +113,7 @@ class ConfigurationScreenController:
                 )
         else:
             self.model.flatbuffers_process_result = "Please select a schema file."
+
+    def apply_configuration(self) -> None:
+        self.apply_flatbuffers_schema()
+        self.apply_application_configuration()

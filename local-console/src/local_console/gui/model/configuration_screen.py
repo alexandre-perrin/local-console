@@ -30,6 +30,9 @@ class ConfigurationScreenModel(BaseScreenModel):
         self._flatbuffers_schema: Optional[Path] = None
         self._flatbuffers_process_result: Optional[str] = None
         self._flatbuffers_schema_status: bool = False
+        self._app_type: Optional[str] = None
+        self._app_configuration: Optional[str] = None
+        self._app_labels: Optional[str] = None
 
     @property
     def image_directory(self) -> Optional[Path]:
@@ -56,6 +59,33 @@ class ConfigurationScreenModel(BaseScreenModel):
     @flatbuffers_schema.setter
     def flatbuffers_schema(self, value: Optional[Path]) -> None:
         self._flatbuffers_schema = value
+        self.notify_observers()
+
+    @property
+    def app_type(self) -> Optional[str]:
+        return self._app_type
+
+    @app_type.setter
+    def app_type(self, value: Optional[str]) -> None:
+        self._app_type = value
+        self.notify_observers()
+
+    @property
+    def app_labels(self) -> Optional[str]:
+        return self._app_labels
+
+    @app_labels.setter
+    def app_labels(self, value: Optional[str]) -> None:
+        self._app_labels = value
+        self.notify_observers()
+
+    @property
+    def app_configuration(self) -> Optional[str]:
+        return self._app_configuration
+
+    @app_configuration.setter
+    def app_configuration(self, value: Optional[str]) -> None:
+        self._app_configuration = value
         self.notify_observers()
 
     @property
