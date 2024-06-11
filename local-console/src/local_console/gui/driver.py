@@ -320,7 +320,6 @@ class Driver:
                     return_value = None
                     with open(self.temporary_base / f"{output_name}.json") as file:
                         json_data = json.load(file)
-                        self.map_class_id_to_name()
                         if self.class_id_to_name:
                             self.add_class_names(json_data, self.class_id_to_name)
 

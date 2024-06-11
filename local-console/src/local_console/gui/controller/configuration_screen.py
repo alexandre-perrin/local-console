@@ -77,6 +77,8 @@ class ConfigurationScreenController:
             self.update_flatbuffers_schema(ApplicationSchemaFilePath.DETECTION)
 
     def apply_application_configuration(self) -> None:
+        self.driver.map_class_id_to_name()
+
         if self.model.app_configuration is None:
             return
         try:
