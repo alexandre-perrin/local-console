@@ -14,6 +14,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 import importlib
+import json
 import random
 import shutil
 import sys
@@ -151,60 +152,91 @@ def test_process_camera_upload_images(tmpdir):
         patch.object(
             Driver, "save_into_image_directory"
         ) as mock_save_into_image_directory,
-        patch.object(Driver, "update_images_display") as mock_update_images_display,
+        patch.object(Driver, "update_images_display") as mock_update_display,
     ):
         driver = Driver(MagicMock())
         file = root / "images/a.png"
         driver.process_camera_upload(file)
         mock_save_into_image_directory.assert_called_once_with(file)
-        mock_update_images_display.assert_called_once_with(
+        mock_update_display.assert_called_once_with(
             mock_save_into_image_directory.return_value
         )
 
 
-def test_process_camera_upload_inferences(tmpdir):
+def test_process_camera_upload_inferences_with_schema(tmpdir):
     root = Path(tmpdir)
 
     with (
+        patch.object(Driver, "save_into_inferences_directory") as mock_save,
+        patch.object(Driver, "update_inference_data") as mock_update_data,
+        patch.object(Driver, "update_images_display") as mock_update_display,
         patch.object(
-            Driver, "save_into_inferences_directory"
-        ) as mock_save_into_inferences_directory,
-        patch.object(Driver, "update_inference_data") as mock_update_inference_data,
-        patch.object(
-            Driver, "update_inference_data_flatbuffers"
-        ) as mock_update_inference_data_flatbuffers,
+            Driver, "get_flatbuffers_inference_data"
+        ) as mock_get_flatbuffers_inference_data,
+        patch("local_console.gui.driver.FlatBuffers") as mock_flatbuffers,
+        patch("local_console.gui.driver.process_frame") as mock_process_frame,
     ):
         driver = Driver(MagicMock())
-        file = root / "inferences/a.png"
+        driver.latest_image_file = root / "inferences/a.png"
+        driver.flatbuffers_schema = "objectdetection.fbs"
+        file = root / "inferences/a.txt"
+
+        mock_get_flatbuffers_inference_data.return_value = {"a": 3}
+        mock_process_frame.side_effect = Exception
         driver.process_camera_upload(file)
-        mock_save_into_inferences_directory.assert_called_once_with(file)
-        mock_update_inference_data.assert_called_once_with(
-            mock_save_into_inferences_directory.return_value.read_text.return_value
+
+        mock_save.assert_called_once_with(file)
+        mock_flatbuffers.return_value.get_output_from_inference_results.assert_called_once_with(
+            file
         )
-        mock_update_inference_data_flatbuffers.assert_not_called()
+        mock_update_data.assert_called_once_with(json.dumps({"a": 3}, indent=2))
+        mock_process_frame.assert_called_once_with(driver.latest_image_file, {"a": 3})
+        mock_update_display.assert_called_once_with(driver.latest_image_file)
 
 
-def test_process_camera_upload_inferences_with_fb(tmpdir):
+def test_process_camera_upload_inferences_missing_schema(tmpdir):
     root = Path(tmpdir)
 
     with (
-        patch.object(
-            Driver, "save_into_inferences_directory"
-        ) as mock_save_into_inferences_directory,
-        patch.object(Driver, "update_inference_data") as mock_update_inference_data,
-        patch.object(
-            Driver, "update_inference_data_flatbuffers"
-        ) as mock_update_inference_data_flatbuffers,
+        patch.object(Driver, "save_into_inferences_directory") as mock_save,
+        patch.object(Driver, "update_inference_data") as mock_update_data,
+        patch.object(Driver, "update_images_display") as mock_update_display,
+        patch("local_console.gui.driver.FlatBuffers") as mock_flatbuffers,
+        patch("local_console.gui.driver.process_frame") as mock_process_frame,
     ):
         driver = Driver(MagicMock())
-        driver.flatbuffers_schema = Path(".")
-        file = root / "inferences/a.png"
+        driver.latest_image_file = root / "inferences/a.png"
+        file = root / "inferences/a.txt"
+
         driver.process_camera_upload(file)
-        mock_save_into_inferences_directory.assert_called_once_with(file)
-        mock_update_inference_data.assert_not_called()
-        mock_update_inference_data_flatbuffers.assert_called_once_with(
-            mock_save_into_inferences_directory.return_value
+
+        mock_save.assert_called_once_with(file)
+        mock_flatbuffers.return_value.get_output_from_inference_results.assert_called_once_with(
+            file
         )
+        mock_update_data.assert_called_once_with(
+            mock_save.return_value.read_text.return_value
+        )
+        mock_process_frame.assert_called_once_with(
+            driver.latest_image_file,
+            mock_flatbuffers.return_value.get_output_from_inference_results.return_value,
+        )
+        mock_update_display.assert_called_once_with(driver.latest_image_file)
+
+
+def test_process_camera_upload_unknown(tmpdir):
+    root = Path(tmpdir)
+
+    with (
+        patch.object(Driver, "update_inference_data") as mock_update_data,
+        patch.object(Driver, "update_images_display") as mock_update_display,
+    ):
+        driver = Driver(MagicMock())
+        file = root / "unknown/a.txt"
+
+        driver.process_camera_upload(file)
+        mock_update_display.assert_not_called()
+        mock_update_data.assert_not_called()
 
 
 @pytest.mark.trio
