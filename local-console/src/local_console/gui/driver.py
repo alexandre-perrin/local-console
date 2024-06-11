@@ -244,6 +244,7 @@ class Driver:
         elif incoming_file.parent.name == "images":
             final_file = self.save_into_image_directory(incoming_file)
             self.latest_image_file = final_file
+            self.update_images_display(final_file)
         else:
             logger.warning(f"Unknown incoming file: {incoming_file}")
 

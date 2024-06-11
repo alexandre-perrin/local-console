@@ -152,11 +152,15 @@ def test_process_camera_upload_images(tmpdir):
         patch.object(
             Driver, "save_into_image_directory"
         ) as mock_save_into_image_directory,
+        patch.object(Driver, "update_images_display") as mock_update_display,
     ):
         driver = Driver(MagicMock())
         file = root / "images/a.png"
         driver.process_camera_upload(file)
         mock_save_into_image_directory.assert_called_once_with(file)
+        mock_update_display.assert_called_once_with(
+            mock_save_into_image_directory.return_value
+        )
 
 
 def test_process_camera_upload_inferences_with_schema(tmpdir):
