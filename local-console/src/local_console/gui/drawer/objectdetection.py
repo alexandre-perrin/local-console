@@ -20,12 +20,11 @@ import cv2  # type: ignore
 from local_console.core.schemas.tasks.objectdetection import ObjectDetection
 
 
-def process_frame(
-    image: Path, output_tensor: Any, labels: None | list[str] = None
-) -> None:
-    img = cv2.imread(image)
+def process_frame(image: Path, output_tensor: Any) -> None:
     if not isinstance(output_tensor, dict):
         return
+
+    img = cv2.imread(image)
 
     obj = ObjectDetection(**output_tensor)
     for detection in obj.perception.object_detection_list:
