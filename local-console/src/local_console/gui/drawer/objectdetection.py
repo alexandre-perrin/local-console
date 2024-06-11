@@ -33,14 +33,13 @@ def process_frame(image: Path, output_tensor: Any) -> None:
         ymax, ymin = bbox_2d.bottom, bbox_2d.top
 
         img = cv2.rectangle(img, (xmin, ymin), (xmax, ymax), (0, 0, 255), 2)
-        if detection.class_name:
-            img = cv2.putText(
-                img,
-                f"{detection.class_name}: {detection.score:.2f}",
-                (xmin, ymin),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.5,
-                (255, 255, 255),
-                1,
-            )
+        img = cv2.putText(
+            img,
+            f"{detection.class_name if detection.class_name else detection.class_id}: {detection.score:.2f}",
+            (xmin, ymin),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            (255, 255, 255),
+            1,
+        )
     cv2.imwrite(image, img)
