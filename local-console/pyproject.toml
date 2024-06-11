@@ -71,6 +71,7 @@ dependencies = [
 	"typing_extensions==4.11.0",
 	"urllib3==2.2.1",
 	"zipp==3.18.1",
+	"opencv-python==4.10.0.82"
 ]
 
 [project.urls]
