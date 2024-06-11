@@ -9,28 +9,22 @@
 
         MDBoxLayout:
         # Top bar
-
             orientation: "horizontal"
             size_hint_y: 0.1
 
             MDBoxLayout:
             # Controls half
                 orientation: "horizontal"
-                padding: "10dp"
-                spacing: "10dp"
+                padding: "15dp"
 
                 GoHomeButton:
 
-                MDWidget:
-                    size_hint_x: 3
-
         MDBoxLayout:
         # Configuration controls
-
             orientation: "vertical"
             padding: "15dp"
-            spacing: "10dp"
-            size_hint_y: 0.6
+            spacing: "15dp"
+            spacing_y: "5dp"
 
             PathSelectorCombo:
             # Image dir
@@ -54,29 +48,59 @@
                 label: "Max total size from image and inference folders:"
                 on_value: root.controller.update_total_max_size(args[1])
 
-            MDBoxLayout:
-            # Schema
-                orientation: "horizontal"
-                spacing: "15dp"
+            MDLabel:
+                text: "[b]Application configuration[/b]"
+                markup: True
 
-                PathSelectorCombo:
-                    id: schema_pick
-                    name: 'Schema:'
-                    icon: "folder-cog"
-                    selector: "file"
-                    ext: [".fbs"]
-                    on_selected: root.select_path_flatbuffers(args[1])
-                    size_hint_x: 0.85
+            AppTypeCombo:
+                label: "Type:"
+                on_selected: root.controller.update_application_type(args[1])
+
+            PathSelectorCombo:
+                id: schema_pick
+                name: 'Schema:'
+                icon: "folder-cog"
+                selector: "file"
+                ext: [".fbs"]
+                on_selected: root.select_path_flatbuffers(args[1])
+
+            PathSelectorCombo:
+                id: app_configuration_pick
+                name: 'Configuration:'
+                icon: "folder-cog"
+                selector: "file"
+                ext: [".json"]
+                on_selected: root.select_path_app_configuration(args[1])
+
+            PathSelectorCombo:
+                id: labels_pick
+                name: 'Labels:'
+                icon: "folder-cog"
+                selector: "file"
+                ext: [".txt"]
+                on_selected: root.select_path_labels(args[1])
+                disabled: True
+
+            MDBoxLayout:
+
+            MDBoxLayout:
+                orientation: "horizontal"
+
+                MDBoxLayout:
 
                 MDExtendedFabButton:
                     id: btn_process_schema
-                    on_release: root.controller.process_schema()
+                    on_release: root.controller.apply_configuration()
                     pos_hint: {"center_y": 0.5}
-                    size_hint_x: 0.15
+                    size_hint_x: 0.5
 
                     MDExtendedFabButtonText:
-                        text: " Process \n schema "
+                        text: "Apply Configuration"
+                        adaptive_height: False
+
+                MDBoxLayout:
 
         MDBoxLayout:
+        # Padding
             orientation: "horizontal"
-            size_hint_y: 0.3
+            size_hint_y: 0.05

@@ -127,6 +127,22 @@
             font_style: "Body"
             role: "large"
 
+<AppTypeCombo>:
+    orientation: "horizontal"
+    spacing: "15dp"
+
+    MDLabel:
+        text: root.label
+        adaptive_width: True
+
+    MDDropDownItem:
+        pos_hint: {"center_y": .5}
+        on_release: root.open_menu(*args)
+
+        MDDropDownItemText:
+            text: root._selected_unit
+            font_style: "Body"
+            role: "large"
 
 <CodeInputCustom>:
     lexer: JsonLexer()

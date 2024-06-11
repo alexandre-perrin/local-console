@@ -39,6 +39,7 @@ from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.textfield import MDTextField
 from kivymd.uix.tooltip import MDTooltip
+from local_console.gui.enums import ApplicationType
 from local_console.gui.utils.axis_mapping import as_normal_in_set
 from local_console.gui.utils.axis_mapping import DEFAULT_ROI
 from local_console.gui.utils.axis_mapping import delta
@@ -591,6 +592,60 @@ class FileSizeCombo(MDBoxLayout):
         except ValueError:
             logger.warning(f"Setting value to default {self.DEFAULT_SIZE}")
             self._spec = self.DEFAULT_SIZE
+
+
+class AppTypeCombo(MDBoxLayout):
+    """
+    Widget group that provides user-friendly input
+    of an application type
+    """
+
+    label = StringProperty("")
+    """
+    Sets the label that identifies the widget group to the user
+
+    :attr:`label` is an :class:`~kivy.properties.StringProperty`
+    """
+
+    SELECTED_EVENT: str = "on_selected"
+    """
+    Event that is dispatched once the user picks an application type.
+    """
+
+    _factors = [
+        ApplicationType.CUSTOM.value,
+        ApplicationType.CLASSIFICATION.value,
+        ApplicationType.DETECTION.value,
+    ]
+    _selected_unit = StringProperty(ApplicationType.CUSTOM.value)
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.register_event_type(self.SELECTED_EVENT)
+        menu_items = [
+            {
+                "text": unit,
+                "on_release": lambda x=unit: self.set_unit(x),
+            }
+            for unit in self._factors
+        ]
+        self.menu = MDDropdownMenu(
+            items=menu_items,
+        )
+
+    def open_menu(self, widget: MDDropDownItem) -> None:
+        self.menu.caller = widget
+        self.menu.open()
+
+    def set_unit(self, unit_item: str) -> None:
+        self._selected_unit = unit_item
+        self.dispatch(self.SELECTED_EVENT, unit_item)
+        self.menu.dismiss()
+
+    def on_selected(self, value: str) -> None:
+        """
+        Default handler for the selected item
+        """
 
 
 class CodeInputCustom(CodeInput):

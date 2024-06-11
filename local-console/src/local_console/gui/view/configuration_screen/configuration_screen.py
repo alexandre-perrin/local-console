@@ -21,9 +21,6 @@ from kivymd.uix.snackbar import MDSnackbarButtonContainer
 from kivymd.uix.snackbar import MDSnackbarCloseButton
 from kivymd.uix.snackbar import MDSnackbarSupportingText
 from local_console.gui.view.base_screen import BaseScreenView
-from local_console.gui.view.common.components import (
-    PathSelectorCombo,
-)  # nopycln: import # Required by the screen's KV spec file
 
 
 class ConfigurationScreenView(BaseScreenView):
@@ -39,8 +36,21 @@ class ConfigurationScreenView(BaseScreenView):
             self.ids.inference_dir_pick.accept_path(
                 str(self.model.inferences_directory)
             )
-        if self.model.flatbuffers_schema is not None:
-            self.ids.schema_pick.accept_path(str(self.model.flatbuffers_schema))
+
+        self.ids.schema_pick.accept_path(
+            ""
+            if self.model.flatbuffers_schema is None
+            else str(self.model.flatbuffers_schema)
+        )
+        self.ids.app_configuration_pick.accept_path(
+            ""
+            if self.model.app_configuration is None
+            else str(self.model.app_configuration)
+        )
+        self.ids.labels_pick.accept_path(
+            "" if self.model.app_labels is None else str(self.model.app_labels)
+        )
+
         if self.model.flatbuffers_process_result is not None:
             self.show_flatbuffers_process_result(self.model.flatbuffers_process_result)
             self.model.flatbuffers_process_result = None
@@ -65,6 +75,12 @@ class ConfigurationScreenView(BaseScreenView):
         :param path: path to the selected directory;
         """
         self.controller.update_flatbuffers_schema(Path(path))
+
+    def select_path_labels(self, path: str) -> None:
+        self.controller.update_app_labels(Path(path))
+
+    def select_path_app_configuration(self, path: str) -> None:
+        self.controller.update_app_configuration(path)
 
     def show_flatbuffers_process_result(self, result: str) -> None:
         MDSnackbar(
