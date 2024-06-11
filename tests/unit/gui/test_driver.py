@@ -32,6 +32,7 @@ from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
 from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.gui.enums import ApplicationConfiguration
 from local_console.gui.utils.axis_mapping import SENSOR_SIZE
+from local_console.gui.utils.enums import Screen
 from local_console.utils.local_network import LOCAL_IP
 
 from tests.mocks.mock_paho_mqtt import MockAsyncIterator
@@ -301,3 +302,105 @@ async def test_connection_status_timeout(config: str):
             ApplicationConfiguration.CONFIG_TOPIC,
             config,
         )
+
+
+def test_add_class_names() -> None:
+    with (
+        patch("local_console.gui.driver.Agent"),
+        patch("local_console.gui.driver.spawn_broker"),
+    ):
+        class_id_to_name = {
+            0: "Apple",
+            1: "Banana",
+        }
+        data = {
+            "perception": {
+                "classification_list": [
+                    {
+                        "class_id": 0,
+                        "score": 0.929688,
+                    },
+                    {
+                        "class_id": 1,
+                        "score": 0.070313,
+                    },
+                ]
+            }
+        }
+        driver = Driver(MagicMock())
+        driver.add_class_names(data, class_id_to_name)
+        assert data["perception"]["classification_list"][0]["class_name"] == "Apple"
+        assert data["perception"]["classification_list"][1]["class_name"] == "Banana"
+
+        class_id_to_name = {
+            0: "Apple",
+        }
+        driver.add_class_names(data, class_id_to_name)
+        assert data["perception"]["classification_list"][0]["class_name"] == "Apple"
+        assert data["perception"]["classification_list"][1]["class_name"] == "Unknown"
+
+
+def test_map_class_id_to_name(tmp_path) -> None:
+    label_file = tmp_path / "label.txt"
+    with open(label_file, "w") as file:
+        file.write("Apple\nBanana")
+
+    with (
+        patch("local_console.gui.driver.Agent"),
+        patch("local_console.gui.driver.spawn_broker"),
+    ):
+        gui = MagicMock()
+        gui.views[Screen.CONFIGURATION_SCREEN].model.app_labels = label_file
+        driver = Driver(gui)
+        driver.map_class_id_to_name()
+        assert driver.class_id_to_name == dict({0: "Apple", 1: "Banana"})
+
+
+def test_map_class_id_to_name_file_not_found(tmp_path) -> None:
+    label_file = tmp_path / "label.txt"
+    with open(label_file, "w") as file:
+        file.write("Apple\nBanana")
+
+    with (
+        patch("local_console.gui.driver.Agent"),
+        patch("local_console.gui.driver.spawn_broker"),
+        patch("local_console.gui.driver.logger") as mock_logger,
+        patch("builtins.open", side_effect=FileNotFoundError),
+    ):
+        gui = MagicMock()
+        gui.views[Screen.CONFIGURATION_SCREEN].model.app_labels = label_file
+        driver = Driver(gui)
+        driver.map_class_id_to_name()
+        mock_logger.warning.assert_called_once_with(
+            "Error while reading labels text file."
+        )
+
+
+def test_map_class_id_to_name_exception(tmp_path) -> None:
+    label_file = tmp_path / "label.txt"
+    with open(label_file, "w") as file:
+        file.write("Apple\nBanana")
+
+    with (
+        patch("local_console.gui.driver.Agent"),
+        patch("local_console.gui.driver.spawn_broker"),
+        patch("local_console.gui.driver.logger") as mock_logger,
+        patch("builtins.open", side_effect=Exception),
+    ):
+        gui = MagicMock()
+        gui.views[Screen.CONFIGURATION_SCREEN].model.app_labels = label_file
+        driver = Driver(gui)
+        driver.map_class_id_to_name()
+        mock_logger.warning.assert_called_once_with(
+            "Unknown error while reading labels text file "
+        )
+
+
+def test_map_class_id_to_name_none(tmp_path) -> None:
+    with (
+        patch("local_console.gui.driver.Agent"),
+        patch("local_console.gui.driver.spawn_broker"),
+    ):
+        driver = Driver(MagicMock())
+        driver.map_class_id_to_name()
+        assert driver.class_id_to_name is None
