@@ -34,6 +34,7 @@ from local_console.core.schemas.edge_cloud_if_v1 import Permission
 from local_console.core.schemas.edge_cloud_if_v1 import SetFactoryReset
 from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
 from local_console.core.schemas.schemas import DesiredDeviceConfig
+from local_console.gui.drawer.objectdetection import process_frame
 from local_console.gui.enums import ApplicationConfiguration
 from local_console.gui.utils.axis_mapping import pixel_roi_from_normals
 from local_console.gui.utils.axis_mapping import UnitROI
@@ -65,6 +66,7 @@ class Driver:
         self.total_dir_watcher = StorageSizeWatcher()
         self.flatbuffers_schema: Optional[Path] = None
         self.class_id_to_name: Optional[dict] = None
+        self.latest_image_file: Optional[Path] = None
         self.config = get_config()
 
         self.camera_state = Camera()
@@ -218,15 +220,30 @@ class Driver:
             await trio.sleep_forever()
 
     def process_camera_upload(self, incoming_file: Path) -> None:
-        if incoming_file.parent.name == "images":
-            final_file = self.save_into_image_directory(incoming_file)
-            self.update_images_display(final_file)
-        elif incoming_file.parent.name == "inferences":
+        if incoming_file.parent.name == "inferences":
             final_file = self.save_into_inferences_directory(incoming_file)
+            output_data = self.flatbuffers.get_output_from_inference_results(
+                incoming_file
+            )
             if self.flatbuffers_schema:
-                self.update_inference_data_flatbuffers(final_file)
+                output_tensor = self.get_flatbuffers_inference_data(output_data)
+                if output_tensor:
+                    self.update_inference_data(json.dumps(output_tensor, indent=2))
+                    output_data = output_tensor  # type: ignore
             else:
                 self.update_inference_data(final_file.read_text())
+
+            # assumes input and output tensor received in that order
+            assert self.latest_image_file
+            try:
+                process_frame(self.latest_image_file, output_data)
+            except Exception as e:
+                logger.error(f"Error while performing the drawing: {e}")
+            self.update_images_display(self.latest_image_file)
+
+        elif incoming_file.parent.name == "images":
+            final_file = self.save_into_image_directory(incoming_file)
+            self.latest_image_file = final_file
         else:
             logger.warning(f"Unknown incoming file: {incoming_file}")
 
@@ -287,41 +304,33 @@ class Driver:
             for item in data:
                 self.add_class_names(item, class_id_to_name)
 
-    @run_on_ui_thread
-    def update_inference_data_flatbuffers(self, incoming_file: Path) -> None:
-        if self.flatbuffers_schema and incoming_file and incoming_file.exists():
+    def get_flatbuffers_inference_data(self, output: bytes) -> None | str | dict:
+        if self.flatbuffers_schema:
             output_name = "SmartCamera"
             assert self.temporary_base  # appease mypy
+            return_value = None
             if self.flatbuffers.flatbuffer_binary_to_json(
                 self.flatbuffers_schema,
-                incoming_file,
+                output,
                 output_name,
                 self.temporary_base,
             ):
                 try:
+                    return_value = None
                     with open(self.temporary_base / f"{output_name}.json") as file:
-                        labels = self.gui.views[
-                            Screen.CONFIGURATION_SCREEN
-                        ].model.app_labels
-                        if (
-                            labels is None
-                            or not Path(labels).exists()
-                            or self.class_id_to_name is None
-                        ):
-                            inference_text = file.read()
-                        else:
-                            json_data = json.load(file)
+                        json_data = json.load(file)
+                        self.map_class_id_to_name()
+                        if self.class_id_to_name:
                             self.add_class_names(json_data, self.class_id_to_name)
-                            inference_text = json.dumps(json_data, indent=2)
-                        self.gui.views[
-                            Screen.INFERENCE_SCREEN
-                        ].ids.inference_field.text = inference_text
+
+                        return_value = json_data
                 except FileNotFoundError:
                     logger.warning(
                         "Error while reading human-readable. Flatbuffers schema might be different from inference data."
                     )
                 except Exception as e:
                     logger.warning(f"Unknown error while reading human-readable {e}")
+        return return_value
 
     def save_into_inferences_directory(self, incoming_file: Path) -> Path:
         final = incoming_file
@@ -351,10 +360,12 @@ class Driver:
                     class_names = labels_file.read().splitlines()
                 # Read labels and create a mapping of class IDs to class names
                 self.class_id_to_name = {i: name for i, name in enumerate(class_names)}
+                return
             except FileNotFoundError:
                 logger.warning("Error while reading labels text file.")
             except Exception as e:
                 logger.warning(f"Unknown error while reading labels text file {e}")
+        self.class_id_to_name = None
 
     async def streaming_rpc_start(self, roi: Optional[UnitROI] = None) -> None:
         instance_id = "backdoor-EA_Main"
@@ -364,8 +375,6 @@ class Driver:
         assert self.temporary_inference_directory  # appease mypy
 
         (h_offset, v_offset), (h_size, v_size) = pixel_roi_from_normals(roi)
-
-        self.map_class_id_to_name()
 
         await self.mqtt_client.rpc(
             instance_id,
