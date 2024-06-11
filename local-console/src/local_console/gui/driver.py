@@ -64,6 +64,7 @@ class Driver:
         self.inference_directory_config: TrackingVariable[Path] = TrackingVariable()
         self.total_dir_watcher = StorageSizeWatcher()
         self.flatbuffers_schema: Optional[Path] = None
+        self.class_id_to_name: Optional[dict] = None
         self.config = get_config()
 
         self.camera_state = Camera()
@@ -269,6 +270,23 @@ class Driver:
             Screen.INFERENCE_SCREEN
         ].ids.inference_field.text = inference_data
 
+    def add_class_names(self, data: dict, class_id_to_name: dict) -> None:
+        # Add class names to the data recursively
+        if isinstance(data, dict):
+            updates = []
+            for key, value in data.items():
+                if key == "class_id":
+                    updates.append(
+                        ("class_name", class_id_to_name.get(value, "Unknown"))
+                    )
+                else:
+                    self.add_class_names(value, class_id_to_name)
+            for key, value in updates:
+                data[key] = value
+        elif isinstance(data, list):
+            for item in data:
+                self.add_class_names(item, class_id_to_name)
+
     @run_on_ui_thread
     def update_inference_data_flatbuffers(self, incoming_file: Path) -> None:
         if self.flatbuffers_schema and incoming_file and incoming_file.exists():
@@ -282,9 +300,22 @@ class Driver:
             ):
                 try:
                     with open(self.temporary_base / f"{output_name}.json") as file:
+                        labels = self.gui.views[
+                            Screen.CONFIGURATION_SCREEN
+                        ].model.app_labels
+                        if (
+                            labels is None
+                            or not Path(labels).exists()
+                            or self.class_id_to_name is None
+                        ):
+                            inference_text = file.read()
+                        else:
+                            json_data = json.load(file)
+                            self.add_class_names(json_data, self.class_id_to_name)
+                            inference_text = json.dumps(json_data, indent=2)
                         self.gui.views[
                             Screen.INFERENCE_SCREEN
-                        ].ids.inference_field.text = file.read()
+                        ].ids.inference_field.text = inference_text
                 except FileNotFoundError:
                     logger.warning(
                         "Error while reading human-readable. Flatbuffers schema might be different from inference data."
@@ -312,6 +343,19 @@ class Driver:
         self.total_dir_watcher.incoming(final)
         return final
 
+    def map_class_id_to_name(self) -> None:
+        labels = self.gui.views[Screen.CONFIGURATION_SCREEN].model.app_labels
+        if labels is not None and Path(labels).exists():
+            try:
+                with open(labels) as labels_file:
+                    class_names = labels_file.read().splitlines()
+                # Read labels and create a mapping of class IDs to class names
+                self.class_id_to_name = {i: name for i, name in enumerate(class_names)}
+            except FileNotFoundError:
+                logger.warning("Error while reading labels text file.")
+            except Exception as e:
+                logger.warning(f"Unknown error while reading labels text file {e}")
+
     async def streaming_rpc_start(self, roi: Optional[UnitROI] = None) -> None:
         instance_id = "backdoor-EA_Main"
         method = "StartUploadInferenceData"
@@ -320,6 +364,8 @@ class Driver:
         assert self.temporary_inference_directory  # appease mypy
 
         (h_offset, v_offset), (h_size, v_size) = pixel_roi_from_normals(roi)
+
+        self.map_class_id_to_name()
 
         await self.mqtt_client.rpc(
             instance_id,
