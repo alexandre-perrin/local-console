@@ -93,3 +93,7 @@ def test_process_frame_text(blank_image):
             (255, 255, 255),
             1,
         )
+
+
+def test_process_frame_without_output_tensor():
+    process_frame(Path("."), None)
