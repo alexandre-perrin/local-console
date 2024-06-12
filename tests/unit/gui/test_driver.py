@@ -158,6 +158,8 @@ def test_process_camera_upload_images(tmpdir):
         file = root / "images/a.png"
         driver.process_camera_upload(file)
         mock_save_into_image_directory.assert_called_once_with(file)
+        mock_update_display.assert_not_called()
+        driver.process_camera_upload(file)
         mock_update_display.assert_called_once_with(
             mock_save_into_image_directory.return_value
         )

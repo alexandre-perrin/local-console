@@ -53,7 +53,16 @@ def test_process_frame(blank_image):
 
     process_frame(image_path, output)
     expected_image = cv2.rectangle(
-        blank_image_np.copy(), (left, top), (right, bottom), (0, 0, 255), 2
+        blank_image_np, (left, top), (right, bottom), (0, 0, 255), 2
+    )
+    expected_image = cv2.putText(
+        expected_image,
+        "0: 0.1",
+        (left, top),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.5,
+        (255, 255, 255),
+        1,
     )
     result_image = cv2.imread(str(image_path))
 

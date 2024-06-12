@@ -67,6 +67,8 @@ class Driver:
         self.flatbuffers_schema: Optional[Path] = None
         self.class_id_to_name: Optional[dict] = None
         self.latest_image_file: Optional[Path] = None
+        # Used to identify if output tensors are missing
+        self.consecutives_images = 0
         self.config = get_config()
 
         self.camera_state = Camera()
@@ -240,11 +242,14 @@ class Driver:
             except Exception as e:
                 logger.error(f"Error while performing the drawing: {e}")
             self.update_images_display(self.latest_image_file)
+            self.consecutives_images = 0
 
         elif incoming_file.parent.name == "images":
             final_file = self.save_into_image_directory(incoming_file)
             self.latest_image_file = final_file
-            self.update_images_display(final_file)
+            if self.consecutives_images > 0:
+                self.update_images_display(final_file)
+            self.consecutives_images += 1
         else:
             logger.warning(f"Unknown incoming file: {incoming_file}")
 
@@ -320,7 +325,6 @@ class Driver:
                     return_value = None
                     with open(self.temporary_base / f"{output_name}.json") as file:
                         json_data = json.load(file)
-                        self.map_class_id_to_name()
                         if self.class_id_to_name:
                             self.add_class_names(json_data, self.class_id_to_name)
 
