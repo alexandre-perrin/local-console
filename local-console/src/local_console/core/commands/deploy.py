@@ -23,6 +23,7 @@ from abc import abstractmethod
 from pathlib import Path
 from pathlib import PurePosixPath
 from typing import Any
+from typing import Callable
 from typing import Optional
 
 import trio
@@ -52,11 +53,12 @@ async def exec_deployment(
     webserver_path: Path,
     webserver_port: int,
     timeout_secs: int,
+    stage_callback: Optional[Callable[[DeployStage], None]] = None,
 ) -> bool:
     deploy_fsm: DeployFSM = (
-        EVP1DeployFSM(agent, deploy_manifest)
+        EVP1DeployFSM(agent, deploy_manifest, stage_callback)
         if agent.onwire_schema == OnWireProtocol.EVP1
-        else EVP2DeployFSM(agent, deploy_manifest)
+        else EVP2DeployFSM(agent, deploy_manifest, stage_callback)
     )
 
     # GUI mode starts responding to requests in the background, but not the CLI
@@ -78,6 +80,8 @@ async def exec_deployment(
 
     if timeout_scope.cancelled_caught:
         logger.error("Timeout when sending modules.")
+        if stage_callback:
+            stage_callback(DeployStage.Error)
 
     return success
 
@@ -87,9 +91,11 @@ class DeployFSM(ABC):
         self,
         agent: Agent,
         to_deploy: DeploymentManifest,
+        stage_callback: Optional[Callable[[DeployStage], None]] = None,
     ) -> None:
         self.agent = agent
         self.to_deploy = to_deploy
+        self.stage_callback = stage_callback
 
         self.done = trio.Event()
         self.errored: Optional[bool] = None
@@ -100,6 +106,8 @@ class DeployFSM(ABC):
 
     def _set_new_stage(self, new_stage: DeployStage) -> None:
         self.stage = new_stage
+        if self.stage_callback:
+            self.stage_callback(self.stage)
 
     @abstractmethod
     async def update(self, deploy_status: dict[str, Any]) -> None:
