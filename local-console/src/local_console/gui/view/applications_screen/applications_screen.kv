@@ -78,6 +78,14 @@
                 size_hint_x: 0.25
 
                 MDLabel:
-                    id: lbl_deployment_status
-                    text: "N/A"
+                    text: "Current stage:"
                     font_style: 'Body'
+                    size_hint_y: 0.1
+
+                MDGridLayout:
+                    id: layout_status
+                    rows: 1
+                    size_hint_y: 0.2
+
+                MDWidget:
+                    size_hint_y: 0.7
