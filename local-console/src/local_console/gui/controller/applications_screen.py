@@ -19,6 +19,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from local_console.clients.agent import Agent
+from local_console.core.commands.deploy import DeployStage
 from local_console.core.commands.deploy import exec_deployment
 from local_console.core.commands.deploy import make_unique_module_ids
 from local_console.core.commands.deploy import populate_urls_and_hashes
@@ -28,6 +29,7 @@ from local_console.core.schemas.schemas import DeploymentManifest
 from local_console.gui.driver import Driver
 from local_console.gui.enums import ApplicationConfiguration
 from local_console.gui.model.applications_screen import ApplicationsScreenModel
+from local_console.gui.utils.sync_async import run_on_ui_thread
 from local_console.gui.view.applications_screen.applications_screen import (
     ApplicationsScreenView,
 )
@@ -98,9 +100,20 @@ class ApplicationsScreenController:
 
             try:
                 await exec_deployment(
-                    Agent(), deployment_manifest, True, tmpdir, port, 30
+                    Agent(),
+                    deployment_manifest,
+                    True,
+                    tmpdir,
+                    port,
+                    60,
+                    self.update_deploy_stage,
                 )
             except Exception as e:
                 logger.exception("Deployment error", exc_info=e)
                 return False
             return True
+
+    @run_on_ui_thread
+    def update_deploy_stage(self, deploy_stage: DeployStage) -> None:
+        logger.info(f"WASM deployment stage is now: {deploy_stage.name}")
+        self.model.deploy_stage = deploy_stage
