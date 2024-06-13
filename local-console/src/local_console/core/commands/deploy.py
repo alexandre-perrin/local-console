@@ -42,6 +42,7 @@ class DeployStage(enum.IntEnum):
     WaitFirstStatus = enum.auto()
     WaitAppliedConfirmation = enum.auto()
     Done = enum.auto()
+    Error = enum.auto()
 
 
 async def exec_deployment(
@@ -73,7 +74,7 @@ async def exec_deployment(
             assert agent.nursery is not None  # make mypy happy
             agent.nursery.start_soon(deploy_fsm.message_task)
             await deploy_fsm.done.wait()
-            success = True
+            success = not deploy_fsm.errored
 
     if timeout_scope.cancelled_caught:
         logger.error("Timeout when sending modules.")
@@ -90,8 +91,15 @@ class DeployFSM(ABC):
         self.agent = agent
         self.to_deploy = to_deploy
 
-        self.stage = DeployStage.WaitFirstStatus
         self.done = trio.Event()
+        self.errored: Optional[bool] = None
+
+        # This redundant declaration appeases the static checker
+        self.stage = DeployStage.WaitFirstStatus
+        self._set_new_stage(DeployStage.WaitFirstStatus)
+
+    def _set_new_stage(self, new_stage: DeployStage) -> None:
+        self.stage = new_stage
 
     @abstractmethod
     async def update(self, deploy_status: dict[str, Any]) -> None:
@@ -107,13 +115,44 @@ class DeployFSM(ABC):
         deployment status report.
         """
 
-    def verify_report(self, deploy_status: dict[str, Any]) -> tuple[bool, bool]:
-        matches = self.to_deploy.deployment.deploymentId == deploy_status.get(
-            "deploymentId"
-        )
+    @staticmethod
+    def verify_report(
+        deployment_id: str, deploy_status: dict[str, Any]
+    ) -> tuple[bool, bool, bool]:
+        matches = deploy_status.get("deploymentId") == deployment_id
         is_finished = deploy_status.get("reconcileStatus") == "ok"
-        return is_finished, matches
 
+        error_in_modules = any(
+            n["status"] == "error" for n in deploy_status.get("modules", {}).values()
+        )
+        error_in_modinsts = any(
+            n["status"] == "error" for n in deploy_status.get("instances", {}).values()
+        )
+        is_errored = error_in_modinsts or error_in_modules
+
+        return is_finished, matches, is_errored
+
+    def check_termination(
+        self, is_finished: bool, matches: bool, is_errored: bool
+    ) -> bool:
+        should_terminate = False
+        if matches:
+            if is_finished:
+                should_terminate = True
+                self._set_new_stage(DeployStage.Done)
+                self.errored = False
+                logger.info("Deployment complete")
+
+            elif is_errored:
+                should_terminate = True
+                self._set_new_stage(DeployStage.Error)
+                self.errored = True
+                logger.info("Deployment errored")
+
+        if should_terminate:
+            self.done.set()
+
+        return should_terminate
 
 
 class EVP2DeployFSM(DeployFSM):
@@ -122,11 +161,10 @@ class EVP2DeployFSM(DeployFSM):
 
         next_stage = self.stage
 
-        is_finished, matches = self.verify_report(deploy_status)
-        if is_finished and matches:
-            self.stage = DeployStage.Done
-            logger.info("Deployment complete")
-            self.done.set()
+        is_finished, matches, is_errored = self.verify_report(
+            self.to_deploy.deployment.deploymentId, deploy_status
+        )
+        if self.check_termination(is_finished, matches, is_errored):
             return
 
         if self.stage == DeployStage.WaitFirstStatus:
@@ -142,13 +180,13 @@ class EVP2DeployFSM(DeployFSM):
                 )
                 logger.info("Deployment received, waiting for reconcile completion")
 
-        elif self.stage == DeployStage.Done:
+        elif self.stage in (DeployStage.Done, DeployStage.Error):
             logger.warning(
                 "Should not reach here! (status is %s)",
                 json.dumps(deploy_status),
             )
 
-        self.stage = next_stage
+        self._set_new_stage(next_stage)
 
     async def message_task(self) -> None:
         """
@@ -173,10 +211,11 @@ class EVP1DeployFSM(DeployFSM):
         Sending deployment is done in message_task.
         This method waits until current deployment in agent matches deployed.
         """
-        is_finished, matches = self.verify_report(deploy_status)
-        if is_finished and matches:
-            logger.info("Deployment complete")
-            self.done.set()
+        is_finished, matches, is_errored = self.verify_report(
+            self.to_deploy.deployment.deploymentId, deploy_status
+        )
+        if self.check_termination(is_finished, matches, is_errored):
+            return
 
     async def message_task(self) -> None:
         """
