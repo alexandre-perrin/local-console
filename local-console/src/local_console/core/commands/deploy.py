@@ -18,6 +18,7 @@ import hashlib
 import json
 import logging
 import uuid
+from abc import ABC
 from abc import abstractmethod
 from pathlib import Path
 from pathlib import PurePosixPath
@@ -35,6 +36,12 @@ from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.servers.webserver import AsyncWebserver
 
 logger = logging.getLogger(__name__)
+
+
+class DeployStage(enum.IntEnum):
+    WaitFirstStatus = enum.auto()
+    WaitAppliedConfirmation = enum.auto()
+    Done = enum.auto()
 
 
 async def exec_deployment(
@@ -74,14 +81,12 @@ async def exec_deployment(
     return success
 
 
-class DeployStage(enum.IntEnum):
-    WaitFirstStatus = enum.auto()
-    WaitAppliedConfirmation = enum.auto()
-    Done = enum.auto()
-
-
-class DeployFSM:
-    def __init__(self, agent: Agent, to_deploy: DeploymentManifest) -> None:
+class DeployFSM(ABC):
+    def __init__(
+        self,
+        agent: Agent,
+        to_deploy: DeploymentManifest,
+    ) -> None:
         self.agent = agent
         self.to_deploy = to_deploy
 
@@ -91,12 +96,16 @@ class DeployFSM:
     @abstractmethod
     async def update(self, deploy_status: dict[str, Any]) -> None:
         """
-        Updates Deployment.
-
-        Notes:
-        - Assumes that requests have been processed
+        Updates the FSM as it progresses through its states.
         """
-        pass
+
+    @abstractmethod
+    async def message_task(self) -> None:
+        """
+        Receives messages from the agent and reacts
+        accordingly, calling update() with the latest
+        deployment status report.
+        """
 
     def verify_report(self, deploy_status: dict[str, Any]) -> tuple[bool, bool]:
         matches = self.to_deploy.deployment.deploymentId == deploy_status.get(
@@ -105,12 +114,6 @@ class DeployFSM:
         is_finished = deploy_status.get("reconcileStatus") == "ok"
         return is_finished, matches
 
-    @abstractmethod
-    async def message_task(self) -> None:
-        """
-        Receives reports from the agent and applies changes accordingly.
-        """
-        pass
 
 
 class EVP2DeployFSM(DeployFSM):

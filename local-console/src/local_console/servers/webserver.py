@@ -86,7 +86,9 @@ class GenericWebserver(ABC):
             self.server = ThreadedHTTPServer(("0.0.0.0", self.port), self.handler)
 
             # Start the server in a new thread
-            self.thread = threading.Thread(target=self.server.serve_forever)
+            self.thread = threading.Thread(
+                target=self.server.serve_forever, name=f"Webserver_{self.port}"
+            )
             self.thread.start()
 
             self.port = self.server.server_port
