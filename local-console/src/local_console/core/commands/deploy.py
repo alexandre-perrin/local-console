@@ -55,11 +55,7 @@ async def exec_deployment(
     timeout_secs: int,
     stage_callback: Optional[Callable[[DeployStage], None]] = None,
 ) -> bool:
-    deploy_fsm: DeployFSM = (
-        EVP1DeployFSM(agent, deploy_manifest, stage_callback)
-        if agent.onwire_schema == OnWireProtocol.EVP1
-        else EVP2DeployFSM(agent, deploy_manifest, stage_callback)
-    )
+    deploy_fsm = DeployFSM.instantiate(agent, deploy_manifest, stage_callback)
 
     # GUI mode starts responding to requests in the background, but not the CLI
     # NOTE: revisit GUI - CLI interaction
@@ -161,6 +157,17 @@ class DeployFSM(ABC):
             self.done.set()
 
         return should_terminate
+
+    @staticmethod
+    def instantiate(
+        agent: Agent,
+        deploy_manifest: DeploymentManifest,
+        stage_callback: Optional[Callable[[DeployStage], None]] = None,
+    ) -> "DeployFSM":
+        if agent.onwire_schema == OnWireProtocol.EVP1:
+            return EVP1DeployFSM(agent, deploy_manifest, stage_callback)
+        elif agent.onwire_schema == OnWireProtocol.EVP2:
+            return EVP2DeployFSM(agent, deploy_manifest, stage_callback)
 
 
 class EVP2DeployFSM(DeployFSM):
