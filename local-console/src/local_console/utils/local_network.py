@@ -35,7 +35,9 @@ def get_network_ifaces() -> list[str]:
     os_name = platform.system()
     if os_name == "Windows":
         chosen = list(
-            k for k, v in stats.items() if v.isup and "loopback" not in k.lower()
+            k
+            for k, v in stats.items()
+            if v.isup and "loopback" not in k.lower() and "vethernet" not in k.lower()
         )
     else:
         chosen = list(
