@@ -37,11 +37,20 @@ from local_console.gui.view.common.components import (
     CodeInputCustom,
 )  # nopycln: import # Required by the screen's KV spec file
 from local_console.gui.view.common.components import (
+    GUITooltip,
+)  # nopycln: import # Required by the screen's KV spec file
+from local_console.gui.view.common.components import (
     PathSelectorCombo,
 )  # nopycln: import # Required by the screen's KV spec file
 from local_console.utils.validation import validate_app_file
 
 logger = logging.getLogger(__name__)
+
+
+class StatusLabel(GUITooltip, MDLabel):
+    """
+    Endows a Label with a given tooltip. See the associated KV file.
+    """
 
 
 class ApplicationsScreenView(BaseScreenView):

@@ -1,6 +1,35 @@
 #:import res_path local_console.gui.config.resource_path
 #:include res_path(components.kv)
 
+<StatusLabel>:
+    text: "Current stage:"
+    font_style: 'Body'
+
+    MDTooltipPlain:
+        text:
+            "This indicator might not reflect the correct status upon camera reset. \n" \
+            "This indicator is only updated during a deployment operation."
+
+
+<StatusTitle@MDBoxLayout>:
+    orientation: "horizontal"
+    size_hint_y: 0.1
+
+    StatusLabel:
+        adaptive_width: True
+
+    MDAnchorLayout:
+        size_hint_x: None
+        width: "16sp"
+        anchor_y: "top"
+        anchor_x: "left"
+
+        MDIcon:
+            icon: "help-box"
+            theme_font_size: "Custom"
+            font_size: "16sp"
+
+
 <ApplicationsScreenView>
     md_bg_color: self.theme_cls.backgroundColor
 
@@ -77,10 +106,7 @@
                 orientation: "vertical"
                 size_hint_x: 0.25
 
-                MDLabel:
-                    text: "Current stage:"
-                    font_style: 'Body'
-                    size_hint_y: 0.1
+                StatusTitle:
 
                 MDGridLayout:
                     id: layout_status
