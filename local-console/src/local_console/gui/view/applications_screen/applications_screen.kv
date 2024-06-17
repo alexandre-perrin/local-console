@@ -42,7 +42,7 @@
 
                 MDButton:
                     id: btn_deploy_file
-                    on_release: root.controller.deploy()
+                    on_release: root.controller.deploy(app_file.path)
                     pos_hint: {"center_y": 0.5}
                     disabled: True
                     MDButtonText:

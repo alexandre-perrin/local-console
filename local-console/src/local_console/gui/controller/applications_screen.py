@@ -56,10 +56,10 @@ class ApplicationsScreenController:
     def get_view(self) -> ApplicationsScreenView:
         return self.view
 
-    def deploy(self) -> None:
-        self.driver.from_sync(self.deploy_task)
+    def deploy(self, module_file_str: str) -> None:
+        self.driver.from_sync(self.deploy_task, Path(module_file_str))
 
-    async def deploy_task(self) -> bool:
+    async def deploy_task(self, module_file: Path) -> bool:
         config: AgentConfiguration = get_config()  # type:ignore
         port = config.webserver.port
 
