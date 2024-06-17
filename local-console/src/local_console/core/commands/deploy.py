@@ -17,11 +17,15 @@ import enum
 import hashlib
 import json
 import logging
+import shutil
 import uuid
 from abc import ABC
 from abc import abstractmethod
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from pathlib import PurePosixPath
+from tempfile import TemporaryDirectory
 from typing import Any
 from typing import Callable
 from typing import Optional
@@ -32,9 +36,11 @@ from local_console.clients.agent import Agent
 from local_console.core.camera import MQTTTopics
 from local_console.core.enums import ModuleExtension
 from local_console.core.enums import Target
+from local_console.core.schemas.schemas import Deployment
 from local_console.core.schemas.schemas import DeploymentManifest
 from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.servers.webserver import AsyncWebserver
+from local_console.utils.local_network import get_my_ip_by_routing
 
 logger = logging.getLogger(__name__)
 
@@ -251,6 +257,44 @@ class EVP1DeployFSM(DeployFSM):
                     if "deploymentStatus" in payload:
                         deploy_status = json.loads(payload.get("deploymentStatus"))
                         await self.update(deploy_status)
+
+
+@contextmanager
+def module_deployment_setup(
+    module_name: str, module_file: Path, webserver_port: int
+) -> Iterator[tuple[Path, DeploymentManifest]]:
+    deployment = Deployment.model_validate(
+        {
+            "deploymentId": "",
+            "instanceSpecs": {
+                module_name: {"moduleId": module_name, "subscribe": {}, "publish": {}}
+            },
+            "modules": {
+                module_name: {
+                    "entryPoint": "main",
+                    "moduleImpl": "wasm",
+                    "downloadUrl": "",
+                    "hash": "",
+                }
+            },
+            "publishTopics": {},
+            "subscribeTopics": {},
+        }
+    )
+
+    with TemporaryDirectory(prefix="lc_deploy_") as temporary_dir:
+        tmpdir = Path(temporary_dir)
+        named_module = tmpdir / "".join([module_name] + module_file.suffixes)
+        shutil.copy(module_file, named_module)
+        deployment.modules[module_name].downloadUrl = str(named_module)
+        deployment_manifest = DeploymentManifest(deployment=deployment)
+
+        populate_urls_and_hashes(
+            deployment_manifest, get_my_ip_by_routing(), webserver_port, tmpdir
+        )
+        make_unique_module_ids(deployment_manifest)
+
+        yield tmpdir, deployment_manifest
 
 
 def make_unique_module_ids(deploy_man: DeploymentManifest) -> None:

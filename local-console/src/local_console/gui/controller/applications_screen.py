@@ -14,18 +14,13 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 import logging
-import shutil
 from pathlib import Path
-from tempfile import TemporaryDirectory
 
 from local_console.clients.agent import Agent
 from local_console.core.commands.deploy import DeployStage
 from local_console.core.commands.deploy import exec_deployment
-from local_console.core.commands.deploy import make_unique_module_ids
-from local_console.core.commands.deploy import populate_urls_and_hashes
+from local_console.core.commands.deploy import module_deployment_setup
 from local_console.core.config import get_config
-from local_console.core.schemas.schemas import Deployment
-from local_console.core.schemas.schemas import DeploymentManifest
 from local_console.gui.driver import Driver
 from local_console.gui.enums import ApplicationConfiguration
 from local_console.gui.model.applications_screen import ApplicationsScreenModel
@@ -33,7 +28,6 @@ from local_console.gui.utils.sync_async import run_on_ui_thread
 from local_console.gui.view.applications_screen.applications_screen import (
     ApplicationsScreenView,
 )
-from local_console.utils.local_network import get_my_ip_by_routing
 
 
 logger = logging.getLogger(__name__)
@@ -63,41 +57,13 @@ class ApplicationsScreenController:
         config: AgentConfiguration = get_config()  # type:ignore
         port = config.webserver.port
 
-        module_file = Path(self.view.ids.app_file.path)
-
-        node = ApplicationConfiguration.NAME
-        deployment = Deployment.model_validate(
-            {
-                "deploymentId": "",
-                "instanceSpecs": {
-                    node: {"moduleId": node, "subscribe": {}, "publish": {}}
-                },
-                "modules": {
-                    node: {
-                        "entryPoint": "main",
-                        "moduleImpl": "wasm",
-                        "downloadUrl": "",
-                        "hash": "",
-                    }
-                },
-                "publishTopics": {},
-                "subscribeTopics": {},
-            }
-        )
-
-        with TemporaryDirectory(prefix="lc_deploy_") as temporary_dir:
-            tmpdir = Path(temporary_dir)
-            named_module = tmpdir / "".join([node] + module_file.suffixes)
-            shutil.copy(module_file, named_module)
-            deployment.modules[node].downloadUrl = str(named_module)
-            deployment_manifest = DeploymentManifest(deployment=deployment)
-
-            populate_urls_and_hashes(
-                deployment_manifest, get_my_ip_by_routing(), port, tmpdir
-            )
-            make_unique_module_ids(deployment_manifest)
+        with module_deployment_setup(
+            ApplicationConfiguration.NAME, module_file, port
+        ) as (
+            tmpdir,
+            deployment_manifest,
+        ):
             self.model.manifest = deployment_manifest
-
             try:
                 await exec_deployment(
                     Agent(),
