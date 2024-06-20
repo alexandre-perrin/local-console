@@ -225,9 +225,7 @@ class Driver:
     def process_camera_upload(self, incoming_file: Path) -> None:
         if incoming_file.parent.name == "inferences":
             final_file = self.save_into_inferences_directory(incoming_file)
-            output_data = self.flatbuffers.get_output_from_inference_results(
-                incoming_file
-            )
+            output_data = self.flatbuffers.get_output_from_inference_results(final_file)
             if self.flatbuffers_schema:
                 output_tensor = self.get_flatbuffers_inference_data(output_data)
                 if output_tensor:
