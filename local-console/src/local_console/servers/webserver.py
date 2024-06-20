@@ -44,22 +44,24 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         logger.debug(" ".join(str(arg) for arg in args))
 
     def do_PUT(self) -> None:
+        data: Optional[bytes] = None
         try:
             content_length = int(self.headers["Content-Length"])
             data = self.rfile.read(content_length)
             dest_path = Path(self.directory) / self.path.lstrip("/")
             dest_path.write_bytes(data)
+        except Exception as e:
+            logger.error(f"Error while receiving data: {e}")
+        finally:
             self.send_response(200)
             self.end_headers()
 
-            # Notify of new file via the queue
-            if self.on_incoming:
+        # Notify of new file when the callback is set
+        if data and self.on_incoming:
+            try:
                 self.on_incoming(dest_path)
-
-        except Exception as e:
-            logger.warning(f"Error while receiving data: {e}")
-            self.send_response(500)
-            self.end_headers()
+            except Exception as e:
+                logger.error(f"Error while invoking callback: {e}")
 
     do_POST = do_PUT
 
