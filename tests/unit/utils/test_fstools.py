@@ -23,6 +23,7 @@ from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
+from local_console.utils.fstools import check_and_create_directory
 from local_console.utils.fstools import StorageSizeWatcher
 
 logger = logging.getLogger(__name__)
@@ -314,3 +315,31 @@ def test_regular_sequence_multiple_dirs(multi_dir_layout):
         # expected_curr_size is unchanged as the limit
         # is greater than the current size.
         assert w.storage_usage == expected_curr_size
+
+
+def test_ensure_dir_on_existing_dir(tmp_path_factory):
+    existing = tmp_path_factory.mktemp("exists")
+    # This assert checks out if no assertion was raised:
+    assert check_and_create_directory(existing) is None
+
+    assert existing.is_dir()
+
+
+def test_ensure_dir_on_non_existing_dir(tmp_path_factory):
+    base = tmp_path_factory.mktemp("base")
+    assert base.is_dir()
+
+    non_existing = base / "non_existent"
+    assert not non_existing.is_dir()
+
+    # This assert checks out if no assertion was raised:
+    assert check_and_create_directory(non_existing) is None
+
+    assert non_existing.is_dir()
+
+
+def test_ensure_dir_on_file_path(tmp_path):
+    a_file = tmp_path.joinpath("a_file")
+    a_file.touch()
+    with pytest.raises(AssertionError):
+        check_and_create_directory(a_file)
