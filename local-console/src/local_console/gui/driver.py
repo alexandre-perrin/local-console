@@ -44,7 +44,7 @@ from local_console.gui.utils.sync_async import SyncAsyncBridge
 from local_console.servers.broker import spawn_broker
 from local_console.servers.webserver import AsyncWebserver
 from local_console.utils.flatbuffers import FlatBuffers
-from local_console.utils.fswatch import StorageSizeWatcher
+from local_console.utils.fstools import StorageSizeWatcher
 from local_console.utils.local_network import LOCAL_IP
 from local_console.utils.timing import TimeoutBehavior
 from local_console.utils.tracking import TrackingVariable
