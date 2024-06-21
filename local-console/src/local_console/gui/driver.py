@@ -44,7 +44,8 @@ from local_console.gui.utils.sync_async import SyncAsyncBridge
 from local_console.servers.broker import spawn_broker
 from local_console.servers.webserver import AsyncWebserver
 from local_console.utils.flatbuffers import FlatBuffers
-from local_console.utils.fswatch import StorageSizeWatcher
+from local_console.utils.fstools import check_and_create_directory
+from local_console.utils.fstools import StorageSizeWatcher
 from local_console.utils.local_network import LOCAL_IP
 from local_console.utils.timing import TimeoutBehavior
 from local_console.utils.tracking import TrackingVariable
@@ -224,9 +225,7 @@ class Driver:
     def process_camera_upload(self, incoming_file: Path) -> None:
         if incoming_file.parent.name == "inferences":
             final_file = self.save_into_inferences_directory(incoming_file)
-            output_data = self.flatbuffers.get_output_from_inference_results(
-                incoming_file
-            )
+            output_data = self.flatbuffers.get_output_from_inference_results(final_file)
             if self.flatbuffers_schema:
                 output_tensor = self.get_flatbuffers_inference_data(output_data)
                 if output_tensor:
@@ -253,25 +252,20 @@ class Driver:
         else:
             logger.warning(f"Unknown incoming file: {incoming_file}")
 
-    def check_and_create_directory(self, directory: Path) -> None:
-        if not directory.exists():
-            logger.warning(f"{directory} does not exist. Creating directory...")
-            directory.mkdir(exist_ok=True)
-
     @run_on_ui_thread
     def set_image_directory(self, new_dir: Path) -> None:
+        check_and_create_directory(new_dir)
         self.image_directory_config.value = new_dir
         self.gui.image_dir_path = str(self.image_directory_config.value)
-        self.check_and_create_directory(new_dir)
         if self.image_directory_config.previous:
             self.total_dir_watcher.unwatch_path(self.image_directory_config.previous)
         self.total_dir_watcher.set_path(self.image_directory_config.value)
 
     @run_on_ui_thread
     def set_inference_directory(self, new_dir: Path) -> None:
+        check_and_create_directory(new_dir)
         self.inference_directory_config.value = new_dir
         self.gui.inference_dir_path = str(self.inference_directory_config.value)
-        self.check_and_create_directory(new_dir)
         if self.inference_directory_config.previous:
             self.total_dir_watcher.unwatch_path(
                 self.inference_directory_config.previous
@@ -340,7 +334,7 @@ class Driver:
     def save_into_inferences_directory(self, incoming_file: Path) -> Path:
         final = incoming_file
         assert self.inference_directory_config.value  # appease mypy
-        self.check_and_create_directory(self.inference_directory_config.value)
+        check_and_create_directory(self.inference_directory_config.value)
         if incoming_file.parent != self.inference_directory_config.value:
             final = Path(
                 shutil.move(incoming_file, self.inference_directory_config.value)
@@ -351,7 +345,7 @@ class Driver:
     def save_into_image_directory(self, incoming_file: Path) -> Path:
         final = incoming_file
         assert self.image_directory_config.value  # appease mypy
-        self.check_and_create_directory(self.image_directory_config.value)
+        check_and_create_directory(self.image_directory_config.value)
         if incoming_file.parent != self.image_directory_config.value:
             final = Path(shutil.move(incoming_file, self.image_directory_config.value))
         self.total_dir_watcher.incoming(final)

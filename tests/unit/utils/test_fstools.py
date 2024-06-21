@@ -13,15 +13,20 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+import logging
 import random
 from collections import OrderedDict
 from itertools import cycle
 from pathlib import Path
+from unittest.mock import MagicMock
 from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
-from local_console.utils.fswatch import StorageSizeWatcher
+from local_console.utils.fstools import check_and_create_directory
+from local_console.utils.fstools import StorageSizeWatcher
+
+logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
@@ -63,7 +68,7 @@ def create_new(root: Path) -> Path:
 
 def test_regular_sequence(dir_layout):
     dir_base, size = dir_layout
-    with patch("local_console.utils.fswatch.walk_entry", walk_entry_mock()):
+    with patch("local_console.utils.fstools.walk_entry", walk_entry_mock()):
         w = StorageSizeWatcher(check_frequency=10)
         assert w.state == StorageSizeWatcher.State.Start
 
@@ -121,11 +126,50 @@ def test_regular_sequence(dir_layout):
         assert w.storage_usage == st_limit
 
 
+def test_inconsistency_on_unexpected_deletion(dir_layout, caplog):
+    dir_base, size = dir_layout
+    with patch("local_console.utils.fstools.walk_entry", walk_entry_mock()):
+        # Have the consistency check executed on the second incoming file
+        w = StorageSizeWatcher(check_frequency=2)
+        w.set_path(dir_base)
+
+        # Regular update
+        to_delete_later = create_new(dir_base)
+        w.incoming(to_delete_later)
+
+        # Unrecorded update: Previous file is deleted
+        to_delete_later.unlink()
+
+        # Regular update
+        w.incoming(create_new(dir_base))
+        assert (
+            "File bookkeeping inconsistency: files unexpectedly removed" in caplog.text
+        )
+
+
+def test_ignore_setting_the_same_dir(dir_layout):
+    dir_base, size = dir_layout
+    w = StorageSizeWatcher(check_frequency=10)
+    w._paths = MagicMock()
+    w._build_content_dict = Mock()
+
+    # First call to set_path works as expected
+    w.set_path(dir_base)
+    w._paths.add.assert_called_once()
+    w._build_content_dict.assert_called_once()
+
+    # Second call with the same path, does not increase call count
+    w._paths.__contains__.return_value = True
+    w.set_path(dir_base)
+    w._paths.add.assert_called_once()
+    w._build_content_dict.assert_called_once()
+
+
 def test_incoming_always_prunes(dir_layout):
     dir_base, size = dir_layout
     mock_prune = Mock()
     with patch(
-        "local_console.utils.fswatch.walk_entry", walk_entry_mock()
+        "local_console.utils.fstools.walk_entry", walk_entry_mock()
     ), patch.object(StorageSizeWatcher, "_prune", mock_prune):
         w = StorageSizeWatcher(check_frequency=10)
         w.set_path(dir_base)
@@ -147,7 +191,7 @@ def test_remaining_before_consistency_check(dir_layout):
     dir_base, size = dir_layout
     mock_prune = Mock()
     with patch(
-        "local_console.utils.fswatch.walk_entry", walk_entry_mock()
+        "local_console.utils.fstools.walk_entry", walk_entry_mock()
     ), patch.object(StorageSizeWatcher, "_prune", mock_prune):
         w = StorageSizeWatcher(check_frequency=check_frequency)
         w.set_path(dir_base)
@@ -218,7 +262,7 @@ def test_regular_sequence_multiple_dirs(multi_dir_layout):
     dir_bases, initial_size = multi_dir_layout
     expected_curr_size = initial_size
     walk_entry_fn = walk_entry_mock()
-    with patch("local_console.utils.fswatch.walk_entry", walk_entry_fn):
+    with patch("local_console.utils.fstools.walk_entry", walk_entry_fn):
         w = StorageSizeWatcher(check_frequency=10)
         assert w.state == StorageSizeWatcher.State.Start
 
@@ -271,3 +315,31 @@ def test_regular_sequence_multiple_dirs(multi_dir_layout):
         # expected_curr_size is unchanged as the limit
         # is greater than the current size.
         assert w.storage_usage == expected_curr_size
+
+
+def test_ensure_dir_on_existing_dir(tmp_path_factory):
+    existing = tmp_path_factory.mktemp("exists")
+    # This assert checks out if no assertion was raised:
+    assert check_and_create_directory(existing) is None
+
+    assert existing.is_dir()
+
+
+def test_ensure_dir_on_non_existing_dir(tmp_path_factory):
+    base = tmp_path_factory.mktemp("base")
+    assert base.is_dir()
+
+    non_existing = base / "non_existent"
+    assert not non_existing.is_dir()
+
+    # This assert checks out if no assertion was raised:
+    assert check_and_create_directory(non_existing) is None
+
+    assert non_existing.is_dir()
+
+
+def test_ensure_dir_on_file_path(tmp_path):
+    a_file = tmp_path.joinpath("a_file")
+    a_file.touch()
+    with pytest.raises(AssertionError):
+        check_and_create_directory(a_file)

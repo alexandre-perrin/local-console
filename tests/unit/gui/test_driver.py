@@ -145,8 +145,8 @@ def test_save_into_inferences_directory(tmpdir):
     assert tgd.exists()
 
 
-def test_process_camera_upload_images(tmpdir):
-    root = Path(tmpdir)
+def test_process_camera_upload_images(tmp_path):
+    root = tmp_path
 
     with (
         patch.object(
@@ -165,8 +165,8 @@ def test_process_camera_upload_images(tmpdir):
         )
 
 
-def test_process_camera_upload_inferences_with_schema(tmpdir):
-    root = Path(tmpdir)
+def test_process_camera_upload_inferences_with_schema(tmp_path):
+    root = tmp_path
 
     with (
         patch.object(Driver, "save_into_inferences_directory") as mock_save,
@@ -182,6 +182,7 @@ def test_process_camera_upload_inferences_with_schema(tmpdir):
         driver.latest_image_file = root / "inferences/a.png"
         driver.flatbuffers_schema = "objectdetection.fbs"
         file = root / "inferences/a.txt"
+        mock_save.return_value = file
 
         mock_get_flatbuffers_inference_data.return_value = {"a": 3}
         mock_process_frame.side_effect = Exception
@@ -196,8 +197,8 @@ def test_process_camera_upload_inferences_with_schema(tmpdir):
         mock_update_display.assert_called_once_with(driver.latest_image_file)
 
 
-def test_process_camera_upload_inferences_missing_schema(tmpdir):
-    root = Path(tmpdir)
+def test_process_camera_upload_inferences_missing_schema(tmp_path):
+    root = tmp_path
 
     with (
         patch.object(Driver, "save_into_inferences_directory") as mock_save,
@@ -205,10 +206,12 @@ def test_process_camera_upload_inferences_missing_schema(tmpdir):
         patch.object(Driver, "update_images_display") as mock_update_display,
         patch("local_console.gui.driver.FlatBuffers") as mock_flatbuffers,
         patch("local_console.gui.driver.process_frame") as mock_process_frame,
+        patch.object(Path, "read_text", return_value=""),
     ):
         driver = Driver(MagicMock())
         driver.latest_image_file = root / "inferences/a.png"
         file = root / "inferences/a.txt"
+        mock_save.return_value = file
 
         driver.process_camera_upload(file)
 

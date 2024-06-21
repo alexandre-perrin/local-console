@@ -202,3 +202,11 @@ def walk_files(root: Path) -> Iterator[Path]:
     for dir_path, dir_names, file_names in walk(root):
         for fname in file_names:
             yield Path(dir_path).joinpath(fname)
+
+
+def check_and_create_directory(directory: Path) -> None:
+    if not directory.exists():
+        logger.warning(f"{directory} does not exist. Creating directory...")
+        directory.mkdir(exist_ok=True)
+    else:
+        assert directory.is_dir()
