@@ -14,6 +14,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 import logging
+import shutil
 from unittest.mock import Mock
 from unittest.mock import patch
 
@@ -69,3 +70,27 @@ def test_callback_error(sync_webserver, caplog):
     assert response.status_code == 200
     assert "Error while receiving data" not in caplog.text
     assert "Error while invoking callback" in caplog.text
+
+
+def test_unexpected_deletion_of_save_directory(sync_webserver, tmp_path_factory):
+    save_dir = tmp_path_factory.mktemp("savedir")
+    sync_webserver.dir = save_dir
+
+    file_name = "testfile.txt"
+    url = f"http://localhost:{sync_webserver.port}/{file_name}"
+    data = b"data"
+
+    # Upload before deletion should be normal
+    response = requests.put(url, data=data)
+    assert response.status_code == 200
+    content = save_dir.joinpath(file_name).read_bytes()
+    assert content == data
+
+    # Unexpectedly remove the save directory and upload again
+    shutil.rmtree(save_dir)
+    response = requests.put(url, data=data)
+
+    # Outcome should be success
+    assert response.status_code == 200
+    content = save_dir.joinpath(file_name).read_bytes()
+    assert content == data

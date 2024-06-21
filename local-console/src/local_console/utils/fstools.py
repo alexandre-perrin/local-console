@@ -207,6 +207,6 @@ def walk_files(root: Path) -> Iterator[Path]:
 def check_and_create_directory(directory: Path) -> None:
     if not directory.exists():
         logger.warning(f"{directory} does not exist. Creating directory...")
-        directory.mkdir(exist_ok=True)
+        directory.mkdir(exist_ok=True, parents=True)
     else:
         assert directory.is_dir()

@@ -26,6 +26,8 @@ from typing import Any
 from typing import Callable
 from typing import Optional
 
+from local_console.utils.fstools import check_and_create_directory
+
 logger = logging.getLogger(__name__)
 
 
@@ -48,6 +50,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         try:
             content_length = int(self.headers["Content-Length"])
             data = self.rfile.read(content_length)
+            check_and_create_directory(Path(self.directory))
             dest_path = Path(self.directory) / self.path.lstrip("/")
             dest_path.write_bytes(data)
         except Exception as e:
