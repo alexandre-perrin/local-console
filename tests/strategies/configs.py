@@ -211,3 +211,31 @@ def generate_valid_device_configuration(draw: st.DrawFn) -> DeviceConfiguration:
         ),
         Permission=Permission(FactoryReset=False),
     )
+
+
+@st.composite
+def generate_valid_device_configuration_with_version(
+    draw: st.DrawFn,
+) -> DeviceConfiguration:
+    return DeviceConfiguration(
+        Hardware=Hardware(
+            Sensor="", SensorId="", KG="", ApplicationProcessor="", LedOn=True
+        ),
+        Version=Version(
+            SensorFwVersion="010707",
+            SensorLoaderVersion="020301",
+            DnnModelVersion=[],
+            ApFwVersion="D52408",
+            ApLoaderVersion="D10300",
+        ),
+        Status=Status(Sensor="", ApplicationProcessor=""),
+        OTA=OTA(
+            SensorFwLastUpdatedDate="",
+            SensorLoaderLastUpdatedDate="",
+            DnnModelLastUpdatedDate=[],
+            ApFwLastUpdatedDate="",
+            UpdateProgress=100,
+            UpdateStatus="Done",
+        ),
+        Permission=Permission(FactoryReset=False),
+    )

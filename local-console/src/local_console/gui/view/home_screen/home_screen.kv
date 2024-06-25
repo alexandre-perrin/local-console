@@ -77,6 +77,12 @@
 
             MDWidget:
 
+            MDLabel:
+                text: root.version_number
+                size_hint_y: 0.1
+                padding: "10dp"
+                halign: "left"
+
         MDBoxLayout:
             orientation: "vertical"
             adaptive_height: False
@@ -84,9 +90,66 @@
 
             MDBoxLayout:
                 size_hint_y: 0.9
+                orientation: "vertical"
 
-            MDLabel:
-                text: root.version_number
-                size_hint_y: 0.1
-                padding: "30dp"
-                halign: "right"
+                MDWidget:
+                    size_hint_y: 0.4
+
+                MDBoxLayout:
+                    orientation: "horizontal"
+
+                    MDWidget:
+                        size_hint_x: 0.4
+
+                    MDGridLayout:
+                        cols: 2
+                        adaptive_height: True
+
+                        EntryLabel:
+                            text: "Firmware"
+                            halign: "left"
+                            bold: True
+                        MDWidget:
+
+                        EntryLabel:
+                            text: "Sensor FW Version:"
+                            halign: "left"
+                        EntryLabel:
+                            id: txt_sensor_fw_ver
+                            text: ""
+                            halign: "left"
+                            allow_copy: True
+                            allow_selection: True
+
+                        EntryLabel:
+                            text: "Sensor Loader Version:"
+                            halign: "left"
+                        EntryLabel:
+                            id: txt_sensor_loader_ver
+                            text: ""
+                            halign: "left"
+                            allow_copy: True
+                            allow_selection: True
+
+                        EntryLabel:
+                            text: "App FW Version:"
+                            halign: "left"
+                        EntryLabel:
+                            id: txt_app_fw_ver
+                            text: ""
+                            halign: "left"
+                            allow_copy: True
+                            allow_selection: True
+
+                        EntryLabel:
+                            text: "App Loader Version:"
+                            halign: "left"
+                        EntryLabel:
+                            id: txt_app_loader_ver
+                            text: ""
+                            halign: "left"
+                            allow_copy: True
+                            allow_selection: True
+
+                MDWidget:
+                    size_hint_y: 0.2
