@@ -35,7 +35,7 @@ class IPAddress(BaseModel):
     ip_value: str = Field(pattern=r"^[\w\d_][\w.-]*$")
 
     @model_serializer
-    def ser_model(self) -> str:
+    def set_model(self) -> str:
         return self.ip_value
 
     def __str__(self) -> str:

@@ -41,7 +41,7 @@ class ConnectionScreenController:
     def get_view(self) -> ConnectionScreenView:
         return self.view
 
-    def toggle_password_visibile(self) -> None:
+    def toggle_password_visible(self) -> None:
         if self.model.wifi_password_hidden:
             self.model.wifi_password_hidden = False
             self.model.wifi_icon_eye = "eye"

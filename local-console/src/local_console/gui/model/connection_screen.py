@@ -109,7 +109,7 @@ class ConnectionScreenModel(BaseScreenModel):
         else:
             self._dns_server_error = not self.validate_ip_address(self.dns_server)
 
-    def ganerate_warning_message(self) -> str:
+    def generate_warning_message(self) -> str:
         warning_message = ""
         if self._mqtt_host_error:
             warning_message += "\n- MQTT host address"
@@ -149,7 +149,7 @@ class ConnectionScreenModel(BaseScreenModel):
         self.validate_all_settings()
 
         # Generate warning message of invalid parameter
-        warning_message = self.ganerate_warning_message()
+        warning_message = self.generate_warning_message()
 
         # Add warning message of local ip updated
         if self._local_ip != ip:
