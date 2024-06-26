@@ -91,7 +91,7 @@ jobs:
       id: unit-test
       run: |
         . .venv/bin/activate
-        xvfb-run coverage run -m pytest tests -o junit_family=xunit1 --junitxml=xunit-result.xml --hypothesis-seed=42
+        xvfb-run coverage run -m pytest tests -o junit_family=xunit1 --junitxml=xunit-result.xml
         coverage xml
 
     - name: SonarCloud Scan
