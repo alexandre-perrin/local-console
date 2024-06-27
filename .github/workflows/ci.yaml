@@ -154,7 +154,7 @@ jobs:
 
   system-tests:
     name: System Tests
-    needs: [pre-commit]
+    needs: [pre-commit, wheel]
     runs-on: [self-hosted, X64]
     steps:
     - name: Run external System Tests
@@ -166,11 +166,16 @@ jobs:
         github_user: ${{ secrets.TEMPORARY_PAT_USER }}
         workflow_file_name: execute-system-tests.yaml
         ref: main
-        client_payload: '{"lc-commit":"${{ github.event.pull_request.head.sha }}"}'
+        client_payload: |
+          {
+            "lc-artifact-name": "${{ needs.wheel.outputs.artifact }}",
+            "lc-artifact-repo": "${{ github.repository }}",
+            "lc-artifact-run-id": "${{ github.run_id }}"
+          }
 
   e2e-tests:
     name: E2E Tests
-    needs: [pre-commit]
+    needs: [pre-commit, wheel]
     runs-on: [self-hosted, X64]
     steps:
     - name: Run external System Tests
@@ -182,7 +187,12 @@ jobs:
         github_user: ${{ secrets.TEMPORARY_PAT_USER }}
         workflow_file_name: execute-e2e.yaml
         ref: main
-        client_payload: '{"lc-commit":"${{ github.event.pull_request.head.sha }}"}'
+        client_payload: |
+          {
+            "lc-artifact-name": "${{ needs.wheel.outputs.artifact }}",
+            "lc-artifact-repo": "${{ github.repository }}",
+            "lc-artifact-run-id": "${{ github.run_id }}"
+          }
 
   publish:
     name: Publish and tag
