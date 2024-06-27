@@ -27,3 +27,7 @@ class HomeScreenView(BaseScreenView):
         The view in this method tracks these changes and updates the UI
         according to these changes.
         """
+        self.ids.txt_sensor_fw_ver.text = self.model.sensor_fw_ver
+        self.ids.txt_sensor_loader_ver.text = self.model.sensor_loader_ver
+        self.ids.txt_app_fw_ver.text = self.model.app_fw_ver
+        self.ids.txt_app_loader_ver.text = self.model.app_loader_ver

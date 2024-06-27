@@ -17,6 +17,7 @@ from local_console.utils.enums import StrEnum
 
 
 class Screen(StrEnum):
+    HOME_SCREEN = "home screen"
     STREAMING_SCREEN = "streaming screen"
     INFERENCE_SCREEN = "inference screen"
     APPLICATIONS_SCREEN = "applications screen"
