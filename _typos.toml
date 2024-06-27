@@ -1,0 +1,11 @@
+# Reference:
+# https://github.com/crate-ci/typos?tab=readme-ov-file#false-positives
+[default]
+extend-ignore-identifiers-re = [
+    # This is a valid Unicode character category
+    "Nd",
+]
+
+[default.extend-words]
+# Don't correct the MQTT broker
+mosquitto = "mosquitto"

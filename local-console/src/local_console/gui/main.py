@@ -113,7 +113,7 @@ class GUIExceptionHandler(ExceptionHandler):
             # The user requested cancellation, so this is handled.
             return ExceptionManager.RAISE
 
-        logger.exception("Uncaught Kivy exception ocurred:", exc_info=inst)
+        logger.exception("Uncaught Kivy exception occurred:", exc_info=inst)
         cause = inst.__traceback__
         assert cause  # appease mypy
         while cause.tb_next:

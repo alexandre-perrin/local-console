@@ -59,7 +59,7 @@ class BaseScreenView(MDScreen, Observer):
 
     controller = ObjectProperty()
     """
-    Controller object - :class:`~Controller.controller_screen.ClassScreenControler`.
+    Controller object - :class:`~Controller.controller_screen.ClassScreenController`.
 
     :attr:`controller` is an :class:`~kivy.properties.ObjectProperty`
     and defaults to `None`.

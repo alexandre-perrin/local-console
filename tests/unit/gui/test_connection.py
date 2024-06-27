@@ -538,7 +538,7 @@ def test_wifi_ssid_password(ssid: str, password: str):
         assert len(model.wifi_password) <= model.MAX_LEN_WIFI_PASSWORD
         assert model.wifi_password_hidden is True
         assert model.wifi_icon_eye == "eye-off"
-        controller.toggle_password_visibile()
+        controller.toggle_password_visible()
         assert model.wifi_password_hidden is False
         assert model.wifi_icon_eye == "eye"
 
@@ -562,10 +562,10 @@ def test_wifi_ssid_password_long(ssid: str, password: str):
         assert len(model.wifi_password) <= model.MAX_LEN_WIFI_PASSWORD
         assert model.wifi_password_hidden is True
         assert model.wifi_icon_eye == "eye-off"
-        controller.toggle_password_visibile()
+        controller.toggle_password_visible()
         assert model.wifi_password_hidden is False
         assert model.wifi_icon_eye == "eye"
-        controller.toggle_password_visibile()
+        controller.toggle_password_visible()
         assert model.wifi_password_hidden is True
         assert model.wifi_icon_eye == "eye-off"
 

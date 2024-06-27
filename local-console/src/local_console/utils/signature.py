@@ -25,13 +25,13 @@ _SWAF_FOOTER_META_VERSION = (0x00, 0x00)
 _SWAF_FOOTER_META_IDENTIFIER = (0x3A, 0x53, 0xF0, 0x07)
 
 
-def make_swaf_bytes(input_aot_ba: bytes, priv_key_ba: bytes) -> Iterable[bytes]:
+def make_swaf_bytes(input_aot_bin: bytes, priv_key_bin: bytes) -> Iterable[bytes]:
     #
     # Check WASM AoT file bytes
     #
 
-    input_aot_len = len(input_aot_ba)
-    aot_hash = SHA256.new(input_aot_ba)
+    input_aot_len = len(input_aot_bin)
+    aot_hash = SHA256.new(input_aot_bin)
 
     if input_aot_len <= 0:
         raise ValueError("Input file size is 0 bytes")
@@ -39,30 +39,30 @@ def make_swaf_bytes(input_aot_ba: bytes, priv_key_ba: bytes) -> Iterable[bytes]:
     #
     # Import private key
     #
-    priv_key = ECC.import_key(priv_key_ba)
+    priv_key = ECC.import_key(priv_key_bin)
 
     #
     # Calculate signature (deterministic ECDSA P-256 and SHA-256)
     #
     signer = DSS.new(priv_key, "deterministic-rfc6979", encoding="der")
-    sig_ba = signer.sign(aot_hash)
+    signature = signer.sign(aot_hash)
 
-    sig_len = len(sig_ba)
+    sig_len = len(signature)
     assert sig_len <= _SWAF_ECDSA_SIGN_PADDED_SIZE
     padding_len = _SWAF_ECDSA_SIGN_PADDED_SIZE - sig_len
-    padding_ba = bytes([0] * padding_len)
+    padding = bytes([0] * padding_len)
 
     #
     # Calculate SHA-256 of AoT file and signature (+padding)
     #
-    aot_and_sig_hash = SHA256.new(input_aot_ba + sig_ba + padding_ba)
+    aot_and_sig_hash = SHA256.new(input_aot_bin + signature + padding)
 
     #
     # Calculate SHA-256 of public key
     #
     pub_key = priv_key.public_key()
-    pub_key_ba = pub_key.export_key(format="DER")
-    pub_key_hash = SHA256.new(pub_key_ba)
+    pub_key_bin = pub_key.export_key(format="DER")
+    pub_key_hash = SHA256.new(pub_key_bin)
 
     #
     # Make footer meta information
@@ -81,18 +81,18 @@ def make_swaf_bytes(input_aot_ba: bytes, priv_key_ba: bytes) -> Iterable[bytes]:
     footer_meta_array[13] = _SWAF_FOOTER_META_IDENTIFIER[1]
     footer_meta_array[14] = _SWAF_FOOTER_META_IDENTIFIER[2]
     footer_meta_array[15] = _SWAF_FOOTER_META_IDENTIFIER[3]
-    footer_meta_ba = bytes(footer_meta_array)
+    footer_meta = bytes(footer_meta_array)
 
     #
     # Make SWAF bytes
     #
     return (
-        input_aot_ba,
-        sig_ba,
-        padding_ba,
+        input_aot_bin,
+        signature,
+        padding,
         aot_and_sig_hash.digest(),
         pub_key_hash.digest(),
-        footer_meta_ba,
+        footer_meta,
     )
 
 

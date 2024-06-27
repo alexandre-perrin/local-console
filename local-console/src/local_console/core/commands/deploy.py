@@ -383,9 +383,7 @@ def populate_urls_and_hashes(
     for module in deployment_manifest.deployment.modules.keys():
         file = Path(deployment_manifest.deployment.modules[module].downloadUrl)
         deployment_manifest.deployment.modules[module].hash = calculate_sha256(file)
-        deployment_manifest.deployment.modules[
-            module
-        ].downloadUrl = (
+        deployment_manifest.deployment.modules[module].downloadUrl = (
             f"http://{host}:{port}/{PurePosixPath(file.relative_to(root_path))}"
         )
 

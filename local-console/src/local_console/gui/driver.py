@@ -182,15 +182,15 @@ class Driver:
         self.gui.is_streaming = self.camera_state.is_streaming
         self.gui.views[Screen.STREAMING_SCREEN].model.stream_status = sensor_state
         self.gui.views[Screen.INFERENCE_SCREEN].model.stream_status = sensor_state
-        self.gui.views[
-            Screen.APPLICATIONS_SCREEN
-        ].model.deploy_status = self.camera_state.deploy_status
-        self.gui.views[
-            Screen.CONNECTION_SCREEN
-        ].model.connected = self.camera_state.connected
-        self.gui.views[
-            Screen.AI_MODEL_SCREEN
-        ].model.device_config = self.camera_state.device_config
+        self.gui.views[Screen.APPLICATIONS_SCREEN].model.deploy_status = (
+            self.camera_state.deploy_status
+        )
+        self.gui.views[Screen.CONNECTION_SCREEN].model.connected = (
+            self.camera_state.connected
+        )
+        self.gui.views[Screen.AI_MODEL_SCREEN].model.device_config = (
+            self.camera_state.device_config
+        )
 
     async def blobs_webserver_task(self) -> None:
         """
@@ -283,9 +283,9 @@ class Driver:
 
     @run_on_ui_thread
     def update_inference_data(self, inference_data: str) -> None:
-        self.gui.views[
-            Screen.INFERENCE_SCREEN
-        ].ids.inference_field.text = inference_data
+        self.gui.views[Screen.INFERENCE_SCREEN].ids.inference_field.text = (
+            inference_data
+        )
 
     def add_class_names(self, data: dict, class_id_to_name: dict) -> None:
         # Add class names to the data recursively
