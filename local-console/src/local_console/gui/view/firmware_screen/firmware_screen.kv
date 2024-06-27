@@ -1,0 +1,189 @@
+<FirmwareScreenView>
+    md_bg_color: self.theme_cls.backgroundColor
+
+    MDBoxLayout:
+        orientation: "vertical"
+
+        MDBoxLayout:
+        # Top bar
+            orientation: "horizontal"
+            size_hint_y: 0.1
+
+            MDBoxLayout:
+            # Controls half
+                orientation: "horizontal"
+                spacing: "10dp"
+                padding: "10dp"
+
+                GoHomeButton:
+
+                MDWidget:
+                    size_hint_x: 3
+
+        MDBoxLayout:
+        # Firmware update controls
+            orientation: "vertical"
+            size_hint_y: 0.2
+
+            MDBoxLayout:
+                orientation: "horizontal"
+                spacing: "10dp"
+                padding: "10dp"
+
+                EntryLabel:
+                    text: "1. Select Firmware Type:"
+                    halign: "left"
+                    adaptive_width: True
+
+                FirmwareDropDownItem:
+                    on_selected: root.controller.select_firmware_type(args[1])
+                    padding: "10dp", "0dp"
+                    canvas.before:
+                        Color:
+                            rgba: 0, 0, 0, 1
+                        Line:
+                            width: 1.0
+                            rounded_rectangle: self.x, self.y, self.width, self.height, 4
+
+                MDWidget:
+                    size_hint_x: 0.378
+
+            MDBoxLayout:
+                orientation: "horizontal"
+                spacing: "10dp"
+                padding: "10dp"
+
+                PathSelectorCombo:
+                    id: firmware_pick
+                    name: "2. Select Firmware:"
+                    icon: "file-cog"
+                    selector: "file"
+                    on_selected: root.controller.select_path(args[1])
+
+                MDButton:
+                    id: btn_update_firmware
+                    on_release: root.controller.update_firmware()
+                    pos_hint: {"center_y": 0.5}
+                    disabled: True
+                    MDButtonText:
+                        text: "4. Update"
+
+        MDBoxLayout:
+            orientation: "horizontal"
+            size_hint_y: 0.8
+
+            MDBoxLayout:
+                orientation: "vertical"
+                size_hint_x: 0.5
+                spacing: "10dp"
+                padding: "10dp"
+
+                MDLabel:
+                    text: "Firmware Status"
+                    bold: True
+                    halign: "center"
+                    adaptive_height: True
+
+                CodeInputCustom:
+                    id: txt_ota_data
+
+            MDBoxLayout:
+                orientation: "vertical"
+                size_hint_x: 0.5
+                spacing: "10dp"
+                padding: "10dp"
+
+                MDLabel:
+                    text: "3. Input Firmware Information"
+                    bold: True
+                    halign: "center"
+                    adaptive_height: True
+
+                MDGridLayout:
+                    cols: 2
+                    spacing: "10dp", "10dp"
+                    padding: "10dp", "20dp"
+                    canvas.before:
+                        Color:
+                            rgba: 0, 0, 0, 1
+                        Line:
+                            width: 1
+                            rectangle: self.x, self.y, self.width, self.height
+
+                    EntryLabel:
+                        text: "Version:"
+                        size_hint_x: 0.4
+                        size_hint_y: None
+                        height: "50dp"
+                    MDTextField:
+                        id: txt_firmware_file_version
+                        on_text: root.controller.set_firmware_version(args[1])
+                        size_hint_y: None
+                        max_height: "50dp"
+                        height: "50dp"
+
+                        MDTextFieldHintText:
+                            text: "Input firmware version"
+                            text_color_normal: "lightgray"
+
+                    EntryLabel:
+                        text: "Hash Value:"
+                        size_hint_x: 0.4
+                        size_hint_y: None
+                        height: "50dp"
+                    MDTextField:
+                        id: txt_firmware_file_hash
+                        size_hint_y: None
+                        max_height: "50dp"
+                        height: "50dp"
+
+                MDLabel:
+                    text: "Download Progress"
+                    bold: True
+                    halign: "center"
+                    adaptive_height: True
+                ProgressBar:
+                    id: progress_downloading
+                    size_hint_y: None
+                    height: "20dp"
+                    canvas.before:
+                        Color:
+                            rgba: 0, 0, 0, 1
+                        Line:
+                            width: 1
+                            rectangle: self.x, self.y, self.width, self.height
+
+                MDLabel:
+                    text: "Update Progress"
+                    bold: True
+                    halign: "center"
+                    adaptive_height: True
+                ProgressBar:
+                    id: progress_updating
+                    size_hint_y: None
+                    height: "20dp"
+                    canvas.before:
+                        Color:
+                            rgba: 0, 0, 0, 1
+                        Line:
+                            width: 1
+                            rectangle: self.x, self.y, self.width, self.height
+
+                MDLabel:
+                    text: "Update Status"
+                    bold: True
+                    halign: "center"
+                    adaptive_height: True
+                MDLabel:
+                    id: lbl_ota_status
+                    text: ""
+                    font_style: "Body"
+                    halign: "center"
+                    size_hint_y: 0.4
+                    canvas.before:
+                        Color:
+                            rgba: 0, 0, 0, 1
+                        Line:
+                            width: 1
+                            rectangle: self.x, self.y, self.width, self.height
+

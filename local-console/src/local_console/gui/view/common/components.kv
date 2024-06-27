@@ -148,3 +148,14 @@
     lexer: JsonLexer()
     font_size: "12sp"
     readonly: True
+
+<FirmwareDropDownItem>
+    MDDropDownItem:
+        pos_hint: {"center_y": .5}
+        on_release: root.open_menu(*args)
+        halign: "left"
+
+        MDDropDownItemText:
+            text: root._selected_type
+            font_style: "Body"
+            role: "large"
