@@ -28,7 +28,9 @@ If you think that you have identified a security vulnerability in local-console,
 
 ## Contributing Code, Tests, and Documentation
 
-Send us your pull requests! For those just getting started, Github has a [how to](https://help.github.com/articles/using-pull-requests/).
+Send us your pull requests! For those just getting started, GitHub has a [how to](https://help.github.com/articles/using-pull-requests/).
+
+In order to maintain proper traceability of contributions, we require that you agree to the four clauses of the [Developer's Certificate of Origin](https://developercertificate.org/). Particularly, commits should be signed off by their respective authors. This repository enforces this by means of the [DCO GitHub app](https://github.com/apps/dco).
 
 ### Submit a Pull Request (PR)
 
