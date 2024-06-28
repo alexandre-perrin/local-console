@@ -22,7 +22,7 @@ If you find yourself wishing for a feature that doesn't exist, you are probably 
 
 > **Warning**
 >
-> Do not use public issues to report security vulnerabilities: email us instead.
+> Do not use public issues to report security vulnerabilities: contact us directly instead.
 
 If you think that you have identified a security vulnerability in local-console, please send us your report with as much context as possible via [our contact form](https://developer.sony.com/contact-us/).
 
