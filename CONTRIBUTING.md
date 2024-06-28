@@ -49,7 +49,7 @@ In order to maintain proper traceability of contributions, we require that you a
 
 Our team members will review your PR, and once it is approved and passes continuous integration checks it will be ready to merge.
 
-Bear in mind that when you contribute a new feature, the maintenance burden is transferred to the wedge-platform team. This means that the benefit of the contribution must be compared against the cost of maintaining the feature.
+Bear in mind that when you contribute a new feature, the maintenance burden is transferred to the local-console team. This means that the benefit of the contribution must be compared against the cost of maintaining the feature.
 
 > **Warning**
 >
