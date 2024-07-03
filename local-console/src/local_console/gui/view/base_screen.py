@@ -44,10 +44,17 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 from typing import Any
+from typing import Optional
 
+from kivy.metrics import dp
 from kivy.properties import ObjectProperty
 from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
+from kivymd.uix.snackbar import MDSnackbar
+from kivymd.uix.snackbar import MDSnackbarButtonContainer
+from kivymd.uix.snackbar import MDSnackbarCloseButton
+from kivymd.uix.snackbar import MDSnackbarSupportingText
+from kivymd.uix.snackbar import MDSnackbarText
 from local_console.gui.utils.observer import Observer
 
 
@@ -88,3 +95,51 @@ class BaseScreenView(MDScreen, Observer):
         self.app = MDApp.get_running_app()
         # Adding a view class as observer.
         self.model.add_observer(self)
+
+        # Error display widget tracking
+        self.error_widget: Optional[MDSnackbar] = None
+
+    def display_error(
+        self, text: str, support_text: Optional[str] = None, duration: int = 5
+    ) -> None:
+        widgets = [
+            MDSnackbarText(
+                text=text,
+                theme_text_color="Error",
+            ),
+        ]
+        if support_text:
+            widgets.append(
+                MDSnackbarSupportingText(
+                    text=support_text,
+                    theme_text_color="Secondary",
+                )
+            )
+
+        self.dismiss_error()
+        self.error_widget = MDSnackbar(
+            *widgets,
+            y=dp(24),
+            orientation="horizontal",
+            pos_hint={"center_x": 0.5},
+            size_hint_x=0.8,
+            background_color=self.theme_cls.errorContainerColor,
+            duration=duration,
+        )
+        self.error_widget.add_widget(
+            MDSnackbarButtonContainer(
+                MDSnackbarCloseButton(
+                    icon="close",
+                    on_release=self.dismiss_error,
+                    theme_icon_color="Custom",
+                    icon_color="#2A2B25",
+                ),
+                pos_hint={"center_y": 0.5},
+            )
+        )
+        self.error_widget.open()
+
+    def dismiss_error(self, *args: Any) -> None:
+        if self.error_widget:
+            self.error_widget.dismiss()
+            self.error_widget = None
