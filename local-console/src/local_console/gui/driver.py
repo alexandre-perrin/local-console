@@ -45,6 +45,7 @@ from local_console.servers.broker import spawn_broker
 from local_console.servers.webserver import AsyncWebserver
 from local_console.utils.flatbuffers import FlatBuffers
 from local_console.utils.fstools import check_and_create_directory
+from local_console.utils.fstools import DirectoryMonitor
 from local_console.utils.fstools import StorageSizeWatcher
 from local_console.utils.local_network import LOCAL_IP
 from local_console.utils.timing import TimeoutBehavior
@@ -93,6 +94,7 @@ class Driver:
         }
 
         self.bridge = SyncAsyncBridge()
+        self.dir_monitor = DirectoryMonitor()
 
     @property
     def evp1_mode(self) -> bool:
@@ -165,7 +167,7 @@ class Driver:
     async def process_factory_reset(self) -> None:
         if self.camera_state.is_new_device_config and self.camera_state.device_config:
             factory_reset = self.camera_state.device_config.Permission.FactoryReset
-            logger.info(f"Factory Reset is {factory_reset}")
+            logger.debug(f"Factory Reset is {factory_reset}")
             if not factory_reset:
                 await self.mqtt_client.configure(
                     "backdoor-EA_Main",
@@ -263,6 +265,9 @@ class Driver:
         if self.image_directory_config.previous:
             self.total_dir_watcher.unwatch_path(self.image_directory_config.previous)
         self.total_dir_watcher.set_path(self.image_directory_config.value)
+        self.dir_monitor.watch(new_dir, self.notify_directory_deleted)
+        if self.image_directory_config.previous:
+            self.dir_monitor.unwatch(self.image_directory_config.previous)
 
     @run_on_ui_thread
     def set_inference_directory(self, new_dir: Path) -> None:
@@ -274,6 +279,13 @@ class Driver:
                 self.inference_directory_config.previous
             )
         self.total_dir_watcher.set_path(self.inference_directory_config.value)
+        self.dir_monitor.watch(new_dir, self.notify_directory_deleted)
+        if self.inference_directory_config.previous:
+            self.dir_monitor.unwatch(self.inference_directory_config.previous)
+
+    @run_on_ui_thread
+    def notify_directory_deleted(self, directory: Path) -> None:
+        self.gui.display_error(str(directory), "has been unexpectedly removed", 30)
 
     @run_on_ui_thread
     def update_images_display(self, incoming_file: Path) -> None:
