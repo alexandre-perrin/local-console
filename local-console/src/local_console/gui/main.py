@@ -45,6 +45,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import logging
 from typing import Any
+from typing import Optional
 
 from kivy.base import ExceptionHandler
 from kivy.base import ExceptionManager
@@ -105,6 +106,11 @@ class LocalConsoleGUIAPP(MDApp):
             self.views[name] = view
 
         self.manager_screens.current = start_screen
+
+    def display_error(
+        self, text: str, support_text: Optional[str] = None, duration: int = 5
+    ) -> None:
+        self.manager_screens.current_screen.display_error(text, support_text, duration)
 
 
 class GUIExceptionHandler(ExceptionHandler):
