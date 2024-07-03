@@ -13,9 +13,12 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+import contextlib
 import logging
 import random
+import threading
 from collections import OrderedDict
+from collections.abc import Iterator
 from itertools import cycle
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -24,7 +27,14 @@ from unittest.mock import patch
 
 import pytest
 from local_console.utils.fstools import check_and_create_directory
+from local_console.utils.fstools import DirectoryMonitor
 from local_console.utils.fstools import StorageSizeWatcher
+from watchdog.events import DirDeletedEvent
+from watchdog.events import FileSystemEvent
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
+
+from tests import not_raises
 
 logger = logging.getLogger(__name__)
 
@@ -343,3 +353,134 @@ def test_ensure_dir_on_file_path(tmp_path):
     a_file.touch()
     with pytest.raises(AssertionError):
         check_and_create_directory(a_file)
+
+
+@pytest.fixture
+def observer() -> Iterator[Observer]:
+    obs = Observer()
+    obs.start()
+    yield obs
+    obs.stop()
+    with contextlib.suppress(RuntimeError):
+        obs.join()
+
+
+def test_simple_deletion_watch(observer, tmp_path):
+    """
+    This tests the simplest behavior emitting filesystem events
+    on deletion, regardless whether it is files or directories.
+    """
+
+    fs_event = threading.Event()
+
+    class EventHandler(FileSystemEventHandler):
+        def on_deleted(self, event: FileSystemEvent) -> None:
+            fs_event.set()
+
+    dir_to_watch = tmp_path / "to_delete"
+    dir_to_watch.mkdir()
+
+    a_file = dir_to_watch / "a_file"
+    a_file.touch()
+
+    observer.schedule(EventHandler(), str(dir_to_watch))
+
+    a_file.unlink()
+    assert fs_event.wait()
+
+    fs_event.clear()
+    dir_to_watch.rmdir()
+    assert fs_event.wait()
+
+
+def test_directory_deletion_watch(observer, tmp_path):
+    """
+    This tests the simplest behavior emitting filesystem events
+    on deletion, exclusively for directories.
+    """
+
+    fs_event = threading.Event()
+
+    class EventHandler(FileSystemEventHandler):
+        def on_deleted(self, event: FileSystemEvent) -> None:
+            fs_event.set()
+
+    dir_to_watch = tmp_path / "to_delete"
+    dir_to_watch.mkdir()
+
+    a_file = dir_to_watch / "a_file"
+    a_file.touch()
+
+    observer.schedule(
+        EventHandler(), str(dir_to_watch), event_filter=(DirDeletedEvent,)
+    )
+
+    a_file.unlink()
+    assert not fs_event.wait(0.8)
+
+    dir_to_watch.rmdir()
+    assert fs_event.wait()
+
+
+def test_online_watch_modification(observer, tmp_path):
+    """
+    This tests whether the observer object can have watches
+    dynamically added and removed over its life time.
+    """
+
+    fs_event = threading.Event()
+
+    class EventHandler(FileSystemEventHandler):
+        def on_deleted(self, event: FileSystemEvent) -> None:
+            fs_event.set()
+
+    dir1_to_watch = tmp_path / "dir1"
+    dir1_to_watch.mkdir()
+    dir2_to_watch = tmp_path / "dir2"
+    dir2_to_watch.mkdir()
+
+    watch1 = observer.schedule(EventHandler(), str(dir1_to_watch))
+
+    dir1_to_watch.rmdir()
+    assert fs_event.wait()
+    fs_event.clear()
+
+    # Cannot "recycle" a watched location
+    dir1_to_watch.mkdir()
+    dir1_to_watch.rmdir()
+    assert not fs_event.wait(1)
+    observer.unschedule(watch1)
+
+    watch2 = observer.schedule(EventHandler(), str(dir2_to_watch))
+    dir2_to_watch.rmdir()
+    assert fs_event.wait()
+
+    observer.unschedule(watch2)
+
+
+@pytest.fixture
+def directory_monitor() -> Iterator[DirectoryMonitor]:
+    obs = DirectoryMonitor()
+    yield obs
+    obs.stop()
+
+
+def test_directory_watcher(directory_monitor, tmp_path):
+    """
+    This tests the DirectoryMonitor class
+    """
+
+    fs_event = threading.Event()
+
+    def on_delete_cb(path: Path) -> None:
+        fs_event.set()
+
+    dir1_to_watch = tmp_path / "dir1"
+    dir1_to_watch.mkdir()
+
+    directory_monitor.watch(dir1_to_watch, on_delete_cb)
+    dir1_to_watch.rmdir()
+    assert fs_event.wait()
+
+    with not_raises(KeyError):
+        directory_monitor.unwatch(dir1_to_watch)

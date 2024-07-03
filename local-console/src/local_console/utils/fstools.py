@@ -13,13 +13,20 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+import contextlib
 import enum
 import logging
 from collections import OrderedDict
 from collections.abc import Iterator
 from os import walk
 from pathlib import Path
+from typing import Callable
 from typing import Optional
+
+from watchdog.events import DirDeletedEvent
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
+from watchdog.observers.api import ObservedWatch
 
 
 logger = logging.getLogger(__name__)
@@ -210,3 +217,55 @@ def check_and_create_directory(directory: Path) -> None:
         directory.mkdir(exist_ok=True, parents=True)
     else:
         assert directory.is_dir()
+
+
+OnDeleteCallable = Callable[[Path], None]
+
+
+class DirectoryMonitor:
+
+    class EventHandler(FileSystemEventHandler):
+        def __init__(self, on_delete_cb: OnDeleteCallable) -> None:
+            self._on_delete_cb = on_delete_cb
+
+        def on_deleted(self, event: DirDeletedEvent) -> None:
+            self._on_delete_cb(event)
+
+    def __init__(self) -> None:
+        self._obs = Observer()
+        self._obs.start()
+        self._watches: dict[Path, ObservedWatch] = dict()
+
+    def watch(self, directory: Path, on_delete_cb: OnDeleteCallable) -> None:
+        assert directory.is_dir()
+        resolved = directory.resolve()
+        handler = self.EventHandler(self._watch_decorator(on_delete_cb))
+        watch = self._obs.schedule(
+            handler, str(resolved), event_filter=(DirDeletedEvent,)
+        )
+        self._watches[resolved] = watch
+
+    def _on_delete_action(self, path: Path) -> None:
+        resolved = path.resolve()
+        watch = self._watches.pop(resolved)
+        self._obs.unschedule(watch)
+
+    def _watch_decorator(self, on_delete_cb: OnDeleteCallable) -> Callable:
+
+        def complete_callback(event: DirDeletedEvent) -> None:
+            path = Path(event.src_path)
+            self._on_delete_action(path)
+            on_delete_cb(path)
+
+        return complete_callback
+
+    def unwatch(self, directory: Path) -> None:
+        try:
+            self._on_delete_action(directory)
+        except KeyError:
+            pass
+
+    def stop(self) -> None:
+        self._obs.stop()
+        with contextlib.suppress(RuntimeError):
+            self._obs.join()
