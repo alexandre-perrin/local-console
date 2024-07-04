@@ -30,7 +30,8 @@ env:
 
 jobs:
   generate-oss-license-report:
-    runs-on: [ self-hosted, X64 ]
+    # TODO: Must be '[ubuntu-22.04]' but didn't works (some preinstalled stuff in our Private Runners)
+    runs-on: [evp-dev, amd64, stable]
     container: ubuntu:22.04
     steps:
       - name: Checkout
@@ -97,7 +98,7 @@ jobs:
 
   check-headers:
     name: Check license headers
-    runs-on: ubuntu-22.04
+    runs-on: [ubuntu-22.04]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
