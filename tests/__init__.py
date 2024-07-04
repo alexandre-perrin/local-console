@@ -13,3 +13,18 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+from contextlib import contextmanager
+
+import pytest
+
+
+@contextmanager
+def not_raises(ExpectedException):
+    try:
+        yield
+    except ExpectedException as err:
+        pytest.fail(
+            f"Did raise exception {ExpectedException} when it should not: {err}"
+        )
+    except Exception as err:
+        pytest.fail(f"An unexpected exception {err} raised.".format(repr(err)))

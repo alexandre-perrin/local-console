@@ -18,7 +18,6 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from kivy.metrics import dp
 from kivy.properties import StringProperty
 from kivy.uix.image import Image
 from kivymd.app import MDApp
@@ -26,10 +25,6 @@ from kivymd.uix.anchorlayout import MDAnchorLayout
 from kivymd.uix.gridlayout import MDGridLayout
 from kivymd.uix.label import MDIcon
 from kivymd.uix.label import MDLabel
-from kivymd.uix.snackbar import MDSnackbar
-from kivymd.uix.snackbar import MDSnackbarButtonContainer
-from kivymd.uix.snackbar import MDSnackbarCloseButton
-from kivymd.uix.snackbar import MDSnackbarSupportingText
 from local_console.core.commands.deploy import DeployStage
 from local_console.gui.config import resource_path
 from local_console.gui.view.base_screen import BaseScreenView
@@ -75,24 +70,11 @@ class ApplicationsScreenView(BaseScreenView):
         """
         if validate_app_file(Path(path)):
             self.ids.app_file.accept_path(path)
+            self.dismiss_error()
             self.ids.btn_deploy_file.disabled = not self.app.is_ready
         else:
             self.ids.btn_deploy_file.disabled = True
-            MDSnackbar(
-                MDSnackbarSupportingText(
-                    text="Invalid AOT-compiled module file",
-                ),
-                MDSnackbarButtonContainer(
-                    MDSnackbarCloseButton(
-                        icon="close",
-                    ),
-                    pos_hint={"center_y": 0.5},
-                ),
-                y=dp(24),
-                orientation="horizontal",
-                pos_hint={"center_x": 0.5},
-                size_hint_x=0.5,
-            ).open()
+            self.display_error("Invalid AOT-compiled module file")
 
     def app_state_refresh(self, app: MDApp, value: bool) -> None:
         """
