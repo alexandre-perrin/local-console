@@ -37,7 +37,7 @@ jobs:
 
   pre-commit:
     name: Pre-commit
-    runs-on: [self-hosted, X64]
+    runs-on: [ubuntu-22.04]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,7 +52,9 @@ jobs:
 
   unit-tests:
     name: Unit Tests
-    runs-on: [self-hosted, X64]
+    # TODO: Alternative, you can update to use 'runs-on: [evp-dev, amd64, stable]' but
+    #       much better in this way
+    runs-on: [ubuntu-22.04]
     container: ubuntu:22.04
     timeout-minutes: 20
     needs: [pre-commit]
@@ -102,7 +104,7 @@ jobs:
 
   windows-installer:
     name: Windows Installer
-    runs-on: windows-latest
+    runs-on: [windows-latest]
     needs: [pre-commit, wheel]
     env:
       ARTIFACT_NAME: windows-installer
@@ -134,7 +136,7 @@ jobs:
 
   verify:
     name: Verify if already published
-    runs-on: [self-hosted, X64]
+    runs-on: [ubuntu-22.04]
     if: github.ref == 'refs/heads/main'
     outputs:
       exists: ${{ steps.check-tag.outputs.exists }}
@@ -155,7 +157,7 @@ jobs:
   system-tests:
     name: System Tests
     needs: [pre-commit, wheel]
-    runs-on: [self-hosted, X64]
+    runs-on: [ubuntu-22.04]
     steps:
     - name: Run external System Tests
       uses: convictional/trigger-workflow-and-wait@v1.6.5
@@ -176,7 +178,7 @@ jobs:
   e2e-tests:
     name: E2E Tests
     needs: [pre-commit, wheel]
-    runs-on: [self-hosted, X64]
+    runs-on: [ubuntu-22.04]
     steps:
     - name: Run external System Tests
       uses: convictional/trigger-workflow-and-wait@v1.6.5
@@ -196,7 +198,7 @@ jobs:
 
   publish:
     name: Publish and tag
-    runs-on: [self-hosted, X64]
+    runs-on: [ubuntu-22.04]
     needs:
     - verify
     - pre-commit
@@ -209,30 +211,25 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-
     - name: Setup Python ${{ env.PYTHON_VERSION }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-
     - name: Tag new version
       uses: tvdias/github-tagger@v0.0.2
       with:
         repo-token: ${{ secrets.TOKEN_PACKAGES }}
         tag: ${{ needs.verify.outputs.tag }}
-
     - name: Get local-console wheel
       uses: actions/download-artifact@v4
       with:
         name: ${{ needs.wheel.outputs.artifact }}
         merge-multiple: true
-
     - name: Get Windows Installer
       uses: actions/download-artifact@v4
       with:
         name: ${{ needs.windows-installer.outputs.artifact }}
         merge-multiple: true
-
     - uses: softprops/action-gh-release@v2
       with:
         name: ${{ needs.verify.outputs.tag }}
