@@ -26,7 +26,7 @@ import trio
 from kivymd.app import MDApp
 from local_console.clients.agent import Agent
 from local_console.clients.agent import check_attributes_request
-from local_console.core.camera import Camera
+from local_console.core.camera import CameraState
 from local_console.core.camera import MQTTTopics
 from local_console.core.camera import StreamStatus
 from local_console.core.config import get_config
@@ -73,7 +73,7 @@ class Driver:
         self.consecutives_images = 0
         self.config = get_config()
 
-        self.camera_state = Camera()
+        self.camera_state = CameraState()
         self.flatbuffers = FlatBuffers()
 
         # This takes care of ensuring the device reports its state
@@ -85,7 +85,8 @@ class Driver:
         # status in case there are no incoming messages from the camera
         # for longer than the threshold
         self.connection_status = TimeoutBehavior(
-            Camera.CONNECTION_STATUS_TIMEOUT.seconds, self.connection_status_timeout
+            CameraState.CONNECTION_STATUS_TIMEOUT.seconds,
+            self.connection_status_timeout,
         )
 
         self.start_flags = {
