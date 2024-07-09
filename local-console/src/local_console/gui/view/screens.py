@@ -25,6 +25,7 @@ from local_console.gui.controller.configuration_screen import (
     ConfigurationScreenController,
 )
 from local_console.gui.controller.connection_screen import ConnectionScreenController
+from local_console.gui.controller.firmware_screen import FirmwareScreenController
 from local_console.gui.controller.home_screen import HomeScreenController
 from local_console.gui.controller.inference_screen import InferenceScreenController
 from local_console.gui.controller.streaming_screen import StreamingScreenController
@@ -32,6 +33,7 @@ from local_console.gui.model.ai_model_screen import AIModelScreenModel
 from local_console.gui.model.applications_screen import ApplicationsScreenModel
 from local_console.gui.model.configuration_screen import ConfigurationScreenModel
 from local_console.gui.model.connection_screen import ConnectionScreenModel
+from local_console.gui.model.firmware_screen import FirmwareScreenModel
 from local_console.gui.model.home_screen import HomeScreenModel
 from local_console.gui.model.inference_screen import InferenceScreenModel
 from local_console.gui.model.streaming_screen import StreamingScreenModel
@@ -65,6 +67,10 @@ screen_dict = {
     "ai model screen": {
         "model_class": AIModelScreenModel,
         "controller_class": partial(AIModelScreenController, view=AIModelScreenView),
+    },
+    "firmware screen": {
+        "model_class": FirmwareScreenModel,
+        "controller_class": FirmwareScreenController,
     },
 }
 

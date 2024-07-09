@@ -40,6 +40,7 @@ from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.textfield import MDTextField
 from kivymd.uix.tooltip import MDTooltip
 from local_console.gui.enums import ApplicationType
+from local_console.gui.enums import FirmwareType
 from local_console.gui.utils.axis_mapping import as_normal_in_set
 from local_console.gui.utils.axis_mapping import DEFAULT_ROI
 from local_console.gui.utils.axis_mapping import delta
@@ -659,3 +660,39 @@ class CodeInputCustom(CodeInput):
 
     def on_text_validate(self, *args: Any) -> None:
         self.cursor = (0, 0)
+
+
+class FirmwareDropDownItem(MDBoxLayout):
+    SELECTED_EVENT: str = "on_selected"
+
+    _factors = [
+        FirmwareType.APPLICATION_FW,
+        FirmwareType.SENSOR_FW,
+    ]
+    _selected_type = StringProperty(FirmwareType.APPLICATION_FW)
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.register_event_type(self.SELECTED_EVENT)
+        menu_items = [
+            {
+                "text": firmware_type,
+                "on_release": lambda x=firmware_type: self.set_type(x),
+            }
+            for firmware_type in self._factors
+        ]
+        self.menu = MDDropdownMenu(items=menu_items)
+
+    def open_menu(self, widget: MDDropDownItem) -> None:
+        self.menu.caller = widget
+        self.menu.open()
+
+    def set_type(self, type_item: str) -> None:
+        self._selected_type = type_item
+        self.dispatch(self.SELECTED_EVENT, type_item)
+        self.menu.dismiss()
+
+    def on_selected(self, value: str) -> None:
+        """
+        Default handler for the selected item
+        """
