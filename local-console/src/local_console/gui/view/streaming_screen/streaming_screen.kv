@@ -33,7 +33,7 @@
                     style: "elevated"
                     pos_hint: {"center_y": 0.5}
                     MDButtonText:
-                        text: ("Stop" if app.is_streaming else "Start") + " Streaming"
+                        text: ("Stop" if app.mdl.is_streaming else "Start") + " Streaming"
 
                 MDButton:
                     id: btn_roi_control

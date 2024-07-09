@@ -49,13 +49,13 @@ from typing import Optional
 
 from kivy.base import ExceptionHandler
 from kivy.base import ExceptionManager
-from kivy.properties import BooleanProperty
-from kivy.properties import StringProperty
+from kivy.properties import ObjectProperty
 from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.screenmanager import MDScreenManager
 from local_console.gui.config import configure
 from local_console.gui.driver import Driver
+from local_console.gui.model.camera_proxy import CameraStateProxy
 from local_console.gui.view.screens import screen_dict
 from local_console.gui.view.screens import start_screen
 
@@ -65,12 +65,7 @@ logger = logging.getLogger(__name__)
 class LocalConsoleGUIAPP(MDApp):
     nursery = None
     driver = None
-
-    # Proxy objects leveraged for using Kivy's event dispatching
-    is_ready = BooleanProperty(False)
-    is_streaming = BooleanProperty(False)
-    image_dir_path = StringProperty("")
-    inference_dir_path = StringProperty("")
+    mdl = ObjectProperty(CameraStateProxy)
 
     async def app_main(self) -> None:
         self.driver = Driver(self)
@@ -78,6 +73,7 @@ class LocalConsoleGUIAPP(MDApp):
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
+        self.mdl = CameraStateProxy()
         self.load_all_kv_files(self.directory)
         self.manager_screens = MDScreenManager()
         self.views: dict[str, type[MDScreen]] = {}

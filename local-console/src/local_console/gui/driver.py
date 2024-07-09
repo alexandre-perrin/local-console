@@ -180,9 +180,9 @@ class Driver:
 
     @run_on_ui_thread
     def update_camera_status(self) -> None:
-        self.gui.is_ready = self.camera_state.is_ready
+        self.gui.mdl.is_ready = self.camera_state.is_ready
         sensor_state = self.camera_state.sensor_state
-        self.gui.is_streaming = self.camera_state.is_streaming
+        self.gui.mdl.is_streaming = self.camera_state.is_streaming
         self.gui.views[Screen.HOME_SCREEN].model.device_config = (
             self.camera_state.device_config
         )
@@ -265,7 +265,7 @@ class Driver:
     def set_image_directory(self, new_dir: Path) -> None:
         check_and_create_directory(new_dir)
         self.image_directory_config.value = new_dir
-        self.gui.image_dir_path = str(self.image_directory_config.value)
+        self.gui.mdl.image_dir_path = str(self.image_directory_config.value)
         if self.image_directory_config.previous:
             self.total_dir_watcher.unwatch_path(self.image_directory_config.previous)
         self.total_dir_watcher.set_path(self.image_directory_config.value)
@@ -277,7 +277,7 @@ class Driver:
     def set_inference_directory(self, new_dir: Path) -> None:
         check_and_create_directory(new_dir)
         self.inference_directory_config.value = new_dir
-        self.gui.inference_dir_path = str(self.inference_directory_config.value)
+        self.gui.mdl.inference_dir_path = str(self.inference_directory_config.value)
         if self.inference_directory_config.previous:
             self.total_dir_watcher.unwatch_path(
                 self.inference_directory_config.previous

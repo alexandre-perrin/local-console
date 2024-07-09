@@ -32,7 +32,7 @@
                     style: "elevated"
                     pos_hint: {"center_y": 0.5}
                     MDButtonText:
-                        text: ("Stop" if app.is_streaming else "Start") + " Streaming"
+                        text: ("Stop" if app.mdl.is_streaming else "Start") + " Streaming"
 
                 MDWidget:
 
@@ -68,7 +68,7 @@
                 adaptive_width: True
 
             MDLabel:
-                text: app.image_dir_path
+                text: app.mdl.image_dir_path
                 allow_selection: True
                 allow_copy: True
                 padding: "5sp"
@@ -85,7 +85,7 @@
                 adaptive_width: True
 
             MDLabel:
-                text: app.inference_dir_path
+                text: app.mdl.inference_dir_path
                 allow_selection: True
                 allow_copy: True
                 padding: "5sp"

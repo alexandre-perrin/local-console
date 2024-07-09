@@ -27,13 +27,13 @@ logger = logging.getLogger(__name__)
 class FirmwareScreenView(BaseScreenView):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.app.bind(is_ready=self.app_state_refresh)
+        self.app.mdl.bind(is_ready=self.app_state_refresh)
 
     def app_state_refresh(self, app: MDApp, value: bool) -> None:
         """
         Makes the update button react to the camera readiness state.
         """
-        self.ids.btn_update_firmware.disabled = not self.app.is_ready
+        self.ids.btn_update_firmware.disabled = not self.app.mdl.is_ready
 
     def model_is_changed(self) -> None:
         self.ids.txt_firmware_file_version.text = self.model.firmware_file_version
@@ -60,7 +60,7 @@ class FirmwareScreenView(BaseScreenView):
             self.ids.firmware_pick.accept_path(str(self.model.firmware_file))
 
         can_update = (
-            self.app.is_ready
+            self.app.mdl.is_ready
             and self.model.firmware_file_valid
             and leaf_update_status
             and self.model.firmware_file_version

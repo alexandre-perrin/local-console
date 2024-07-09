@@ -49,13 +49,13 @@ class AIModelScreenView(BaseScreenView):
             self.ids.model_pick.accept_path(str(self.model.model_file))
 
         can_deploy = (
-            self.app.is_ready and self.model.model_file_valid and leaf_update_status
+            self.app.mdl.is_ready and self.model.model_file_valid and leaf_update_status
         )
         self.ids.btn_ota_file.disabled = not can_deploy
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.app.bind(is_ready=self.app_state_refresh)
+        self.app.mdl.bind(is_ready=self.app_state_refresh)
 
     def select_path(self, path_str: str) -> None:
         """
@@ -74,7 +74,7 @@ class AIModelScreenView(BaseScreenView):
         """
         Makes the deploy button react to the camera readiness state.
         """
-        self.ids.btn_ota_file.disabled = not self.app.is_ready
+        self.ids.btn_ota_file.disabled = not self.app.mdl.is_ready
 
     @run_on_ui_thread
     def notify_deploy_timeout(self) -> None:

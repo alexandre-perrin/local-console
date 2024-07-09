@@ -59,7 +59,7 @@ class ApplicationsScreenView(BaseScreenView):
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.app.bind(is_ready=self.app_state_refresh)
+        self.app.mdl.bind(is_ready=self.app_state_refresh)
 
     def select_path(self, path: str) -> None:
         """
@@ -71,7 +71,7 @@ class ApplicationsScreenView(BaseScreenView):
         if validate_app_file(Path(path)):
             self.ids.app_file.accept_path(path)
             self.dismiss_error()
-            self.ids.btn_deploy_file.disabled = not self.app.is_ready
+            self.ids.btn_deploy_file.disabled = not self.app.mdl.is_ready
         else:
             self.ids.btn_deploy_file.disabled = True
             self.display_error("Invalid AOT-compiled module file")
@@ -80,7 +80,7 @@ class ApplicationsScreenView(BaseScreenView):
         """
         Makes the deploy button react to the camera readiness state.
         """
-        self.ids.btn_deploy_file.disabled = not self.app.is_ready
+        self.ids.btn_deploy_file.disabled = not self.app.mdl.is_ready
 
     def _render_deploy_stage(self) -> None:
         layout: MDGridLayout = self.ids.layout_status
