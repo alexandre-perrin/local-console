@@ -35,6 +35,7 @@ class CameraStateProxy(EventDispatcher):
     device_config = ObjectProperty(DeviceConfiguration, allownone=True)
 
     ai_model_file = StringProperty("", allownone=True)
+    ai_model_file_valid = BooleanProperty(False)
 
     def bind_proxy(
         self,
@@ -60,6 +61,7 @@ class CameraStateProxy(EventDispatcher):
 
         bind = {property_name: binding}
         self.bind(**bind)
+
 
 # Listing of model properties to move over into this class. It is
 # derived from the result of the following command, running

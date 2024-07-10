@@ -16,8 +16,11 @@
 import logging
 from pathlib import Path
 from typing import Any
+from typing import Optional
 
+from kivy.properties import BooleanProperty
 from kivymd.app import MDApp
+from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.gui.schemas import OtaData
 from local_console.gui.utils.sync_async import run_on_ui_thread
 from local_console.gui.view.base_screen import BaseScreenView
@@ -32,17 +35,12 @@ logger = logging.getLogger(__name__)
 
 
 class AIModelScreenView(BaseScreenView):
-    def model_is_changed(self) -> None:
 
-        can_deploy = (
-            self.app.mdl.is_ready and self.model.model_file_valid and leaf_update_status
-        )
-        self.ids.btn_ota_file.disabled = not can_deploy
+    update_status_finished = BooleanProperty(False)
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.app.mdl.bind(ai_model_file=self.on_ai_model_file)
-        self.app.mdl.bind(is_ready=self.app_state_refresh)
         self.app.mdl.bind(device_config=self.on_device_config)
 
     def on_ai_model_file(self, app: MDApp, value: Optional[str]) -> None:
@@ -52,21 +50,15 @@ class AIModelScreenView(BaseScreenView):
     def on_device_config(
         self, app: MDApp, value: Optional[DeviceConfiguration]
     ) -> None:
+        self.update_status_finished = False
         if value:
             self.ids.txt_ota_data.text = OtaData(**value.model_dump()).model_dump_json(
                 indent=4
             )
 
             update_status = value.OTA.UpdateStatus
+            self.update_status_finished = update_status in ("Done", "Failed")
             self.ids.lbl_ota_status.text = update_status
-        if not self.model.model_file_valid:
-            self.display_error("Invalid AI Model file header!")
-
-    def app_state_refresh(self, app: MDApp, value: bool) -> None:
-        """
-        Makes the deploy button react to the camera readiness state.
-        """
-        self.ids.btn_ota_file.disabled = not self.app.mdl.is_ready
 
     @run_on_ui_thread
     def notify_deploy_timeout(self) -> None:

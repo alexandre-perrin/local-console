@@ -51,6 +51,7 @@ from local_console.utils.fstools import StorageSizeWatcher
 from local_console.utils.local_network import LOCAL_IP
 from local_console.utils.timing import TimeoutBehavior
 from local_console.utils.tracking import TrackingVariable
+from local_console.utils.validation import validate_imx500_model_file
 
 logger = logging.getLogger(__name__)
 
@@ -95,11 +96,30 @@ class Driver:
             "mqtt": trio.Event(),
             "webserver": trio.Event(),
         }
-
         self.bridge = SyncAsyncBridge()
         self.dir_monitor = DirectoryMonitor()
 
+        self._init_ai_model_functions()
+
+    def _init_ai_model_functions(self) -> None:
         self.gui.mdl.bind_proxy("ai_model_file", self.camera_state, Path)
+
+        def validate_file(current: Optional[Path], previous: Optional[Path]) -> None:
+            if current:
+                self.camera_state.ai_model_file_valid.value = (
+                    validate_imx500_model_file(current)
+                )
+
+        self.camera_state.ai_model_file.subscribe(validate_file)
+
+        @run_on_ui_thread
+        def simple_propagate(current: Optional[Path], previous: Optional[Path]) -> None:
+            is_valid = self.camera_state.ai_model_file_valid.value
+            self.gui.mdl.ai_model_file_valid = is_valid
+            if not is_valid:
+                self.gui.display_error("Invalid AI Model file header!")
+
+        self.camera_state.ai_model_file_valid.subscribe(simple_propagate)
 
     @property
     def evp1_mode(self) -> bool:

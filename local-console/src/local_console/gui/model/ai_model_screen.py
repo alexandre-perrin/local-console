@@ -13,10 +13,7 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-from pathlib import Path
-
 from local_console.gui.model.base_model import BaseScreenModel
-from local_console.utils.validation import validate_imx500_model_file
 
 
 class AIModelScreenModel(BaseScreenModel):
@@ -24,22 +21,3 @@ class AIModelScreenModel(BaseScreenModel):
     Implements the logic of the
     :class:`~View.settings_screen.AIModelScreen.AIModelScreenView` class.
     """
-
-    def __init__(self) -> None:
-        self._model_file = Path()
-        self._model_file_valid = False
-
-    @property
-    def model_file(self) -> Path:
-        return self._model_file
-
-    @model_file.setter
-    def model_file(self, value: Path) -> None:
-        self._model_file = value
-        self._model_file_valid = validate_imx500_model_file(value)
-
-        self.notify_observers()
-
-    @property
-    def model_file_valid(self) -> bool:
-        return self._model_file_valid
