@@ -1,29 +1,60 @@
 # Local Console
 
-An offline tool to interact with IMX500-equipped smart cameras and develop applications for them.
+An offline tool to interact with IMX500-equipped smart cameras and develop applications for them. This software provides the following functionalities:
 
-## Open source and proprietary source split
+- Connection configuration
+- Streaming control
+- WASM Module deployment
+- AI model deployment
+- Camera firmware update
 
-The Local Console code has been modularized into two bases: a public one, (to-be) released as Open Source Software (OSS) and a proprietary one. The design of this split is as follows:
-- The OSS code lives at [SonySemiconductorSolutions/local-console](https://github.com/SonySemiconductorSolutions/local-console). It provides the base functional set, such as connection configuration, module deployment, sensor network upload and streaming control. This is distributed in binary form, as a Python wheel and a Windows installer.
-- The proprietary code lives in this repository. It is a set of plugins on top of the OSS code, which adds functionality that depends on proprietary components such as the [Wedge Agent SDK](https://github.com/midokura/wedge-agent/tree/main/include/evp). This plugin set is packaged as a Python wheel, to be installed on the same virtual environment created for an installation of the base OSS code.
+## Prerequisites
+
+The Local Console requires the following dependencies to be installed on your system:
+
+* Python 3.11 (or higher), pip
+* [mosquitto](https://mosquitto.org/download)
+* [flatc](https://github.com/google/flatbuffers/releases/tag/v24.3.25)
+
+Make sure these programs are added to your system's `PATH` environment variable.
 
 ## Installation
 
-You start off an installation of the OSS local-console distribution. Please refer to its [instructions for installations](https://github.com/SonySemiconductorSolutions/local-console?tab=readme-ov-file#installation) before continuing here. Then, locate the installation path as detailed below:
+The installation procedure depends on your machine. It is outlined for each supported OS below.
 
-### Path to your local-console virtual environment
+> [!TIP]
+> Make sure your machine has a working Internet access, as all variants of the installation procedure will require downloading third-party dependencies.
 
-#### On Windows
+### Windows
 
-By default, the Python interpreter (`python.exe`) of the virtual environment of the local-console installation is located at `%LOCALAPPDATA%\Programs\LocalConsole\virtualenv\Scripts`. When in doubt, read the destination path of the Local Console GUI shortcut on the Desktop.
+You should execute the `local-console-setup.exe` installer, as your regular (i.e. non-admin) user. In order for the installer to download the system dependencies, the installer will attempt to run a shell script as an Administrator, causing Windows' UAC to prompt for your permission to do so. Once the system dependencies are installed, another shell script will be executed as your user, which will actually install the Local Console in your user account.
 
-#### On Linux and OSX
+### Linux
 
-There is no default installation path for Linux, so you will need to recall the location of the virtual environment you created when you installed the OSS local-console.
+Currently there is no stand-alone installer as there is for Windows. Hence, after fulfilling [the prerequisites](#prerequisites), perform the following steps:
+
+1. Install `xclip` (e.g. in Debian-based)
+2. Create a python virtual environment:
+
+```sh
+$ python3.11 -m venv lcenv
+$ . lcenv/bin/activate
+(lcenv)$
+```
+
+3. Install the python wheel `local_console-2.3.3-py3-none-any.whl`:
+
+```sh
+(lcenv)$ pip install local_console-2.3.3-py3-none-any.whl
+```
+
+The Local Console has been installed. To use it, either run the `local-console` command with the `lcenv` virtualenv activated, or use the absolute path to the `local-console` binary located in the `bin` subdirectory at the location of the `lcenv` virtualenv.
+
+### OSX
+
+The procedure is pretty similar to [Linux](#linux), except for the `xclip` requirement, which is unnecessary for this platform.
 
 ### Installing at your path
-
 
 Then, install Local Console with the following commands:
 
