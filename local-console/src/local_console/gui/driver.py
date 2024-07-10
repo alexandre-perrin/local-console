@@ -190,9 +190,7 @@ class Driver:
         self.gui.mdl.is_ready = self.camera_state.is_ready
         sensor_state = self.camera_state.sensor_state
         self.gui.mdl.is_streaming = self.camera_state.is_streaming
-        self.gui.views[Screen.HOME_SCREEN].model.device_config = (
-            self.camera_state.device_config
-        )
+        self.gui.mdl.device_config = self.camera_state.device_config.value
         self.gui.views[Screen.STREAMING_SCREEN].model.stream_status = sensor_state
         self.gui.views[Screen.INFERENCE_SCREEN].model.stream_status = sensor_state
         self.gui.views[Screen.APPLICATIONS_SCREEN].model.deploy_status = (
@@ -202,10 +200,10 @@ class Driver:
             self.camera_state.connected
         )
         self.gui.views[Screen.AI_MODEL_SCREEN].model.device_config = (
-            self.camera_state.device_config
+            self.camera_state.device_config.value
         )
         self.gui.views[Screen.FIRMWARE_SCREEN].model.device_config = (
-            self.camera_state.device_config
+            self.camera_state.device_config.value
         )
 
     async def blobs_webserver_task(self) -> None:

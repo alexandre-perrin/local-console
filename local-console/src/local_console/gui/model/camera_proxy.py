@@ -13,11 +13,11 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-
 from kivy.event import EventDispatcher
 from kivy.properties import BooleanProperty
 from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
+from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 
 
 class CameraStateProxy(EventDispatcher):
@@ -26,6 +26,9 @@ class CameraStateProxy(EventDispatcher):
     is_streaming = BooleanProperty(False)
     image_dir_path = StringProperty("")
     inference_dir_path = StringProperty("")
+
+    device_config = ObjectProperty(DeviceConfiguration, allownone=True)
+
 
 # Listing of model properties to move over into this class. It is
 # derived from the result of the following command, running
@@ -37,7 +40,6 @@ class CameraStateProxy(EventDispatcher):
 #        -e 's;self, [^:]*: ;;g' -e 's/-/;/g' \
 #  | sort -t';' -k2) > model-properties.csv
 #
-#   device_config(DeviceConfiguration | None)
 #   image_directory(Optional[Path])
 #   inferences_directory(Optional[Path])
 #   stream_status(StreamStatus)
