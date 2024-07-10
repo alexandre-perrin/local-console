@@ -199,9 +199,6 @@ class Driver:
         self.gui.views[Screen.CONNECTION_SCREEN].model.connected = (
             self.camera_state.connected
         )
-        self.gui.views[Screen.AI_MODEL_SCREEN].model.device_config = (
-            self.camera_state.device_config.value
-        )
         self.gui.views[Screen.FIRMWARE_SCREEN].model.device_config = (
             self.camera_state.device_config.value
         )

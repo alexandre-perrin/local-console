@@ -22,6 +22,7 @@ from datetime import timedelta
 from typing import Any
 from typing import Optional
 
+import trio
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.utils.tracking import TrackingVariable
@@ -50,6 +51,9 @@ class CameraState:
         self.onwire_schema: Optional[OnWireProtocol] = None
         self.attributes_available = False
         self._last_reception: Optional[datetime] = None
+
+        self._ota_event = trio.Event()
+        self.device_config.subscribe_async(self._prepare_ota_event)
 
     @property
     def is_ready(self) -> bool:
@@ -125,6 +129,18 @@ class CameraState:
         else:
             self.deploy_status = payload[self.DEPLOY_STATUS_TOPIC]
         self.attributes_available = True
+
+    async def _prepare_ota_event(
+        self,
+        current: Optional[DeviceConfiguration],
+        previous: Optional[DeviceConfiguration],
+    ) -> None:
+        if current != previous:
+            self._ota_event.set()
+
+    async def ota_event(self) -> None:
+        self._ota_event = trio.Event()
+        await self._ota_event.wait()
 
 
 class StreamStatus(enum.Enum):
