@@ -17,12 +17,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from kivy.metrics import dp
 from kivymd.app import MDApp
-from kivymd.uix.snackbar import MDSnackbar
-from kivymd.uix.snackbar import MDSnackbarButtonContainer
-from kivymd.uix.snackbar import MDSnackbarCloseButton
-from kivymd.uix.snackbar import MDSnackbarSupportingText
 from local_console.gui.schemas import OtaData
 from local_console.gui.utils.sync_async import run_on_ui_thread
 from local_console.gui.view.base_screen import BaseScreenView
@@ -73,21 +68,7 @@ class AIModelScreenView(BaseScreenView):
         self.model.model_file = path
 
         if not self.model.model_file_valid:
-            MDSnackbar(
-                MDSnackbarSupportingText(
-                    text="Invalid AI Model file header!",
-                ),
-                MDSnackbarButtonContainer(
-                    MDSnackbarCloseButton(
-                        icon="close",
-                    ),
-                    pos_hint={"center_y": 0.5},
-                ),
-                y=dp(24),
-                orientation="horizontal",
-                pos_hint={"center_x": 0.5},
-                size_hint_x=0.5,
-            ).open()
+            self.display_error("Invalid AI Model file header!")
 
     def app_state_refresh(self, app: MDApp, value: bool) -> None:
         """
@@ -97,19 +78,4 @@ class AIModelScreenView(BaseScreenView):
 
     @run_on_ui_thread
     def notify_deploy_timeout(self) -> None:
-        MDSnackbar(
-            MDSnackbarSupportingText(
-                text="Model deployment timed out!",
-            ),
-            MDSnackbarButtonContainer(
-                MDSnackbarCloseButton(
-                    icon="close",
-                ),
-                pos_hint={"center_y": 0.5},
-            ),
-            y=dp(24),
-            orientation="horizontal",
-            pos_hint={"center_x": 0.5},
-            size_hint_min_x=0.5,
-            size_hint_max_x=0.9,
-        ).open()
+        self.display_error("Model deployment timed out!")
