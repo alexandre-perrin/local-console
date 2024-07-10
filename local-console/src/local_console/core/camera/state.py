@@ -83,20 +83,20 @@ class CameraState:
     def is_streaming(self) -> bool:
         return self.sensor_state == StreamStatus.Active
 
-    def process_incoming(self, topic: str, payload: dict[str, Any]) -> None:
+    async def process_incoming(self, topic: str, payload: dict[str, Any]) -> None:
         sent_from_camera = False
         if topic == MQTTTopics.ATTRIBUTES.value:
             if self.EA_STATE_TOPIC in payload:
                 sent_from_camera = True
-                self.process_state_topic(payload)
+                await self._process_state_topic(payload)
 
             if self.SYSINFO_TOPIC in payload:
                 sent_from_camera = True
-                self.process_sysinfo_topic(payload)
+                await self._process_sysinfo_topic(payload)
 
             if self.DEPLOY_STATUS_TOPIC in payload:
                 sent_from_camera = True
-                self.process_deploy_status_topic(payload)
+                await self._process_deploy_status_topic(payload)
 
         if topic == MQTTTopics.TELEMETRY.value:
             sent_from_camera = True
@@ -105,7 +105,7 @@ class CameraState:
             self._last_reception = datetime.now()
             logger.debug("Incoming on %s: %s", topic, str(payload))
 
-    def process_state_topic(self, payload: dict[str, Any]) -> None:
+    async def _process_state_topic(self, payload: dict[str, Any]) -> None:
         firmware_is_supported = False
         try:
             decoded = json.loads(b64decode(payload[self.EA_STATE_TOPIC]))
@@ -123,13 +123,13 @@ class CameraState:
             except ValidationError as e:
                 logger.warning(f"Error while validating device configuration: {e}")
 
-    def process_sysinfo_topic(self, payload: dict[str, Any]) -> None:
+    async def _process_sysinfo_topic(self, payload: dict[str, Any]) -> None:
         sys_info = payload[self.SYSINFO_TOPIC]
         if "protocolVersion" in sys_info:
             self.onwire_schema = OnWireProtocol(sys_info["protocolVersion"])
         self.attributes_available = True
 
-    def process_deploy_status_topic(self, payload: dict[str, Any]) -> None:
+    async def _process_deploy_status_topic(self, payload: dict[str, Any]) -> None:
         if self.onwire_schema == OnWireProtocol.EVP1 or self.onwire_schema is None:
             self.deploy_status = json.loads(payload[self.DEPLOY_STATUS_TOPIC])
         else:

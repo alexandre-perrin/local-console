@@ -153,7 +153,7 @@ class Driver:
                             streaming_stop_required = False
 
                     payload = json.loads(msg.payload)
-                    self.camera_state.process_incoming(msg.topic, payload)
+                    await self.camera_state.process_incoming(msg.topic, payload)
                     self.update_camera_status()
                     await self.process_factory_reset()
 
