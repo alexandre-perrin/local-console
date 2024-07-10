@@ -19,6 +19,7 @@ import logging
 from base64 import b64decode
 from datetime import datetime
 from datetime import timedelta
+from pathlib import Path
 from typing import Any
 from typing import Optional
 
@@ -33,8 +34,10 @@ logger = logging.getLogger(__name__)
 
 class CameraState:
     """
-    This class is a live, read-only interface to most status
-    information that the Camera Firmware reports.
+    This class holds all information that represents the state
+    of a camera, which is comprised of:
+    - Status reports from the camera firmware.
+    - User settings that parametrize the camera functions.
     """
 
     EA_STATE_TOPIC = "state/backdoor-EA_Main/placeholder"
@@ -52,6 +55,7 @@ class CameraState:
         self.attributes_available = False
         self._last_reception: Optional[datetime] = None
 
+        self.ai_model_file: TrackingVariable[Path] = TrackingVariable()
         self._ota_event = trio.Event()
         self.device_config.subscribe_async(self._prepare_ota_event)
 

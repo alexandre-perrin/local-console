@@ -34,6 +34,7 @@ class CameraStateProxy(EventDispatcher):
 
     device_config = ObjectProperty(DeviceConfiguration, allownone=True)
 
+    ai_model_file = StringProperty("", allownone=True)
 
     def bind_proxy(
         self,

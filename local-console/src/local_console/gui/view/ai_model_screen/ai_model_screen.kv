@@ -38,7 +38,7 @@
                     name: 'Model location:'
                     icon: "file-cog"
                     selector: "file"
-                    on_selected: root.select_path(args[1])
+                    on_selected: app.mdl.ai_model_file = args[1]
 
                 MDButton:
                     id: btn_ota_file

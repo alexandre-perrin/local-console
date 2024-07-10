@@ -99,6 +99,8 @@ class Driver:
         self.bridge = SyncAsyncBridge()
         self.dir_monitor = DirectoryMonitor()
 
+        self.gui.mdl.bind_proxy("ai_model_file", self.camera_state, Path)
+
     @property
     def evp1_mode(self) -> bool:
         return self.config.evp.iot_platform.lower() == "evp1"

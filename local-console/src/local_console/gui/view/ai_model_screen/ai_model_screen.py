@@ -34,9 +34,6 @@ logger = logging.getLogger(__name__)
 class AIModelScreenView(BaseScreenView):
     def model_is_changed(self) -> None:
 
-        if self.model.model_file.is_file():
-            self.ids.model_pick.accept_path(str(self.model.model_file))
-
         can_deploy = (
             self.app.mdl.is_ready and self.model.model_file_valid and leaf_update_status
         )
@@ -44,9 +41,13 @@ class AIModelScreenView(BaseScreenView):
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
+        self.app.mdl.bind(ai_model_file=self.on_ai_model_file)
         self.app.mdl.bind(is_ready=self.app_state_refresh)
         self.app.mdl.bind(device_config=self.on_device_config)
 
+    def on_ai_model_file(self, app: MDApp, value: Optional[str]) -> None:
+        if value and Path(value).is_file():
+            self.ids.model_pick.accept_path(value)
 
     def on_device_config(
         self, app: MDApp, value: Optional[DeviceConfiguration]
