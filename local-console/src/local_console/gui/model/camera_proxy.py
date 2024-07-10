@@ -13,10 +13,15 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+from typing import Any
+from typing import Callable
+from typing import Optional
+
 from kivy.event import EventDispatcher
 from kivy.properties import BooleanProperty
 from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
+from local_console.core.camera import CameraState
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 
 
@@ -29,6 +34,31 @@ class CameraStateProxy(EventDispatcher):
 
     device_config = ObjectProperty(DeviceConfiguration, allownone=True)
 
+
+    def bind_proxy(
+        self,
+        property_name: str,
+        state: CameraState,
+        transform: Optional[Callable] = None,
+    ) -> None:
+        """
+        Makes a binding for enabling the Kivy app to dispatch observers
+        from updates to camera state properties that are not set by the
+        camera, but either by the user or the GUI itself (i.e. computed
+        properties)
+
+        The optional 'transform' argument enables providing a custom
+        conversion function (e.g. converting from str to Path).
+        """
+        assert hasattr(self, property_name)
+        assert hasattr(state, property_name)
+        state_property = getattr(state, property_name)
+
+        def binding(_me: type[EventDispatcher], value: Any) -> None:
+            state_property.value = value if not transform else transform(value)
+
+        bind = {property_name: binding}
+        self.bind(**bind)
 
 # Listing of model properties to move over into this class. It is
 # derived from the result of the following command, running
