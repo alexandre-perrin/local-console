@@ -15,6 +15,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import json
 from base64 import b64encode
+from unittest.mock import AsyncMock
 from unittest.mock import Mock
 from unittest.mock import patch
 
@@ -187,18 +188,20 @@ def test_get_qr_string_no_static_ip(
 @pytest.mark.trio
 @given(generate_valid_device_configuration())
 async def test_process_state_topic(device_config: DeviceConfiguration) -> None:
+    observer = AsyncMock()
     camera = CameraState()
-    assert not camera.is_new_device_config
-    assert camera.device_config is None
+    camera.device_config.subscribe_async(observer)
+    observer.assert_not_awaited()
+
     backdoor_state = {
         "state/backdoor-EA_Main/placeholder": b64encode(
             device_config.model_dump_json().encode("utf-8")
         ).decode("utf-8")
     }
     await camera._process_state_topic(backdoor_state)
-    assert camera.is_new_device_config
-    assert not camera.is_new_device_config
-    assert camera.device_config == device_config
+
+    observer.assert_awaited_once_with(device_config, None)
+    assert camera.device_config.value == device_config
     assert camera.sensor_state == StreamStatus.from_string(device_config.Status.Sensor)
 
 

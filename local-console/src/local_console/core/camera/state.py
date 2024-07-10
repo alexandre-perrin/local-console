@@ -24,6 +24,7 @@ from typing import Optional
 
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.schemas import OnWireProtocol
+from local_console.utils.tracking import TrackingVariable
 from pydantic import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -45,11 +46,10 @@ class CameraState:
         self.sensor_state = StreamStatus.Inactive
         self.app_state = ""
         self.deploy_status: dict[str, str] = {}
-        self.device_config: DeviceConfiguration | None = None
+        self.device_config: TrackingVariable[DeviceConfiguration] = TrackingVariable()
         self.onwire_schema: Optional[OnWireProtocol] = None
         self.attributes_available = False
         self._last_reception: Optional[datetime] = None
-        self._is_new_device_config = False
 
     @property
     def is_ready(self) -> bool:
@@ -66,18 +66,6 @@ class CameraState:
             return (
                 datetime.now() - self._last_reception
             ) < self.CONNECTION_STATUS_TIMEOUT
-
-    @property
-    def is_new_device_config(self) -> bool:
-        """
-        Property indicating whether there's a new device configuration since the last check.
-
-        This property toggles a boolean flag each time it's accessed.
-        It returns True if a new device configuration has been detected
-        since the last time this property was accessed, otherwise False.
-        """
-        self._is_new_device_config = not self._is_new_device_config
-        return not self._is_new_device_config
 
     @property
     def is_streaming(self) -> bool:
@@ -115,11 +103,13 @@ class CameraState:
 
         if firmware_is_supported:
             try:
-                self.device_config = DeviceConfiguration.model_validate(decoded)
-                self.sensor_state = StreamStatus.from_string(
-                    self.device_config.Status.Sensor
+                await self.device_config.set(
+                    DeviceConfiguration.model_validate(decoded)
                 )
-                self._is_new_device_config = True
+                if self.device_config.value:
+                    self.sensor_state = StreamStatus.from_string(
+                        self.device_config.value.Status.Sensor
+                    )
             except ValidationError as e:
                 logger.warning(f"Error while validating device configuration: {e}")
 

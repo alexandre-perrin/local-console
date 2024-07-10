@@ -30,6 +30,7 @@ from local_console.core.camera import CameraState
 from local_console.core.camera import MQTTTopics
 from local_console.core.camera import StreamStatus
 from local_console.core.config import get_config
+from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.edge_cloud_if_v1 import Permission
 from local_console.core.schemas.edge_cloud_if_v1 import SetFactoryReset
 from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
@@ -74,6 +75,7 @@ class Driver:
         self.config = get_config()
 
         self.camera_state = CameraState()
+        self.camera_state.device_config.subscribe_async(self.process_factory_reset)
         self.flatbuffers = FlatBuffers()
 
         # This takes care of ensuring the device reports its state
@@ -155,7 +157,6 @@ class Driver:
                     payload = json.loads(msg.payload)
                     await self.camera_state.process_incoming(msg.topic, payload)
                     self.update_camera_status()
-                    await self.process_factory_reset()
 
                     if not self.evp1_mode and self.camera_state.is_ready:
                         self.periodic_reports.tap()
@@ -165,18 +166,24 @@ class Driver:
     def from_sync(self, async_fn: Callable, *args: Any) -> None:
         self.bridge.enqueue_task(async_fn, *args)
 
-    async def process_factory_reset(self) -> None:
-        if self.camera_state.is_new_device_config and self.camera_state.device_config:
-            factory_reset = self.camera_state.device_config.Permission.FactoryReset
-            logger.debug(f"Factory Reset is {factory_reset}")
-            if not factory_reset:
-                await self.mqtt_client.configure(
-                    "backdoor-EA_Main",
-                    "placeholder",
-                    SetFactoryReset(
-                        Permission=Permission(FactoryReset=True)
-                    ).model_dump_json(),
-                )
+    async def process_factory_reset(
+        self,
+        current: Optional[DeviceConfiguration],
+        previous: Optional[DeviceConfiguration],
+    ) -> None:
+        assert current
+        assert self.mqtt_client
+
+        factory_reset = current.Permission.FactoryReset
+        logger.debug(f"Factory Reset is {factory_reset}")
+        if not factory_reset:
+            await self.mqtt_client.configure(
+                "backdoor-EA_Main",
+                "placeholder",
+                SetFactoryReset(
+                    Permission=Permission(FactoryReset=True)
+                ).model_dump_json(),
+            )
 
     @run_on_ui_thread
     def update_camera_status(self) -> None:
