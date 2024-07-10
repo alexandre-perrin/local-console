@@ -13,6 +13,10 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+from unittest.mock import AsyncMock
+from unittest.mock import Mock
+
+import pytest
 from local_console.utils.tracking import TrackingVariable
 
 
@@ -53,3 +57,44 @@ def test_previous_value_tracking():
             var.previous == previous_value
         ), f"Previous value should be {previous_value}"
         previous_value = value
+
+
+def test_observers_sync():
+    var = TrackingVariable()
+
+    observer = Mock()
+    var.subscribe(observer)
+
+    var.value = 42
+    observer.assert_called_with(42, None)
+    assert observer.call_count == 1
+
+    var.value = 11
+    observer.assert_called_with(11, 42)
+    assert observer.call_count == 2
+
+    var.unsubscribe(observer)
+
+    var.value = 0
+    assert observer.call_count == 2
+
+
+@pytest.mark.trio
+async def test_observers_async():
+    var = TrackingVariable()
+
+    observer = AsyncMock()
+    var.subscribe_async(observer)
+
+    await var.set(42)
+    observer.assert_awaited_with(42, None)
+    assert observer.call_count == 1
+
+    await var.set(11)
+    observer.assert_awaited_with(11, 42)
+    assert observer.await_count == 2
+
+    var.unsubscribe_async(observer)
+
+    await var.set(0)
+    assert observer.await_count == 2
