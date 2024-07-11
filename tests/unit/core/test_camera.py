@@ -18,7 +18,7 @@ from unittest.mock import patch
 
 import hypothesis.strategies as st
 from hypothesis import given
-from local_console.core.camera import Camera
+from local_console.core.camera import CameraState
 from local_console.core.camera import get_qr_object
 from local_console.core.camera import qr_string
 from local_console.core.camera import StreamStatus
@@ -47,7 +47,7 @@ def test_get_qr_object(
     text: str,
 ) -> None:
     with patch(
-        "local_console.core.camera.qr_string", return_value=""
+        "local_console.core.camera.qr.qr_string", return_value=""
     ) as mock_qr_string:
         qr_code = get_qr_object(
             mqtt_host=ip,
@@ -93,7 +93,7 @@ def test_get_qr_object_invalid(
     text: str,
 ) -> None:
     with patch(
-        "local_console.core.camera.qr_string", return_value=""
+        "local_console.core.camera.qr.qr_string", return_value=""
     ) as mock_qr_string:
         qr_code = get_qr_object(
             mqtt_host=ip,
@@ -182,7 +182,7 @@ def test_get_qr_string_no_static_ip(
 
 @given(generate_valid_device_configuration())
 def test_process_state_topic(device_config: DeviceConfiguration) -> None:
-    camera = Camera()
+    camera = CameraState()
     assert not camera.is_new_device_config
     assert camera.device_config is None
     backdoor_state = {

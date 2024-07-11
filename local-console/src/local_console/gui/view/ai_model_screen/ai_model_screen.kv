@@ -42,7 +42,7 @@
 
                 MDButton:
                     id: btn_ota_file
-                    on_release: root.controller.deploy()
+                    on_release: if not self.disabled: root.controller.deploy()
                     pos_hint: {"center_y": 0.5}
                     disabled: True
                     MDButtonText:

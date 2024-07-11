@@ -34,7 +34,9 @@ def test_qr_with_defaults(config: AgentConfiguration) -> None:
         patch("local_console.commands.qr.get_config", return_value=config),
         patch("local_console.commands.qr.is_localhost", return_value=False),
         patch("local_console.commands.qr.get_my_ip_by_routing", return_value="1.2.3.4"),
-        patch("local_console.core.camera.qr_string", return_value="") as mock_qr_string,
+        patch(
+            "local_console.core.camera.qr.qr_string", return_value=""
+        ) as mock_qr_string,
     ):
         result = runner.invoke(app, [])
         assert result.exit_code == 0
@@ -71,7 +73,9 @@ def test_qr_with_overrides(
         patch("local_console.commands.qr.get_config", return_value=config),
         patch("local_console.commands.qr.is_localhost", return_value=False),
         patch("local_console.commands.qr.get_my_ip_by_routing", return_value="1.2.3.4"),
-        patch("local_console.core.camera.qr_string", return_value="") as mock_qr_string,
+        patch(
+            "local_console.core.camera.qr.qr_string", return_value=""
+        ) as mock_qr_string,
     ):
         result = runner.invoke(
             app,
@@ -112,7 +116,9 @@ def test_qr_for_local_host(config: AgentConfiguration, local_host_alias: str) ->
         patch("local_console.commands.qr.get_config", return_value=config),
         patch("local_console.commands.qr.is_localhost", return_value=True),
         patch("local_console.commands.qr.get_my_ip_by_routing", return_value="1.2.3.4"),
-        patch("local_console.core.camera.qr_string", return_value="") as mock_qr_string,
+        patch(
+            "local_console.core.camera.qr.qr_string", return_value=""
+        ) as mock_qr_string,
     ):
         result = runner.invoke(app, ["--host", local_host_alias])
         assert result.exit_code == 0
