@@ -103,6 +103,7 @@ class Driver:
 
     def _init_ai_model_functions(self) -> None:
         self.gui.mdl.bind_proxy_to_state("ai_model_file", self.camera_state, Path)
+        self.gui.mdl.bind_state_to_proxy("ai_model_file_valid", self.camera_state)
 
         def validate_file(current: Optional[Path], previous: Optional[Path]) -> None:
             if current:
@@ -111,15 +112,6 @@ class Driver:
                 )
 
         self.camera_state.ai_model_file.subscribe(validate_file)
-
-        @run_on_ui_thread
-        def simple_propagate(current: Optional[Path], previous: Optional[Path]) -> None:
-            is_valid = self.camera_state.ai_model_file_valid.value
-            self.gui.mdl.ai_model_file_valid = is_valid
-            if not is_valid:
-                self.gui.display_error("Invalid AI Model file header!")
-
-        self.camera_state.ai_model_file_valid.subscribe(simple_propagate)
 
     @property
     def evp1_mode(self) -> bool:
