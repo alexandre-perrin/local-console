@@ -36,7 +36,10 @@ class CameraStateProxy(EventDispatcher):
     device_config = ObjectProperty(DeviceConfiguration, allownone=True)
 
     ai_model_file = StringProperty("", allownone=True)
-    ai_model_file_valid = BooleanProperty(False)
+
+    # About force_dispatch, please check docstring of
+    # test_camera_proxy.py::test_difference_of_property_with_force_dispatch
+    ai_model_file_valid = BooleanProperty(False, force_dispatch=True)
 
     def bind_proxy_to_state(
         self,

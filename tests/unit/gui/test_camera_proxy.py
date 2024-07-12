@@ -158,3 +158,72 @@ def test_state_to_proxy_binding_with_observer(tmp_path_factory):
     assert camera_proxy.ai_model_file_valid == new_value
     assert callback_state["was_called"]
     callback_state["value"] == new_value
+
+
+def test_difference_of_property_with_force_dispatch(tmp_path):
+    """
+    This test shows an important behavior difference of Kivy Property
+    instances, chosen with the optional boolean force_dispatch flag:
+
+    - By default, when a Kivy property (used here as proxy property)
+      is assigned a value, it compares it with its current value, and
+      only if they differ, then it will dispatch any bound callbacks.
+
+    - However, if the property is defined with force_dispatch=True,
+      then the comparison is not made, so dispatching takes place even
+      when the property is assigned a value it currently has.
+
+    Reference:
+    https://github.com/kivy/kivy/blob/a4c48b1fbb0a329b8e6f1b81004268c4aa1d05af/kivy/properties.pyx#L329
+    """
+
+    camera_proxy = CameraStateProxy()
+
+    def observer(value: bool, pilot: dict) -> None:
+        pilot["was_called"] = True
+        pilot["value"] = value
+
+    #### Start test of a default property (i.e. force_dispatch = False)
+
+    camera_proxy.create_property("unforced_prop", False)
+
+    test_pilot = {"was_called": False, "value": None}
+
+    camera_proxy.bind(unforced_prop=lambda instance, value: observer(value, test_pilot))
+
+    # initial condition
+    test_pilot["was_called"] = False
+    assert not camera_proxy.unforced_prop
+
+    # first assignment with a different value, no surprises here
+    camera_proxy.unforced_prop = True
+    assert test_pilot["was_called"]
+    assert test_pilot["value"]
+
+    # next assignment with _the same_ value: observer was NOT called!
+    test_pilot["was_called"] = False
+    camera_proxy.unforced_prop = True
+    assert not test_pilot["was_called"]
+
+    del test_pilot
+    #### Start test of a "forced" property (i.e. force_dispatch = True)
+
+    camera_proxy.create_property("forced_prop", False, force_dispatch=True)
+
+    test_pilot = {"was_called": False, "value": None}
+
+    camera_proxy.bind(forced_prop=lambda instance, value: observer(value, test_pilot))
+
+    # initial condition
+    test_pilot["was_called"] = False
+    assert not camera_proxy.forced_prop
+
+    # first assignment with a different value, no surprises here
+    camera_proxy.forced_prop = True
+    assert test_pilot["was_called"]
+    assert test_pilot["value"]
+
+    # next assignment with _the same_ value: observer WAS called!
+    test_pilot["was_called"] = False
+    camera_proxy.forced_prop = True
+    assert test_pilot["was_called"]
