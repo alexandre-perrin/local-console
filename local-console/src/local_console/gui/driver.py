@@ -102,7 +102,7 @@ class Driver:
         self._init_ai_model_functions()
 
     def _init_ai_model_functions(self) -> None:
-        self.gui.mdl.bind_proxy("ai_model_file", self.camera_state, Path)
+        self.gui.mdl.bind_proxy_to_state("ai_model_file", self.camera_state, Path)
 
         def validate_file(current: Optional[Path], previous: Optional[Path]) -> None:
             if current:

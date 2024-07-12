@@ -51,7 +51,7 @@ def test_simple_property_binding():
 def test_proxy_to_state_binding():
     """
     This test shows how to perform a proxy-->state data binding,
-    by means of the bind_proxy() method of CameraProxy.
+    by means of the bind_proxy_to_state() method of CameraProxy.
 
     This is useful for propagating updates of user-facing widgets'
     values into camera state variables.
@@ -63,8 +63,8 @@ def test_proxy_to_state_binding():
     assert camera_state.ai_model_file.previous is None
     assert camera_state.ai_model_file.value is None
 
-    # Use bind_proxy to connect to the camera_state
-    camera_proxy.bind_proxy("ai_model_file", camera_state, Path)
+    # Use bind_proxy_to_state to connect to the camera_state
+    camera_proxy.bind_proxy_to_state("ai_model_file", camera_state, Path)
     # Update the property value on the proxy
     some_path = Path.cwd()
     camera_proxy.ai_model_file = str(some_path)

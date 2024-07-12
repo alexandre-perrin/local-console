@@ -23,6 +23,7 @@ from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
 from local_console.core.camera import CameraState
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
+from local_console.utils.tracking import TrackingVariable
 
 
 class CameraStateProxy(EventDispatcher):
@@ -37,7 +38,7 @@ class CameraStateProxy(EventDispatcher):
     ai_model_file = StringProperty("", allownone=True)
     ai_model_file_valid = BooleanProperty(False)
 
-    def bind_proxy(
+    def bind_proxy_to_state(
         self,
         property_name: str,
         state: CameraState,
@@ -55,6 +56,7 @@ class CameraStateProxy(EventDispatcher):
         assert hasattr(self, property_name)
         assert hasattr(state, property_name)
         state_property = getattr(state, property_name)
+        assert isinstance(state_property, TrackingVariable)
 
         def binding(_me: type[EventDispatcher], value: Any) -> None:
             state_property.value = value if not transform else transform(value)
