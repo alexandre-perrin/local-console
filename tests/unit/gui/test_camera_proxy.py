@@ -14,11 +14,9 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 from pathlib import Path
-from typing import Optional
 
 from hypothesis import given
 from local_console.core.camera import CameraState
-from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.gui.model.camera_proxy import CameraStateProxy
 
 from tests.strategies.configs import generate_valid_device_configuration
@@ -88,16 +86,75 @@ def test_state_to_proxy_binding(a_device_config):
     camera_proxy = CameraStateProxy()
     camera_state = CameraState()
 
-    # Use a callback and subscribe() on a TrackingVariable member of CameraState
-    def update_proxy(
-        current: Optional[DeviceConfiguration], previous: Optional[DeviceConfiguration]
-    ) -> None:
-        camera_proxy.device_config = current
-
-    camera_state.device_config.subscribe(update_proxy)
-
-    # Update the property value
+    # Use bind_state_to_proxy to connect to the camera_state
+    camera_proxy.bind_state_to_proxy("device_config", camera_state)
+    # Update the state variable
     camera_state.device_config.value = a_device_config
 
     # The value must have been set in the proxy property
     assert camera_proxy.device_config == a_device_config
+
+
+def test_state_to_proxy_binding_reassignment(tmp_path_factory):
+    """
+    This test serves to make sure further updates to the
+    state variable will be reflected on the proxy property
+    """
+
+    camera_proxy = CameraStateProxy()
+    camera_state = CameraState()
+
+    # Value binding
+    camera_proxy.bind_state_to_proxy("ai_model_file", camera_state, str)
+
+    # Update the state variable
+    first_dir = tmp_path_factory.mktemp("first")
+    camera_state.ai_model_file.value = first_dir
+    assert camera_proxy.ai_model_file == str(first_dir)
+
+    # Second update
+    second_dir = tmp_path_factory.mktemp("second")
+    camera_state.ai_model_file.value = second_dir
+    assert camera_proxy.ai_model_file == str(second_dir)
+
+
+def test_state_to_proxy_binding_with_observer(tmp_path_factory):
+    """
+    This test serves to see a binding of an observer callback
+    to a proxy property that is bound to a state variable in action.
+    """
+
+    camera_proxy = CameraStateProxy()
+    camera_state = CameraState()
+
+    callback_state = {"was_called": False, "instance": None, "value": None}
+
+    def callback(value: str, state: dict) -> None:
+        state["was_called"] = True
+        state["value"] = value
+
+    # State->Proxy value binding
+    camera_proxy.bind_state_to_proxy("ai_model_file_valid", camera_state)
+
+    # Bind an observer callback
+    camera_proxy.bind(
+        ai_model_file_valid=lambda instance, value: callback(value, callback_state)
+    )
+
+    assert not callback_state["was_called"]
+
+    # Update the state variable
+    new_value = False
+    camera_state.ai_model_file_valid.value = new_value
+
+    assert camera_proxy.ai_model_file_valid == new_value
+    assert callback_state["was_called"]
+    callback_state["value"] == new_value
+
+    # Check behavior of further updates
+    callback_state["was_called"] = False
+    new_value = True
+    camera_state.ai_model_file_valid.value = new_value
+    assert camera_proxy.ai_model_file_valid == new_value
+    assert callback_state["was_called"]
+    callback_state["value"] == new_value

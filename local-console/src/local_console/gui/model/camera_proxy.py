@@ -55,14 +55,39 @@ class CameraStateProxy(EventDispatcher):
         """
         assert hasattr(self, property_name)
         assert hasattr(state, property_name)
-        state_property = getattr(state, property_name)
-        assert isinstance(state_property, TrackingVariable)
+        state_variable = getattr(state, property_name)
+        assert isinstance(state_variable, TrackingVariable)
 
         def binding(_me: type[EventDispatcher], value: Any) -> None:
-            state_property.value = value if not transform else transform(value)
+            state_variable.value = value if not transform else transform(value)
 
         bind = {property_name: binding}
         self.bind(**bind)
+
+    def bind_state_to_proxy(
+        self,
+        property_name: str,
+        state: CameraState,
+        transform: Callable = lambda v: v,
+    ) -> None:
+        """
+        Makes a binding for propagating an update to a TrackingVariable
+        in CameraState, to its corresponding property in the proxy. This
+        is useful for maintaining a GUI state consistent with the logical
+        state of the camera.
+
+        The optional 'transform' argument enables providing a custom
+        conversion function (e.g. converting from Path to str).
+        """
+        assert hasattr(self, property_name)
+        assert hasattr(state, property_name)
+        state_variable = getattr(state, property_name)
+        assert isinstance(state_variable, TrackingVariable)
+
+        def update_proxy(current: Optional[Any], previous: Optional[Any]) -> None:
+            setattr(self, property_name, transform(current))
+
+        state_variable.subscribe(update_proxy)
 
 
 # Listing of model properties to move over into this class. It is
