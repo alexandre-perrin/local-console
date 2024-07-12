@@ -38,7 +38,7 @@ from local_console.utils.local_network import LOCAL_IP
 
 from tests.mocks.mock_paho_mqtt import MockAsyncIterator
 from tests.mocks.mock_paho_mqtt import MockMQTTMessage
-from tests.strategies.configs import generate_text
+from tests.strategies.configs import generate_identifiers
 
 # The following lines need to be in this order, in order to
 # be able to mock the run_on_ui_thread decorator with
@@ -316,6 +316,7 @@ async def test_streaming_rpc_start():
         )
 
 
+@pytest.mark.trio
 async def test_connection_status_timeout():
     driver = Driver(MagicMock())
     driver.camera_state.sensor_state = StreamStatus.Active
@@ -324,8 +325,8 @@ async def test_connection_status_timeout():
 
 
 @pytest.mark.trio
-@given(generate_text())
-async def test_connection_status_timeout(config: str):
+@given(generate_identifiers(max_size=10))
+async def test_send_ppl_configuration(config: str):
     mock_configure = AsyncMock()
     with (
         patch("local_console.gui.driver.Agent") as mock_agent,

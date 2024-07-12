@@ -30,6 +30,7 @@ from local_console.core.camera import CameraState
 from local_console.core.camera import MQTTTopics
 from local_console.core.camera import StreamStatus
 from local_console.core.config import get_config
+from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.edge_cloud_if_v1 import Permission
 from local_console.core.schemas.edge_cloud_if_v1 import SetFactoryReset
 from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
@@ -50,6 +51,7 @@ from local_console.utils.fstools import StorageSizeWatcher
 from local_console.utils.local_network import LOCAL_IP
 from local_console.utils.timing import TimeoutBehavior
 from local_console.utils.tracking import TrackingVariable
+from local_console.utils.validation import validate_imx500_model_file
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +76,7 @@ class Driver:
         self.config = get_config()
 
         self.camera_state = CameraState()
+        self.camera_state.device_config.subscribe_async(self.process_factory_reset)
         self.flatbuffers = FlatBuffers()
 
         # This takes care of ensuring the device reports its state
@@ -93,9 +96,30 @@ class Driver:
             "mqtt": trio.Event(),
             "webserver": trio.Event(),
         }
-
         self.bridge = SyncAsyncBridge()
         self.dir_monitor = DirectoryMonitor()
+
+        self._init_ai_model_functions()
+
+    def _init_ai_model_functions(self) -> None:
+        self.gui.mdl.bind_proxy("ai_model_file", self.camera_state, Path)
+
+        def validate_file(current: Optional[Path], previous: Optional[Path]) -> None:
+            if current:
+                self.camera_state.ai_model_file_valid.value = (
+                    validate_imx500_model_file(current)
+                )
+
+        self.camera_state.ai_model_file.subscribe(validate_file)
+
+        @run_on_ui_thread
+        def simple_propagate(current: Optional[Path], previous: Optional[Path]) -> None:
+            is_valid = self.camera_state.ai_model_file_valid.value
+            self.gui.mdl.ai_model_file_valid = is_valid
+            if not is_valid:
+                self.gui.display_error("Invalid AI Model file header!")
+
+        self.camera_state.ai_model_file_valid.subscribe(simple_propagate)
 
     @property
     def evp1_mode(self) -> bool:
@@ -153,9 +177,8 @@ class Driver:
                             streaming_stop_required = False
 
                     payload = json.loads(msg.payload)
-                    self.camera_state.process_incoming(msg.topic, payload)
+                    await self.camera_state.process_incoming(msg.topic, payload)
                     self.update_camera_status()
-                    await self.process_factory_reset()
 
                     if not self.evp1_mode and self.camera_state.is_ready:
                         self.periodic_reports.tap()
@@ -165,27 +188,31 @@ class Driver:
     def from_sync(self, async_fn: Callable, *args: Any) -> None:
         self.bridge.enqueue_task(async_fn, *args)
 
-    async def process_factory_reset(self) -> None:
-        if self.camera_state.is_new_device_config and self.camera_state.device_config:
-            factory_reset = self.camera_state.device_config.Permission.FactoryReset
-            logger.debug(f"Factory Reset is {factory_reset}")
-            if not factory_reset:
-                await self.mqtt_client.configure(
-                    "backdoor-EA_Main",
-                    "placeholder",
-                    SetFactoryReset(
-                        Permission=Permission(FactoryReset=True)
-                    ).model_dump_json(),
-                )
+    async def process_factory_reset(
+        self,
+        current: Optional[DeviceConfiguration],
+        previous: Optional[DeviceConfiguration],
+    ) -> None:
+        assert current
+        assert self.mqtt_client
+
+        factory_reset = current.Permission.FactoryReset
+        logger.debug(f"Factory Reset is {factory_reset}")
+        if not factory_reset:
+            await self.mqtt_client.configure(
+                "backdoor-EA_Main",
+                "placeholder",
+                SetFactoryReset(
+                    Permission=Permission(FactoryReset=True)
+                ).model_dump_json(),
+            )
 
     @run_on_ui_thread
     def update_camera_status(self) -> None:
-        self.gui.is_ready = self.camera_state.is_ready
+        self.gui.mdl.is_ready = self.camera_state.is_ready
         sensor_state = self.camera_state.sensor_state
-        self.gui.is_streaming = self.camera_state.is_streaming
-        self.gui.views[Screen.HOME_SCREEN].model.device_config = (
-            self.camera_state.device_config
-        )
+        self.gui.mdl.is_streaming = self.camera_state.is_streaming
+        self.gui.mdl.device_config = self.camera_state.device_config.value
         self.gui.views[Screen.STREAMING_SCREEN].model.stream_status = sensor_state
         self.gui.views[Screen.INFERENCE_SCREEN].model.stream_status = sensor_state
         self.gui.views[Screen.APPLICATIONS_SCREEN].model.deploy_status = (
@@ -194,11 +221,8 @@ class Driver:
         self.gui.views[Screen.CONNECTION_SCREEN].model.connected = (
             self.camera_state.connected
         )
-        self.gui.views[Screen.AI_MODEL_SCREEN].model.device_config = (
-            self.camera_state.device_config
-        )
         self.gui.views[Screen.FIRMWARE_SCREEN].model.device_config = (
-            self.camera_state.device_config
+            self.camera_state.device_config.value
         )
 
     async def blobs_webserver_task(self) -> None:
@@ -265,7 +289,7 @@ class Driver:
     def set_image_directory(self, new_dir: Path) -> None:
         check_and_create_directory(new_dir)
         self.image_directory_config.value = new_dir
-        self.gui.image_dir_path = str(self.image_directory_config.value)
+        self.gui.mdl.image_dir_path = str(self.image_directory_config.value)
         if self.image_directory_config.previous:
             self.total_dir_watcher.unwatch_path(self.image_directory_config.previous)
         self.total_dir_watcher.set_path(self.image_directory_config.value)
@@ -277,7 +301,7 @@ class Driver:
     def set_inference_directory(self, new_dir: Path) -> None:
         check_and_create_directory(new_dir)
         self.inference_directory_config.value = new_dir
-        self.gui.inference_dir_path = str(self.inference_directory_config.value)
+        self.gui.mdl.inference_dir_path = str(self.inference_directory_config.value)
         if self.inference_directory_config.previous:
             self.total_dir_watcher.unwatch_path(
                 self.inference_directory_config.previous

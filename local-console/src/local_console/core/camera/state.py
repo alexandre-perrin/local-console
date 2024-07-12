@@ -19,11 +19,14 @@ import logging
 from base64 import b64decode
 from datetime import datetime
 from datetime import timedelta
+from pathlib import Path
 from typing import Any
 from typing import Optional
 
+import trio
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.schemas import OnWireProtocol
+from local_console.utils.tracking import TrackingVariable
 from pydantic import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -31,8 +34,10 @@ logger = logging.getLogger(__name__)
 
 class CameraState:
     """
-    This class is a live, read-only interface to most status
-    information that the Camera Firmware reports.
+    This class holds all information that represents the state
+    of a camera, which is comprised of:
+    - Status reports from the camera firmware.
+    - User settings that parametrize the camera functions.
     """
 
     EA_STATE_TOPIC = "state/backdoor-EA_Main/placeholder"
@@ -45,11 +50,15 @@ class CameraState:
         self.sensor_state = StreamStatus.Inactive
         self.app_state = ""
         self.deploy_status: dict[str, str] = {}
-        self.device_config: DeviceConfiguration | None = None
+        self.device_config: TrackingVariable[DeviceConfiguration] = TrackingVariable()
         self.onwire_schema: Optional[OnWireProtocol] = None
         self.attributes_available = False
         self._last_reception: Optional[datetime] = None
-        self._is_new_device_config = False
+
+        self.ai_model_file: TrackingVariable[Path] = TrackingVariable()
+        self.ai_model_file_valid: TrackingVariable[bool] = TrackingVariable(False)
+        self._ota_event = trio.Event()
+        self.device_config.subscribe_async(self._prepare_ota_event)
 
     @property
     def is_ready(self) -> bool:
@@ -68,35 +77,23 @@ class CameraState:
             ) < self.CONNECTION_STATUS_TIMEOUT
 
     @property
-    def is_new_device_config(self) -> bool:
-        """
-        Property indicating whether there's a new device configuration since the last check.
-
-        This property toggles a boolean flag each time it's accessed.
-        It returns True if a new device configuration has been detected
-        since the last time this property was accessed, otherwise False.
-        """
-        self._is_new_device_config = not self._is_new_device_config
-        return not self._is_new_device_config
-
-    @property
     def is_streaming(self) -> bool:
         return self.sensor_state == StreamStatus.Active
 
-    def process_incoming(self, topic: str, payload: dict[str, Any]) -> None:
+    async def process_incoming(self, topic: str, payload: dict[str, Any]) -> None:
         sent_from_camera = False
         if topic == MQTTTopics.ATTRIBUTES.value:
             if self.EA_STATE_TOPIC in payload:
                 sent_from_camera = True
-                self.process_state_topic(payload)
+                await self._process_state_topic(payload)
 
             if self.SYSINFO_TOPIC in payload:
                 sent_from_camera = True
-                self.process_sysinfo_topic(payload)
+                await self._process_sysinfo_topic(payload)
 
             if self.DEPLOY_STATUS_TOPIC in payload:
                 sent_from_camera = True
-                self.process_deploy_status_topic(payload)
+                await self._process_deploy_status_topic(payload)
 
         if topic == MQTTTopics.TELEMETRY.value:
             sent_from_camera = True
@@ -105,7 +102,7 @@ class CameraState:
             self._last_reception = datetime.now()
             logger.debug("Incoming on %s: %s", topic, str(payload))
 
-    def process_state_topic(self, payload: dict[str, Any]) -> None:
+    async def _process_state_topic(self, payload: dict[str, Any]) -> None:
         firmware_is_supported = False
         try:
             decoded = json.loads(b64decode(payload[self.EA_STATE_TOPIC]))
@@ -115,26 +112,40 @@ class CameraState:
 
         if firmware_is_supported:
             try:
-                self.device_config = DeviceConfiguration.model_validate(decoded)
-                self.sensor_state = StreamStatus.from_string(
-                    self.device_config.Status.Sensor
+                await self.device_config.set(
+                    DeviceConfiguration.model_validate(decoded)
                 )
-                self._is_new_device_config = True
+                if self.device_config.value:
+                    self.sensor_state = StreamStatus.from_string(
+                        self.device_config.value.Status.Sensor
+                    )
             except ValidationError as e:
                 logger.warning(f"Error while validating device configuration: {e}")
 
-    def process_sysinfo_topic(self, payload: dict[str, Any]) -> None:
+    async def _process_sysinfo_topic(self, payload: dict[str, Any]) -> None:
         sys_info = payload[self.SYSINFO_TOPIC]
         if "protocolVersion" in sys_info:
             self.onwire_schema = OnWireProtocol(sys_info["protocolVersion"])
         self.attributes_available = True
 
-    def process_deploy_status_topic(self, payload: dict[str, Any]) -> None:
+    async def _process_deploy_status_topic(self, payload: dict[str, Any]) -> None:
         if self.onwire_schema == OnWireProtocol.EVP1 or self.onwire_schema is None:
             self.deploy_status = json.loads(payload[self.DEPLOY_STATUS_TOPIC])
         else:
             self.deploy_status = payload[self.DEPLOY_STATUS_TOPIC]
         self.attributes_available = True
+
+    async def _prepare_ota_event(
+        self,
+        current: Optional[DeviceConfiguration],
+        previous: Optional[DeviceConfiguration],
+    ) -> None:
+        if current != previous:
+            self._ota_event.set()
+
+    async def ota_event(self) -> None:
+        self._ota_event = trio.Event()
+        await self._ota_event.wait()
 
 
 class StreamStatus(enum.Enum):

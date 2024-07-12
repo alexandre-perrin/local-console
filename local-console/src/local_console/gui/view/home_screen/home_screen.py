@@ -14,20 +14,32 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 from importlib.metadata import version as version_info
+from typing import Any
+from typing import Optional
 
+from kivymd.app import MDApp
+from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.gui.view.base_screen import BaseScreenView
 
 
 class HomeScreenView(BaseScreenView):
     version_number = f"Version: {version_info('local-console')}"
 
-    def model_is_changed(self) -> None:
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.app.mdl.bind(device_config=self.versions_refresh)
+
+    def versions_refresh(
+        self, app: MDApp, value: Optional[DeviceConfiguration]
+    ) -> None:
         """
-        Called whenever any change has occurred in the data model.
-        The view in this method tracks these changes and updates the UI
-        according to these changes.
+        Represent new state values
         """
-        self.ids.txt_sensor_fw_ver.text = self.model.sensor_fw_ver
-        self.ids.txt_sensor_loader_ver.text = self.model.sensor_loader_ver
-        self.ids.txt_app_fw_ver.text = self.model.app_fw_ver
-        self.ids.txt_app_loader_ver.text = self.model.app_loader_ver
+        self.ids.txt_sensor_fw_ver.text = value.Version.SensorFwVersion if value else ""
+        self.ids.txt_sensor_loader_ver.text = (
+            value.Version.SensorLoaderVersion if value else ""
+        )
+        self.ids.txt_app_fw_ver.text = value.Version.ApFwVersion if value else ""
+        self.ids.txt_app_loader_ver.text = (
+            value.Version.ApLoaderVersion if value else ""
+        )

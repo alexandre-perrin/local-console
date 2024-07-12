@@ -38,13 +38,13 @@
                     name: 'Model location:'
                     icon: "file-cog"
                     selector: "file"
-                    on_selected: root.select_path(args[1])
+                    on_selected: app.mdl.ai_model_file = args[1]
 
                 MDButton:
                     id: btn_ota_file
                     on_release: if not self.disabled: root.controller.deploy()
                     pos_hint: {"center_y": 0.5}
-                    disabled: True
+                    disabled: not (app.mdl.is_ready and app.mdl.ai_model_file_valid and root.update_status_finished)
                     MDButtonText:
                         text: "Deploy"
 
