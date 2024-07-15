@@ -16,7 +16,6 @@
 import logging
 from typing import Any
 
-from kivymd.app import MDApp
 from local_console.gui.enums import OTAUpdateStatus
 from local_console.gui.schemas import OtaData
 from local_console.gui.view.base_screen import BaseScreenView
