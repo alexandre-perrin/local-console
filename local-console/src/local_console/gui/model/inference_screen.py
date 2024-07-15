@@ -13,9 +13,6 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-from pathlib import Path
-from typing import Optional
-
 from local_console.core.camera import StreamStatus
 from local_console.gui.model.base_model import BaseScreenModel
 
@@ -30,8 +27,6 @@ class InferenceScreenModel(BaseScreenModel):
 
     def __init__(self) -> None:
         self._stream_status = StreamStatus.Inactive
-        self._image_directory: Optional[Path] = None
-        self._inferences_directory: Optional[Path] = None
 
     @property
     def stream_status(self) -> StreamStatus:
@@ -40,22 +35,4 @@ class InferenceScreenModel(BaseScreenModel):
     @stream_status.setter
     def stream_status(self, value: StreamStatus) -> None:
         self._stream_status = value
-        self.notify_observers()
-
-    @property
-    def image_directory(self) -> Optional[Path]:
-        return self._image_directory
-
-    @image_directory.setter
-    def image_directory(self, value: Optional[Path]) -> None:
-        self._image_directory = value
-        self.notify_observers()
-
-    @property
-    def inferences_directory(self) -> Optional[Path]:
-        return self._inferences_directory
-
-    @inferences_directory.setter
-    def inferences_directory(self, value: Optional[Path]) -> None:
-        self._inferences_directory = value
         self.notify_observers()

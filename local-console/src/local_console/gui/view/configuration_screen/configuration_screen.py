@@ -24,18 +24,13 @@ from local_console.gui.view.base_screen import BaseScreenView
 
 
 class ConfigurationScreenView(BaseScreenView):
+
     def model_is_changed(self) -> None:
         """
         Called whenever any change has occurred in the data model.
         The view in this method tracks these changes and updates the UI
         according to these changes.
         """
-        if self.model.image_directory is not None:
-            self.ids.image_dir_pick.accept_path(str(self.model.image_directory))
-        if self.model.inferences_directory is not None:
-            self.ids.inference_dir_pick.accept_path(
-                str(self.model.inferences_directory)
-            )
 
         self.ids.schema_pick.accept_path(
             ""

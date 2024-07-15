@@ -50,7 +50,6 @@ from local_console.utils.fstools import DirectoryMonitor
 from local_console.utils.fstools import StorageSizeWatcher
 from local_console.utils.local_network import LOCAL_IP
 from local_console.utils.timing import TimeoutBehavior
-from local_console.utils.tracking import TrackingVariable
 from local_console.utils.validation import validate_imx500_model_file
 
 logger = logging.getLogger(__name__)
@@ -65,8 +64,6 @@ class Driver:
         self.temporary_base: Optional[Path] = None
         self.temporary_image_directory: Optional[Path] = None
         self.temporary_inference_directory: Optional[Path] = None
-        self.image_directory_config: TrackingVariable[Path] = TrackingVariable()
-        self.inference_directory_config: TrackingVariable[Path] = TrackingVariable()
         self.total_dir_watcher = StorageSizeWatcher()
         self.flatbuffers_schema: Optional[Path] = None
         self.class_id_to_name: Optional[dict] = None
@@ -100,6 +97,7 @@ class Driver:
         self.dir_monitor = DirectoryMonitor()
 
         self._init_ai_model_functions()
+        self._init_input_directories()
 
     def _init_ai_model_functions(self) -> None:
         self.gui.mdl.bind_proxy_to_state("ai_model_file", self.camera_state, Path)
@@ -112,6 +110,12 @@ class Driver:
                 )
 
         self.camera_state.ai_model_file.subscribe(validate_file)
+
+    def _init_input_directories(self) -> None:
+        self.gui.mdl.bind_state_to_proxy("image_dir_path", self.camera_state, str)
+        self.camera_state.image_dir_path.subscribe(self.input_directory_setup)
+        self.gui.mdl.bind_state_to_proxy("inference_dir_path", self.camera_state, str)
+        self.camera_state.inference_dir_path.subscribe(self.input_directory_setup)
 
     @property
     def evp1_mode(self) -> bool:
@@ -241,15 +245,19 @@ class Driver:
             self.temporary_inference_directory = Path(tempdir) / "inferences"
             self.temporary_image_directory.mkdir(exist_ok=True)
             self.temporary_inference_directory.mkdir(exist_ok=True)
-            self.set_image_directory(self.temporary_image_directory)
-            self.set_inference_directory(self.temporary_inference_directory)
+            self.camera_state.image_dir_path.value = self.temporary_image_directory
+            self.camera_state.inference_dir_path.value = (
+                self.temporary_inference_directory
+            )
 
             self.start_flags["webserver"].set()
             await trio.sleep_forever()
 
     def process_camera_upload(self, incoming_file: Path) -> None:
         if incoming_file.parent.name == "inferences":
-            final_file = self.save_into_inferences_directory(incoming_file)
+            target_dir = self.camera_state.inference_dir_path.value
+            assert target_dir
+            final_file = self.save_into_input_directory(incoming_file, target_dir)
             output_data = self.flatbuffers.get_output_from_inference_results(final_file)
             if self.flatbuffers_schema:
                 output_tensor = self.get_flatbuffers_inference_data(output_data)
@@ -269,7 +277,9 @@ class Driver:
             self.consecutives_images = 0
 
         elif incoming_file.parent.name == "images":
-            final_file = self.save_into_image_directory(incoming_file)
+            target_dir = self.camera_state.image_dir_path.value
+            assert target_dir
+            final_file = self.save_into_input_directory(incoming_file, target_dir)
             self.latest_image_file = final_file
             if self.consecutives_images > 0:
                 self.update_images_display(final_file)
@@ -277,31 +287,19 @@ class Driver:
         else:
             logger.warning(f"Unknown incoming file: {incoming_file}")
 
-    @run_on_ui_thread
-    def set_image_directory(self, new_dir: Path) -> None:
-        check_and_create_directory(new_dir)
-        self.image_directory_config.value = new_dir
-        self.gui.mdl.image_dir_path = str(self.image_directory_config.value)
-        if self.image_directory_config.previous:
-            self.total_dir_watcher.unwatch_path(self.image_directory_config.previous)
-        self.total_dir_watcher.set_path(self.image_directory_config.value)
-        self.dir_monitor.watch(new_dir, self.notify_directory_deleted)
-        if self.image_directory_config.previous:
-            self.dir_monitor.unwatch(self.image_directory_config.previous)
+    def input_directory_setup(
+        self, current: Optional[Path], previous: Optional[Path]
+    ) -> None:
+        assert current
 
-    @run_on_ui_thread
-    def set_inference_directory(self, new_dir: Path) -> None:
-        check_and_create_directory(new_dir)
-        self.inference_directory_config.value = new_dir
-        self.gui.mdl.inference_dir_path = str(self.inference_directory_config.value)
-        if self.inference_directory_config.previous:
-            self.total_dir_watcher.unwatch_path(
-                self.inference_directory_config.previous
-            )
-        self.total_dir_watcher.set_path(self.inference_directory_config.value)
-        self.dir_monitor.watch(new_dir, self.notify_directory_deleted)
-        if self.inference_directory_config.previous:
-            self.dir_monitor.unwatch(self.inference_directory_config.previous)
+        check_and_create_directory(current)
+        if previous:
+            self.total_dir_watcher.unwatch_path(previous)
+        self.total_dir_watcher.set_path(current)
+
+        self.dir_monitor.watch(current, self.notify_directory_deleted)
+        if previous:
+            self.dir_monitor.unwatch(previous)
 
     @run_on_ui_thread
     def notify_directory_deleted(self, directory: Path) -> None:
@@ -366,23 +364,23 @@ class Driver:
                     logger.warning(f"Unknown error while reading human-readable {e}")
         return return_value
 
-    def save_into_inferences_directory(self, incoming_file: Path) -> Path:
-        final = incoming_file
-        assert self.inference_directory_config.value  # appease mypy
-        check_and_create_directory(self.inference_directory_config.value)
-        if incoming_file.parent != self.inference_directory_config.value:
-            final = Path(
-                shutil.move(incoming_file, self.inference_directory_config.value)
-            )
-        self.total_dir_watcher.incoming(final)
-        return final
+    def save_into_input_directory(self, incoming_file: Path, target_dir: Path) -> Path:
+        assert incoming_file.is_file()
 
-    def save_into_image_directory(self, incoming_file: Path) -> Path:
+        """
+        The following cannot be asserted in the current implementation
+        based on temporary directories, because of unexpected OS deletion
+        of the target directory if it hasn't been set to the default
+        temporary directory.
+        """
+        # assert target_dir.is_dir()
+
         final = incoming_file
-        assert self.image_directory_config.value  # appease mypy
-        check_and_create_directory(self.image_directory_config.value)
-        if incoming_file.parent != self.image_directory_config.value:
-            final = Path(shutil.move(incoming_file, self.image_directory_config.value))
+        check_and_create_directory(final.parent)
+        if incoming_file.parent != target_dir:
+            check_and_create_directory(target_dir)
+            final = Path(shutil.move(incoming_file, target_dir))
+
         self.total_dir_watcher.incoming(final)
         return final
 

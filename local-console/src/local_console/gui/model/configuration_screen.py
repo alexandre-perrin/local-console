@@ -25,32 +25,12 @@ class ConfigurationScreenModel(BaseScreenModel):
     """
 
     def __init__(self) -> None:
-        self._image_directory: Optional[Path] = None
-        self._inferences_directory: Optional[Path] = None
         self._flatbuffers_schema: Optional[Path] = None
         self._flatbuffers_process_result: Optional[str] = None
         self._flatbuffers_schema_status: bool = False
         self._app_type: Optional[str] = None
         self._app_configuration: Optional[str] = None
         self._app_labels: Optional[str] = None
-
-    @property
-    def image_directory(self) -> Optional[Path]:
-        return self._image_directory
-
-    @image_directory.setter
-    def image_directory(self, value: Optional[Path]) -> None:
-        self._image_directory = value
-        self.notify_observers()
-
-    @property
-    def inferences_directory(self) -> Optional[Path]:
-        return self._inferences_directory
-
-    @inferences_directory.setter
-    def inferences_directory(self, value: Optional[Path]) -> None:
-        self._inferences_directory = value
-        self.notify_observers()
 
     @property
     def flatbuffers_schema(self) -> Optional[Path]:
