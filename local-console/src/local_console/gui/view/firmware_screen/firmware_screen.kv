@@ -64,7 +64,7 @@
                     id: btn_update_firmware
                     on_release: if not self.disabled: root.controller.update_firmware()
                     pos_hint: {"center_y": 0.5}
-                    disabled: True
+                    disabled: not app.mdl.is_ready
                     MDButtonText:
                         text: "4. Update"
 

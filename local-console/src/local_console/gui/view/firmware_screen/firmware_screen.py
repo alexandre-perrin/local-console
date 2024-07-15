@@ -29,12 +29,6 @@ class FirmwareScreenView(BaseScreenView):
         super().__init__(**kwargs)
         self.app.mdl.bind(is_ready=self.app_state_refresh)
 
-    def app_state_refresh(self, app: MDApp, value: bool) -> None:
-        """
-        Makes the update button react to the camera readiness state.
-        """
-        self.ids.btn_update_firmware.disabled = not self.app.mdl.is_ready
-
     def model_is_changed(self) -> None:
         self.ids.txt_firmware_file_version.text = self.model.firmware_file_version
         self.ids.txt_firmware_file_hash.text = self.model.firmware_file_hash
