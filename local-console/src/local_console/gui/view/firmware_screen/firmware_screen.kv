@@ -117,7 +117,7 @@
                         height: "50dp"
                     MDTextField:
                         id: txt_firmware_file_version
-                        on_text: root.controller.set_firmware_version(args[1])
+                        on_text: app.mdl.firmware_file_version = args[1]
                         size_hint_y: None
                         max_height: "50dp"
                         height: "50dp"
@@ -133,6 +133,7 @@
                         height: "50dp"
                     MDTextField:
                         id: txt_firmware_file_hash
+                        text: app.mdl.firmware_file_hash
                         size_hint_y: None
                         max_height: "50dp"
                         height: "50dp"

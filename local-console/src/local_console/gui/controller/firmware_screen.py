@@ -84,12 +84,6 @@ class FirmwareScreenController:
         else:
             self.model.firmware_file_type = OTAUpdateModule.SENSORFW
 
-    def set_firmware_version(self, text: str) -> None:
-        """
-        Called when an user inputs the firmware version.
-        """
-        self.model.firmware_file_version = text
-
     def update_firmware(self) -> None:
         """
         Called when an user clicks the update button.

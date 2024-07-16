@@ -30,8 +30,6 @@ class FirmwareScreenView(BaseScreenView):
 
         self.app.mdl.bind(device_config=self.on_device_config)
     def model_is_changed(self) -> None:
-        self.ids.txt_firmware_file_version.text = self.model.firmware_file_version
-        self.ids.txt_firmware_file_hash.text = self.model.firmware_file_hash
         self.ids.progress_downloading.value = self.model.downloading_progress
         self.ids.progress_updating.value = self.model.updating_progress
         self.ids.lbl_ota_status.text = self.model.update_status
