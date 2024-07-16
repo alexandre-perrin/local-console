@@ -104,7 +104,10 @@ class Driver:
         self._init_input_directories()
 
     def _init_ai_model_functions(self) -> None:
+        # Proxy->State because we want the user to set this value via the GUI
         self.gui.mdl.bind_proxy_to_state("ai_model_file", self.camera_state, Path)
+
+        # State->Proxy because this is computed from the model file
         self.gui.mdl.bind_state_to_proxy("ai_model_file_valid", self.camera_state)
 
         def validate_file(current: Optional[Path], previous: Optional[Path]) -> None:
