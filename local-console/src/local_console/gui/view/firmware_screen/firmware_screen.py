@@ -16,7 +16,7 @@
 import logging
 from typing import Any
 
-from local_console.gui.enums import OTAUpdateStatus
+from local_console.core.camera import OTAUpdateStatus
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.gui.schemas import OtaData
 from local_console.gui.view.base_screen import BaseScreenView

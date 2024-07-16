@@ -27,10 +27,6 @@ from local_console.core.commands.ota_deploy import get_package_hash
 from local_console.core.config import get_config
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.gui.driver import Driver
-from local_console.gui.enums import FirmwareExtension
-from local_console.gui.enums import FirmwareType
-from local_console.gui.enums import OTAUpdateModule
-from local_console.gui.enums import OTAUpdateStatus
 from local_console.gui.model.firmware_screen import FirmwareScreenModel
 from local_console.gui.view.firmware_screen.firmware_screen import FirmwareScreenView
 from local_console.servers.webserver import AsyncWebserver
