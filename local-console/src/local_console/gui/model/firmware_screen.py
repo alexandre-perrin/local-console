@@ -16,10 +16,8 @@
 import logging
 from pathlib import Path
 
-from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.gui.enums import OTAUpdateModule
 from local_console.gui.model.base_model import BaseScreenModel
-from trio import Event
 
 logger = logging.getLogger(__name__)
 
@@ -30,12 +28,6 @@ class FirmwareScreenModel(BaseScreenModel):
     """
 
     def __init__(self) -> None:
-        # These two variables enable signaling that the OTA
-        # status has changed from a previous report
-        self._ota_event = Event()
-        self._device_config: DeviceConfiguration | None = None
-
-        self._device_config_previous: DeviceConfiguration | None = None
         self._firmware_file = Path()
         self._firmware_file_valid = False
         self._firmware_file_type = OTAUpdateModule.APFW
@@ -44,24 +36,6 @@ class FirmwareScreenModel(BaseScreenModel):
         self._downloading_progress = 0
         self._updating_progress = 0
         self._update_status = ""
-
-    @property
-    def device_config(self) -> DeviceConfiguration | None:
-        return self._device_config
-
-    @device_config.setter
-    def device_config(self, value: DeviceConfiguration | None) -> None:
-        self._device_config = value
-
-        # detect content change
-        if self._device_config_previous != value:
-            self._device_config_previous = value
-            self._ota_event.set()
-            self.notify_observers()
-
-    async def ota_event(self) -> None:
-        self._ota_event = Event()
-        await self._ota_event.wait()
 
     @property
     def firmware_file(self) -> Path:

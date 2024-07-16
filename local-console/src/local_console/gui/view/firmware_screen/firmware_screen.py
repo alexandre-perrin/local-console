@@ -17,6 +17,7 @@ import logging
 from typing import Any
 
 from local_console.gui.enums import OTAUpdateStatus
+from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.gui.schemas import OtaData
 from local_console.gui.view.base_screen import BaseScreenView
 
@@ -26,8 +27,8 @@ logger = logging.getLogger(__name__)
 class FirmwareScreenView(BaseScreenView):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.app.mdl.bind(is_ready=self.app_state_refresh)
 
+        self.app.mdl.bind(device_config=self.on_device_config)
     def model_is_changed(self) -> None:
         self.ids.txt_firmware_file_version.text = self.model.firmware_file_version
         self.ids.txt_firmware_file_hash.text = self.model.firmware_file_hash
@@ -35,16 +36,18 @@ class FirmwareScreenView(BaseScreenView):
         self.ids.progress_updating.value = self.model.updating_progress
         self.ids.lbl_ota_status.text = self.model.update_status
 
-        # If Done or Failed
-        leaf_update_status = False
 
-        if self.model.device_config:
-            self.ids.txt_ota_data.text = OtaData(
-                **self.model.device_config.model_dump()
-            ).model_dump_json(indent=4)
 
-            update_status = self.model.device_config.OTA.UpdateStatus
-            leaf_update_status = update_status in (
+    def on_device_config(
+        self, proxy: CameraStateProxy, value: Optional[DeviceConfiguration]
+    ) -> None:
+        update_status_finished = False
+        if value:
+            self.ids.txt_ota_data.text = OtaData(**value.model_dump()).model_dump_json(
+                indent=4
+            )
+            update_status = value.OTA.UpdateStatus
+            update_status_finished = update_status in (
                 OTAUpdateStatus.DONE,
                 OTAUpdateStatus.FAILED,
             )

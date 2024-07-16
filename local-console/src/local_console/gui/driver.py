@@ -217,9 +217,6 @@ class Driver:
         self.gui.views[Screen.CONNECTION_SCREEN].model.connected = (
             self.camera_state.connected
         )
-        self.gui.views[Screen.FIRMWARE_SCREEN].model.device_config = (
-            self.camera_state.device_config.value
-        )
 
     async def blobs_webserver_task(self) -> None:
         """
