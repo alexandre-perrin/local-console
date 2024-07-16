@@ -16,8 +16,10 @@
 import logging
 from typing import Any
 
+from local_console.core.camera import OTAUpdateModule
 from local_console.core.camera import OTAUpdateStatus
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
+from local_console.gui.enums import FirmwareType
 from local_console.gui.schemas import OtaData
 from local_console.gui.view.base_screen import BaseScreenView
 
@@ -25,6 +27,12 @@ logger = logging.getLogger(__name__)
 
 
 class FirmwareScreenView(BaseScreenView):
+
+    fw_type_ota_map = {
+        FirmwareType.APPLICATION_FW: OTAUpdateModule.APFW,
+        FirmwareType.SENSOR_FW: OTAUpdateModule.SENSORFW,
+    }
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 

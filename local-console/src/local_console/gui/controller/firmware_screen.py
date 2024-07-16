@@ -75,15 +75,6 @@ class FirmwareScreenController:
         self.model.firmware_file_hash = get_package_hash(firmware_path)
         self.model.firmware_file_valid = True
 
-    def select_firmware_type(self, type: str) -> None:
-        """
-        Called when an user selects the firmware type.
-        """
-        if type == FirmwareType.APPLICATION_FW:
-            self.model.firmware_file_type = OTAUpdateModule.APFW
-        else:
-            self.model.firmware_file_type = OTAUpdateModule.SENSORFW
-
     def update_firmware(self) -> None:
         """
         Called when an user clicks the update button.

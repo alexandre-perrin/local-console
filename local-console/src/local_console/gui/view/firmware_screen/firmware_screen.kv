@@ -36,7 +36,7 @@
                     adaptive_width: True
 
                 FirmwareDropDownItem:
-                    on_selected: root.controller.select_firmware_type(args[1])
+                    on_selected: app.mdl.firmware_file_type = root.fw_type_ota_map[args[1]]
                     padding: "10dp", "0dp"
                     canvas.before:
                         Color:
