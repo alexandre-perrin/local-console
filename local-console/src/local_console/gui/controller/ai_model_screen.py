@@ -46,7 +46,7 @@ class AIModelScreenController:
         return self.view
 
     def deploy(self) -> None:
-        self.view.ids.btn_ota_file.disabled = True
+        self.view.update_camera_status = False
         self.driver.from_sync(
             deployment_task,
             self.driver.camera_state,
