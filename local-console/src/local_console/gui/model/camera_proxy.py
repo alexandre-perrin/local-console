@@ -16,6 +16,7 @@
 from kivy.properties import BooleanProperty
 from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
+from local_console.core.camera import OTAUpdateModule
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.gui.model.data_binding import CameraStateProxyBase
 
@@ -35,6 +36,11 @@ class CameraStateProxy(CameraStateProxyBase):
     # test_camera_proxy.py::test_difference_of_property_with_force_dispatch
     ai_model_file_valid = BooleanProperty(False, force_dispatch=True)
 
+    firmware_file = StringProperty("", allownone=True)
+    firmware_file_valid = BooleanProperty(False, force_dispatch=True)
+    firmware_file_version = StringProperty("", allownone=True)
+    firmware_file_type = ObjectProperty(OTAUpdateModule, allownone=True)
+    firmware_file_hash = StringProperty("", allownone=True)
 
 
 # Listing of model properties to move over into this class. It is
@@ -47,8 +53,6 @@ class CameraStateProxy(CameraStateProxyBase):
 #        -e 's;self, [^:]*: ;;g' -e 's/-/;/g' \
 #  | sort -t';' -k2) > model-properties.csv
 #
-#   image_directory(Optional[Path])
-#   inferences_directory(Optional[Path])
 #   stream_status(StreamStatus)
 #   stream_status(StreamStatus)
 #   app_configuration(Optional[str])
@@ -59,11 +63,6 @@ class CameraStateProxy(CameraStateProxyBase):
 #   deploy_status(dict[str, str])
 #   dns_server(str)
 #   downloading_progress(int)
-#   firmware_file_hash(str)
-#   firmware_file(Path)
-#   firmware_file_type(str)
-#   firmware_file_valid(bool)
-#   firmware_file_version(str)
 #   flatbuffers_process_result(Optional[str])
 #   flatbuffers_schema(Optional[Path])
 #   flatbuffers_schema_status(bool)

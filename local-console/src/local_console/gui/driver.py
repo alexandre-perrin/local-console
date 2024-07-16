@@ -97,6 +97,7 @@ class Driver:
         self.dir_monitor = DirectoryMonitor()
 
         self._init_ai_model_functions()
+        self._init_firmware_file_functions()
         self._init_input_directories()
 
     def _init_ai_model_functions(self) -> None:
@@ -110,6 +111,18 @@ class Driver:
                 )
 
         self.camera_state.ai_model_file.subscribe(validate_file)
+
+    def _init_firmware_file_functions(self) -> None:
+        # Proxy->State because we want the user to set these values via the GUI
+        self.gui.mdl.bind_proxy_to_state("firmware_file", self.camera_state, Path)
+        self.gui.mdl.bind_proxy_to_state("firmware_file_version", self.camera_state)
+        self.gui.mdl.bind_proxy_to_state("firmware_file_type", self.camera_state)
+        # Default value that matches the default widget selection
+        self.gui.mdl.firmware_file_type = OTAUpdateModule.APFW
+
+        # State->Proxy because these are computed from the firmware_file
+        self.gui.mdl.bind_state_to_proxy("firmware_file_valid", self.camera_state)
+        self.gui.mdl.bind_state_to_proxy("firmware_file_hash", self.camera_state)
 
     def _init_input_directories(self) -> None:
         self.gui.mdl.bind_state_to_proxy("image_dir_path", self.camera_state, str)

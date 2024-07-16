@@ -14,9 +14,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 import logging
-from pathlib import Path
-
-from local_console.gui.enums import OTAUpdateModule
 from local_console.gui.model.base_model import BaseScreenModel
 
 logger = logging.getLogger(__name__)
@@ -28,59 +25,9 @@ class FirmwareScreenModel(BaseScreenModel):
     """
 
     def __init__(self) -> None:
-        self._firmware_file = Path()
-        self._firmware_file_valid = False
-        self._firmware_file_type = OTAUpdateModule.APFW
-        self._firmware_file_version = ""
-        self._firmware_file_hash = ""
         self._downloading_progress = 0
         self._updating_progress = 0
         self._update_status = ""
-
-    @property
-    def firmware_file(self) -> Path:
-        return self._firmware_file
-
-    @firmware_file.setter
-    def firmware_file(self, value: Path) -> None:
-        self._firmware_file = value
-        self.notify_observers()
-
-    @property
-    def firmware_file_valid(self) -> bool:
-        return self._firmware_file_valid
-
-    @firmware_file_valid.setter
-    def firmware_file_valid(self, value: bool) -> None:
-        self._firmware_file_valid = value
-        self.notify_observers()
-
-    @property
-    def firmware_file_type(self) -> str:
-        return self._firmware_file_type
-
-    @firmware_file_type.setter
-    def firmware_file_type(self, value: str) -> None:
-        self._firmware_file_type = value
-        self.notify_observers()
-
-    @property
-    def firmware_file_version(self) -> str:
-        return self._firmware_file_version
-
-    @firmware_file_version.setter
-    def firmware_file_version(self, value: str) -> None:
-        self._firmware_file_version = value
-        self.notify_observers()
-
-    @property
-    def firmware_file_hash(self) -> str:
-        return self._firmware_file_hash
-
-    @firmware_file_hash.setter
-    def firmware_file_hash(self, value: str) -> None:
-        self._firmware_file_hash = value
-        self.notify_observers()
 
     @property
     def downloading_progress(self) -> int:

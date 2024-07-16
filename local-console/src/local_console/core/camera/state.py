@@ -24,6 +24,7 @@ from typing import Any
 from typing import Optional
 
 import trio
+from local_console.core.camera.enums import OTAUpdateModule
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.utils.tracking import TrackingVariable
@@ -60,6 +61,12 @@ class CameraState:
 
         self.ai_model_file: TrackingVariable[Path] = TrackingVariable()
         self.ai_model_file_valid: TrackingVariable[bool] = TrackingVariable(False)
+
+        self.firmware_file: TrackingVariable[Path] = TrackingVariable()
+        self.firmware_file_valid: TrackingVariable[bool] = TrackingVariable(False)
+        self.firmware_file_version: TrackingVariable[str] = TrackingVariable()
+        self.firmware_file_type: TrackingVariable[OTAUpdateModule] = TrackingVariable()
+        self.firmware_file_hash: TrackingVariable[str] = TrackingVariable()
 
         self.image_dir_path: TrackingVariable[Path] = TrackingVariable()
         self.inference_dir_path: TrackingVariable[Path] = TrackingVariable()
