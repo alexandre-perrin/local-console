@@ -18,19 +18,34 @@ from pathlib import Path
 from typing import Any
 from typing import Optional
 
+from kivy.properties import BooleanProperty
+from kivy.properties import NumericProperty
+from kivy.properties import ObjectProperty
+from kivy.properties import StringProperty
 from local_console.core.camera import FirmwareExtension
 from local_console.core.camera import OTAUpdateModule
 from local_console.core.camera import OTAUpdateStatus
+from local_console.core.camera.firmware import TransientStatus
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.gui.enums import FirmwareType
 from local_console.gui.model.camera_proxy import CameraStateProxy
+from local_console.gui.model.data_binding import ViewTransientStatusBase
 from local_console.gui.schemas import OtaData
 from local_console.gui.view.base_screen import BaseScreenView
 
 logger = logging.getLogger(__name__)
 
 
+class FirmwareTransientStatus(TransientStatus, ViewTransientStatusBase):
+    update_status = StringProperty("")
+    progress_download = NumericProperty(0)
+    progress_update = NumericProperty(0)
+
+
 class FirmwareScreenView(BaseScreenView):
+
+    update_status_finished = BooleanProperty(False)
+    transients = ObjectProperty(FirmwareTransientStatus, rebind=True)
 
     fw_type_ota_map = {
         FirmwareType.APPLICATION_FW: OTAUpdateModule.APFW,
@@ -39,6 +54,16 @@ class FirmwareScreenView(BaseScreenView):
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
+        self.transients = FirmwareTransientStatus()
+        self.transients.bind_widget_property(
+            "progress_download", self.ids.progress_downloading, "value"
+        )
+        self.transients.bind_widget_property(
+            "progress_update", self.ids.progress_updating, "value"
+        )
+        self.transients.bind_widget_property(
+            "update_status", self.ids.lbl_ota_status, "text"
+        )
 
         self.app.mdl.bind(device_config=self.on_device_config)
         self.app.mdl.bind(firmware_file=self.on_firmware_file)
@@ -69,11 +94,6 @@ class FirmwareScreenView(BaseScreenView):
                 OTAUpdateStatus.DONE,
                 OTAUpdateStatus.FAILED,
             )
+            self.transients.update_status = update_status
 
-        can_update = (
-            self.app.mdl.is_ready
-            and self.model.firmware_file_valid
-            and leaf_update_status
-            and self.model.firmware_file_version
-        )
-        self.ids.btn_update_firmware.disabled = not can_update
+        self.update_status_finished = update_status_finished

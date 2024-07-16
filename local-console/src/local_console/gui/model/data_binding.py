@@ -83,3 +83,25 @@ class CameraStateProxyBase(ABC, EventDispatcher):
             setattr(self, property_name, transform(current))
 
         state_variable.subscribe(update_proxy)
+
+
+class ViewTransientStatusBase(ABC, EventDispatcher):
+    """
+    Framework class for holding properties whose values are
+    solely defined by the transient value of other values of
+    the logical state of the program.
+
+    This abstract class is intended to be subclassed, holding
+    Kivy Properties as class attributes, and instantiated into
+    a Kivy ObjectProperty owned by the view class of the intended
+    screen on which the transient properties are to be rendered.
+    """
+
+    def bind_widget_property(
+        self, my_property: str, widget: Widget, property_name: str
+    ) -> None:
+
+        def binding(instance: type[ViewTransientStatusBase], value: Any) -> None:
+            setattr(widget, property_name, value)
+
+        self.bind(**{my_property: binding})

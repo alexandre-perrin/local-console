@@ -44,3 +44,10 @@ class FirmwareScreenController:
         """
         Called when an user clicks the "Update" button.
         """
+        self.view.update_camera_status = False
+        self.driver.from_sync(
+            update_firmware_task,
+            self.driver.camera_state,
+            self.view.transients,
+            self.view.display_error,
+        )
