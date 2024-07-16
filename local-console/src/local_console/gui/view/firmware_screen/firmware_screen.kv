@@ -58,7 +58,7 @@
                     name: "2. Select Firmware:"
                     icon: "file-cog"
                     selector: "file"
-                    on_selected: root.controller.select_path(args[1])
+                    on_selected: app.mdl.firmware_file = args[1]
 
                 MDButton:
                     id: btn_update_firmware

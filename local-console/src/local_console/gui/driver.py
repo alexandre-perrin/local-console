@@ -27,8 +27,11 @@ from kivymd.app import MDApp
 from local_console.clients.agent import Agent
 from local_console.clients.agent import check_attributes_request
 from local_console.core.camera import CameraState
+from local_console.core.camera import FirmwareExtension
 from local_console.core.camera import MQTTTopics
+from local_console.core.camera import OTAUpdateModule
 from local_console.core.camera import StreamStatus
+from local_console.core.commands.ota_deploy import get_package_hash
 from local_console.core.config import get_config
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.edge_cloud_if_v1 import Permission
@@ -123,6 +126,23 @@ class Driver:
         # State->Proxy because these are computed from the firmware_file
         self.gui.mdl.bind_state_to_proxy("firmware_file_valid", self.camera_state)
         self.gui.mdl.bind_state_to_proxy("firmware_file_hash", self.camera_state)
+
+        def validate_file(current: Optional[Path], previous: Optional[Path]) -> None:
+            if current:
+                is_valid = True
+                if self.camera_state.firmware_file_type.value == OTAUpdateModule.APFW:
+                    if current.suffix != FirmwareExtension.APPLICATION_FW:
+                        is_valid = False
+                else:
+                    if current.suffix != FirmwareExtension.SENSOR_FW:
+                        is_valid = False
+
+                self.camera_state.firmware_file_hash.value = (
+                    get_package_hash(current) if is_valid else ""
+                )
+                self.camera_state.firmware_file_valid.value = is_valid
+
+        self.camera_state.firmware_file.subscribe(validate_file)
 
     def _init_input_directories(self) -> None:
         self.gui.mdl.bind_state_to_proxy("image_dir_path", self.camera_state, str)

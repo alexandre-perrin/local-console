@@ -14,12 +14,16 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 import logging
+from pathlib import Path
 from typing import Any
+from typing import Optional
 
+from local_console.core.camera import FirmwareExtension
 from local_console.core.camera import OTAUpdateModule
 from local_console.core.camera import OTAUpdateStatus
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.gui.enums import FirmwareType
+from local_console.gui.model.camera_proxy import CameraStateProxy
 from local_console.gui.schemas import OtaData
 from local_console.gui.view.base_screen import BaseScreenView
 
@@ -37,12 +41,20 @@ class FirmwareScreenView(BaseScreenView):
         super().__init__(**kwargs)
 
         self.app.mdl.bind(device_config=self.on_device_config)
-    def model_is_changed(self) -> None:
-        self.ids.progress_downloading.value = self.model.downloading_progress
-        self.ids.progress_updating.value = self.model.updating_progress
-        self.ids.lbl_ota_status.text = self.model.update_status
+        self.app.mdl.bind(firmware_file=self.on_firmware_file)
+        self.app.mdl.bind(firmware_file_valid=self.on_firmware_file_valid)
 
+    def on_firmware_file(self, proxy: CameraStateProxy, value: Optional[str]) -> None:
+        if value and Path(value).is_file():
+            self.ids.firmware_pick.accept_path(value)
 
+    def on_firmware_file_valid(self, proxy: CameraStateProxy, value: bool) -> None:
+        if not value:
+            firmware_file = Path(self.app.mdl.firmware_file)
+            if firmware_file.suffix != FirmwareExtension.APPLICATION_FW:
+                self.display_error("Invalid Application Firmware!")
+            elif firmware_file.suffix != FirmwareExtension.SENSOR_FW:
+                self.display_error("Invalid Sensor Firmware!")
 
     def on_device_config(
         self, proxy: CameraStateProxy, value: Optional[DeviceConfiguration]
@@ -57,9 +69,6 @@ class FirmwareScreenView(BaseScreenView):
                 OTAUpdateStatus.DONE,
                 OTAUpdateStatus.FAILED,
             )
-
-        if self.model.firmware_file.is_file():
-            self.ids.firmware_pick.accept_path(str(self.model.firmware_file))
 
         can_update = (
             self.app.mdl.is_ready

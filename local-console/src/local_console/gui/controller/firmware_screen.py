@@ -23,7 +23,6 @@ import trio
 from local_console.clients.agent import Agent
 from local_console.core.camera import MQTTTopics
 from local_console.core.commands.ota_deploy import configuration_spec
-from local_console.core.commands.ota_deploy import get_package_hash
 from local_console.core.config import get_config
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.gui.driver import Driver
@@ -52,29 +51,6 @@ class FirmwareScreenController:
     def get_view(self) -> FirmwareScreenView:
         return self.view
 
-    def select_path(self, path_str: str) -> None:
-        """
-        Called when an uesr clicks on the file name.
-
-        :param path_str: path to the selected file;
-        """
-        firmware_path = Path(path_str)
-        self.model.firmware_file = firmware_path
-
-        if self.model.firmware_file_type == OTAUpdateModule.APFW:
-            if firmware_path.suffix != FirmwareExtension.APPLICATION_FW:
-                self.model.firmware_file_valid = False
-                self.view.display_error("Invalid Application Firmware!")
-                return
-        else:
-            if firmware_path.suffix != FirmwareExtension.SENSOR_FW:
-                self.model.firmware_file_valid = False
-                self.view.display_error("Invalid Sensor Firmware!")
-                return
-
-        self.model.firmware_file_hash = get_package_hash(firmware_path)
-        self.model.firmware_file_valid = True
-
     def update_firmware(self) -> None:
         """
         Called when an user clicks the update button.
@@ -84,40 +60,6 @@ class FirmwareScreenController:
             self.driver.from_sync(self.update_firmware_task, self.model.firmware_file)
         else:
             logger.warning("The firmware update button is disabled")
-
-    def validate_firmware_file(self, firmware_file: Path) -> bool:
-        if not isinstance(firmware_file, PurePath) or not firmware_file.resolve():
-            self.view.display_error("Firmware file does not exist!")
-            return False
-
-        if self.model.device_config is None:
-            logger.debug("DeviceConfiguration is None.")
-            return False
-
-        if self.model.firmware_file_type == OTAUpdateModule.APFW:
-            if firmware_file.suffix != FirmwareExtension.APPLICATION_FW:
-                self.view.display_error("Invalid Application Firmware!")
-                return False
-
-            if (
-                self.model.device_config.Version.ApFwVersion
-                == self.model.firmware_file_version
-            ):
-                self.view.display_error("Version is the same as the current firmware.")
-                return False
-        else:
-            if firmware_file.suffix != FirmwareExtension.SENSOR_FW:
-                self.view.display_error("Invalid Sensor Firmware!")
-                return False
-
-            if (
-                self.model.device_config.Version.SensorFwVersion
-                == self.model.firmware_file_version
-            ):
-                self.view.display_error("Version is the same as the current firmware.")
-                return False
-
-        return True
 
     def update_progress_bar(self, dev_config_prev: DeviceConfiguration | None) -> bool:
         if self.model.device_config and self.model.device_config != dev_config_prev:
