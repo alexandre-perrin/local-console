@@ -56,6 +56,7 @@ from kivymd.uix.snackbar import MDSnackbarCloseButton
 from kivymd.uix.snackbar import MDSnackbarSupportingText
 from kivymd.uix.snackbar import MDSnackbarText
 from local_console.gui.utils.observer import Observer
+from local_console.gui.utils.sync_async import run_on_ui_thread
 
 
 class BaseScreenView(MDScreen, Observer):
@@ -99,6 +100,7 @@ class BaseScreenView(MDScreen, Observer):
         # Error display widget tracking
         self.error_widget: Optional[MDSnackbar] = None
 
+    @run_on_ui_thread
     def display_error(
         self, text: str, support_text: Optional[str] = None, duration: int = 5
     ) -> None:
