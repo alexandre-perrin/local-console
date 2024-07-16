@@ -55,10 +55,11 @@ class CameraState:
         self.attributes_available = False
         self._last_reception: Optional[datetime] = None
 
-        self.ai_model_file: TrackingVariable[Path] = TrackingVariable()
-        self.ai_model_file_valid: TrackingVariable[bool] = TrackingVariable(False)
         self._ota_event = trio.Event()
         self.device_config.subscribe_async(self._prepare_ota_event)
+
+        self.ai_model_file: TrackingVariable[Path] = TrackingVariable()
+        self.ai_model_file_valid: TrackingVariable[bool] = TrackingVariable(False)
 
         self.image_dir_path: TrackingVariable[Path] = TrackingVariable()
         self.inference_dir_path: TrackingVariable[Path] = TrackingVariable()
