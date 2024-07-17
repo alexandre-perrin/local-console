@@ -45,6 +45,7 @@ def get_network_ifaces() -> list[str]:
             k
             for k, v in stats.items()
             if v.isup
+            and "docker" not in k.lower()
             and "running" in v.flags
             and "loopback" not in v.flags
             and "pointopoint" not in v.flags
