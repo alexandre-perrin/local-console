@@ -80,6 +80,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
     - name: Install local-console in editable mode
       # This is required in order for coverage.py
       # to be able to catch coverage data.
