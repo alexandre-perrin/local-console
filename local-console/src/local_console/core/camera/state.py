@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-import enum
 import json
 import logging
 from base64 import b64decode
@@ -24,7 +23,9 @@ from typing import Any
 from typing import Optional
 
 import trio
+from local_console.core.camera.enums import MQTTTopics
 from local_console.core.camera.enums import OTAUpdateModule
+from local_console.core.camera.enums import StreamStatus
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.utils.tracking import TrackingVariable
@@ -157,28 +158,3 @@ class CameraState:
     async def ota_event(self) -> None:
         self._ota_event = trio.Event()
         await self._ota_event.wait()
-
-
-class StreamStatus(enum.Enum):
-    # Camera states:
-    # https://github.com/SonySemiconductorSolutions/EdgeAIPF.smartcamera.type3.mirror/blob/vD7.00.F6/src/edge_agent/edge_agent_config_state_private.h#L309-L314
-    Inactive = "Inactive"
-    Active = "Active"
-    Transitioning = (
-        "..."  # Not a CamFW state. Used to describe transition in Local Console.
-    )
-
-    @classmethod
-    def from_string(cls, value: str) -> "StreamStatus":
-        if value in ("Standby", "Error", "PowerOff"):
-            return cls.Inactive
-        elif value == "Streaming":
-            return cls.Active
-        return cls.Transitioning
-
-
-class MQTTTopics(enum.Enum):
-    ATTRIBUTES = "v1/devices/me/attributes"
-    TELEMETRY = "v1/devices/me/telemetry"
-    ATTRIBUTES_REQ = "v1/devices/me/attributes/request/+"
-    RPC_RESPONSES = "v1/devices/me/rpc/response/+"

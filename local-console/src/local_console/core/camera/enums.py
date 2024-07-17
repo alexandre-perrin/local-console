@@ -13,7 +13,34 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+from enum import Enum
+
 from local_console.utils.enums import StrEnum
+
+
+class StreamStatus(Enum):
+    # Camera states:
+    # https://github.com/SonySemiconductorSolutions/EdgeAIPF.smartcamera.type3.mirror/blob/vD7.00.F6/src/edge_agent/edge_agent_config_state_private.h#L309-L314
+    Inactive = "Inactive"
+    Active = "Active"
+    Transitioning = (
+        "..."  # Not a CamFW state. Used to describe transition in Local Console.
+    )
+
+    @classmethod
+    def from_string(cls, value: str) -> "StreamStatus":
+        if value in ("Standby", "Error", "PowerOff"):
+            return cls.Inactive
+        elif value == "Streaming":
+            return cls.Active
+        return cls.Transitioning
+
+
+class MQTTTopics(Enum):
+    ATTRIBUTES = "v1/devices/me/attributes"
+    TELEMETRY = "v1/devices/me/telemetry"
+    ATTRIBUTES_REQ = "v1/devices/me/attributes/request/+"
+    RPC_RESPONSES = "v1/devices/me/rpc/response/+"
 
 
 class OTAUpdateStatus(StrEnum):
