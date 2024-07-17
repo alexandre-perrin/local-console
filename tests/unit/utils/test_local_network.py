@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+import logging
 import re
 from unittest.mock import patch
 
@@ -23,10 +24,15 @@ from local_console.utils.local_network import is_localhost
 from local_console.utils.local_network import LOCAL_IP
 from local_console.utils.local_network import replace_local_address
 
+# For some reason, pycln removes this import, but obviously
+# pytest fails when running the tests!
+from tests.fixtures.debugging import debug_log  # noreorder # noqa
 from tests.strategies.configs import generate_text
 
+logger = logging.getLogger(__name__)
 
-def test_detect_interfaces():
+
+def test_detect_interfaces(debug_log):
     interfaces = get_network_ifaces()
 
     assert "lo" not in interfaces

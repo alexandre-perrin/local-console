@@ -32,6 +32,7 @@ def get_network_ifaces() -> list[str]:
         list[str]: List of network interface names
     """
     stats = psutil.net_if_stats()
+    logger.debug(stats)
     os_name = platform.system()
     if os_name == "Windows":
         chosen = list(
