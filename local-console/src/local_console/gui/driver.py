@@ -99,9 +99,15 @@ class Driver:
         self.bridge = SyncAsyncBridge()
         self.dir_monitor = DirectoryMonitor()
 
+        self._init_core_variables()
         self._init_ai_model_functions()
         self._init_firmware_file_functions()
         self._init_input_directories()
+
+    def _init_core_variables(self) -> None:
+        self.gui.mdl.bind_state_to_proxy("is_ready", self.camera_state)
+        self.gui.mdl.bind_state_to_proxy("is_streaming", self.camera_state)
+        self.gui.mdl.bind_state_to_proxy("device_config", self.camera_state)
 
     def _init_ai_model_functions(self) -> None:
         # Proxy->State because we want the user to set this value via the GUI
@@ -241,10 +247,7 @@ class Driver:
 
     @run_on_ui_thread
     def update_camera_status(self) -> None:
-        self.gui.mdl.is_ready = self.camera_state.is_ready
         sensor_state = self.camera_state.sensor_state
-        self.gui.mdl.is_streaming = self.camera_state.is_streaming
-        self.gui.mdl.device_config = self.camera_state.device_config.value
         self.gui.views[Screen.STREAMING_SCREEN].model.stream_status = sensor_state
         self.gui.views[Screen.INFERENCE_SCREEN].model.stream_status = sensor_state
         self.gui.views[Screen.APPLICATIONS_SCREEN].model.deploy_status = (
