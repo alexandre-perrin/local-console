@@ -17,6 +17,7 @@ from kivy.properties import BooleanProperty
 from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
 from local_console.core.camera import OTAUpdateModule
+from local_console.core.camera.enums import StreamStatus
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.gui.model.data_binding import CameraStateProxyBase
 
@@ -25,6 +26,8 @@ class CameraStateProxy(CameraStateProxyBase):
 
     is_ready = BooleanProperty(False)
     is_streaming = BooleanProperty(False)
+    stream_status = ObjectProperty(StreamStatus.Inactive)
+
     image_dir_path = StringProperty("")
     inference_dir_path = StringProperty("")
 

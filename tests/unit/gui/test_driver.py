@@ -326,9 +326,9 @@ async def test_streaming_rpc_start():
 @pytest.mark.trio
 async def test_connection_status_timeout():
     driver = Driver(MagicMock())
-    driver.camera_state.sensor_state = StreamStatus.Active
+    driver.camera_state.stream_status.value = StreamStatus.Active
     await driver.connection_status_timeout()
-    assert driver.camera_state.sensor_state == StreamStatus.Inactive
+    assert driver.camera_state.stream_status.value == StreamStatus.Inactive
 
 
 @pytest.mark.trio

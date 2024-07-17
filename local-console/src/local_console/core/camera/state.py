@@ -49,7 +49,7 @@ class CameraState:
     CONNECTION_STATUS_TIMEOUT = timedelta(seconds=180)
 
     def __init__(self) -> None:
-        self.sensor_state = StreamStatus.Inactive
+
         self.deploy_status: dict[str, str] = {}
         self._onwire_schema: Optional[OnWireProtocol] = None
         self._last_reception: Optional[datetime] = None
@@ -57,6 +57,11 @@ class CameraState:
         self.device_config: TrackingVariable[DeviceConfiguration] = TrackingVariable()
         self.attributes_available: TrackingVariable[bool] = TrackingVariable(False)
         self.is_ready: TrackingVariable[bool] = TrackingVariable(False)
+        self.stream_status: TrackingVariable[StreamStatus] = TrackingVariable(
+            StreamStatus.Inactive
+        )
+        self.is_streaming: TrackingVariable[bool] = TrackingVariable(False)
+
         self._ota_event = trio.Event()
         self.device_config.subscribe_async(self._prepare_ota_event)
 
@@ -94,6 +99,16 @@ class CameraState:
 
         self.attributes_available.subscribe(compute_is_ready)
 
+        def compute_is_streaming(
+            current: Optional[StreamStatus], previous: Optional[StreamStatus]
+        ) -> None:
+            _is_streaming = (
+                False if current is None else (current == StreamStatus.Active)
+            )
+            self.is_streaming.value = _is_streaming
+
+        self.stream_status.subscribe(compute_is_streaming)
+
     @property
     def connected(self) -> bool:
         if self._last_reception is None:
@@ -102,10 +117,6 @@ class CameraState:
             return (
                 datetime.now() - self._last_reception
             ) < self.CONNECTION_STATUS_TIMEOUT
-
-    @property
-    def is_streaming(self) -> bool:
-        return self.sensor_state == StreamStatus.Active
 
     async def process_incoming(self, topic: str, payload: dict[str, Any]) -> None:
         sent_from_camera = False
@@ -143,7 +154,7 @@ class CameraState:
                     DeviceConfiguration.model_validate(decoded)
                 )
                 if self.device_config.value:
-                    self.sensor_state = StreamStatus.from_string(
+                    self.stream_status.value = StreamStatus.from_string(
                         self.device_config.value.Status.Sensor
                     )
             except ValidationError as e:

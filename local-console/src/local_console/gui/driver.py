@@ -247,9 +247,9 @@ class Driver:
 
     @run_on_ui_thread
     def update_camera_status(self) -> None:
-        sensor_state = self.camera_state.sensor_state
-        self.gui.views[Screen.STREAMING_SCREEN].model.stream_status = sensor_state
-        self.gui.views[Screen.INFERENCE_SCREEN].model.stream_status = sensor_state
+        stream_status = self.camera_state.stream_status
+        self.gui.views[Screen.STREAMING_SCREEN].model.stream_status = stream_status
+        self.gui.views[Screen.INFERENCE_SCREEN].model.stream_status = stream_status
         self.gui.views[Screen.APPLICATIONS_SCREEN].model.deploy_status = (
             self.camera_state.deploy_status
         )
@@ -480,7 +480,7 @@ class Driver:
 
     async def connection_status_timeout(self) -> None:
         logger.debug("Connection status timed out: camera is disconnected")
-        self.camera_state.sensor_state = StreamStatus.Inactive
+        self.camera_state.stream_status.value = StreamStatus.Inactive
         self.update_camera_status()
 
     async def send_app_config(self, config: str) -> None:

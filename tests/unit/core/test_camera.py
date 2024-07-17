@@ -202,7 +202,9 @@ async def test_process_state_topic(device_config: DeviceConfiguration) -> None:
 
     observer.assert_awaited_once_with(device_config, None)
     assert camera.device_config.value == device_config
-    assert camera.sensor_state == StreamStatus.from_string(device_config.Status.Sensor)
+    assert camera.stream_status.value == StreamStatus.from_string(
+        device_config.Status.Sensor
+    )
 
 
 @pytest.mark.trio
