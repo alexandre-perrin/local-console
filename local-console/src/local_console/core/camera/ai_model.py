@@ -93,7 +93,7 @@ async def deploy_step(
     state: CameraState, network_id: str, package_file: Path, timeout_notify: Callable
 ) -> None:
     config = get_config()
-    ephemeral_agent = Agent()
+    ephemeral_agent = Agent(config)
     webserver_port = config.webserver.port
 
     with TemporaryDirectory(prefix="lc_deploy_") as temporary_dir:

@@ -44,11 +44,11 @@ logger = logging.getLogger(__name__)
 
 
 class Agent:
-    def __init__(self) -> None:
+    def __init__(self, config: Optional[AgentConfiguration] = None) -> None:
         self.client: Optional[AsyncClient] = None
         self.nursery: Optional[trio.Nursery] = None
 
-        config_parse: AgentConfiguration = get_config()
+        config_parse: AgentConfiguration = config if config else get_config()
         self._host = config_parse.mqtt.host.ip_value
         self._port = config_parse.mqtt.port
         # For initializing the camera, capturing the on-wire protocol

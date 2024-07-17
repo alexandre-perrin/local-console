@@ -62,7 +62,8 @@ class Driver:
     def __init__(self, gui: type[MDApp]) -> None:
         self.gui = gui
 
-        self.mqtt_client = Agent()
+        self.config = get_config()
+        self.mqtt_client = Agent(self.config)
         self.upload_port = 0
         self.temporary_base: Optional[Path] = None
         self.temporary_image_directory: Optional[Path] = None
@@ -73,7 +74,6 @@ class Driver:
         self.latest_image_file: Optional[Path] = None
         # Used to identify if output tensors are missing
         self.consecutives_images = 0
-        self.config = get_config()
 
         self.camera_state = CameraState()
         self.camera_state.device_config.subscribe_async(self.process_factory_reset)

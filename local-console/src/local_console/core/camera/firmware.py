@@ -143,7 +143,7 @@ async def update_firmware_task(
         return
 
     config = get_config()
-    ephemeral_agent = Agent()
+    ephemeral_agent = Agent(config)
     webserver_port = config.webserver.port
     ip_addr = get_my_ip_by_routing()
 
