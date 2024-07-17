@@ -50,10 +50,9 @@ class CameraState:
 
     def __init__(self) -> None:
         self.sensor_state = StreamStatus.Inactive
-        self.app_state = ""
         self.deploy_status: dict[str, str] = {}
+        self._onwire_schema: Optional[OnWireProtocol] = None
         self.device_config: TrackingVariable[DeviceConfiguration] = TrackingVariable()
-        self.onwire_schema: Optional[OnWireProtocol] = None
         self.attributes_available = False
         self._last_reception: Optional[datetime] = None
 
