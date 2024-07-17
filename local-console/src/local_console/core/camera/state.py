@@ -60,6 +60,9 @@ class CameraState:
         self._ota_event = trio.Event()
         self.device_config.subscribe_async(self._prepare_ota_event)
 
+        self.image_dir_path: TrackingVariable[Path] = TrackingVariable()
+        self.inference_dir_path: TrackingVariable[Path] = TrackingVariable()
+
     @property
     def is_ready(self) -> bool:
         # Attributes report interval cannot be controlled in EVP1

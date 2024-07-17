@@ -17,8 +17,8 @@ from importlib.metadata import version as version_info
 from typing import Any
 from typing import Optional
 
-from kivymd.app import MDApp
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
+from local_console.gui.model.camera_proxy import CameraStateProxy
 from local_console.gui.view.base_screen import BaseScreenView
 
 
@@ -30,7 +30,7 @@ class HomeScreenView(BaseScreenView):
         self.app.mdl.bind(device_config=self.versions_refresh)
 
     def versions_refresh(
-        self, app: MDApp, value: Optional[DeviceConfiguration]
+        self, proxy: CameraStateProxy, value: Optional[DeviceConfiguration]
     ) -> None:
         """
         Represent new state values

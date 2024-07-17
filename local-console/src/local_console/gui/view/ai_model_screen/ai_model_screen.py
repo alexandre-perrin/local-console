@@ -19,8 +19,8 @@ from typing import Any
 from typing import Optional
 
 from kivy.properties import BooleanProperty
-from kivymd.app import MDApp
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
+from local_console.gui.model.camera_proxy import CameraStateProxy
 from local_console.gui.schemas import OtaData
 from local_console.gui.utils.sync_async import run_on_ui_thread
 from local_console.gui.view.base_screen import BaseScreenView
@@ -42,13 +42,18 @@ class AIModelScreenView(BaseScreenView):
         super().__init__(**kwargs)
         self.app.mdl.bind(ai_model_file=self.on_ai_model_file)
         self.app.mdl.bind(device_config=self.on_device_config)
+        self.app.mdl.bind(ai_model_file_valid=self.on_ai_model_file_valid)
 
-    def on_ai_model_file(self, app: MDApp, value: Optional[str]) -> None:
+    def on_ai_model_file(self, proxy: CameraStateProxy, value: Optional[str]) -> None:
         if value and Path(value).is_file():
             self.ids.model_pick.accept_path(value)
 
+    def on_ai_model_file_valid(self, proxy: CameraStateProxy, value: bool) -> None:
+        if not value:
+            self.display_error("Invalid AI Model file header!")
+
     def on_device_config(
-        self, app: MDApp, value: Optional[DeviceConfiguration]
+        self, proxy: CameraStateProxy, value: Optional[DeviceConfiguration]
     ) -> None:
         self.update_status_finished = False
         if value:

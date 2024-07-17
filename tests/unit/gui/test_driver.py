@@ -86,90 +86,94 @@ def test_file_move(tmpdir):
     assert moved.parent == target
 
 
-def test_storage_paths(tmpdir):
-    tgd = Path(tmpdir.mkdir("images"))
+def test_storage_paths(tmp_path_factory):
+    tgd = Path(tmp_path_factory.mktemp("images"))
     driver = Driver(MagicMock())
 
     # Set default image dir
     driver.temporary_image_directory = tgd
-    driver.set_image_directory(tgd)
+    driver.camera_state.image_dir_path.value = tgd
 
     # Storing an image when image dir has not changed default
     new_image = create_new(tgd)
-    saved = driver.save_into_image_directory(new_image)
+    saved = driver.save_into_input_directory(new_image, tgd)
     assert saved.parent == tgd
 
     # Change the target image dir
-    new_image_dir = Path(tmpdir.mkdir("another_image_dir"))
-    driver.set_image_directory(new_image_dir)
+    new_image_dir = Path(tmp_path_factory.mktemp("another_image_dir"))
+    driver.camera_state.image_dir_path.value = new_image_dir
 
     # Storing an image when image dir has been changed
     new_image = create_new(tgd)
-    saved = driver.save_into_image_directory(new_image)
+    saved = driver.save_into_input_directory(new_image, new_image_dir)
     assert saved.parent == new_image_dir
 
 
-def test_save_into_image_directory(tmpdir):
-    root = Path(tmpdir)
+def test_save_into_image_directory(tmp_path):
+    root = tmp_path
     tgd = root / "notexists"
 
     driver = Driver(MagicMock())
 
     assert not tgd.exists()
     driver.temporary_image_directory = tgd
-    driver.set_image_directory(tgd)
+    driver.camera_state.image_dir_path.value = tgd
     assert tgd.exists()
 
     tgd.rmdir()
 
     assert not tgd.exists()
-    driver.save_into_image_directory(create_new(root))
+    driver.save_into_input_directory(create_new(root), tgd)
     assert tgd.exists()
 
 
-def test_save_into_inferences_directory(tmpdir):
-    root = Path(tmpdir)
+def test_save_into_inferences_directory(tmp_path):
+    root = tmp_path
     tgd = root / "notexists"
 
     driver = Driver(MagicMock())
 
     assert not tgd.exists()
     driver.temporary_inference_directory = tgd
-    driver.set_inference_directory(tgd)
+    driver.camera_state.inference_dir_path.value = tgd
     assert tgd.exists()
 
     tgd.rmdir()
 
     assert not tgd.exists()
-    driver.save_into_inferences_directory(create_new(root))
+    driver.save_into_input_directory(create_new(root), tgd)
     assert tgd.exists()
 
 
-def test_process_camera_upload_images(tmp_path):
-    root = tmp_path
+def test_process_camera_upload_images(tmp_path_factory):
+    root = tmp_path_factory.getbasetemp()
+    image_dir = tmp_path_factory.mktemp("images")
 
     with (
         patch.object(
-            Driver, "save_into_image_directory"
-        ) as mock_save_into_image_directory,
+            Driver, "save_into_input_directory"
+        ) as mock_save_into_input_directory,
         patch.object(Driver, "update_images_display") as mock_update_display,
     ):
         driver = Driver(MagicMock())
+        driver.camera_state.image_dir_path.value = image_dir
+
         file = root / "images/a.png"
         driver.process_camera_upload(file)
-        mock_save_into_image_directory.assert_called_once_with(file)
+        mock_save_into_input_directory.assert_called_once_with(file, image_dir)
         mock_update_display.assert_not_called()
         driver.process_camera_upload(file)
         mock_update_display.assert_called_once_with(
-            mock_save_into_image_directory.return_value
+            mock_save_into_input_directory.return_value
         )
 
 
-def test_process_camera_upload_inferences_with_schema(tmp_path):
-    root = tmp_path
+def test_process_camera_upload_inferences_with_schema(tmp_path_factory):
+    root = tmp_path_factory.getbasetemp()
+    inference_dir = tmp_path_factory.mktemp("inferences")
 
     with (
-        patch.object(Driver, "save_into_inferences_directory") as mock_save,
+        patch.object(Driver, "save_into_input_directory") as mock_save,
         patch.object(Driver, "update_inference_data") as mock_update_data,
         patch.object(Driver, "update_images_display") as mock_update_display,
         patch.object(
@@ -179,6 +183,7 @@ def test_process_camera_upload_inferences_with_schema(tmp_path):
         patch("local_console.gui.driver.process_frame") as mock_process_frame,
     ):
         driver = Driver(MagicMock())
+        driver.camera_state.inference_dir_path.value = inference_dir
         driver.latest_image_file = root / "inferences/a.png"
         driver.flatbuffers_schema = "objectdetection.fbs"
         file = root / "inferences/a.txt"
@@ -188,7 +193,7 @@ def test_process_camera_upload_inferences_with_schema(tmp_path):
         mock_process_frame.side_effect = Exception
         driver.process_camera_upload(file)
 
-        mock_save.assert_called_once_with(file)
+        mock_save.assert_called_once_with(file, inference_dir)
         mock_flatbuffers.return_value.get_output_from_inference_results.assert_called_once_with(
             file
         )
@@ -197,11 +202,12 @@ def test_process_camera_upload_inferences_with_schema(tmp_path):
         mock_update_display.assert_called_once_with(driver.latest_image_file)
 
 
-def test_process_camera_upload_inferences_missing_schema(tmp_path):
-    root = tmp_path
+def test_process_camera_upload_inferences_missing_schema(tmp_path_factory):
+    root = tmp_path_factory.getbasetemp()
+    inference_dir = tmp_path_factory.mktemp("inferences")
 
     with (
-        patch.object(Driver, "save_into_inferences_directory") as mock_save,
+        patch.object(Driver, "save_into_input_directory") as mock_save,
         patch.object(Driver, "update_inference_data") as mock_update_data,
         patch.object(Driver, "update_images_display") as mock_update_display,
         patch("local_console.gui.driver.FlatBuffers") as mock_flatbuffers,
@@ -209,13 +215,14 @@ def test_process_camera_upload_inferences_missing_schema(tmp_path):
         patch.object(Path, "read_text", return_value=""),
     ):
         driver = Driver(MagicMock())
+        driver.camera_state.inference_dir_path.value = inference_dir
         driver.latest_image_file = root / "inferences/a.png"
         file = root / "inferences/a.txt"
         mock_save.return_value = file
 
         driver.process_camera_upload(file)
 
-        mock_save.assert_called_once_with(file)
+        mock_save.assert_called_once_with(file, inference_dir)
         mock_flatbuffers.return_value.get_output_from_inference_results.assert_called_once_with(
             file
         )

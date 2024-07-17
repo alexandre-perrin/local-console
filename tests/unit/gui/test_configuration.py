@@ -224,9 +224,7 @@ def test_update_image_directory(path: str):
     ):
         ctrl = ConfigurationScreenController(model, driver)
         ctrl.update_image_directory(path)
-
-        driver.set_image_directory.assert_called_once_with(path)
-        assert model.image_directory == path
+        assert driver.camera_state.image_dir_path.value == path
 
 
 @given(generate_text())
@@ -240,9 +238,7 @@ def test_update_inferences_directory(path: str):
     ):
         ctrl = ConfigurationScreenController(model, driver)
         ctrl.update_inferences_directory(path)
-
-        driver.set_inference_directory.assert_called_once_with(path)
-        assert model.inferences_directory == path
+        assert driver.camera_state.inference_dir_path.value == path
 
 
 def test_get_view():
