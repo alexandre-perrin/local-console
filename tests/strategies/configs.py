@@ -33,12 +33,11 @@ from local_console.core.schemas.schemas import TLSConfiguration
 from local_console.core.schemas.schemas import WebserverParams
 
 
-@st.composite
-def generate_text(draw: st.DrawFn, min_size: int = 1, max_size: int = 5):
+def generate_text(min_size: int = 1, max_size: int = 5):
     characters = st.characters(
         whitelist_categories=("Lu", "Ll", "Nd"), min_codepoint=0, max_codepoint=0x10FFFF
     )
-    return draw(st.text(alphabet=characters, min_size=min_size, max_size=max_size))
+    return st.text(alphabet=characters, min_size=min_size, max_size=max_size)
 
 
 @st.composite
@@ -147,40 +146,50 @@ def generate_invalid_port_number(draw: st.DrawFn) -> int:
 
 @st.composite
 def generate_agent_config(draw: st.DrawFn) -> AgentConfiguration:
-    return AgentConfiguration(
-        evp=EVPParams(
-            iot_platform=draw(
-                generate_identifiers(max_size=10, categories_first_char=("Ll", "Lu"))
-            ),
-        ),
-        mqtt=MQTTParams(
-            host=IPAddress(ip_value=draw(generate_valid_ip())),
-            port=draw(generate_valid_port_number()),
-            device_id=draw(
-                generate_identifiers(
-                    max_size=10,
-                    categories_first_char=("Ll", "Lu"),
-                    include_in_first_char="_",
-                    include_in_next_chars="-",
-                )
-            ),
-        ),
-        webserver=WebserverParams(
-            host=IPAddress(ip_value=draw(generate_valid_ip())),
-            port=draw(generate_valid_port_number()),
-        ),
-        tls=TLSConfiguration.model_construct(
-            ca_certificate=draw(st.none()),
-            ca_key=draw(st.none()),
-        ),
+    return draw(
+        st.just(
+            AgentConfiguration(
+                evp=EVPParams(
+                    iot_platform=draw(
+                        generate_identifiers(
+                            max_size=10, categories_first_char=("Ll", "Lu")
+                        )
+                    ),
+                ),
+                mqtt=MQTTParams(
+                    host=IPAddress(ip_value=draw(generate_valid_ip())),
+                    port=draw(generate_valid_port_number()),
+                    device_id=draw(
+                        generate_identifiers(
+                            max_size=10,
+                            categories_first_char=("Ll", "Lu"),
+                            include_in_first_char="_",
+                            include_in_next_chars="-",
+                        )
+                    ),
+                ),
+                webserver=WebserverParams(
+                    host=IPAddress(ip_value=draw(generate_valid_ip())),
+                    port=draw(generate_valid_port_number()),
+                ),
+                tls=TLSConfiguration.model_construct(
+                    ca_certificate=draw(st.none()),
+                    ca_key=draw(st.none()),
+                ),
+            )
+        )
     )
 
 
 @st.composite
 def generate_tls_config(draw: st.DrawFn) -> TLSConfiguration:
-    return TLSConfiguration.model_construct(
-        ca_certificate=draw(st.just(Path("ca.crt"))),
-        ca_key=draw(st.just(Path("ca.key"))),
+    return draw(
+        st.just(
+            TLSConfiguration.model_construct(
+                ca_certificate=draw(st.just(Path("ca.crt"))),
+                ca_key=draw(st.just(Path("ca.key"))),
+            )
+        )
     )
 
 
@@ -189,27 +198,31 @@ def generate_valid_device_configuration(draw: st.DrawFn) -> DeviceConfiguration:
     # TODO: generate data at random
     # Use https://polyfactory.litestar.dev/latest/
     # while pydantic hypothesis support is missing https://docs.pydantic.dev/latest/integrations/hypothesis/
-    return DeviceConfiguration(
-        Hardware=Hardware(
-            Sensor="", SensorId="", KG="", ApplicationProcessor="", LedOn=True
-        ),
-        Version=Version(
-            SensorFwVersion="",
-            SensorLoaderVersion="",
-            DnnModelVersion=[],
-            ApFwVersion="",
-            ApLoaderVersion="",
-        ),
-        Status=Status(Sensor="", ApplicationProcessor=""),
-        OTA=OTA(
-            SensorFwLastUpdatedDate="",
-            SensorLoaderLastUpdatedDate="",
-            DnnModelLastUpdatedDate=[],
-            ApFwLastUpdatedDate="",
-            UpdateProgress=75,
-            UpdateStatus="Updating",
-        ),
-        Permission=Permission(FactoryReset=False),
+    return draw(
+        st.just(
+            DeviceConfiguration(
+                Hardware=Hardware(
+                    Sensor="", SensorId="", KG="", ApplicationProcessor="", LedOn=True
+                ),
+                Version=Version(
+                    SensorFwVersion="",
+                    SensorLoaderVersion="",
+                    DnnModelVersion=[],
+                    ApFwVersion="",
+                    ApLoaderVersion="",
+                ),
+                Status=Status(Sensor="", ApplicationProcessor=""),
+                OTA=OTA(
+                    SensorFwLastUpdatedDate="",
+                    SensorLoaderLastUpdatedDate="",
+                    DnnModelLastUpdatedDate=[],
+                    ApFwLastUpdatedDate="",
+                    UpdateProgress=75,
+                    UpdateStatus="Updating",
+                ),
+                Permission=Permission(FactoryReset=False),
+            )
+        )
     )
 
 
@@ -217,25 +230,29 @@ def generate_valid_device_configuration(draw: st.DrawFn) -> DeviceConfiguration:
 def generate_valid_device_configuration_with_version(
     draw: st.DrawFn,
 ) -> DeviceConfiguration:
-    return DeviceConfiguration(
-        Hardware=Hardware(
-            Sensor="", SensorId="", KG="", ApplicationProcessor="", LedOn=True
-        ),
-        Version=Version(
-            SensorFwVersion="010707",
-            SensorLoaderVersion="020301",
-            DnnModelVersion=[],
-            ApFwVersion="D52408",
-            ApLoaderVersion="D10300",
-        ),
-        Status=Status(Sensor="", ApplicationProcessor=""),
-        OTA=OTA(
-            SensorFwLastUpdatedDate="",
-            SensorLoaderLastUpdatedDate="",
-            DnnModelLastUpdatedDate=[],
-            ApFwLastUpdatedDate="",
-            UpdateProgress=100,
-            UpdateStatus="Done",
-        ),
-        Permission=Permission(FactoryReset=False),
+    return draw(
+        st.just(
+            DeviceConfiguration(
+                Hardware=Hardware(
+                    Sensor="", SensorId="", KG="", ApplicationProcessor="", LedOn=True
+                ),
+                Version=Version(
+                    SensorFwVersion="010707",
+                    SensorLoaderVersion="020301",
+                    DnnModelVersion=[],
+                    ApFwVersion="D52408",
+                    ApLoaderVersion="D10300",
+                ),
+                Status=Status(Sensor="", ApplicationProcessor=""),
+                OTA=OTA(
+                    SensorFwLastUpdatedDate="",
+                    SensorLoaderLastUpdatedDate="",
+                    DnnModelLastUpdatedDate=[],
+                    ApFwLastUpdatedDate="",
+                    UpdateProgress=100,
+                    UpdateStatus="Done",
+                ),
+                Permission=Permission(FactoryReset=False),
+            )
+        )
     )
