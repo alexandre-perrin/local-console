@@ -207,7 +207,7 @@ class Driver:
                     if await check_attributes_request(
                         self.mqtt_client, msg.topic, msg.payload.decode()
                     ):
-                        self.camera_state.attributes_available = True
+                        self.camera_state.attributes_available.value = True
                         # attributes request handshake is performed at (re)connect
                         # when reconnecting, multiple requests might be made
                         if streaming_stop_required:

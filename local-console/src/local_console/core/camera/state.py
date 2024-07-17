@@ -52,10 +52,11 @@ class CameraState:
         self.sensor_state = StreamStatus.Inactive
         self.deploy_status: dict[str, str] = {}
         self._onwire_schema: Optional[OnWireProtocol] = None
-        self.attributes_available = False
         self._last_reception: Optional[datetime] = None
 
         self.device_config: TrackingVariable[DeviceConfiguration] = TrackingVariable()
+        self.attributes_available: TrackingVariable[bool] = TrackingVariable(False)
+        self.is_ready: TrackingVariable[bool] = TrackingVariable(False)
         self._ota_event = trio.Event()
         self.device_config.subscribe_async(self._prepare_ota_event)
 
@@ -71,12 +72,27 @@ class CameraState:
         self.image_dir_path: TrackingVariable[Path] = TrackingVariable()
         self.inference_dir_path: TrackingVariable[Path] = TrackingVariable()
 
-    @property
-    def is_ready(self) -> bool:
-        # Attributes report interval cannot be controlled in EVP1
-        return (
-            self.onwire_schema is not OnWireProtocol.EVP1 and self.attributes_available
-        )
+        self._init_bindings()
+
+    def _init_bindings(self) -> None:
+        """
+        These bindings among variables implement business logic that requires
+        no further data than the one contained among the variables.
+        """
+
+        def compute_is_ready(current: Optional[bool], previous: Optional[bool]) -> None:
+            _is_ready = (
+                False
+                if current is None
+                else (
+                    # Attributes report interval cannot be controlled in EVP1
+                    current
+                    and (self._onwire_schema is not OnWireProtocol.EVP1)
+                )
+            )
+            self.is_ready.value = _is_ready
+
+        self.attributes_available.subscribe(compute_is_ready)
 
     @property
     def connected(self) -> bool:
@@ -136,15 +152,15 @@ class CameraState:
     async def _process_sysinfo_topic(self, payload: dict[str, Any]) -> None:
         sys_info = payload[self.SYSINFO_TOPIC]
         if "protocolVersion" in sys_info:
-            self.onwire_schema = OnWireProtocol(sys_info["protocolVersion"])
-        self.attributes_available = True
+            self._onwire_schema = OnWireProtocol(sys_info["protocolVersion"])
+        self.attributes_available.value = True
 
     async def _process_deploy_status_topic(self, payload: dict[str, Any]) -> None:
-        if self.onwire_schema == OnWireProtocol.EVP1 or self.onwire_schema is None:
+        if self._onwire_schema == OnWireProtocol.EVP1 or self._onwire_schema is None:
             self.deploy_status = json.loads(payload[self.DEPLOY_STATUS_TOPIC])
         else:
             self.deploy_status = payload[self.DEPLOY_STATUS_TOPIC]
-        self.attributes_available = True
+        self.attributes_available.value = True
 
     async def _prepare_ota_event(
         self,
