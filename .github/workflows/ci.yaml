@@ -52,19 +52,16 @@ jobs:
 
   unit-tests:
     name: Unit Tests
-    # TODO: If possible use the public runners 'runs-on: [ubuntu-22.04]'
-    #       Also this job not always works (maybe because you are using the container)
-    runs-on: [evp-dev, amd64, stable]
-    container: ubuntu:22.04
+    runs-on: [ubuntu-22.04]
     timeout-minutes: 20
     needs: [pre-commit]
     steps:
     - name: Install system requirements
       run: |
-        apt-get -y update && \
-        apt install -y curl gcc python3-dev make \
-                       software-properties-common git \
-                       xvfb libgl1-mesa-glx libxrender1 libglib2.0-0
+        sudo apt-get -y update && \
+        sudo apt install -y curl gcc python3-dev make \
+                            software-properties-common git \
+                            xvfb libgl1-mesa-glx libxrender1 libglib2.0-0
 
     - name: Setup Python ${{ env.PYTHON_VERSION }}
       uses: actions/setup-python@v5
@@ -74,8 +71,8 @@ jobs:
 
     - name: Mock wasi-sdk
       run: |
-        mkdir /opt/wasi-sdk
-        touch /opt/wasi-sdk/bin
+        sudo mkdir -p /opt/wasi-sdk
+        sudo touch /opt/wasi-sdk/bin
 
     - name: Checkout
       uses: actions/checkout@v4
