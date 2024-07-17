@@ -52,10 +52,10 @@ class CameraState:
         self.sensor_state = StreamStatus.Inactive
         self.deploy_status: dict[str, str] = {}
         self._onwire_schema: Optional[OnWireProtocol] = None
-        self.device_config: TrackingVariable[DeviceConfiguration] = TrackingVariable()
         self.attributes_available = False
         self._last_reception: Optional[datetime] = None
 
+        self.device_config: TrackingVariable[DeviceConfiguration] = TrackingVariable()
         self._ota_event = trio.Event()
         self.device_config.subscribe_async(self._prepare_ota_event)
 
