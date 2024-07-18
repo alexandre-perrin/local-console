@@ -696,3 +696,13 @@ class FirmwareDropDownItem(MDBoxLayout):
         """
         Default handler for the selected item
         """
+
+
+class DeviceItem(MDBoxLayout):
+    name = StringProperty("")
+    port = StringProperty("")
+    text_height = "40dp"
+    text_width = "200dp"
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)

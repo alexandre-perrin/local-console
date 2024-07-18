@@ -149,7 +149,7 @@
     font_size: "12sp"
     readonly: True
 
-<FirmwareDropDownItem>
+<FirmwareDropDownItem>:
     MDDropDownItem:
         pos_hint: {"center_y": .5}
         on_release: root.open_menu(*args)
@@ -159,3 +159,46 @@
             text: root._selected_type
             font_style: "Body"
             role: "large"
+
+<DeviceItem>:
+    padding: "10dp"
+    spacing: "10dp"
+    pos_hint: {"center_x": 0.5, "center_y": 0.5}
+    size_hint_y: None
+    height: "70dp"
+
+    MDCheckbox:
+        id: check_box_device
+        padding: 0, 0, 0, "15dp"
+
+    EntryLabel:
+        text: "Name:"
+        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+        size_hint_y: None
+        height: root.text_height
+
+    MDTextField:
+        id: txt_device_name
+        text: root.name
+        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+        size_hint: None, None
+        max_height: root.text_height
+        height: root.text_height
+        max_width: root.text_width
+        width: root.text_width
+
+    EntryLabel:
+        text: "Port:"
+        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+        size_hint_y: None
+        height: root.text_height
+
+    MDTextField:
+        id: txt_device_port
+        text: root.port
+        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+        size_hint: None, None
+        max_height: root.text_height
+        height: root.text_height
+        max_width: root.text_width
+        width: root.text_width

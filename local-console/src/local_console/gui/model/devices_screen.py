@@ -13,16 +13,14 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-from local_console.utils.enums import StrEnum
+import logging
+
+from local_console.gui.model.base_model import BaseScreenModel
+
+logger = logging.getLogger(__name__)
 
 
-class Screen(StrEnum):
-    HOME_SCREEN = "home screen"
-    STREAMING_SCREEN = "streaming screen"
-    INFERENCE_SCREEN = "inference screen"
-    APPLICATIONS_SCREEN = "applications screen"
-    CONNECTION_SCREEN = "connection screen"
-    AI_MODEL_SCREEN = "ai model screen"
-    CONFIGURATION_SCREEN = "configuration screen"
-    FIRMWARE_SCREEN = "firmware screen"
-    DEVICES_SCREEN = "devices screen"
+class DevicesScreenModel(BaseScreenModel):
+    """
+    The Model for the Devices screen.
+    """

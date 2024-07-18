@@ -1,0 +1,128 @@
+<DevicesScreenView>
+    md_bg_color: self.theme_cls.backgroundColor
+
+    MDBoxLayout:
+        orientation: "vertical"
+
+        MDBoxLayout:
+        # Top bar
+            orientation: "horizontal"
+            size_hint_y: 0.1
+
+            MDBoxLayout:
+            # Controls half
+                orientation: "horizontal"
+                spacing: "10dp"
+                padding: "10dp"
+
+                GoHomeButton:
+
+                MDWidget:
+                    size_hint_x: 3
+
+        MDBoxLayout:
+        # List of devices and Remove button
+            size_hint_y: 0.7
+            orientation: "horizontal"
+
+            MDBoxLayout:
+                size_hint_x: 0.85
+                orientation: "vertical"
+                padding: 35
+
+                MDBoxLayout:
+                    id: box_device_list
+                    orientation: "vertical"
+                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
+                    adaptive_height: True
+                    canvas.before:
+                        Color:
+                            rgba: 0, 0, 0, 1
+                        Line:
+                            width: 1.0
+                            rounded_rectangle: self.x, self.y, self.width, self.height, 6
+
+                MDWidget:
+                    size_hint_y: 1.0
+
+            MDBoxLayout:
+                size_hint_x: 0.15
+
+                MDButton:
+                    id: btn_remove_device
+                    on_release: if not self.disabled: root.controller.remove_device()
+                    halign: "center"
+                    valigh: "middle"
+                    # padding: 10, 0, 0, 0
+                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
+                    MDButtonText:
+                        text: "Remove"
+
+        MDBoxLayout:
+        # Create new device
+            size_hint_y: 0.2
+            orientation: "horizontal"
+            padding: 35
+
+            MDBoxLayout:
+                padding: "9dp"
+                spacing: "10dp"
+                pos_hint: {"center_x": 0.5, "center_y": 0.5}
+                size_hint_y: None
+                height: "80dp"
+                canvas.before:
+                    Color:
+                        rgba: 0, 0, 0, 1
+                    Line:
+                        width: 1.0
+                        rounded_rectangle: self.x, self.y, self.width, self.height, 6
+
+                EntryLabel:
+                    text: "Name:"
+                MDTextField:
+                    id: txt_new_device_name
+                    on_text: root.controller.set_new_device_name(args[1])
+                    multiline: False
+                    write_tab: False
+                    focus_previous: txt_new_device_port
+                    focus_next: txt_new_device_port
+                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
+                    size_hint: None, None
+                    max_height: "50dp"
+                    height: "50dp"
+                    max_width: "200dp"
+                    width: "200dp"
+
+                    MDTextFieldHintText:
+                        text: "Input device name"
+                        text_color_normal: "lightgray"
+
+                EntryLabel:
+                    text: "Port:"
+                MDTextField:
+                    id: txt_new_device_port
+                    on_text: root.controller.set_new_device_port(args[1])
+                    multiline: False
+                    write_tab: False
+                    focus_previous: txt_new_device_name
+                    focus_next: txt_new_device_name
+                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
+                    size_hint: None, None
+                    max_height: "50dp"
+                    height: "50dp"
+                    max_width: "200dp"
+                    width: "200dp"
+
+                    MDTextFieldHintText:
+                        text: "Input port number"
+                        text_color_normal: "lightgray"
+
+                MDWidget:
+                    size_hint_x: 0.2
+
+                MDButton:
+                    id: btn_create_device
+                    on_release: if not self.disabled: root.controller.add_new_device()
+                    pos_hint: {"center_y": 0.5}
+                    MDButtonText:
+                        text: "Create"

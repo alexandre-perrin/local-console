@@ -85,6 +85,16 @@
                 MDExtendedFabButtonText:
                     text: "Firmware"
 
+            MDExtendedFabButton:
+                size_hint_x: .7
+                fab_state: "expand"
+                valign: "center"
+                on_press: root.manager.current = 'devices screen'
+                MDExtendedFabButtonIcon:
+                    icon: "camera"
+                MDExtendedFabButtonText:
+                    text: "Devices"
+
             MDWidget:
 
             MDLabel:
