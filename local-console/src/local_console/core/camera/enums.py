@@ -13,22 +13,22 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-from local_console.core.camera.enums import FirmwareExtension
-from local_console.core.camera.enums import OTAUpdateModule
-from local_console.core.camera.enums import OTAUpdateStatus
-from local_console.core.camera.qr import get_qr_object
-from local_console.core.camera.qr import qr_string
-from local_console.core.camera.state import CameraState
-from local_console.core.camera.state import MQTTTopics
-from local_console.core.camera.state import StreamStatus
+from local_console.utils.enums import StrEnum
 
-__all__ = [
-    "get_qr_object",
-    "qr_string",
-    "CameraState",
-    "MQTTTopics",
-    "StreamStatus",
-    "OTAUpdateStatus",
-    "OTAUpdateModule",
-    "FirmwareExtension",
-]
+
+class OTAUpdateStatus(StrEnum):
+    DOWNLOADING = "Downloading"
+    UPDATING = "Updating"
+    REBOOTING = "Rebooting"
+    DONE = "Done"
+    FAILED = "Failed"
+
+
+class OTAUpdateModule(StrEnum):
+    APFW = "ApFw"
+    SENSORFW = "SensorFw"
+
+
+class FirmwareExtension(StrEnum):
+    APPLICATION_FW = ".bin"
+    SENSOR_FW = ".fpk"

@@ -71,7 +71,7 @@ class walk_entry_mock:
 
 
 def create_new(root: Path) -> Path:
-    new_file = root / f"{random.randint(1, 1e6)}"
+    new_file = root / f"{random.randint(1, int(1e6))}"
     new_file.write_bytes(b"0")
     return new_file
 

@@ -13,10 +13,25 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-from local_console.gui.model.base_model import BaseScreenModel
+import logging
+
+import pytest
+
+logger = logging.getLogger(__name__)
 
 
-class FirmwareScreenModel(BaseScreenModel):
+@pytest.fixture()
+def debug_log(pytestconfig):
     """
-    The Model for the Firmware screen.
+    When passed to a test case, all calls to logging.debug will be
+    printed on the console.
     """
+    from _pytest.logging import catching_logs
+    from _pytest.logging import _LiveLoggingStreamHandler
+
+    terminal_reporter = pytestconfig.pluginmanager.get_plugin("terminalreporter")
+    capture_manager = pytestconfig.pluginmanager.get_plugin("capturemanager")
+    log_cli_handler = _LiveLoggingStreamHandler(terminal_reporter, capture_manager)
+
+    with catching_logs(log_cli_handler, level=logging.DEBUG):
+        yield

@@ -56,6 +56,7 @@ from kivymd.uix.snackbar import MDSnackbarCloseButton
 from kivymd.uix.snackbar import MDSnackbarSupportingText
 from kivymd.uix.snackbar import MDSnackbarText
 from local_console.gui.utils.observer import Observer
+from local_console.gui.utils.sync_async import run_on_ui_thread
 
 
 class BaseScreenView(MDScreen, Observer):
@@ -97,8 +98,9 @@ class BaseScreenView(MDScreen, Observer):
         self.model.add_observer(self)
 
         # Error display widget tracking
-        self.error_widget: Optional[MDSnackbar] = None
+        self._error_widget: Optional[MDSnackbar] = None
 
+    @run_on_ui_thread
     def display_error(
         self, text: str, support_text: Optional[str] = None, duration: int = 5
     ) -> None:
@@ -117,7 +119,7 @@ class BaseScreenView(MDScreen, Observer):
             )
 
         self.dismiss_error()
-        self.error_widget = MDSnackbar(
+        self._error_widget = MDSnackbar(
             *widgets,
             y=dp(24),
             orientation="horizontal",
@@ -126,7 +128,7 @@ class BaseScreenView(MDScreen, Observer):
             background_color=self.theme_cls.errorContainerColor,
             duration=duration,
         )
-        self.error_widget.add_widget(
+        self._error_widget.add_widget(
             MDSnackbarButtonContainer(
                 MDSnackbarCloseButton(
                     icon="close",
@@ -137,9 +139,9 @@ class BaseScreenView(MDScreen, Observer):
                 pos_hint={"center_y": 0.5},
             )
         )
-        self.error_widget.open()
+        self._error_widget.open()
 
     def dismiss_error(self, *args: Any) -> None:
-        if self.error_widget:
-            self.error_widget.dismiss()
-            self.error_widget = None
+        if self._error_widget:
+            self._error_widget.dismiss()
+            self._error_widget = None

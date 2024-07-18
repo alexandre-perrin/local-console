@@ -676,7 +676,7 @@ class FirmwareDropDownItem(MDBoxLayout):
         self.register_event_type(self.SELECTED_EVENT)
         menu_items = [
             {
-                "text": firmware_type,
+                "text": firmware_type.value,
                 "on_release": lambda x=firmware_type: self.set_type(x),
             }
             for firmware_type in self._factors
@@ -687,7 +687,7 @@ class FirmwareDropDownItem(MDBoxLayout):
         self.menu.caller = widget
         self.menu.open()
 
-    def set_type(self, type_item: str) -> None:
+    def set_type(self, type_item: FirmwareType) -> None:
         self._selected_type = type_item
         self.dispatch(self.SELECTED_EVENT, type_item)
         self.menu.dismiss()

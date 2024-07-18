@@ -14,48 +14,86 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 import logging
+from pathlib import Path
 from typing import Any
+from typing import Optional
 
-from local_console.gui.enums import OTAUpdateStatus
+from kivy.properties import BooleanProperty
+from kivy.properties import NumericProperty
+from kivy.properties import ObjectProperty
+from kivy.properties import StringProperty
+from local_console.core.camera import FirmwareExtension
+from local_console.core.camera import OTAUpdateModule
+from local_console.core.camera import OTAUpdateStatus
+from local_console.core.camera.firmware import TransientStatus
+from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
+from local_console.gui.enums import FirmwareType
+from local_console.gui.model.camera_proxy import CameraStateProxy
+from local_console.gui.model.data_binding import ViewTransientStatusBase
 from local_console.gui.schemas import OtaData
 from local_console.gui.view.base_screen import BaseScreenView
 
 logger = logging.getLogger(__name__)
 
 
+class FirmwareTransientStatus(TransientStatus, ViewTransientStatusBase):
+    update_status = StringProperty("")
+    progress_download = NumericProperty(0)
+    progress_update = NumericProperty(0)
+
+
 class FirmwareScreenView(BaseScreenView):
+
+    update_status_finished = BooleanProperty(False)
+    transients = ObjectProperty(FirmwareTransientStatus, rebind=True)
+
+    fw_type_ota_map = {
+        FirmwareType.APPLICATION_FW: OTAUpdateModule.APFW,
+        FirmwareType.SENSOR_FW: OTAUpdateModule.SENSORFW,
+    }
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.app.mdl.bind(is_ready=self.app_state_refresh)
+        self.transients = FirmwareTransientStatus()
+        self.transients.bind_widget_property(
+            "progress_download", self.ids.progress_downloading, "value"
+        )
+        self.transients.bind_widget_property(
+            "progress_update", self.ids.progress_updating, "value"
+        )
+        self.transients.bind_widget_property(
+            "update_status", self.ids.lbl_ota_status, "text"
+        )
 
-    def model_is_changed(self) -> None:
-        self.ids.txt_firmware_file_version.text = self.model.firmware_file_version
-        self.ids.txt_firmware_file_hash.text = self.model.firmware_file_hash
-        self.ids.progress_downloading.value = self.model.downloading_progress
-        self.ids.progress_updating.value = self.model.updating_progress
-        self.ids.lbl_ota_status.text = self.model.update_status
+        self.app.mdl.bind(device_config=self.on_device_config)
+        self.app.mdl.bind(firmware_file=self.on_firmware_file)
+        self.app.mdl.bind(firmware_file_valid=self.on_firmware_file_valid)
 
-        # If Done or Failed
-        leaf_update_status = False
+    def on_firmware_file(self, proxy: CameraStateProxy, value: Optional[str]) -> None:
+        if value and Path(value).is_file():
+            self.ids.firmware_pick.accept_path(value)
 
-        if self.model.device_config:
-            self.ids.txt_ota_data.text = OtaData(
-                **self.model.device_config.model_dump()
-            ).model_dump_json(indent=4)
+    def on_firmware_file_valid(self, proxy: CameraStateProxy, value: bool) -> None:
+        if not value:
+            firmware_file = Path(self.app.mdl.firmware_file)
+            if firmware_file.suffix != FirmwareExtension.APPLICATION_FW:
+                self.display_error("Invalid Application Firmware!")
+            elif firmware_file.suffix != FirmwareExtension.SENSOR_FW:
+                self.display_error("Invalid Sensor Firmware!")
 
-            update_status = self.model.device_config.OTA.UpdateStatus
-            leaf_update_status = update_status in (
+    def on_device_config(
+        self, proxy: CameraStateProxy, value: Optional[DeviceConfiguration]
+    ) -> None:
+        update_status_finished = False
+        if value:
+            self.ids.txt_ota_data.text = OtaData(**value.model_dump()).model_dump_json(
+                indent=4
+            )
+            update_status = value.OTA.UpdateStatus
+            update_status_finished = update_status in (
                 OTAUpdateStatus.DONE,
                 OTAUpdateStatus.FAILED,
             )
+            self.transients.update_status = update_status
 
-        if self.model.firmware_file.is_file():
-            self.ids.firmware_pick.accept_path(str(self.model.firmware_file))
-
-        can_update = (
-            self.app.mdl.is_ready
-            and self.model.firmware_file_valid
-            and leaf_update_status
-            and self.model.firmware_file_version
-        )
-        self.ids.btn_update_firmware.disabled = not can_update
+        self.update_status_finished = update_status_finished

@@ -32,6 +32,7 @@ def get_network_ifaces() -> list[str]:
         list[str]: List of network interface names
     """
     stats = psutil.net_if_stats()
+    logger.debug(stats)
     os_name = platform.system()
     if os_name == "Windows":
         chosen = list(
@@ -44,6 +45,7 @@ def get_network_ifaces() -> list[str]:
             k
             for k, v in stats.items()
             if v.isup
+            and "docker" not in k.lower()
             and "running" in v.flags
             and "loopback" not in v.flags
             and "pointopoint" not in v.flags

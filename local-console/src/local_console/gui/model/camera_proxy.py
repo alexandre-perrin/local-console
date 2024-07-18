@@ -13,20 +13,15 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-from typing import Any
-from typing import Callable
-from typing import Optional
-
-from kivy.event import EventDispatcher
 from kivy.properties import BooleanProperty
 from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
-from local_console.core.camera import CameraState
+from local_console.core.camera import OTAUpdateModule
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
-from local_console.utils.tracking import TrackingVariable
+from local_console.gui.model.data_binding import CameraStateProxyBase
 
 
-class CameraStateProxy(EventDispatcher):
+class CameraStateProxy(CameraStateProxyBase):
 
     is_ready = BooleanProperty(False)
     is_streaming = BooleanProperty(False)
@@ -41,56 +36,11 @@ class CameraStateProxy(EventDispatcher):
     # test_camera_proxy.py::test_difference_of_property_with_force_dispatch
     ai_model_file_valid = BooleanProperty(False, force_dispatch=True)
 
-    def bind_proxy_to_state(
-        self,
-        property_name: str,
-        state: CameraState,
-        transform: Optional[Callable] = None,
-    ) -> None:
-        """
-        Makes a binding for enabling the Kivy app to dispatch observers
-        from updates to camera state properties that are not set by the
-        camera, but either by the user or the GUI itself (i.e. computed
-        properties)
-
-        The optional 'transform' argument enables providing a custom
-        conversion function (e.g. converting from str to Path).
-        """
-        assert hasattr(self, property_name)
-        assert hasattr(state, property_name)
-        state_variable = getattr(state, property_name)
-        assert isinstance(state_variable, TrackingVariable)
-
-        def binding(_me: type[EventDispatcher], value: Any) -> None:
-            state_variable.value = value if not transform else transform(value)
-
-        bind = {property_name: binding}
-        self.bind(**bind)
-
-    def bind_state_to_proxy(
-        self,
-        property_name: str,
-        state: CameraState,
-        transform: Callable = lambda v: v,
-    ) -> None:
-        """
-        Makes a binding for propagating an update to a TrackingVariable
-        in CameraState, to its corresponding property in the proxy. This
-        is useful for maintaining a GUI state consistent with the logical
-        state of the camera.
-
-        The optional 'transform' argument enables providing a custom
-        conversion function (e.g. converting from Path to str).
-        """
-        assert hasattr(self, property_name)
-        assert hasattr(state, property_name)
-        state_variable = getattr(state, property_name)
-        assert isinstance(state_variable, TrackingVariable)
-
-        def update_proxy(current: Optional[Any], previous: Optional[Any]) -> None:
-            setattr(self, property_name, transform(current))
-
-        state_variable.subscribe(update_proxy)
+    firmware_file = StringProperty("", allownone=True)
+    firmware_file_valid = BooleanProperty(False, force_dispatch=True)
+    firmware_file_version = StringProperty("", allownone=True)
+    firmware_file_type = ObjectProperty(OTAUpdateModule, allownone=True)
+    firmware_file_hash = StringProperty("", allownone=True)
 
 
 # Listing of model properties to move over into this class. It is
@@ -103,8 +53,6 @@ class CameraStateProxy(EventDispatcher):
 #        -e 's;self, [^:]*: ;;g' -e 's/-/;/g' \
 #  | sort -t';' -k2) > model-properties.csv
 #
-#   image_directory(Optional[Path])
-#   inferences_directory(Optional[Path])
 #   stream_status(StreamStatus)
 #   stream_status(StreamStatus)
 #   app_configuration(Optional[str])
@@ -114,12 +62,6 @@ class CameraStateProxy(EventDispatcher):
 #   deploy_stage(DeployStage)
 #   deploy_status(dict[str, str])
 #   dns_server(str)
-#   downloading_progress(int)
-#   firmware_file_hash(str)
-#   firmware_file(Path)
-#   firmware_file_type(str)
-#   firmware_file_valid(bool)
-#   firmware_file_version(str)
 #   flatbuffers_process_result(Optional[str])
 #   flatbuffers_schema(Optional[Path])
 #   flatbuffers_schema_status(bool)
@@ -128,13 +70,10 @@ class CameraStateProxy(EventDispatcher):
 #   ip_address(str)
 #   local_ip(str)
 #   manifest(DeploymentManifest)
-#   model_file(Path)
 #   mqtt_host(str)
 #   mqtt_port(str)
 #   ntp_host(str)
 #   subnet_mask(str)
-#   update_status(str)
-#   updating_progress(int)
 #   warning_message(str)
 #   wifi_icon_eye(str)
 #   wifi_password_hidden(bool)

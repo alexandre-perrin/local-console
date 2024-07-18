@@ -44,24 +44,6 @@ class ApplicationSchemaFilePath:
     )
 
 
-class OTAUpdateStatus:
-    DOWNLOADING = "Downloading"
-    UPDATING = "Updating"
-    REBOOTING = "Rebooting"
-    DONE = "Done"
-    FAILED = "Failed"
-
-
-class OTAUpdateModule:
-    APFW = "ApFw"
-    SENSORFW = "SensorFw"
-
-
-class FirmwareType:
+class FirmwareType(StrEnum):
     APPLICATION_FW = "Application Firmware"
     SENSOR_FW = "Sensor Firmware"
-
-
-class FirmwareExtension:
-    APPLICATION_FW = ".bin"
-    SENSOR_FW = ".fpk"

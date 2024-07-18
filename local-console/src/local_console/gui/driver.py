@@ -27,8 +27,11 @@ from kivymd.app import MDApp
 from local_console.clients.agent import Agent
 from local_console.clients.agent import check_attributes_request
 from local_console.core.camera import CameraState
+from local_console.core.camera import FirmwareExtension
 from local_console.core.camera import MQTTTopics
+from local_console.core.camera import OTAUpdateModule
 from local_console.core.camera import StreamStatus
+from local_console.core.commands.ota_deploy import get_package_hash
 from local_console.core.config import get_config
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.edge_cloud_if_v1 import Permission
@@ -59,7 +62,8 @@ class Driver:
     def __init__(self, gui: type[MDApp]) -> None:
         self.gui = gui
 
-        self.mqtt_client = Agent()
+        self.config = get_config()
+        self.mqtt_client = Agent(self.config)
         self.upload_port = 0
         self.temporary_base: Optional[Path] = None
         self.temporary_image_directory: Optional[Path] = None
@@ -70,7 +74,6 @@ class Driver:
         self.latest_image_file: Optional[Path] = None
         # Used to identify if output tensors are missing
         self.consecutives_images = 0
-        self.config = get_config()
 
         self.camera_state = CameraState()
         self.camera_state.device_config.subscribe_async(self.process_factory_reset)
@@ -97,10 +100,14 @@ class Driver:
         self.dir_monitor = DirectoryMonitor()
 
         self._init_ai_model_functions()
+        self._init_firmware_file_functions()
         self._init_input_directories()
 
     def _init_ai_model_functions(self) -> None:
+        # Proxy->State because we want the user to set this value via the GUI
         self.gui.mdl.bind_proxy_to_state("ai_model_file", self.camera_state, Path)
+
+        # State->Proxy because this is computed from the model file
         self.gui.mdl.bind_state_to_proxy("ai_model_file_valid", self.camera_state)
 
         def validate_file(current: Optional[Path], previous: Optional[Path]) -> None:
@@ -110,6 +117,35 @@ class Driver:
                 )
 
         self.camera_state.ai_model_file.subscribe(validate_file)
+
+    def _init_firmware_file_functions(self) -> None:
+        # Proxy->State because we want the user to set these values via the GUI
+        self.gui.mdl.bind_proxy_to_state("firmware_file", self.camera_state, Path)
+        self.gui.mdl.bind_proxy_to_state("firmware_file_version", self.camera_state)
+        self.gui.mdl.bind_proxy_to_state("firmware_file_type", self.camera_state)
+        # Default value that matches the default widget selection
+        self.gui.mdl.firmware_file_type = OTAUpdateModule.APFW
+
+        # State->Proxy because these are computed from the firmware_file
+        self.gui.mdl.bind_state_to_proxy("firmware_file_valid", self.camera_state)
+        self.gui.mdl.bind_state_to_proxy("firmware_file_hash", self.camera_state)
+
+        def validate_file(current: Optional[Path], previous: Optional[Path]) -> None:
+            if current:
+                is_valid = True
+                if self.camera_state.firmware_file_type.value == OTAUpdateModule.APFW:
+                    if current.suffix != FirmwareExtension.APPLICATION_FW:
+                        is_valid = False
+                else:
+                    if current.suffix != FirmwareExtension.SENSOR_FW:
+                        is_valid = False
+
+                self.camera_state.firmware_file_hash.value = (
+                    get_package_hash(current) if is_valid else ""
+                )
+                self.camera_state.firmware_file_valid.value = is_valid
+
+        self.camera_state.firmware_file.subscribe(validate_file)
 
     def _init_input_directories(self) -> None:
         self.gui.mdl.bind_state_to_proxy("image_dir_path", self.camera_state, str)
@@ -216,9 +252,6 @@ class Driver:
         )
         self.gui.views[Screen.CONNECTION_SCREEN].model.connected = (
             self.camera_state.connected
-        )
-        self.gui.views[Screen.FIRMWARE_SCREEN].model.device_config = (
-            self.camera_state.device_config.value
         )
 
     async def blobs_webserver_task(self) -> None:
