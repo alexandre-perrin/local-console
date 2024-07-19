@@ -53,16 +53,16 @@ class ConfigurationScreenController:
     def update_total_max_size(self, size: int) -> None:
         self.driver.total_dir_watcher.set_storage_limit(size)
 
+    def update_application_type(self, app_type: str) -> None:
+        self.model.app_type = app_type
 
+        is_custom = app_type == ApplicationType.CUSTOM.value
+        self.view.ids.labels_pick.disabled = is_custom
+        self.view.ids.schema_pick.disabled = not is_custom
 
-    def update_application_type(self, app: str) -> None:
-        self.model.app_type = app
-        self.view.ids.labels_pick.disabled = app == ApplicationType.CUSTOM.value
-        self.view.ids.schema_pick.disabled = app != ApplicationType.CUSTOM.value
-
-        if app == ApplicationType.CUSTOM.value:
+        if app_type == ApplicationType.CUSTOM.value:
             self.update_flatbuffers_schema(None)
-        elif app == ApplicationType.CLASSIFICATION.value:
+        elif app_type == ApplicationType.CLASSIFICATION.value:
             self.update_flatbuffers_schema(ApplicationSchemaFilePath.CLASSIFICATION)
         else:
             self.update_flatbuffers_schema(ApplicationSchemaFilePath.DETECTION)
