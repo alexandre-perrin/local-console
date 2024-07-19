@@ -14,9 +14,9 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 from local_console.core.camera import StreamStatus
+from local_console.core.camera.axis_mapping import UnitROI
 from local_console.gui.driver import Driver
 from local_console.gui.model.streaming_screen import StreamingScreenModel
-from local_console.gui.utils.axis_mapping import UnitROI
 from local_console.gui.view.streaming_screen.streaming_screen import StreamingScreenView
 from pygments.lexers import (
     JsonLexer,

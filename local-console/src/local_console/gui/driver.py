@@ -31,6 +31,8 @@ from local_console.core.camera import FirmwareExtension
 from local_console.core.camera import MQTTTopics
 from local_console.core.camera import OTAUpdateModule
 from local_console.core.camera import StreamStatus
+from local_console.core.camera.axis_mapping import pixel_roi_from_normals
+from local_console.core.camera.axis_mapping import UnitROI
 from local_console.core.commands.ota_deploy import get_package_hash
 from local_console.core.config import get_config
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
@@ -40,8 +42,6 @@ from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
 from local_console.core.schemas.schemas import DesiredDeviceConfig
 from local_console.gui.drawer.objectdetection import process_frame
 from local_console.gui.enums import ApplicationConfiguration
-from local_console.gui.utils.axis_mapping import pixel_roi_from_normals
-from local_console.gui.utils.axis_mapping import UnitROI
 from local_console.gui.utils.enums import Screen
 from local_console.gui.utils.sync_async import run_on_ui_thread
 from local_console.gui.utils.sync_async import SyncAsyncBridge

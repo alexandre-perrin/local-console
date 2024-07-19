@@ -39,16 +39,16 @@ from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.textfield import MDTextField
 from kivymd.uix.tooltip import MDTooltip
+from local_console.core.camera.axis_mapping import as_normal_in_set
+from local_console.core.camera.axis_mapping import DEFAULT_ROI
+from local_console.core.camera.axis_mapping import delta
+from local_console.core.camera.axis_mapping import denormalize_in_set
+from local_console.core.camera.axis_mapping import get_dead_zone_within_image
+from local_console.core.camera.axis_mapping import get_dead_zone_within_widget
+from local_console.core.camera.axis_mapping import get_normalized_center_subregion
+from local_console.core.camera.axis_mapping import snap_point_in_deadzone
 from local_console.gui.enums import ApplicationType
 from local_console.gui.enums import FirmwareType
-from local_console.gui.utils.axis_mapping import as_normal_in_set
-from local_console.gui.utils.axis_mapping import DEFAULT_ROI
-from local_console.gui.utils.axis_mapping import delta
-from local_console.gui.utils.axis_mapping import denormalize_in_set
-from local_console.gui.utils.axis_mapping import get_dead_zone_within_image
-from local_console.gui.utils.axis_mapping import get_dead_zone_within_widget
-from local_console.gui.utils.axis_mapping import get_normalized_center_subregion
-from local_console.gui.utils.axis_mapping import snap_point_in_deadzone
 from local_console.gui.view.common.behaviors import HoverBehavior
 
 logger = logging.getLogger(__name__)

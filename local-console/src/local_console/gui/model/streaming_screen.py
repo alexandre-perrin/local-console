@@ -14,9 +14,9 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 from local_console.core.camera import StreamStatus
+from local_console.core.camera.axis_mapping import DEFAULT_ROI
+from local_console.core.camera.axis_mapping import UnitROI
 from local_console.gui.model.base_model import BaseScreenModel
-from local_console.gui.utils.axis_mapping import DEFAULT_ROI
-from local_console.gui.utils.axis_mapping import UnitROI
 
 
 class StreamingScreenModel(BaseScreenModel):

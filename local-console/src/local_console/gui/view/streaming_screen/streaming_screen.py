@@ -17,8 +17,8 @@ from kivy.uix.codeinput import (
     CodeInput,
 )  # nopycln: import # Required by the screen's KV spec file
 from local_console.core.camera import StreamStatus
-from local_console.gui.utils.axis_mapping import DEFAULT_ROI
-from local_console.gui.utils.axis_mapping import pixel_roi_from_normals
+from local_console.core.camera.axis_mapping import DEFAULT_ROI
+from local_console.core.camera.axis_mapping import pixel_roi_from_normals
 from local_console.gui.view.base_screen import BaseScreenView
 from local_console.gui.view.common.components import (
     ImageWithROI,

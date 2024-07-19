@@ -13,14 +13,14 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-from local_console.gui.utils.axis_mapping import as_normal_in_set
-from local_console.gui.utils.axis_mapping import DEFAULT_ROI
-from local_console.gui.utils.axis_mapping import get_dead_zone_within_image
-from local_console.gui.utils.axis_mapping import get_dead_zone_within_widget
-from local_console.gui.utils.axis_mapping import get_normalized_center_subregion
-from local_console.gui.utils.axis_mapping import pixel_roi_from_normals
-from local_console.gui.utils.axis_mapping import SENSOR_SIZE
-from local_console.gui.utils.axis_mapping import snap_point_in_deadzone
+from local_console.core.camera.axis_mapping import as_normal_in_set
+from local_console.core.camera.axis_mapping import DEFAULT_ROI
+from local_console.core.camera.axis_mapping import get_dead_zone_within_image
+from local_console.core.camera.axis_mapping import get_dead_zone_within_widget
+from local_console.core.camera.axis_mapping import get_normalized_center_subregion
+from local_console.core.camera.axis_mapping import pixel_roi_from_normals
+from local_console.core.camera.axis_mapping import SENSOR_SIZE
+from local_console.core.camera.axis_mapping import snap_point_in_deadzone
 from pytest import approx
 
 
