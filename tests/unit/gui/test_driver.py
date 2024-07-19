@@ -32,8 +32,11 @@ from local_console.core.config import config_to_schema
 from local_console.core.config import get_default_config
 from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
 from local_console.core.schemas.schemas import AgentConfiguration
+from local_console.gui.drawer.classification import ClassificationDrawer
 from local_console.gui.enums import ApplicationConfiguration
+from local_console.gui.enums import ApplicationType
 from local_console.utils.local_network import LOCAL_IP
+from local_console.utils.tracking import TrackingVariable
 
 from tests.mocks.mock_paho_mqtt import MockAsyncIterator
 from tests.mocks.mock_paho_mqtt import MockMQTTMessage
@@ -183,9 +186,12 @@ def test_process_camera_upload_inferences_with_schema(tmp_path_factory):
         ) as mock_get_output_from_inference_results,
         patch("local_console.gui.driver.Path.read_bytes", return_value=b"boo"),
         patch("local_console.gui.driver.Path.read_text", return_value="boo"),
-        patch("local_console.gui.driver.process_frame") as mock_process_frame,
+        patch.object(ClassificationDrawer, "process_frame"),
     ):
         driver = Driver(MagicMock())
+        driver.camera_state.vapp_type = TrackingVariable(
+            ApplicationType.CLASSIFICATION.value
+        )
         driver.camera_state.inference_dir_path.value = inference_dir
         driver.latest_image_file = root / "inferences/a.png"
         driver.camera_state.vapp_schema_file.value = Path("objectdetection.fbs")
@@ -193,13 +199,15 @@ def test_process_camera_upload_inferences_with_schema(tmp_path_factory):
         mock_save.return_value = file
 
         mock_get_flatbuffers_inference_data.return_value = {"a": 3}
-        mock_process_frame.side_effect = Exception
+        ClassificationDrawer.process_frame.side_effect = Exception
         driver.process_camera_upload(file)
 
         mock_save.assert_called_once_with(file, inference_dir)
         mock_get_output_from_inference_results.assert_called_once_with(b"boo")
         mock_update_data.assert_called_once_with(json.dumps({"a": 3}, indent=2))
-        mock_process_frame.assert_called_once_with(driver.latest_image_file, {"a": 3})
+        ClassificationDrawer.process_frame.assert_called_once_with(
+            driver.latest_image_file, {"a": 3}
+        )
         mock_update_display.assert_called_once_with(driver.latest_image_file)
 
 
@@ -216,10 +224,13 @@ def test_process_camera_upload_inferences_missing_schema(tmp_path_factory):
         ) as mock_get_output_from_inference_results,
         patch("local_console.gui.driver.Path.read_bytes", return_value=b"boo"),
         patch("local_console.gui.driver.Path.read_text", return_value="boo"),
-        patch("local_console.gui.driver.process_frame") as mock_process_frame,
+        patch.object(ClassificationDrawer, "process_frame"),
         patch.object(Path, "read_text", return_value=""),
     ):
         driver = Driver(MagicMock())
+        driver.camera_state.vapp_type = TrackingVariable(
+            ApplicationType.CLASSIFICATION.value
+        )
         driver.camera_state.inference_dir_path.value = inference_dir
         driver.latest_image_file = root / "inferences/a.png"
         file = root / "inferences/a.txt"
@@ -232,7 +243,7 @@ def test_process_camera_upload_inferences_missing_schema(tmp_path_factory):
         mock_update_data.assert_called_once_with(
             mock_save.return_value.read_text.return_value
         )
-        mock_process_frame.assert_called_once_with(
+        ClassificationDrawer.process_frame.assert_called_once_with(
             driver.latest_image_file,
             mock_get_output_from_inference_results.return_value,
         )

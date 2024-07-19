@@ -44,8 +44,10 @@ from local_console.core.schemas.edge_cloud_if_v1 import Permission
 from local_console.core.schemas.edge_cloud_if_v1 import SetFactoryReset
 from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
 from local_console.core.schemas.schemas import DesiredDeviceConfig
-from local_console.gui.drawer.objectdetection import process_frame
+from local_console.gui.drawer.classification import ClassificationDrawer
+from local_console.gui.drawer.objectdetection import DetectionDrawer
 from local_console.gui.enums import ApplicationConfiguration
+from local_console.gui.enums import ApplicationType
 from local_console.gui.utils.enums import Screen
 from local_console.gui.utils.sync_async import run_on_ui_thread
 from local_console.gui.utils.sync_async import SyncAsyncBridge
@@ -329,7 +331,12 @@ class Driver:
             # assumes input and output tensor received in that order
             assert self.latest_image_file
             try:
-                process_frame(self.latest_image_file, output_data)
+                {
+                    ApplicationType.CLASSIFICATION.value: ClassificationDrawer,
+                    ApplicationType.DETECTION.value: DetectionDrawer,
+                }[str(self.camera_state.vapp_type)].process_frame(
+                    self.latest_image_file, output_data
+                )
             except Exception as e:
                 logger.error(f"Error while performing the drawing: {e}")
             self.update_images_display(self.latest_image_file)
