@@ -14,8 +14,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 from local_console.core.camera import StreamStatus
-from local_console.core.camera.axis_mapping import DEFAULT_ROI
-from local_console.core.camera.axis_mapping import UnitROI
 from local_console.gui.model.base_model import BaseScreenModel
 
 
@@ -28,7 +26,6 @@ class StreamingScreenModel(BaseScreenModel):
 
     def __init__(self) -> None:
         self._stream_status = StreamStatus.Inactive
-        self._image_roi: UnitROI = DEFAULT_ROI
 
     @property
     def stream_status(self) -> StreamStatus:
@@ -38,16 +35,3 @@ class StreamingScreenModel(BaseScreenModel):
     def stream_status(self, value: StreamStatus) -> None:
         self._stream_status = value
         self.notify_observers()
-
-    @property
-    def image_roi(self) -> UnitROI:
-        return self._image_roi
-
-    @image_roi.setter
-    def image_roi(self, value: UnitROI) -> None:
-        self._image_roi = value
-        self.notify_observers()
-
-    @property
-    def has_default_roi(self) -> bool:
-        return self.image_roi == DEFAULT_ROI

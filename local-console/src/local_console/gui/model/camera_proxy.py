@@ -71,7 +71,6 @@ class CameraStateProxy(CameraStateProxyBase):
 #   flatbuffers_schema(Optional[Path])
 #   flatbuffers_schema_status(bool)
 #   gateway(str)
-#   image_roi(UnitROI)
 #   ip_address(str)
 #   local_ip(str)
 #   manifest(DeploymentManifest)
