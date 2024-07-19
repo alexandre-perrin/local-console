@@ -13,39 +13,31 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+from unittest.mock import Mock
 from unittest.mock import patch
 
 from local_console.core.camera import StreamStatus
 from local_console.gui.controller.inference_screen import InferenceScreenController
-from local_console.gui.utils.enums import Screen
+
+from tests.fixtures.gui import driver_set
 
 
-def test_toggle_stream_status_active():
-    with (
-        patch(
-            "local_console.gui.controller.inference_screen.InferenceScreenView"
-        ) as mock_model,
-        patch("local_console.gui.driver") as mock_driver,
-    ):
-        controller = InferenceScreenController(mock_model, mock_driver)
-        mock_model.stream_status = StreamStatus.Active
+def test_toggle_stream_status_active(driver_set):
+    driver, mock_gui = driver_set
+    with (patch("local_console.gui.controller.inference_screen.InferenceScreenView"),):
+        controller = InferenceScreenController(Mock(), driver)
+        driver.camera_state.stream_status.value = StreamStatus.Active
         controller.toggle_stream_status()
-        mock_driver.from_sync.assert_called_once_with(mock_driver.streaming_rpc_stop)
-        assert mock_model.stream_status == StreamStatus.Transitioning
+        driver.from_sync.assert_called_once_with(driver.streaming_rpc_stop)
+        assert driver.camera_state.stream_status.value == StreamStatus.Transitioning
 
 
-def test_toggle_stream_status_inactive():
-    with (
-        patch(
-            "local_console.gui.controller.inference_screen.InferenceScreenView"
-        ) as mock_model,
-        patch("local_console.gui.driver") as mock_driver,
-    ):
-        controller = InferenceScreenController(mock_model, mock_driver)
-        mock_model.stream_status = StreamStatus.Inactive
-        roi = mock_driver.gui.views[Screen.STREAMING_SCREEN].model.image_roi
+def test_toggle_stream_status_inactive(driver_set):
+    driver, mock_gui = driver_set
+    with (patch("local_console.gui.controller.inference_screen.InferenceScreenView"),):
+        controller = InferenceScreenController(Mock(), driver)
+        driver.camera_state.stream_status.value = StreamStatus.Inactive
+        roi = driver.camera_state.roi.value
         controller.toggle_stream_status()
-        mock_driver.from_sync.assert_called_once_with(
-            mock_driver.streaming_rpc_start, roi
-        )
-        assert mock_model.stream_status == StreamStatus.Transitioning
+        driver.from_sync.assert_called_once_with(driver.streaming_rpc_start, roi)
+        assert driver.camera_state.stream_status.value == StreamStatus.Transitioning

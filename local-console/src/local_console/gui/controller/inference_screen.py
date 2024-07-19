@@ -16,7 +16,6 @@
 from local_console.core.camera import StreamStatus
 from local_console.gui.driver import Driver
 from local_console.gui.model.inference_screen import InferenceScreenModel
-from local_console.gui.utils.enums import Screen
 from local_console.gui.view.inference_screen.inference_screen import InferenceScreenView
 
 
@@ -37,11 +36,11 @@ class InferenceScreenController:
         return self.view
 
     def toggle_stream_status(self) -> None:
-        camera_status = self.model.stream_status
+        camera_status = self.driver.camera_state.stream_status.value
         if camera_status == StreamStatus.Active:
             self.driver.from_sync(self.driver.streaming_rpc_stop)
         else:
-            roi = self.driver.gui.views[Screen.STREAMING_SCREEN].model.image_roi
+            roi = self.driver.camera_state.roi.value
             self.driver.from_sync(self.driver.streaming_rpc_start, roi)
 
-        self.model.stream_status = StreamStatus.Transitioning
+        self.driver.camera_state.stream_status.value = StreamStatus.Transitioning
