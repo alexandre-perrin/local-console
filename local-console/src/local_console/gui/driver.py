@@ -104,6 +104,7 @@ class Driver:
         self._init_firmware_file_functions()
         self._init_input_directories()
         self._init_stream_variables()
+        self._init_vapp_file_functions()
 
     def _init_core_variables(self) -> None:
         self.gui.mdl.bind_state_to_proxy("is_ready", self.camera_state)
@@ -167,6 +168,15 @@ class Driver:
         self.camera_state.image_dir_path.subscribe(self.input_directory_setup)
         self.gui.mdl.bind_state_to_proxy("inference_dir_path", self.camera_state, str)
         self.camera_state.inference_dir_path.subscribe(self.input_directory_setup)
+
+    def _init_vapp_file_functions(self) -> None:
+        self.gui.mdl.bind_proxy_to_state("vapp_config_file", self.camera_state)
+        self.gui.mdl.bind_proxy_to_state("vapp_labels_file", self.camera_state)
+        self.gui.mdl.bind_proxy_to_state("vapp_type", self.camera_state)
+        """
+        `vapp_schema_file` is not bound because it is important that the chosen
+        file undergoes thorough validation before being committed.
+        """
 
     @property
     def evp1_mode(self) -> bool:

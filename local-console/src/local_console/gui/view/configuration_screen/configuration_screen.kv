@@ -1,3 +1,4 @@
+#:import Path pathlib.Path
 #:import res_path local_console.gui.config.resource_path
 #:include res_path(components.kv)
 
@@ -62,7 +63,7 @@
                 icon: "folder-cog"
                 selector: "file"
                 ext: [".fbs"]
-                on_selected: root.controller.update_flatbuffers_schema(args[1])
+                on_selected: app.mdl.vapp_schema_file = Path(self.accept_path(args[1]))
 
             PathSelectorCombo:
                 id: app_configuration_pick
@@ -70,7 +71,7 @@
                 icon: "folder-cog"
                 selector: "file"
                 ext: [".json"]
-                on_selected: root.controller.update_app_configuration(args[1])
+                on_selected: app.mdl.vapp_config_file = Path(self.accept_path(args[1]))
 
             PathSelectorCombo:
                 id: labels_pick
@@ -78,7 +79,7 @@
                 icon: "folder-cog"
                 selector: "file"
                 ext: [".txt"]
-                on_selected: root.controller.update_app_labels(args[1])
+                on_selected: app.mdl.vapp_config_file = Path(self.accept_path(args[1]))
                 disabled: True
 
             MDBoxLayout:

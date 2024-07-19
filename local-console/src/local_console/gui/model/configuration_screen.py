@@ -25,20 +25,8 @@ class ConfigurationScreenModel(BaseScreenModel):
     """
 
     def __init__(self) -> None:
-        self._flatbuffers_schema: Optional[Path] = None
         self._flatbuffers_schema_status: bool = False
         self._app_type: Optional[str] = None
-        self._app_configuration: Optional[str] = None
-        self._app_labels: Optional[str] = None
-
-    @property
-    def flatbuffers_schema(self) -> Optional[Path]:
-        return self._flatbuffers_schema
-
-    @flatbuffers_schema.setter
-    def flatbuffers_schema(self, value: Optional[Path]) -> None:
-        self._flatbuffers_schema = value
-        self.notify_observers()
 
     @property
     def app_type(self) -> Optional[str]:
@@ -47,24 +35,6 @@ class ConfigurationScreenModel(BaseScreenModel):
     @app_type.setter
     def app_type(self, value: Optional[str]) -> None:
         self._app_type = value
-        self.notify_observers()
-
-    @property
-    def app_labels(self) -> Optional[str]:
-        return self._app_labels
-
-    @app_labels.setter
-    def app_labels(self, value: Optional[str]) -> None:
-        self._app_labels = value
-        self.notify_observers()
-
-    @property
-    def app_configuration(self) -> Optional[str]:
-        return self._app_configuration
-
-    @app_configuration.setter
-    def app_configuration(self, value: Optional[str]) -> None:
-        self._app_configuration = value
         self.notify_observers()
 
     @property

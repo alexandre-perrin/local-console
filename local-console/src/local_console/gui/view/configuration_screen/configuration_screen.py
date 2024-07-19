@@ -13,30 +13,12 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-from pathlib import Path
-
 from local_console.gui.view.base_screen import BaseScreenView
 
 
 class ConfigurationScreenView(BaseScreenView):
-
-    def model_is_changed(self) -> None:
-        """
-        Called whenever any change has occurred in the data model.
-        The view in this method tracks these changes and updates the UI
-        according to these changes.
-        """
-
-        self.ids.schema_pick.accept_path(
-            ""
-            if self.model.flatbuffers_schema is None
-            else str(self.model.flatbuffers_schema)
-        )
-        self.ids.app_configuration_pick.accept_path(
-            ""
-            if self.model.app_configuration is None
-            else str(self.model.app_configuration)
-        )
-        self.ids.labels_pick.accept_path(
-            "" if self.model.app_labels is None else str(self.model.app_labels)
-        )
+    """
+    This screen handles most of its events in the
+    controller as there is significant validation
+    logic executing on several proxy properties.
+    """

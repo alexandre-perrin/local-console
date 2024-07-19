@@ -53,14 +53,7 @@ class ConfigurationScreenController:
     def update_total_max_size(self, size: int) -> None:
         self.driver.total_dir_watcher.set_storage_limit(size)
 
-    def update_flatbuffers_schema(self, path: Optional[Path]) -> None:
-        self.model.flatbuffers_schema = path
 
-    def update_app_labels(self, path: str) -> None:
-        self.model.app_labels = path
-
-    def update_app_configuration(self, path: Optional[str]) -> None:
-        self.model.app_configuration = path
 
     def update_application_type(self, app: str) -> None:
         self.model.app_type = app
@@ -77,11 +70,10 @@ class ConfigurationScreenController:
     def apply_application_configuration(self) -> None:
         self.driver.map_class_id_to_name()
 
-        if self.model.app_configuration is None:
+        if self.driver.camera_state.vapp_config_file.value is None:
             return
         try:
-            with open(self.model.app_configuration) as f:
-                config = json.load(f)
+            config = json.load(self.driver.camera_state.vapp_config_file.value.open())
             self.driver.from_sync(self.driver.send_app_config, json.dumps(config))
         except FileNotFoundError:
             self.view.display_error("App configuration does not exist")
@@ -93,13 +85,12 @@ class ConfigurationScreenController:
             self.view.display_error("App configuration unknown error")
 
     def apply_flatbuffers_schema(self) -> None:
-        if self.model.flatbuffers_schema is not None:
-            if self.model.flatbuffers_schema.is_file():
-                result, _ = self.flatbuffers.conform_flatbuffer_schema(
-                    self.model.flatbuffers_schema
-                )
+        schema_file = self.driver.gui.mdl.vapp_schema_file
+        if schema_file is not None:
+            if schema_file.is_file():
+                result, _ = self.flatbuffers.conform_flatbuffer_schema(schema_file)
                 if result is True:
-                    self.driver.flatbuffers_schema = self.model.flatbuffers_schema
+                    self.driver.camera_state.vapp_schema_file.value = schema_file
                     self.view.display_info("Success!")
                 else:
                     self.view.display_error("Not a valid flatbuffers schema")
