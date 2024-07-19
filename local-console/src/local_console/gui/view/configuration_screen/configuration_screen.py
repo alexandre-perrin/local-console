@@ -15,11 +15,6 @@
 # SPDX-License-Identifier: Apache-2.0
 from pathlib import Path
 
-from kivy.metrics import dp
-from kivymd.uix.snackbar import MDSnackbar
-from kivymd.uix.snackbar import MDSnackbarButtonContainer
-from kivymd.uix.snackbar import MDSnackbarCloseButton
-from kivymd.uix.snackbar import MDSnackbarSupportingText
 from local_console.gui.view.base_screen import BaseScreenView
 
 
@@ -47,7 +42,7 @@ class ConfigurationScreenView(BaseScreenView):
         )
 
         if self.model.flatbuffers_process_result is not None:
-            self.show_flatbuffers_process_result(self.model.flatbuffers_process_result)
+            self.display_info(self.model.flatbuffers_process_result)
             self.model.flatbuffers_process_result = None
 
     def select_path_image(self, path: str) -> None:
@@ -76,19 +71,3 @@ class ConfigurationScreenView(BaseScreenView):
 
     def select_path_app_configuration(self, path: str) -> None:
         self.controller.update_app_configuration(path)
-
-    def show_flatbuffers_process_result(self, result: str) -> None:
-        MDSnackbar(
-            MDSnackbarSupportingText(text=result),
-            MDSnackbarButtonContainer(
-                MDSnackbarCloseButton(
-                    icon="close",
-                ),
-                pos_hint={"center_y": 0.5},
-            ),
-            y=dp(24),
-            orientation="horizontal",
-            pos_hint={"center_x": 0.5},
-            size_hint_x=0.5,
-            duration=5,
-        ).open()
