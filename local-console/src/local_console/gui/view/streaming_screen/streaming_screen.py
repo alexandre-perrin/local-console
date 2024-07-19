@@ -15,9 +15,6 @@
 # SPDX-License-Identifier: Apache-2.0
 from typing import Any
 
-from kivy.uix.codeinput import (
-    CodeInput,
-)  # nopycln: import # Required by the screen's KV spec file
 from local_console.core.camera import StreamStatus
 from local_console.core.camera.axis_mapping import DEFAULT_ROI
 from local_console.core.camera.axis_mapping import UnitROI

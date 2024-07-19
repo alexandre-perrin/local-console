@@ -19,9 +19,6 @@ from local_console.gui.driver import Driver
 from local_console.gui.model.camera_proxy import CameraStateProxy
 from local_console.gui.model.streaming_screen import StreamingScreenModel
 from local_console.gui.view.streaming_screen.streaming_screen import StreamingScreenView
-from pygments.lexers import (
-    JsonLexer,
-)  # nopycln: import # Required by the screen's KV spec file
 
 
 class StreamingScreenController:
