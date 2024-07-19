@@ -18,9 +18,6 @@ from local_console.gui.driver import Driver
 from local_console.gui.model.inference_screen import InferenceScreenModel
 from local_console.gui.utils.enums import Screen
 from local_console.gui.view.inference_screen.inference_screen import InferenceScreenView
-from pygments.lexers import (
-    JsonLexer,
-)  # nopycln: import # Required by the screen's KV spec file
 
 
 class InferenceScreenController:

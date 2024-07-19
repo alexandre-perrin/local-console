@@ -15,12 +15,6 @@
 # SPDX-License-Identifier: Apache-2.0
 from local_console.core.camera import StreamStatus
 from local_console.gui.view.base_screen import BaseScreenView
-from local_console.gui.view.common.components import (
-    CodeInputCustom,
-)  # nopycln: import # Required by the screen's KV spec file
-from local_console.gui.view.common.components import (
-    ImageWithROI,
-)  # nopycln: import # Required by the screen's KV spec file
 
 
 class InferenceScreenView(BaseScreenView):
