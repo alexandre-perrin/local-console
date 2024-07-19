@@ -45,20 +45,13 @@ class StreamingScreenView(BaseScreenView):
         if roi_state != ROIState.Disabled:
             self.ids.stream_image.cancel_roi_draw()
             self.controller.set_roi(DEFAULT_ROI)
-        else:
-            self.inform_roi_is_disabled()
 
     def refresh_roi_state(self, roi_state: ROIState) -> None:
-        # The "Set ROI" button
-        self.ids.btn_roi_control.disabled = roi_state == ROIState.Disabled
         if roi_state != ROIState.Disabled:
             if roi_state in (ROIState.Enabled, ROIState.Viewing):
                 self.ids.btn_roi_control.style = "elevated"
             else:
                 self.ids.btn_roi_control.style = "filled"
-
-        # The "Reset ROI" button
-        self.ids.btn_roi_reset.disabled = roi_state == ROIState.Disabled
 
     def model_is_changed(self) -> None:
         stream_active = self.model.stream_status == StreamStatus.Active
@@ -75,6 +68,3 @@ class StreamingScreenView(BaseScreenView):
         self.ids.lbl_roi_h_size.text = str(h_size)
         self.ids.lbl_roi_v_offset.text = str(v_offset)
         self.ids.lbl_roi_v_size.text = str(v_size)
-
-    def inform_roi_is_disabled(self) -> None:
-        self.display_error("Cannot set ROI without having received a camera frame")

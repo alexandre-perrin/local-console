@@ -37,7 +37,8 @@
 
                 MDButton:
                     id: btn_roi_control
-                    on_release: root.control_roi()
+                    on_release: if not self.disabled: root.control_roi()
+                    disabled: stream_image.state == ROIState.Disabled
                     style: "elevated"
                     pos_hint: {"center_y": 0.5}
                     MDButtonText:
@@ -45,7 +46,8 @@
 
                 MDButton:
                     id: btn_roi_reset
-                    on_release: root.reset_roi()
+                    on_release: if not self.disabled: root.reset_roi()
+                    disabled: stream_image.state == ROIState.Disabled
                     style: "elevated"
                     pos_hint: {"center_y": 0.5}
                     MDButtonText:
