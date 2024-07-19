@@ -23,6 +23,7 @@ from typing import Any
 from typing import Optional
 
 import trio
+from local_console.core.camera.axis_mapping import UnitROI
 from local_console.core.camera.enums import MQTTTopics
 from local_console.core.camera.enums import OTAUpdateModule
 from local_console.core.camera.enums import StreamStatus
@@ -61,6 +62,7 @@ class CameraState:
             StreamStatus.Inactive
         )
         self.is_streaming: TrackingVariable[bool] = TrackingVariable(False)
+        self.roi: TrackingVariable[UnitROI] = TrackingVariable()
 
         self._ota_event = trio.Event()
         self.device_config.subscribe_async(self._prepare_ota_event)

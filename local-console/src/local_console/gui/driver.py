@@ -103,11 +103,20 @@ class Driver:
         self._init_ai_model_functions()
         self._init_firmware_file_functions()
         self._init_input_directories()
+        self._init_stream_variables()
 
     def _init_core_variables(self) -> None:
         self.gui.mdl.bind_state_to_proxy("is_ready", self.camera_state)
         self.gui.mdl.bind_state_to_proxy("is_streaming", self.camera_state)
         self.gui.mdl.bind_state_to_proxy("device_config", self.camera_state)
+
+    def _init_stream_variables(self) -> None:
+        # Proxy->State because we want the user to set this value via the GUI
+        self.gui.mdl.bind_proxy_to_state("roi", self.camera_state)
+
+        # State->Proxy because this is either read from the device state
+        # or from states computed within the GUI code
+        self.gui.mdl.bind_state_to_proxy("stream_status", self.camera_state)
 
     def _init_ai_model_functions(self) -> None:
         # Proxy->State because we want the user to set this value via the GUI
