@@ -44,11 +44,11 @@ class ConfigurationScreenController:
     def get_view(self) -> ConfigurationScreenView:
         return self.view
 
-    def update_image_directory(self, path: Path) -> None:
-        self.driver.camera_state.image_dir_path.value = path
+    def update_image_directory(self, path: str) -> None:
+        self.driver.camera_state.image_dir_path.value = Path(path)
 
-    def update_inferences_directory(self, path: Path) -> None:
-        self.driver.camera_state.inference_dir_path.value = path
+    def update_inferences_directory(self, path: str) -> None:
+        self.driver.camera_state.inference_dir_path.value = Path(path)
 
     def update_total_max_size(self, size: int) -> None:
         self.driver.total_dir_watcher.set_storage_limit(size)

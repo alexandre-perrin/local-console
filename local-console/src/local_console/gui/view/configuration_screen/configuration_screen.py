@@ -40,34 +40,3 @@ class ConfigurationScreenView(BaseScreenView):
         self.ids.labels_pick.accept_path(
             "" if self.model.app_labels is None else str(self.model.app_labels)
         )
-
-        if self.model.flatbuffers_process_result is not None:
-            self.display_info(self.model.flatbuffers_process_result)
-            self.model.flatbuffers_process_result = None
-
-    def select_path_image(self, path: str) -> None:
-        """
-        It will be called when the user selects the directory.
-        :param path: path to the selected directory;
-        """
-        self.controller.update_image_directory(Path(path))
-
-    def select_path_inferences(self, path: str) -> None:
-        """
-        It will be called when the user selects the directory.
-        :param path: path to the selected directory;
-        """
-        self.controller.update_inferences_directory(Path(path))
-
-    def select_path_flatbuffers(self, path: str) -> None:
-        """
-        It will be called when the user selects the directory.
-        :param path: path to the selected directory;
-        """
-        self.controller.update_flatbuffers_schema(Path(path))
-
-    def select_path_labels(self, path: str) -> None:
-        self.controller.update_app_labels(Path(path))
-
-    def select_path_app_configuration(self, path: str) -> None:
-        self.controller.update_app_configuration(path)
