@@ -21,6 +21,7 @@ from kivy.uix.codeinput import (
 from local_console.core.camera import StreamStatus
 from local_console.core.camera.axis_mapping import DEFAULT_ROI
 from local_console.core.camera.axis_mapping import UnitROI
+from local_console.gui.model.camera_proxy import CameraStateProxy
 from local_console.gui.view.base_screen import BaseScreenView
 from local_console.gui.view.common.components import (
     ImageWithROI,
@@ -29,11 +30,10 @@ from local_console.gui.view.common.components import ROIState
 
 
 class StreamingScreenView(BaseScreenView):
-    def entry_actions(self) -> None:
-        self.model_is_changed()
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
+        self.app.mdl.bind(stream_status=self.on_stream_status)
         self.ids.stream_image.bind(state=self.on_roi_state)
         self.ids.stream_image.bind(roi=self.on_roi_change)
 
@@ -46,6 +46,12 @@ class StreamingScreenView(BaseScreenView):
                 self.ids.btn_roi_control.style = "elevated"
             else:
                 self.ids.btn_roi_control.style = "filled"
+
+    def on_stream_status(self, instance: CameraStateProxy, value: StreamStatus) -> None:
+        self.ids.stream_flag.text = value.value
+        self.ids.btn_stream_control.style = (
+            "elevated" if value != StreamStatus.Active else "filled"
+        )
 
     def control_roi(self) -> None:
         roi_state: ROIState = self.ids.stream_image.state
@@ -61,11 +67,3 @@ class StreamingScreenView(BaseScreenView):
         if roi_state != ROIState.Disabled:
             self.ids.stream_image.cancel_roi_draw()
             self.app.mdl.roi = DEFAULT_ROI
-
-    def model_is_changed(self) -> None:
-        stream_active = self.model.stream_status == StreamStatus.Active
-
-        self.ids.stream_flag.text = self.model.stream_status.value
-        self.ids.btn_stream_control.style = (
-            "elevated" if not stream_active else "filled"
-        )

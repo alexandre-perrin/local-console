@@ -5,7 +5,6 @@
 
 <StreamingScreenView>
     md_bg_color: self.theme_cls.backgroundColor
-    on_enter: self.entry_actions()
 
     MDBoxLayout:
         orientation: "vertical"
@@ -87,7 +86,6 @@
                 fit_mode: "contain"
                 on_size: self.update_roi()
                 on_texture: self.prime_for_roi(args[1])
-                on_state: root.refresh_roi_state(args[1])
                 size_hint_x: 0.7
 
             MDBoxLayout:

@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-from local_console.core.camera import StreamStatus
 from local_console.gui.model.base_model import BaseScreenModel
 
 
@@ -23,15 +22,3 @@ class StreamingScreenModel(BaseScreenModel):
     - The stream status: Active(True) or Inactive(False)
     - The image ROI: a bounding box within the image
     """
-
-    def __init__(self) -> None:
-        self._stream_status = StreamStatus.Inactive
-
-    @property
-    def stream_status(self) -> StreamStatus:
-        return self._stream_status
-
-    @stream_status.setter
-    def stream_status(self, value: StreamStatus) -> None:
-        self._stream_status = value
-        self.notify_observers()

@@ -59,7 +59,6 @@ class CameraStateProxy(CameraStateProxyBase):
 #  | sort -t';' -k2) > model-properties.csv
 #
 #   stream_status(StreamStatus)
-#   stream_status(StreamStatus)
 #   app_configuration(Optional[str])
 #   app_labels(Optional[str])
 #   app_type(Optional[str])

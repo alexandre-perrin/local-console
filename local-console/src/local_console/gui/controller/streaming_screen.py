@@ -16,6 +16,7 @@
 from local_console.core.camera import StreamStatus
 from local_console.core.camera.axis_mapping import UnitROI
 from local_console.gui.driver import Driver
+from local_console.gui.model.camera_proxy import CameraStateProxy
 from local_console.gui.model.streaming_screen import StreamingScreenModel
 from local_console.gui.view.streaming_screen.streaming_screen import StreamingScreenView
 from pygments.lexers import (
@@ -42,7 +43,7 @@ class StreamingScreenController:
         return self.view
 
     def toggle_stream_status(self) -> None:
-        camera_status = self.model.stream_status
+        camera_status = self.driver.camera_state.stream_status.value
         if camera_status == StreamStatus.Active:
             self.driver.from_sync(self.driver.streaming_rpc_stop)
         else:
@@ -51,14 +52,13 @@ class StreamingScreenController:
             )
             self.view.ids.stream_image.cancel_roi_draw()
 
-        self.model.stream_status = StreamStatus.Transitioning
+        self.driver.camera_state.stream_status.value = StreamStatus.Transitioning
 
-
-        camera_status = self.model.stream_status
     def post_roi_actions(self, instance: CameraStateProxy, roi: UnitROI) -> None:
+        camera_status = self.driver.camera_state.stream_status.value
         if camera_status == StreamStatus.Transitioning:
             return
-
-        self.model.stream_status = StreamStatus.Transitioning
         if camera_status == StreamStatus.Active:
             self.driver.from_sync(self.driver.streaming_rpc_stop)
+
+        self.driver.camera_state.stream_status.value = StreamStatus.Transitioning
