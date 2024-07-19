@@ -65,7 +65,6 @@ class CameraStateProxy(CameraStateProxyBase):
 #   deploy_stage(DeployStage)
 #   deploy_status(dict[str, str])
 #   dns_server(str)
-#   flatbuffers_process_result(Optional[str])
 #   flatbuffers_schema(Optional[Path])
 #   flatbuffers_schema_status(bool)
 #   gateway(str)

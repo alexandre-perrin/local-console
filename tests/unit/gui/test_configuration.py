@@ -47,7 +47,7 @@ def test_apply_configuration():
         mock_apply_app_cfg.assert_any_call()
 
 
-def test_apply_flatbuffers_schema(tmpdir):
+def test_apply_flatbuffers_schema(tmp_path):
     model, mock_driver = ConfigurationScreenModel(), MagicMock()
     with (
         patch(
@@ -58,23 +58,24 @@ def test_apply_flatbuffers_schema(tmpdir):
         ) as mock_flatbuffers,
     ):
         ctrl = ConfigurationScreenController(model, mock_driver)
+
         model.flatbuffers_schema = None
         ctrl.apply_flatbuffers_schema()
-        assert model.flatbuffers_process_result == "Please select a schema file."
+        ctrl.view.display_error.assert_called_with("Please select a schema file.")
 
-        model.flatbuffers_schema = Path(tmpdir)
+        model.flatbuffers_schema = tmp_path
         ctrl.apply_flatbuffers_schema()
-        assert model.flatbuffers_process_result == "Not a file or file does not exist!"
+        ctrl.view.display_error.assert_called_with("Not a file or file does not exist!")
 
         mock_flatbuffers.return_value.conform_flatbuffer_schema.return_value = (
             False,
             None,
         )
-        file = Path(tmpdir) / "file.bin"
+        file = tmp_path / "file.bin"
         file.write_bytes(b"0")
         model.flatbuffers_schema = file
         ctrl.apply_flatbuffers_schema()
-        assert model.flatbuffers_process_result == "Not a valid flatbuffers schema"
+        ctrl.view.display_error.assert_called_with("Not a valid flatbuffers schema")
 
         assert mock_driver.flatbuffers_schema != model.flatbuffers_schema
         mock_flatbuffers.return_value.conform_flatbuffer_schema.return_value = (
@@ -82,7 +83,7 @@ def test_apply_flatbuffers_schema(tmpdir):
             None,
         )
         ctrl.apply_flatbuffers_schema()
-        assert model.flatbuffers_process_result == "Success!"
+        ctrl.view.display_info.assert_called_with("Success!")
         assert mock_driver.flatbuffers_schema == model.flatbuffers_schema
 
 
@@ -96,23 +97,24 @@ def test_apply_application_configuration(tmpdir):
         ctrl = ConfigurationScreenController(model, mock_driver)
 
         ctrl.apply_application_configuration()
-        assert model.flatbuffers_process_result is None
 
         file = Path(tmpdir) / "config.json"
         ctrl.update_app_configuration(str(file))
         ctrl.apply_application_configuration()
-        assert model.flatbuffers_process_result == "App configuration does not exist"
+        ctrl.view.display_error.assert_called_with("App configuration does not exist")
 
         file.write_text("{")
         ctrl.apply_application_configuration()
-        assert (
-            model.flatbuffers_process_result == "Error parsing app configuration JSON"
+        ctrl.view.display_error.assert_called_with(
+            "Error parsing app configuration JSON"
         )
 
+        current_count_info = ctrl.view.display_info.call_count
+        current_count_error = ctrl.view.display_error.call_count
         file.write_text('{"a": 3}')
-        model.flatbuffers_process_result = ""
         ctrl.apply_application_configuration()
-        assert model.flatbuffers_process_result == ""
+        assert ctrl.view.display_info.call_count == current_count_info
+        assert ctrl.view.display_error.call_count == current_count_error
 
 
 def test_apply_application_configuration_error(tmpdir):
@@ -131,11 +133,11 @@ def test_apply_application_configuration_error(tmpdir):
         mock_json.load.side_effect = Exception
         ctrl.update_app_configuration(str(file))
         ctrl.apply_application_configuration()
-        assert model.flatbuffers_process_result == "App configuration unknown error"
+        ctrl.view.display_error.assert_called_with("App configuration unknown error")
 
         mock_json.load.side_effect = PermissionError
         ctrl.apply_application_configuration()
-        assert model.flatbuffers_process_result == "App configuration permission error"
+        ctrl.view.display_error.assert_called_with("App configuration permission error")
 
 
 def test_update_application_type():
@@ -224,7 +226,7 @@ def test_update_image_directory(path: str):
     ):
         ctrl = ConfigurationScreenController(model, driver)
         ctrl.update_image_directory(path)
-        assert driver.camera_state.image_dir_path.value == path
+        assert driver.camera_state.image_dir_path.value == Path(path)
 
 
 @given(generate_text())
@@ -238,7 +240,7 @@ def test_update_inferences_directory(path: str):
     ):
         ctrl = ConfigurationScreenController(model, driver)
         ctrl.update_inferences_directory(path)
-        assert driver.camera_state.inference_dir_path.value == path
+        assert driver.camera_state.inference_dir_path.value == Path(path)
 
 
 def test_get_view():

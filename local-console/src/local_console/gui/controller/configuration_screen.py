@@ -84,15 +84,13 @@ class ConfigurationScreenController:
                 config = json.load(f)
             self.driver.from_sync(self.driver.send_app_config, json.dumps(config))
         except FileNotFoundError:
-            self.model.flatbuffers_process_result = "App configuration does not exist"
+            self.view.display_error("App configuration does not exist")
         except ValueError:
-            self.model.flatbuffers_process_result = (
-                "Error parsing app configuration JSON"
-            )
+            self.view.display_error("Error parsing app configuration JSON")
         except PermissionError:
-            self.model.flatbuffers_process_result = "App configuration permission error"
+            self.view.display_error("App configuration permission error")
         except Exception:
-            self.model.flatbuffers_process_result = "App configuration unknown error"
+            self.view.display_error("App configuration unknown error")
 
     def apply_flatbuffers_schema(self) -> None:
         if self.model.flatbuffers_schema is not None:
@@ -102,17 +100,13 @@ class ConfigurationScreenController:
                 )
                 if result is True:
                     self.driver.flatbuffers_schema = self.model.flatbuffers_schema
-                    self.model.flatbuffers_process_result = "Success!"
+                    self.view.display_info("Success!")
                 else:
-                    self.model.flatbuffers_process_result = (
-                        "Not a valid flatbuffers schema"
-                    )
+                    self.view.display_error("Not a valid flatbuffers schema")
             else:
-                self.model.flatbuffers_process_result = (
-                    "Not a file or file does not exist!"
-                )
+                self.view.display_error("Not a file or file does not exist!")
         else:
-            self.model.flatbuffers_process_result = "Please select a schema file."
+            self.view.display_error("Please select a schema file.")
 
     def apply_configuration(self) -> None:
         self.apply_flatbuffers_schema()
