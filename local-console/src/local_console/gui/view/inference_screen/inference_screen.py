@@ -21,8 +21,6 @@ class InferenceScreenView(BaseScreenView):
     def entry_actions(self) -> None:
         self.model_is_changed()
 
-    def toggle_stream_status(self) -> None:
-        self.controller.toggle_stream_status()
 
     def model_is_changed(self) -> None:
         """
