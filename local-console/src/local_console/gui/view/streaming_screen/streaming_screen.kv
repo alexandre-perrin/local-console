@@ -1,4 +1,6 @@
 #:import JsonLexer pygments.lexers.JsonLexer
+#:import ROIState local_console.gui.view.common.components.ROIState
+#:import roi_as_pixels local_console.core.camera.axis_mapping.pixel_roi_from_normals
 #:include res_path(components.kv)
 
 <StreamingScreenView>
@@ -83,7 +85,6 @@
                 id: stream_image
                 radius: "10dp"
                 fit_mode: "contain"
-                on_roi: root.controller.set_roi(args[1])
                 on_size: self.update_roi()
                 on_texture: self.prime_for_roi(args[1])
                 on_state: root.refresh_roi_state(args[1])
@@ -116,12 +117,16 @@
                         font_style: "Body"
                     MDLabel:
                         id: lbl_roi_h_offset
+                        text: str(roi_as_pixels(app.mdl.roi)[0][0])
                     MDLabel:
                         id: lbl_roi_h_size
+                        text: str(roi_as_pixels(app.mdl.roi)[1][0])
                     MDLabel:
                         text: 'V:'
                         font_style: "Body"
                     MDLabel:
                         id: lbl_roi_v_offset
+                        text: str(roi_as_pixels(app.mdl.roi)[0][1])
                     MDLabel:
                         id: lbl_roi_v_size
+                        text: str(roi_as_pixels(app.mdl.roi)[1][1])

@@ -18,7 +18,6 @@ from kivy.uix.codeinput import (
 )  # nopycln: import # Required by the screen's KV spec file
 from local_console.core.camera import StreamStatus
 from local_console.core.camera.axis_mapping import DEFAULT_ROI
-from local_console.core.camera.axis_mapping import pixel_roi_from_normals
 from local_console.gui.view.base_screen import BaseScreenView
 from local_console.gui.view.common.components import (
     ImageWithROI,
@@ -30,6 +29,13 @@ class StreamingScreenView(BaseScreenView):
     def entry_actions(self) -> None:
         self.refresh_roi_state(self.ids.stream_image.state)
         self.model_is_changed()
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.ids.stream_image.bind(roi=self.on_roi_change)
+
+    def on_roi_change(self, instance: ImageWithROI, value: UnitROI) -> None:
+        self.app.mdl.roi = value
 
     def control_roi(self) -> None:
         roi_state: ROIState = self.ids.stream_image.state
@@ -60,11 +66,3 @@ class StreamingScreenView(BaseScreenView):
         self.ids.btn_stream_control.style = (
             "elevated" if not stream_active else "filled"
         )
-
-        (h_offset, v_offset), (h_size, v_size) = pixel_roi_from_normals(
-            self.model.image_roi
-        )
-        self.ids.lbl_roi_h_offset.text = str(h_offset)
-        self.ids.lbl_roi_h_size.text = str(h_size)
-        self.ids.lbl_roi_v_offset.text = str(v_offset)
-        self.ids.lbl_roi_v_size.text = str(v_size)

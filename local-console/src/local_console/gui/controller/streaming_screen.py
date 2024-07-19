@@ -36,6 +36,8 @@ class StreamingScreenController:
         self.driver = driver
         self.view = StreamingScreenView(controller=self, model=self.model)
 
+        self.driver.gui.mdl.bind(roi=self.post_roi_actions)
+
     def get_view(self) -> StreamingScreenView:
         return self.view
 
@@ -44,15 +46,16 @@ class StreamingScreenController:
         if camera_status == StreamStatus.Active:
             self.driver.from_sync(self.driver.streaming_rpc_stop)
         else:
-            self.driver.from_sync(self.driver.streaming_rpc_start, self.model.image_roi)
+            self.driver.from_sync(
+                self.driver.streaming_rpc_start, self.driver.camera_state.roi.value
+            )
             self.view.ids.stream_image.cancel_roi_draw()
 
         self.model.stream_status = StreamStatus.Transitioning
 
-    def set_roi(self, roi: UnitROI) -> None:
-        self.model.image_roi = roi
 
         camera_status = self.model.stream_status
+    def post_roi_actions(self, instance: CameraStateProxy, roi: UnitROI) -> None:
         if camera_status == StreamStatus.Transitioning:
             return
 
