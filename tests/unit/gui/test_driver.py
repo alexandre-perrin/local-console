@@ -33,7 +33,6 @@ from local_console.core.config import get_default_config
 from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
 from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.gui.enums import ApplicationConfiguration
-from local_console.gui.utils.enums import Screen
 from local_console.utils.local_network import LOCAL_IP
 
 from tests.mocks.mock_paho_mqtt import MockAsyncIterator
@@ -395,8 +394,8 @@ def test_map_class_id_to_name(tmp_path) -> None:
         patch("local_console.gui.driver.spawn_broker"),
     ):
         gui = MagicMock()
-        gui.views[Screen.CONFIGURATION_SCREEN].model.app_labels = label_file
         driver = Driver(gui)
+        driver.camera_state.vapp_labels_file.value = label_file
         driver.map_class_id_to_name()
         assert driver.class_id_to_name == dict({0: "Apple", 1: "Banana"})
 
@@ -413,8 +412,8 @@ def test_map_class_id_to_name_file_not_found(tmp_path) -> None:
         patch("builtins.open", side_effect=FileNotFoundError),
     ):
         gui = MagicMock()
-        gui.views[Screen.CONFIGURATION_SCREEN].model.app_labels = label_file
         driver = Driver(gui)
+        driver.camera_state.vapp_labels_file.value = label_file
         driver.map_class_id_to_name()
         mock_logger.warning.assert_called_once_with(
             "Error while reading labels text file."
@@ -433,8 +432,8 @@ def test_map_class_id_to_name_exception(tmp_path) -> None:
         patch("builtins.open", side_effect=Exception),
     ):
         gui = MagicMock()
-        gui.views[Screen.CONFIGURATION_SCREEN].model.app_labels = label_file
         driver = Driver(gui)
+        driver.camera_state.vapp_labels_file.value = label_file
         driver.map_class_id_to_name()
         mock_logger.warning.assert_called_once_with(
             "Unknown error while reading labels text file "
