@@ -16,6 +16,8 @@
 import json
 from pathlib import Path
 
+from local_console.core.camera.flatbuffers import FlatbufferError
+from local_console.core.camera.flatbuffers import map_class_id_to_name
 from local_console.gui.driver import Driver
 from local_console.gui.enums import ApplicationSchemaFilePath
 from local_console.gui.enums import ApplicationType
@@ -78,7 +80,12 @@ class ConfigurationScreenController:
         self.driver.total_dir_watcher.set_storage_limit(size)
 
     def apply_application_configuration(self) -> None:
-        self.driver.map_class_id_to_name()
+        try:
+            self.driver.class_id_to_name = map_class_id_to_name(
+                self.driver.camera_state.vapp_labels_file.value
+            )
+        except FlatbufferError as e:
+            self.view.display_error(str(e))
 
         if self.driver.camera_state.vapp_config_file.value is None:
             return

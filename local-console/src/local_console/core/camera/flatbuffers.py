@@ -13,9 +13,14 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-import logging
+from pathlib import Path
+from typing import Optional
 
-logger = logging.getLogger(__file__)
+
+class FlatbufferError(Exception):
+    """
+    Used for conveying error messages in a framework-agnostic way
+    """
 
 
 def add_class_names(data: dict, class_id_to_name: dict) -> None:
@@ -32,3 +37,19 @@ def add_class_names(data: dict, class_id_to_name: dict) -> None:
     elif isinstance(data, list):
         for item in data:
             add_class_names(item, class_id_to_name)
+
+
+def map_class_id_to_name(labels_file: Optional[Path]) -> Optional[dict[int, str]]:
+    class_id_to_name = None
+
+    if labels_file is not None:
+        try:
+            class_names = labels_file.read_text().splitlines()
+            # Read labels and create a mapping of class IDs to class names
+            class_id_to_name = {i: name for i, name in enumerate(class_names)}
+        except FileNotFoundError:
+            raise FlatbufferError("Error while reading labels text file.")
+        except Exception as e:
+            raise FlatbufferError(f"Unknown error while reading labels text file: {e}")
+
+    return class_id_to_name
