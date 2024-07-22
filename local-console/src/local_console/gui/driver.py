@@ -34,6 +34,7 @@ from local_console.core.camera import StreamStatus
 from local_console.core.camera.axis_mapping import pixel_roi_from_normals
 from local_console.core.camera.axis_mapping import UnitROI
 from local_console.core.camera.flatbuffers import add_class_names
+from local_console.core.camera.flatbuffers import flatbuffer_binary_to_json
 from local_console.core.camera.flatbuffers import get_output_from_inference_results
 from local_console.core.commands.ota_deploy import get_package_hash
 from local_console.core.config import get_config
@@ -49,7 +50,6 @@ from local_console.gui.utils.sync_async import run_on_ui_thread
 from local_console.gui.utils.sync_async import SyncAsyncBridge
 from local_console.servers.broker import spawn_broker
 from local_console.servers.webserver import AsyncWebserver
-from local_console.utils.flatbuffers import FlatBuffers
 from local_console.utils.fstools import check_and_create_directory
 from local_console.utils.fstools import DirectoryMonitor
 from local_console.utils.fstools import StorageSizeWatcher
@@ -77,7 +77,6 @@ class Driver:
 
         self.camera_state = CameraState()
         self.camera_state.device_config.subscribe_async(self.process_factory_reset)
-        self.flatbuffers = FlatBuffers()
 
         # This takes care of ensuring the device reports its state
         # with bounded periodicity (expect to receive a message within 6 seconds)
@@ -378,32 +377,19 @@ class Driver:
             inference_data
         )
 
-    def get_flatbuffers_inference_data(self, output: bytes) -> None | str | dict:
+    def get_flatbuffers_inference_data(
+        self, flatbuffer_payload: bytes
+    ) -> None | str | dict:
+        return_value = None
         if self.camera_state.vapp_schema_file.value:
-            output_name = "SmartCamera"
-            assert self.temporary_base  # appease mypy
-            return_value = None
-            if self.flatbuffers.flatbuffer_binary_to_json(
-                self.camera_state.vapp_schema_file.value,
-                output,
-                output_name,
-                self.temporary_base,
-            ):
-                try:
-                    return_value = None
-                    with open(self.temporary_base / f"{output_name}.json") as file:
-                        json_data = json.load(file)
-                        labels_map = self.camera_state.vapp_labels_map.value
-                        if labels_map:
-                            add_class_names(json_data, labels_map)
+            json_data = flatbuffer_binary_to_json(
+                self.camera_state.vapp_schema_file.value, flatbuffer_payload
+            )
+            labels_map = self.camera_state.vapp_labels_map.value
+            if labels_map:
+                add_class_names(json_data, labels_map)
+            return_value = json_data
 
-                        return_value = json_data
-                except FileNotFoundError:
-                    logger.warning(
-                        "Error while reading human-readable. Flatbuffers schema might be different from inference data."
-                    )
-                except Exception as e:
-                    logger.warning(f"Unknown error while reading human-readable {e}")
         return return_value
 
     def save_into_input_directory(self, incoming_file: Path, target_dir: Path) -> Path:

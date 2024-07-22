@@ -16,6 +16,9 @@
 import json
 import subprocess
 from base64 import b64decode
+from io import StringIO
+from pathlib import Path
+from unittest.mock import ANY
 from unittest.mock import Mock
 from unittest.mock import patch
 
@@ -23,6 +26,7 @@ import pytest
 from hypothesis import given
 from local_console.core.camera.flatbuffers import add_class_names
 from local_console.core.camera.flatbuffers import conform_flatbuffer_schema
+from local_console.core.camera.flatbuffers import flatbuffer_binary_to_json
 from local_console.core.camera.flatbuffers import FlatbufferError
 from local_console.core.camera.flatbuffers import get_flatc
 from local_console.core.camera.flatbuffers import get_output_from_inference_results
@@ -166,3 +170,50 @@ def test_get_output_from_inference_results(tmp_path):
         }
     )
     assert get_output_from_inference_results(device_payload) == b64decode(fb_encoded)
+
+
+def test_flatbuffer_binary_to_json(tmp_path):
+    with (
+        patch("local_console.core.camera.flatbuffers.get_flatc") as mock_flatc,
+        patch(
+            "local_console.core.camera.flatbuffers.subprocess.run",
+        ) as mock_run,
+        patch(
+            "local_console.core.camera.flatbuffers.Path.write_bytes",
+        ),
+        patch(
+            "local_console.core.camera.flatbuffers.Path.glob",
+            return_value=[Path()],  # A single file element list
+        ),
+        patch(
+            "local_console.core.camera.flatbuffers.Path.open",
+            return_value=StringIO("{}"),  # Mocks an open file handle
+        ),
+    ):
+        assert dict() == flatbuffer_binary_to_json(
+            tmp_path / "myschema",
+            b"payload",
+        )
+        mock_run.assert_called_once_with(
+            [
+                mock_flatc.return_value,
+                "--json",
+                "--defaults-json",
+                "--strict-json",
+                "-o",
+                ANY,
+                "--raw-binary",
+                ANY,
+                "--",
+                ANY,
+            ],
+            check=True,
+            text=True,
+        )
+
+
+def test_flatbuffer_binary_to_json_error(tmp_path):
+    path_txt = tmp_path / "mytext"
+    path_txt.write_text("{}")
+    with pytest.raises(FlatbufferError):
+        flatbuffer_binary_to_json(tmp_path / "myschema", b"payload")

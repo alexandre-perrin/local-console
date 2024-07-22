@@ -27,7 +27,6 @@ from local_console.gui.model.configuration_screen import ConfigurationScreenMode
 from local_console.gui.view.configuration_screen.configuration_screen import (
     ConfigurationScreenView,
 )
-from local_console.utils.flatbuffers import FlatBuffers
 
 
 class ConfigurationScreenController:
@@ -42,7 +41,6 @@ class ConfigurationScreenController:
         self.model = model
         self.driver = driver
         self.view = ConfigurationScreenView(controller=self, model=self.model)
-        self.flatbuffers = FlatBuffers()
 
         self.driver.gui.mdl.bind(vapp_type=self.on_vapp_type)
 

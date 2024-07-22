@@ -94,6 +94,61 @@ def get_output_from_inference_results(raw_data: bytes) -> bytes:
     return b64decode(output_tensor)
 
 
+def flatbuffer_binary_to_json(
+    fbs: Path,
+    inference_data: bytes,
+) -> dict[str, Any]:
+    """
+    Converts a flatbuffers object to a python object via its JSON representation.
+
+    :param fbs: FlatBuffer schema file.
+    :inference_data: base64-decoded, flatbuffer-serialized payload to deserialize
+    :return: True if success.
+    """
+    flatc_path = get_flatc()
+    try:
+        with TemporaryDirectory() as tempdir:
+            area = Path(tempdir)
+
+            """
+            `flatc` does not support operating over stdin/stdout,
+            so a temporary file structure is put in place
+            """
+            input_file = area / "in" / "payload.bin"
+            input_file.parent.mkdir()
+            input_file.write_bytes(inference_data)
+
+            output_area = area / "out"
+            output_area.mkdir()
+
+            subprocess.run(
+                [
+                    flatc_path,
+                    "--json",
+                    "--defaults-json",
+                    "--strict-json",
+                    "-o",
+                    str(output_area),
+                    "--raw-binary",
+                    str(fbs),
+                    "--",
+                    str(input_file),
+                ],
+                check=True,
+                text=True,
+            )
+            generated_files = list(output_area.glob("*"))
+            if len(generated_files) != 1:
+                raise FlatbufferError(
+                    f"Output from flatc did not generate a single file: {str(generated_files)}"
+                )
+            else:
+                decoded: dict[str, Any] = json.load(generated_files[0].open())
+                return decoded
+
+    except Exception as e:
+        raise FlatbufferError(f"Unexpected error decoding flatbuffers: {e}")
+
 
 def conform_flatbuffer_schema(fbs: Path) -> bool:
     """
