@@ -178,7 +178,11 @@ def test_process_camera_upload_inferences_with_schema(tmp_path_factory):
         patch.object(
             Driver, "get_flatbuffers_inference_data"
         ) as mock_get_flatbuffers_inference_data,
-        patch("local_console.gui.driver.FlatBuffers") as mock_flatbuffers,
+        patch(
+            "local_console.gui.driver.get_output_from_inference_results"
+        ) as mock_get_output_from_inference_results,
+        patch("local_console.gui.driver.Path.read_bytes", return_value=b"boo"),
+        patch("local_console.gui.driver.Path.read_text", return_value="boo"),
         patch("local_console.gui.driver.process_frame") as mock_process_frame,
     ):
         driver = Driver(MagicMock())
@@ -193,9 +197,7 @@ def test_process_camera_upload_inferences_with_schema(tmp_path_factory):
         driver.process_camera_upload(file)
 
         mock_save.assert_called_once_with(file, inference_dir)
-        mock_flatbuffers.return_value.get_output_from_inference_results.assert_called_once_with(
-            file
-        )
+        mock_get_output_from_inference_results.assert_called_once_with(b"boo")
         mock_update_data.assert_called_once_with(json.dumps({"a": 3}, indent=2))
         mock_process_frame.assert_called_once_with(driver.latest_image_file, {"a": 3})
         mock_update_display.assert_called_once_with(driver.latest_image_file)
@@ -209,7 +211,11 @@ def test_process_camera_upload_inferences_missing_schema(tmp_path_factory):
         patch.object(Driver, "save_into_input_directory") as mock_save,
         patch.object(Driver, "update_inference_data") as mock_update_data,
         patch.object(Driver, "update_images_display") as mock_update_display,
-        patch("local_console.gui.driver.FlatBuffers") as mock_flatbuffers,
+        patch(
+            "local_console.gui.driver.get_output_from_inference_results"
+        ) as mock_get_output_from_inference_results,
+        patch("local_console.gui.driver.Path.read_bytes", return_value=b"boo"),
+        patch("local_console.gui.driver.Path.read_text", return_value="boo"),
         patch("local_console.gui.driver.process_frame") as mock_process_frame,
         patch.object(Path, "read_text", return_value=""),
     ):
@@ -222,15 +228,13 @@ def test_process_camera_upload_inferences_missing_schema(tmp_path_factory):
         driver.process_camera_upload(file)
 
         mock_save.assert_called_once_with(file, inference_dir)
-        mock_flatbuffers.return_value.get_output_from_inference_results.assert_called_once_with(
-            file
-        )
+        mock_get_output_from_inference_results.assert_called_once_with(b"boo")
         mock_update_data.assert_called_once_with(
             mock_save.return_value.read_text.return_value
         )
         mock_process_frame.assert_called_once_with(
             driver.latest_image_file,
-            mock_flatbuffers.return_value.get_output_from_inference_results.return_value,
+            mock_get_output_from_inference_results.return_value,
         )
         mock_update_display.assert_called_once_with(driver.latest_image_file)
 

@@ -14,14 +14,18 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 import json
+import logging
 import os
 import subprocess
 import sys
+from base64 import b64decode
 from pathlib import Path
 from shutil import which
 from tempfile import TemporaryDirectory
 from typing import Any
 from typing import Optional
+
+logger = logging.getLogger(__file__)
 
 
 class FlatbufferError(Exception):
@@ -60,6 +64,34 @@ def map_class_id_to_name(labels_file: Optional[Path]) -> Optional[dict[int, str]
             raise FlatbufferError(f"Unknown error while reading labels text file: {e}")
 
     return class_id_to_name
+
+
+def get_output_from_inference_results(raw_data: bytes) -> bytes:
+    """
+    Extracts output from a device-specific format (`raw_data`):
+
+    {
+        "DeviceID": "Aid-00010001-0000-2000-9002-0000000001d1",
+        "ModelID": "0300009999990100",
+        "Image": true,
+        "Inferences": [
+            {
+                "T": "20240326110151928",
+                "O": "AACQvgAAmD4AAJA+AAAAvQAAQD4AAMC+AAAkvwAABD8AALA+AADwvg=="
+            }
+        ]
+    }
+
+    :param raw_data: binary buffer containing the input data to decode
+    :return: base64 decoded value of `Inferences[0]["O"]`.
+    """
+    data: dict[str, list[dict[str, str]]] = json.loads(raw_data)
+
+    inferences = data["Inferences"]
+    if len(inferences) > 1:
+        logger.warn("More than 1 inference at a time. Using index 0.")
+    output_tensor = inferences[0]["O"]
+    return b64decode(output_tensor)
 
 
 

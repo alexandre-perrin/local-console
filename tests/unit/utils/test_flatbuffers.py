@@ -50,29 +50,6 @@ def test_flatbuffer_binary_to_json(tmp_path):
         )
 
 
-def test_get_output_from_inference_results(tmp_path):
-    fb_encoded = "AACQvgAAmD4AAJA+AAAAvQAAQD4AAMC+AAAkvwAABD8AALA+AADwvg=="
-    path_txt = tmp_path / "mytext"
-    with open(path_txt, "w") as f:
-        json.dump(
-            {
-                "DeviceID": "Aid-00010001-0000-2000-9002-0000000001d1",
-                "ModelID": "0300009999990100",
-                "Image": True,
-                "Inferences": [
-                    {
-                        "T": "20240326110151928",
-                        "O": fb_encoded,
-                    }
-                ],
-            },
-            f,
-        )
-    assert fb.get_output_from_inference_results(path_txt) == base64.b64decode(
-        fb_encoded
-    )
-
-
 def test_flatbuffer_binary_to_json_error(tmp_path):
     path_txt = tmp_path / "mytext"
     with open(path_txt, "w") as f:

@@ -13,7 +13,9 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+import json
 import subprocess
+from base64 import b64decode
 from unittest.mock import Mock
 from unittest.mock import patch
 
@@ -23,6 +25,7 @@ from local_console.core.camera.flatbuffers import add_class_names
 from local_console.core.camera.flatbuffers import conform_flatbuffer_schema
 from local_console.core.camera.flatbuffers import FlatbufferError
 from local_console.core.camera.flatbuffers import get_flatc
+from local_console.core.camera.flatbuffers import get_output_from_inference_results
 from local_console.core.camera.flatbuffers import map_class_id_to_name
 
 from tests.strategies.configs import generate_text
@@ -145,3 +148,21 @@ def test_flatc_conform_file_not_found_error():
         pytest.raises(FlatbufferError, match="flatc not found in PATH"),
     ):
         conform_flatbuffer_schema(path)
+
+
+def test_get_output_from_inference_results(tmp_path):
+    fb_encoded = "AACQvgAAmD4AAJA+AAAAvQAAQD4AAMC+AAAkvwAABD8AALA+AADwvg=="
+    device_payload = json.dumps(
+        {
+            "DeviceID": "Aid-00010001-0000-2000-9002-0000000001d1",
+            "ModelID": "0300009999990100",
+            "Image": True,
+            "Inferences": [
+                {
+                    "T": "20240326110151928",
+                    "O": fb_encoded,
+                }
+            ],
+        }
+    )
+    assert get_output_from_inference_results(device_payload) == b64decode(fb_encoded)
