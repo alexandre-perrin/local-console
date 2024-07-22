@@ -31,6 +31,8 @@ from local_console.core.camera import FirmwareExtension
 from local_console.core.camera import MQTTTopics
 from local_console.core.camera import OTAUpdateModule
 from local_console.core.camera import StreamStatus
+from local_console.core.camera.axis_mapping import pixel_roi_from_normals
+from local_console.core.camera.axis_mapping import UnitROI
 from local_console.core.commands.ota_deploy import get_package_hash
 from local_console.core.config import get_config
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
@@ -40,8 +42,6 @@ from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
 from local_console.core.schemas.schemas import DesiredDeviceConfig
 from local_console.gui.drawer.objectdetection import process_frame
 from local_console.gui.enums import ApplicationConfiguration
-from local_console.gui.utils.axis_mapping import pixel_roi_from_normals
-from local_console.gui.utils.axis_mapping import UnitROI
 from local_console.gui.utils.enums import Screen
 from local_console.gui.utils.sync_async import run_on_ui_thread
 from local_console.gui.utils.sync_async import SyncAsyncBridge
@@ -99,9 +99,24 @@ class Driver:
         self.bridge = SyncAsyncBridge()
         self.dir_monitor = DirectoryMonitor()
 
+        self._init_core_variables()
         self._init_ai_model_functions()
         self._init_firmware_file_functions()
         self._init_input_directories()
+        self._init_stream_variables()
+
+    def _init_core_variables(self) -> None:
+        self.gui.mdl.bind_state_to_proxy("is_ready", self.camera_state)
+        self.gui.mdl.bind_state_to_proxy("is_streaming", self.camera_state)
+        self.gui.mdl.bind_state_to_proxy("device_config", self.camera_state)
+
+    def _init_stream_variables(self) -> None:
+        # Proxy->State because we want the user to set this value via the GUI
+        self.gui.mdl.bind_proxy_to_state("roi", self.camera_state)
+
+        # State->Proxy because this is either read from the device state
+        # or from states computed within the GUI code
+        self.gui.mdl.bind_state_to_proxy("stream_status", self.camera_state)
 
     def _init_ai_model_functions(self) -> None:
         # Proxy->State because we want the user to set this value via the GUI
@@ -201,7 +216,7 @@ class Driver:
                     if await check_attributes_request(
                         self.mqtt_client, msg.topic, msg.payload.decode()
                     ):
-                        self.camera_state.attributes_available = True
+                        self.camera_state.attributes_available.value = True
                         # attributes request handshake is performed at (re)connect
                         # when reconnecting, multiple requests might be made
                         if streaming_stop_required:
@@ -241,12 +256,9 @@ class Driver:
 
     @run_on_ui_thread
     def update_camera_status(self) -> None:
-        self.gui.mdl.is_ready = self.camera_state.is_ready
-        sensor_state = self.camera_state.sensor_state
-        self.gui.mdl.is_streaming = self.camera_state.is_streaming
-        self.gui.mdl.device_config = self.camera_state.device_config.value
-        self.gui.views[Screen.STREAMING_SCREEN].model.stream_status = sensor_state
-        self.gui.views[Screen.INFERENCE_SCREEN].model.stream_status = sensor_state
+        stream_status = self.camera_state.stream_status
+        self.gui.views[Screen.STREAMING_SCREEN].model.stream_status = stream_status
+        self.gui.views[Screen.INFERENCE_SCREEN].model.stream_status = stream_status
         self.gui.views[Screen.APPLICATIONS_SCREEN].model.deploy_status = (
             self.camera_state.deploy_status
         )
@@ -477,7 +489,7 @@ class Driver:
 
     async def connection_status_timeout(self) -> None:
         logger.debug("Connection status timed out: camera is disconnected")
-        self.camera_state.sensor_state = StreamStatus.Inactive
+        self.camera_state.stream_status.value = StreamStatus.Inactive
         self.update_camera_status()
 
     async def send_app_config(self, config: str) -> None:

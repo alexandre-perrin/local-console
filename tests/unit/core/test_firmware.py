@@ -22,39 +22,15 @@ import pytest
 from local_console.core.camera import OTAUpdateModule
 from local_console.core.camera.firmware import validate_firmware_file
 from local_console.core.commands.ota_deploy import get_package_hash
-from local_console.core.config import config_to_schema
-from local_console.core.config import get_default_config
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.edge_cloud_if_v1 import Hardware
 from local_console.core.schemas.edge_cloud_if_v1 import OTA
 from local_console.core.schemas.edge_cloud_if_v1 import Permission
 from local_console.core.schemas.edge_cloud_if_v1 import Status
 from local_console.core.schemas.edge_cloud_if_v1 import Version
-from local_console.core.schemas.schemas import AgentConfiguration
-from local_console.gui.model.camera_proxy import CameraStateProxy
 
-
-def get_default_config_as_schema() -> AgentConfiguration:
-    return config_to_schema(get_default_config())
-
-
-@pytest.fixture()
-def driver_set():
-    """
-    Enables testing the Driver business logic with the GUI
-    objects mocked, leveraging the CameraStateProxy interface.
-    """
-    with (
-        patch("local_console.gui.utils.sync_async.run_on_ui_thread", lambda fn: fn),
-        patch("local_console.gui.utils.sync_async.SyncAsyncBridge"),
-        patch("local_console.gui.driver.get_config", get_default_config_as_schema),
-    ):
-        from local_console.gui.driver import Driver
-
-        mock_gui = Mock()
-        mock_gui.mdl = CameraStateProxy()
-        driver = Driver(mock_gui)
-        yield driver, mock_gui
+from tests.fixtures.gui import driver_set
+from tests.fixtures.gui import get_default_config_as_schema
 
 
 @pytest.fixture(params=["Application Firmware", "Sensor Firmware"])

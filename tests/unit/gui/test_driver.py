@@ -27,12 +27,12 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 from local_console.core.camera import StreamStatus
+from local_console.core.camera.axis_mapping import SENSOR_SIZE
 from local_console.core.config import config_to_schema
 from local_console.core.config import get_default_config
 from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
 from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.gui.enums import ApplicationConfiguration
-from local_console.gui.utils.axis_mapping import SENSOR_SIZE
 from local_console.gui.utils.enums import Screen
 from local_console.utils.local_network import LOCAL_IP
 
@@ -59,7 +59,7 @@ def get_default_config_as_schema() -> AgentConfiguration:
 
 
 def create_new(root: Path) -> Path:
-    new_file = root / f"{random.randint(1, 1e6)}"
+    new_file = root / f"{random.randint(1, int(1e6))}"
     new_file.write_bytes(b"0")
     return new_file
 
@@ -326,9 +326,9 @@ async def test_streaming_rpc_start():
 @pytest.mark.trio
 async def test_connection_status_timeout():
     driver = Driver(MagicMock())
-    driver.camera_state.sensor_state = StreamStatus.Active
+    driver.camera_state.stream_status.value = StreamStatus.Active
     await driver.connection_status_timeout()
-    assert driver.camera_state.sensor_state == StreamStatus.Inactive
+    assert driver.camera_state.stream_status.value == StreamStatus.Inactive
 
 
 @pytest.mark.trio

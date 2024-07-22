@@ -13,32 +13,22 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+from typing import Any
+
 from local_console.core.camera import StreamStatus
+from local_console.gui.model.camera_proxy import CameraStateProxy
 from local_console.gui.view.base_screen import BaseScreenView
-from local_console.gui.view.common.components import (
-    CodeInputCustom,
-)  # nopycln: import # Required by the screen's KV spec file
-from local_console.gui.view.common.components import (
-    ImageWithROI,
-)  # nopycln: import # Required by the screen's KV spec file
 
 
 class InferenceScreenView(BaseScreenView):
-    def entry_actions(self) -> None:
-        self.model_is_changed()
 
-    def toggle_stream_status(self) -> None:
-        self.controller.toggle_stream_status()
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.app.mdl.bind(stream_status=self.on_stream_status)
 
-    def model_is_changed(self) -> None:
-        """
-        Called whenever any change has occurred in the data model.
-        The view in this method tracks these changes and updates the UI
-        according to these changes.
-        """
-        stream_active = self.model.stream_status == StreamStatus.Active
-
-        self.ids.stream_flag.text = self.model.stream_status.value
+    def on_stream_status(self, instance: CameraStateProxy, value: StreamStatus) -> None:
+        stream_active = value == StreamStatus.Active
+        self.ids.stream_flag.text = value.value
         self.ids.btn_stream_control.style = (
             "elevated" if not stream_active else "filled"
         )

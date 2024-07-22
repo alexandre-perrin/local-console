@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-import enum
 import json
 import logging
 from base64 import b64decode
@@ -24,7 +23,10 @@ from typing import Any
 from typing import Optional
 
 import trio
+from local_console.core.camera.axis_mapping import UnitROI
+from local_console.core.camera.enums import MQTTTopics
 from local_console.core.camera.enums import OTAUpdateModule
+from local_console.core.camera.enums import StreamStatus
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.utils.tracking import TrackingVariable
@@ -48,13 +50,19 @@ class CameraState:
     CONNECTION_STATUS_TIMEOUT = timedelta(seconds=180)
 
     def __init__(self) -> None:
-        self.sensor_state = StreamStatus.Inactive
-        self.app_state = ""
+
         self.deploy_status: dict[str, str] = {}
-        self.device_config: TrackingVariable[DeviceConfiguration] = TrackingVariable()
-        self.onwire_schema: Optional[OnWireProtocol] = None
-        self.attributes_available = False
+        self._onwire_schema: Optional[OnWireProtocol] = None
         self._last_reception: Optional[datetime] = None
+
+        self.device_config: TrackingVariable[DeviceConfiguration] = TrackingVariable()
+        self.attributes_available: TrackingVariable[bool] = TrackingVariable(False)
+        self.is_ready: TrackingVariable[bool] = TrackingVariable(False)
+        self.stream_status: TrackingVariable[StreamStatus] = TrackingVariable(
+            StreamStatus.Inactive
+        )
+        self.is_streaming: TrackingVariable[bool] = TrackingVariable(False)
+        self.roi: TrackingVariable[UnitROI] = TrackingVariable()
 
         self._ota_event = trio.Event()
         self.device_config.subscribe_async(self._prepare_ota_event)
@@ -71,12 +79,37 @@ class CameraState:
         self.image_dir_path: TrackingVariable[Path] = TrackingVariable()
         self.inference_dir_path: TrackingVariable[Path] = TrackingVariable()
 
-    @property
-    def is_ready(self) -> bool:
-        # Attributes report interval cannot be controlled in EVP1
-        return (
-            self.onwire_schema is not OnWireProtocol.EVP1 and self.attributes_available
-        )
+        self._init_bindings()
+
+    def _init_bindings(self) -> None:
+        """
+        These bindings among variables implement business logic that requires
+        no further data than the one contained among the variables.
+        """
+
+        def compute_is_ready(current: Optional[bool], previous: Optional[bool]) -> None:
+            _is_ready = (
+                False
+                if current is None
+                else (
+                    # Attributes report interval cannot be controlled in EVP1
+                    current
+                    and (self._onwire_schema is not OnWireProtocol.EVP1)
+                )
+            )
+            self.is_ready.value = _is_ready
+
+        self.attributes_available.subscribe(compute_is_ready)
+
+        def compute_is_streaming(
+            current: Optional[StreamStatus], previous: Optional[StreamStatus]
+        ) -> None:
+            _is_streaming = (
+                False if current is None else (current == StreamStatus.Active)
+            )
+            self.is_streaming.value = _is_streaming
+
+        self.stream_status.subscribe(compute_is_streaming)
 
     @property
     def connected(self) -> bool:
@@ -86,10 +119,6 @@ class CameraState:
             return (
                 datetime.now() - self._last_reception
             ) < self.CONNECTION_STATUS_TIMEOUT
-
-    @property
-    def is_streaming(self) -> bool:
-        return self.sensor_state == StreamStatus.Active
 
     async def process_incoming(self, topic: str, payload: dict[str, Any]) -> None:
         sent_from_camera = False
@@ -127,7 +156,7 @@ class CameraState:
                     DeviceConfiguration.model_validate(decoded)
                 )
                 if self.device_config.value:
-                    self.sensor_state = StreamStatus.from_string(
+                    self.stream_status.value = StreamStatus.from_string(
                         self.device_config.value.Status.Sensor
                     )
             except ValidationError as e:
@@ -136,15 +165,15 @@ class CameraState:
     async def _process_sysinfo_topic(self, payload: dict[str, Any]) -> None:
         sys_info = payload[self.SYSINFO_TOPIC]
         if "protocolVersion" in sys_info:
-            self.onwire_schema = OnWireProtocol(sys_info["protocolVersion"])
-        self.attributes_available = True
+            self._onwire_schema = OnWireProtocol(sys_info["protocolVersion"])
+        self.attributes_available.value = True
 
     async def _process_deploy_status_topic(self, payload: dict[str, Any]) -> None:
-        if self.onwire_schema == OnWireProtocol.EVP1 or self.onwire_schema is None:
+        if self._onwire_schema == OnWireProtocol.EVP1 or self._onwire_schema is None:
             self.deploy_status = json.loads(payload[self.DEPLOY_STATUS_TOPIC])
         else:
             self.deploy_status = payload[self.DEPLOY_STATUS_TOPIC]
-        self.attributes_available = True
+        self.attributes_available.value = True
 
     async def _prepare_ota_event(
         self,
@@ -157,28 +186,3 @@ class CameraState:
     async def ota_event(self) -> None:
         self._ota_event = trio.Event()
         await self._ota_event.wait()
-
-
-class StreamStatus(enum.Enum):
-    # Camera states:
-    # https://github.com/SonySemiconductorSolutions/EdgeAIPF.smartcamera.type3.mirror/blob/vD7.00.F6/src/edge_agent/edge_agent_config_state_private.h#L309-L314
-    Inactive = "Inactive"
-    Active = "Active"
-    Transitioning = (
-        "..."  # Not a CamFW state. Used to describe transition in Local Console.
-    )
-
-    @classmethod
-    def from_string(cls, value: str) -> "StreamStatus":
-        if value in ("Standby", "Error", "PowerOff"):
-            return cls.Inactive
-        elif value == "Streaming":
-            return cls.Active
-        return cls.Transitioning
-
-
-class MQTTTopics(enum.Enum):
-    ATTRIBUTES = "v1/devices/me/attributes"
-    TELEMETRY = "v1/devices/me/telemetry"
-    ATTRIBUTES_REQ = "v1/devices/me/attributes/request/+"
-    RPC_RESPONSES = "v1/devices/me/rpc/response/+"

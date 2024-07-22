@@ -202,7 +202,9 @@ async def test_process_state_topic(device_config: DeviceConfiguration) -> None:
 
     observer.assert_awaited_once_with(device_config, None)
     assert camera.device_config.value == device_config
-    assert camera.sensor_state == StreamStatus.from_string(device_config.Status.Sensor)
+    assert camera.stream_status.value == StreamStatus.from_string(
+        device_config.Status.Sensor
+    )
 
 
 @pytest.mark.trio
@@ -214,13 +216,13 @@ async def test_process_systeminfo(proto_spec: OnWireProtocol) -> None:
     await camera._process_sysinfo_topic(sysinfo_report)
 
     assert camera.attributes_available
-    assert camera.onwire_schema == proto_spec
+    assert camera._onwire_schema == proto_spec
 
 
 @pytest.mark.trio
 async def test_process_deploy_status_evp1() -> None:
     camera = CameraState()
-    camera.onwire_schema = OnWireProtocol.EVP1
+    camera._onwire_schema = OnWireProtocol.EVP1
     dummy_deployment = {"a": "b"}
 
     status_report = {"deploymentStatus": json.dumps(dummy_deployment)}
@@ -233,7 +235,7 @@ async def test_process_deploy_status_evp1() -> None:
 @pytest.mark.trio
 async def test_process_deploy_status_evp2() -> None:
     camera = CameraState()
-    camera.onwire_schema = OnWireProtocol.EVP2
+    camera._onwire_schema = OnWireProtocol.EVP2
     dummy_deployment = {"a": "b"}
 
     status_report = {"deploymentStatus": dummy_deployment}

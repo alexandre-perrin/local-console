@@ -1,11 +1,11 @@
 #:import JsonLexer pygments.lexers.JsonLexer
+#:import ImageWithROI local_console.gui.view.common.components.ImageWithROI
+#:import CodeInputCustom local_console.gui.view.common.components.CodeInputCustom
 #:include res_path(components.kv)
 
 <InferenceScreenView>
     md_bg_color: self.theme_cls.backgroundColor
     inference_data: self.inference_data
-
-    on_enter: self.entry_actions()
 
     MDBoxLayout:
         orientation: "vertical"
@@ -28,7 +28,7 @@
 
                 MDButton:
                     id: btn_stream_control
-                    on_release: root.toggle_stream_status()
+                    on_release: root.controller.toggle_stream_status()
                     style: "elevated"
                     pos_hint: {"center_y": 0.5}
                     MDButtonText:

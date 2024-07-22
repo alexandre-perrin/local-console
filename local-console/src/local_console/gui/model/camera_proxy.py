@@ -17,6 +17,8 @@ from kivy.properties import BooleanProperty
 from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
 from local_console.core.camera import OTAUpdateModule
+from local_console.core.camera.axis_mapping import DEFAULT_ROI
+from local_console.core.camera.enums import StreamStatus
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.gui.model.data_binding import CameraStateProxyBase
 
@@ -25,6 +27,9 @@ class CameraStateProxy(CameraStateProxyBase):
 
     is_ready = BooleanProperty(False)
     is_streaming = BooleanProperty(False)
+    stream_status = ObjectProperty(StreamStatus.Inactive)
+    roi = ObjectProperty(DEFAULT_ROI)
+
     image_dir_path = StringProperty("")
     inference_dir_path = StringProperty("")
 
@@ -53,8 +58,6 @@ class CameraStateProxy(CameraStateProxyBase):
 #        -e 's;self, [^:]*: ;;g' -e 's/-/;/g' \
 #  | sort -t';' -k2) > model-properties.csv
 #
-#   stream_status(StreamStatus)
-#   stream_status(StreamStatus)
 #   app_configuration(Optional[str])
 #   app_labels(Optional[str])
 #   app_type(Optional[str])
@@ -66,7 +69,6 @@ class CameraStateProxy(CameraStateProxyBase):
 #   flatbuffers_schema(Optional[Path])
 #   flatbuffers_schema_status(bool)
 #   gateway(str)
-#   image_roi(UnitROI)
 #   ip_address(str)
 #   local_ip(str)
 #   manifest(DeploymentManifest)

@@ -14,13 +14,11 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 from local_console.core.camera import StreamStatus
+from local_console.core.camera.axis_mapping import UnitROI
 from local_console.gui.driver import Driver
+from local_console.gui.model.camera_proxy import CameraStateProxy
 from local_console.gui.model.streaming_screen import StreamingScreenModel
-from local_console.gui.utils.axis_mapping import UnitROI
 from local_console.gui.view.streaming_screen.streaming_screen import StreamingScreenView
-from pygments.lexers import (
-    JsonLexer,
-)  # nopycln: import # Required by the screen's KV spec file
 
 
 class StreamingScreenController:
@@ -36,26 +34,28 @@ class StreamingScreenController:
         self.driver = driver
         self.view = StreamingScreenView(controller=self, model=self.model)
 
+        self.driver.gui.mdl.bind(roi=self.post_roi_actions)
+
     def get_view(self) -> StreamingScreenView:
         return self.view
 
     def toggle_stream_status(self) -> None:
-        camera_status = self.model.stream_status
+        camera_status = self.driver.camera_state.stream_status.value
         if camera_status == StreamStatus.Active:
             self.driver.from_sync(self.driver.streaming_rpc_stop)
         else:
-            self.driver.from_sync(self.driver.streaming_rpc_start, self.model.image_roi)
+            self.driver.from_sync(
+                self.driver.streaming_rpc_start, self.driver.camera_state.roi.value
+            )
             self.view.ids.stream_image.cancel_roi_draw()
 
-        self.model.stream_status = StreamStatus.Transitioning
+        self.driver.camera_state.stream_status.value = StreamStatus.Transitioning
 
-    def set_roi(self, roi: UnitROI) -> None:
-        self.model.image_roi = roi
-
-        camera_status = self.model.stream_status
+    def post_roi_actions(self, instance: CameraStateProxy, roi: UnitROI) -> None:
+        camera_status = self.driver.camera_state.stream_status.value
         if camera_status == StreamStatus.Transitioning:
             return
-
-        self.model.stream_status = StreamStatus.Transitioning
         if camera_status == StreamStatus.Active:
             self.driver.from_sync(self.driver.streaming_rpc_stop)
+
+        self.driver.camera_state.stream_status.value = StreamStatus.Transitioning
