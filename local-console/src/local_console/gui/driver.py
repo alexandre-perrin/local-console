@@ -269,9 +269,6 @@ class Driver:
 
     @run_on_ui_thread
     def update_camera_status(self) -> None:
-        stream_status = self.camera_state.stream_status
-        self.gui.views[Screen.STREAMING_SCREEN].model.stream_status = stream_status
-        self.gui.views[Screen.INFERENCE_SCREEN].model.stream_status = stream_status
         self.gui.views[Screen.APPLICATIONS_SCREEN].model.deploy_status = (
             self.camera_state.deploy_status
         )
