@@ -54,17 +54,17 @@ class ConfigurationScreenController:
 
         if app_type == ApplicationType.CUSTOM.value:
             self.driver.camera_state.vapp_schema_file.value = None
-            self.view.ids.schema_pick.accept_path("")
+            self.view.ids.schema_pick.select_path("")
 
         elif app_type == ApplicationType.CLASSIFICATION.value:
             path = ApplicationSchemaFilePath.CLASSIFICATION
             self.driver.camera_state.vapp_schema_file.value = path
-            self.view.ids.schema_pick.accept_path(str(path))
+            self.view.ids.schema_pick.select_path(str(path))
 
         elif app_type == ApplicationType.DETECTION.value:
             path = ApplicationSchemaFilePath.DETECTION
             self.driver.camera_state.vapp_schema_file.value = path
-            self.view.ids.schema_pick.accept_path(str(path))
+            self.view.ids.schema_pick.select_path(str(path))
 
     def get_view(self) -> ConfigurationScreenView:
         return self.view
