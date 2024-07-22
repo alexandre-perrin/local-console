@@ -44,6 +44,7 @@ from local_console.core.schemas.edge_cloud_if_v1 import Permission
 from local_console.core.schemas.edge_cloud_if_v1 import SetFactoryReset
 from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
 from local_console.core.schemas.schemas import DesiredDeviceConfig
+from local_console.gui.device_manager import DeviceManager
 from local_console.gui.drawer.classification import ClassificationDrawer
 from local_console.gui.drawer.objectdetection import DetectionDrawer
 from local_console.gui.enums import ApplicationConfiguration
@@ -66,6 +67,7 @@ logger = logging.getLogger(__name__)
 class Driver:
     def __init__(self, gui: type[MDApp]) -> None:
         self.gui = gui
+        self.device_manager = DeviceManager()
 
         self.config = get_config()
         self.mqtt_client = Agent(self.config)

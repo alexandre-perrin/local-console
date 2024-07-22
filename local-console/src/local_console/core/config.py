@@ -13,9 +13,11 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+import ast
 import configparser
 import json
 import logging
+import shutil
 from pathlib import Path
 from typing import Any
 from typing import get_args
@@ -25,6 +27,9 @@ from typing import Optional
 from local_console.core.enums import config_paths
 from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.core.schemas.schemas import DeploymentManifest
+from local_console.core.schemas.schemas import DeviceConnection
+from local_console.core.schemas.schemas import DeviceListItem
+from local_console.core.schemas.schemas import DeviceParams
 from local_console.core.schemas.schemas import EVPParams
 from local_console.core.schemas.schemas import IPAddress
 from local_console.core.schemas.schemas import MQTTParams
@@ -43,6 +48,7 @@ def get_default_config() -> configparser.ConfigParser:
     }
     config["mqtt"] = {"host": "localhost", "port": "1883"}
     config["webserver"] = {"host": "localhost", "port": "8000"}
+    config["devices"] = {"device_folders": "[]"}
     return config
 
 
@@ -222,3 +228,118 @@ def schema_to_parser(
     for section_names, values in config_dict.items():
         config_parser[section_names] = values
     return config_parser
+
+
+def add_device_to_config(device: DeviceListItem) -> None:
+    """
+    This function makes a folder for the given device, and save a device config
+    in the folder. Then the folder name is saved in the global config.
+    """
+    # Make a device folder and save a device config
+    mkdir_with_device_config(device)
+
+    # Add the device folder into the global config
+    config_parser = get_global_config()
+    device_folders: list = ast.literal_eval(config_parser["devices"]["device_folders"])
+    device_folders.append(device.name)
+    config_parser["devices"]["device_folders"] = str(device_folders)
+    config_file = config_paths.config_path
+    try:
+        with open(config_file, "w") as f:
+            config_parser.write(f)
+    except OSError as e:
+        logger.error(f"Error: {e}")
+        raise SystemExit()
+
+
+def mkdir_with_device_config(device: DeviceListItem) -> None:
+    config_file = config_paths.config_path
+    device_dir_path = config_file.parent / device.name
+    try:
+        device_dir_path.mkdir(parents=True, exist_ok=True)
+        device_config = create_device_config(device)
+        with open(device_dir_path / "config.json", "w") as f:
+            json.dump(device_config.model_dump(), f, indent=2)
+    except OSError as e:
+        logger.error(f"Error while generating folder {device_dir_path}: {e}")
+        raise SystemExit()
+
+
+def get_global_config() -> configparser.ConfigParser:
+    config_parser: configparser.ConfigParser = configparser.ConfigParser()
+    try:
+        config_parser.read(config_paths.config_path)
+    except FileNotFoundError:
+        logger.error("Config file not found")
+        exit(1)
+    except configparser.MissingSectionHeaderError:
+        logger.error("No header found in the specified file")
+        exit(1)
+    return config_parser
+
+
+def create_device_config(device: DeviceListItem) -> DeviceConnection:
+    try:
+        device_config = DeviceConnection(
+            mqtt=MQTTParams(
+                host=IPAddress(ip_value="localhost"),
+                port=int(device.port),
+                device_id=None,
+            ),
+            webserver=WebserverParams(
+                host=IPAddress(ip_value="localhost"),
+                port=8000,
+            ),
+            tls=TLSConfiguration.model_construct(
+                ca_certificate=None,
+                ca_key=None,
+            ),
+            device=DeviceParams(name=device.name),
+        )
+        return device_config
+    except ValidationError as e:
+        logger.error(f"ValidationError: {e}")
+        exit(1)
+
+
+def get_device_configs() -> list[DeviceListItem]:
+    """
+    This function returns the list of device folders in the global config.
+    """
+    config_parser = get_global_config()
+    device_folders: list = ast.literal_eval(config_parser["devices"]["device_folders"])
+
+    device_items = []
+    for device in device_folders:
+        with open(config_paths.config_path.parent / device / "config.json") as f:
+            device_config = json.load(f)
+            name = device_config["device"]["name"]
+            port = device_config["mqtt"]["port"]
+            assert name == device
+            device_items.append(DeviceListItem(name=name, port=port))
+    return device_items
+
+
+def remove_device_config(device_name: str) -> None:
+    """
+    This function removes the given device from the global config
+    and removes the device folder with the device config.
+    """
+    config_parser = get_global_config()
+
+    # Remove the device from the device folders
+    device_folders: list = ast.literal_eval(config_parser["devices"]["device_folders"])
+    device_folders.remove(device_name)
+    config_parser["devices"]["device_folders"] = str(device_folders)
+    config_file = config_paths.config_path
+    try:
+        with open(config_file, "w") as f:
+            config_parser.write(f)
+    except OSError as e:
+        logger.error(f"Error: {e}")
+        raise SystemExit()
+
+    # Remove the device folder
+    folder_to_remove = config_paths.config_path.parent / device_name
+    if folder_to_remove.is_dir():
+        shutil.rmtree(folder_to_remove)
