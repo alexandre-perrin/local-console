@@ -348,42 +348,6 @@ async def test_send_ppl_configuration(config: str):
         )
 
 
-def test_add_class_names() -> None:
-    with (
-        patch("local_console.gui.driver.Agent"),
-        patch("local_console.gui.driver.spawn_broker"),
-    ):
-        class_id_to_name = {
-            0: "Apple",
-            1: "Banana",
-        }
-        data = {
-            "perception": {
-                "classification_list": [
-                    {
-                        "class_id": 0,
-                        "score": 0.929688,
-                    },
-                    {
-                        "class_id": 1,
-                        "score": 0.070313,
-                    },
-                ]
-            }
-        }
-        driver = Driver(MagicMock())
-        driver.add_class_names(data, class_id_to_name)
-        assert data["perception"]["classification_list"][0]["class_name"] == "Apple"
-        assert data["perception"]["classification_list"][1]["class_name"] == "Banana"
-
-        class_id_to_name = {
-            0: "Apple",
-        }
-        driver.add_class_names(data, class_id_to_name)
-        assert data["perception"]["classification_list"][0]["class_name"] == "Apple"
-        assert data["perception"]["classification_list"][1]["class_name"] == "Unknown"
-
-
 def test_map_class_id_to_name(tmp_path) -> None:
     label_file = tmp_path / "label.txt"
     with open(label_file, "w") as file:

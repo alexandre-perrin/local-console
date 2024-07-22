@@ -33,6 +33,7 @@ from local_console.core.camera import OTAUpdateModule
 from local_console.core.camera import StreamStatus
 from local_console.core.camera.axis_mapping import pixel_roi_from_normals
 from local_console.core.camera.axis_mapping import UnitROI
+from local_console.core.camera.flatbuffers import add_class_names
 from local_console.core.commands.ota_deploy import get_package_hash
 from local_console.core.config import get_config
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
@@ -375,23 +376,6 @@ class Driver:
             inference_data
         )
 
-    def add_class_names(self, data: dict, class_id_to_name: dict) -> None:
-        # Add class names to the data recursively
-        if isinstance(data, dict):
-            updates = []
-            for key, value in data.items():
-                if key == "class_id":
-                    updates.append(
-                        ("class_name", class_id_to_name.get(value, "Unknown"))
-                    )
-                else:
-                    self.add_class_names(value, class_id_to_name)
-            for key, value in updates:
-                data[key] = value
-        elif isinstance(data, list):
-            for item in data:
-                self.add_class_names(item, class_id_to_name)
-
     def get_flatbuffers_inference_data(self, output: bytes) -> None | str | dict:
         if self.flatbuffers_schema:
             output_name = "SmartCamera"
@@ -408,7 +392,7 @@ class Driver:
                     with open(self.temporary_base / f"{output_name}.json") as file:
                         json_data = json.load(file)
                         if self.class_id_to_name:
-                            self.add_class_names(json_data, self.class_id_to_name)
+                            add_class_names(json_data, self.class_id_to_name)
 
                         return_value = json_data
                 except FileNotFoundError:
