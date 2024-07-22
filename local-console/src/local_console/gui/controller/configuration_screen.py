@@ -15,11 +15,11 @@
 # SPDX-License-Identifier: Apache-2.0
 import json
 from pathlib import Path
-from typing import Optional
 
 from local_console.gui.driver import Driver
 from local_console.gui.enums import ApplicationSchemaFilePath
 from local_console.gui.enums import ApplicationType
+from local_console.gui.model.camera_proxy import CameraStateProxy
 from local_console.gui.model.configuration_screen import ConfigurationScreenModel
 from local_console.gui.view.configuration_screen.configuration_screen import (
     ConfigurationScreenView,
@@ -41,6 +41,30 @@ class ConfigurationScreenController:
         self.view = ConfigurationScreenView(controller=self, model=self.model)
         self.flatbuffers = FlatBuffers()
 
+        self.driver.gui.mdl.bind(vapp_type=self.on_vapp_type)
+
+    def on_vapp_type(
+        self, instance: CameraStateProxy, app_type: ApplicationType
+    ) -> None:
+
+        is_custom = app_type == ApplicationType.CUSTOM.value
+        self.view.ids.labels_pick.disabled = is_custom
+        self.view.ids.schema_pick.disabled = not is_custom
+
+        if app_type == ApplicationType.CUSTOM.value:
+            self.driver.camera_state.vapp_schema_file.value = None
+            self.view.ids.schema_pick.accept_path("")
+
+        elif app_type == ApplicationType.CLASSIFICATION.value:
+            path = ApplicationSchemaFilePath.CLASSIFICATION
+            self.driver.camera_state.vapp_schema_file.value = path
+            self.view.ids.schema_pick.accept_path(str(path))
+
+        elif app_type == ApplicationType.DETECTION.value:
+            path = ApplicationSchemaFilePath.DETECTION
+            self.driver.camera_state.vapp_schema_file.value = path
+            self.view.ids.schema_pick.accept_path(str(path))
+
     def get_view(self) -> ConfigurationScreenView:
         return self.view
 
@@ -52,20 +76,6 @@ class ConfigurationScreenController:
 
     def update_total_max_size(self, size: int) -> None:
         self.driver.total_dir_watcher.set_storage_limit(size)
-
-    def update_application_type(self, app_type: str) -> None:
-        self.model.app_type = app_type
-
-        is_custom = app_type == ApplicationType.CUSTOM.value
-        self.view.ids.labels_pick.disabled = is_custom
-        self.view.ids.schema_pick.disabled = not is_custom
-
-        if app_type == ApplicationType.CUSTOM.value:
-            self.update_flatbuffers_schema(None)
-        elif app_type == ApplicationType.CLASSIFICATION.value:
-            self.update_flatbuffers_schema(ApplicationSchemaFilePath.CLASSIFICATION)
-        else:
-            self.update_flatbuffers_schema(ApplicationSchemaFilePath.DETECTION)
 
     def apply_application_configuration(self) -> None:
         self.driver.map_class_id_to_name()

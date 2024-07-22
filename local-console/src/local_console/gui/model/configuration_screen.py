@@ -13,9 +13,6 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-from pathlib import Path
-from typing import Optional
-
 from local_console.gui.model.base_model import BaseScreenModel
 
 
@@ -23,25 +20,3 @@ class ConfigurationScreenModel(BaseScreenModel):
     """
     The Model for the Configuration screen.
     """
-
-    def __init__(self) -> None:
-        self._flatbuffers_schema_status: bool = False
-        self._app_type: Optional[str] = None
-
-    @property
-    def app_type(self) -> Optional[str]:
-        return self._app_type
-
-    @app_type.setter
-    def app_type(self, value: Optional[str]) -> None:
-        self._app_type = value
-        self.notify_observers()
-
-    @property
-    def flatbuffers_schema_status(self) -> bool:
-        return self._flatbuffers_schema_status
-
-    @flatbuffers_schema_status.setter
-    def flatbuffers_schema_status(self, value: bool) -> None:
-        self._flatbuffers_schema_status = value
-        self.notify_observers()

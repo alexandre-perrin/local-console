@@ -55,7 +55,7 @@
 
             AppTypeCombo:
                 label: "Type:"
-                on_selected: root.controller.update_application_type(args[1])
+                on_selected: app.mdl.vapp_type = args[1]
 
             PathSelectorCombo:
                 id: schema_pick
