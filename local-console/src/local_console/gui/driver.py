@@ -35,6 +35,7 @@ from local_console.core.camera.axis_mapping import pixel_roi_from_normals
 from local_console.core.camera.axis_mapping import UnitROI
 from local_console.core.camera.flatbuffers import add_class_names
 from local_console.core.camera.flatbuffers import flatbuffer_binary_to_json
+from local_console.core.camera.flatbuffers import FlatbufferError
 from local_console.core.camera.flatbuffers import get_output_from_inference_results
 from local_console.core.commands.ota_deploy import get_package_hash
 from local_console.core.config import get_config
@@ -316,13 +317,17 @@ class Driver:
             assert target_dir
             final_file = self.save_into_input_directory(incoming_file, target_dir)
             output_data = get_output_from_inference_results(final_file.read_bytes())
+
+            payload_render = final_file.read_text()
             if self.camera_state.vapp_schema_file.value:
-                output_tensor = self.get_flatbuffers_inference_data(output_data)
-                if output_tensor:
-                    self.update_inference_data(json.dumps(output_tensor, indent=2))
-                    output_data = output_tensor  # type: ignore
-            else:
-                self.update_inference_data(final_file.read_text())
+                try:
+                    output_tensor = self.get_flatbuffers_inference_data(output_data)
+                    if output_tensor:
+                        payload_render = json.dumps(output_tensor, indent=2)
+                        output_data = output_tensor  # type: ignore
+                except FlatbufferError as e:
+                    logger.error("Error decoding inference data:", exc_info=e)
+            self.update_inference_data(payload_render)
 
             # assumes input and output tensor received in that order
             assert self.latest_image_file
