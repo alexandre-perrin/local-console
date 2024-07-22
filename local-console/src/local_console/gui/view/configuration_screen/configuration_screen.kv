@@ -1,3 +1,4 @@
+#:import Path pathlib.Path
 #:import res_path local_console.gui.config.resource_path
 #:include res_path(components.kv)
 
@@ -33,7 +34,7 @@
                 icon: "folder-cog"
                 path: app.mdl.image_dir_path
                 search: "dirs"
-                on_selected: root.select_path_image(args[1])
+                on_selected: root.controller.update_image_directory(args[1])
 
             PathSelectorCombo:
             # Inference dir
@@ -42,7 +43,7 @@
                 icon: "folder-cog"
                 path: app.mdl.inference_dir_path
                 search: "dirs"
-                on_selected: root.select_path_inferences(args[1])
+                on_selected: root.controller.update_inferences_directory(args[1])
 
             FileSizeCombo:
                 label: "Max total size from image and inference folders:"
@@ -54,7 +55,7 @@
 
             AppTypeCombo:
                 label: "Type:"
-                on_selected: root.controller.update_application_type(args[1])
+                on_selected: app.mdl.vapp_type = args[1]
 
             PathSelectorCombo:
                 id: schema_pick
@@ -62,7 +63,7 @@
                 icon: "folder-cog"
                 selector: "file"
                 ext: [".fbs"]
-                on_selected: root.select_path_flatbuffers(args[1])
+                on_selected: app.mdl.vapp_schema_file = Path(self.accept_path(args[1]))
 
             PathSelectorCombo:
                 id: app_configuration_pick
@@ -70,7 +71,7 @@
                 icon: "folder-cog"
                 selector: "file"
                 ext: [".json"]
-                on_selected: root.select_path_app_configuration(args[1])
+                on_selected: app.mdl.vapp_config_file = Path(self.accept_path(args[1]))
 
             PathSelectorCombo:
                 id: labels_pick
@@ -78,7 +79,7 @@
                 icon: "folder-cog"
                 selector: "file"
                 ext: [".txt"]
-                on_selected: root.select_path_labels(args[1])
+                on_selected: app.mdl.vapp_config_file = Path(self.accept_path(args[1]))
                 disabled: True
 
             MDBoxLayout:

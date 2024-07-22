@@ -70,7 +70,7 @@ class ApplicationsScreenView(BaseScreenView):
         """
         if validate_app_file(Path(path)):
             self.ids.app_file.accept_path(path)
-            self.dismiss_error()
+            self.dismiss_message()
             self.ids.btn_deploy_file.disabled = not self.app.mdl.is_ready
         else:
             self.ids.btn_deploy_file.disabled = True

@@ -98,50 +98,75 @@ class BaseScreenView(MDScreen, Observer):
         self.model.add_observer(self)
 
         # Error display widget tracking
-        self._error_widget: Optional[MDSnackbar] = None
+        self._message_widget: Optional[MDSnackbar] = None
 
-    @run_on_ui_thread
     def display_error(
         self, text: str, support_text: Optional[str] = None, duration: int = 5
+    ) -> None:
+        self._display_message(
+            text, support_text, duration, color_theme="Error", text_color="Error"
+        )
+
+    def display_info(
+        self, text: str, support_text: Optional[str] = None, duration: int = 5
+    ) -> None:
+        self._display_message(
+            text,
+            support_text,
+            duration,
+            color_theme="Secondary",
+            text_color="Secondary",
+        )
+
+    def dismiss_message(self, *args: Any) -> None:
+        if self._message_widget:
+            self._message_widget.dismiss()
+            self._message_widget = None
+
+    @run_on_ui_thread
+    def _display_message(
+        self,
+        text: str,
+        support_text: Optional[str] = None,
+        duration: int = 5,
+        color_theme: str = "Error",
+        text_color: str = "Error",
     ) -> None:
         widgets = [
             MDSnackbarText(
                 text=text,
-                theme_text_color="Error",
+                theme_text_color=text_color,
             ),
         ]
         if support_text:
             widgets.append(
                 MDSnackbarSupportingText(
                     text=support_text,
-                    theme_text_color="Secondary",
+                    theme_text_color=text_color,
                 )
             )
 
-        self.dismiss_error()
-        self._error_widget = MDSnackbar(
+        self.dismiss_message()
+        self._message_widget = MDSnackbar(
             *widgets,
             y=dp(24),
             orientation="horizontal",
             pos_hint={"center_x": 0.5},
             size_hint_x=0.8,
-            background_color=self.theme_cls.errorContainerColor,
+            background_color=getattr(
+                self.theme_cls, f"{color_theme.lower()}ContainerColor"
+            ),
             duration=duration,
         )
-        self._error_widget.add_widget(
+        self._message_widget.add_widget(
             MDSnackbarButtonContainer(
                 MDSnackbarCloseButton(
                     icon="close",
-                    on_release=self.dismiss_error,
+                    on_release=self.dismiss_message,
                     theme_icon_color="Custom",
                     icon_color="#2A2B25",
                 ),
                 pos_hint={"center_y": 0.5},
             )
         )
-        self._error_widget.open()
-
-    def dismiss_error(self, *args: Any) -> None:
-        if self._error_widget:
-            self._error_widget.dismiss()
-            self._error_widget = None
+        self._message_widget.open()

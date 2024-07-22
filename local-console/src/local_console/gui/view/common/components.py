@@ -461,8 +461,9 @@ class PathSelectorCombo(MDBoxLayout):
             exit_manager=self.exit_manager, select_path=self.select_path
         )
 
-    def accept_path(self, path: str) -> None:
+    def accept_path(self, path: str) -> str:
         self.path = path
+        return path
 
     def open_manager(self) -> None:
         self.file_manager.search = self.search

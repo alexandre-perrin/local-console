@@ -13,9 +13,6 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-from pathlib import Path
-from typing import Optional
-
 from local_console.gui.model.base_model import BaseScreenModel
 
 
@@ -23,65 +20,3 @@ class ConfigurationScreenModel(BaseScreenModel):
     """
     The Model for the Configuration screen.
     """
-
-    def __init__(self) -> None:
-        self._flatbuffers_schema: Optional[Path] = None
-        self._flatbuffers_process_result: Optional[str] = None
-        self._flatbuffers_schema_status: bool = False
-        self._app_type: Optional[str] = None
-        self._app_configuration: Optional[str] = None
-        self._app_labels: Optional[str] = None
-
-    @property
-    def flatbuffers_schema(self) -> Optional[Path]:
-        return self._flatbuffers_schema
-
-    @flatbuffers_schema.setter
-    def flatbuffers_schema(self, value: Optional[Path]) -> None:
-        self._flatbuffers_schema = value
-        self.notify_observers()
-
-    @property
-    def app_type(self) -> Optional[str]:
-        return self._app_type
-
-    @app_type.setter
-    def app_type(self, value: Optional[str]) -> None:
-        self._app_type = value
-        self.notify_observers()
-
-    @property
-    def app_labels(self) -> Optional[str]:
-        return self._app_labels
-
-    @app_labels.setter
-    def app_labels(self, value: Optional[str]) -> None:
-        self._app_labels = value
-        self.notify_observers()
-
-    @property
-    def app_configuration(self) -> Optional[str]:
-        return self._app_configuration
-
-    @app_configuration.setter
-    def app_configuration(self, value: Optional[str]) -> None:
-        self._app_configuration = value
-        self.notify_observers()
-
-    @property
-    def flatbuffers_process_result(self) -> Optional[str]:
-        return self._flatbuffers_process_result
-
-    @flatbuffers_process_result.setter
-    def flatbuffers_process_result(self, value: Optional[str]) -> None:
-        self._flatbuffers_process_result = value
-        self.notify_observers()
-
-    @property
-    def flatbuffers_schema_status(self) -> bool:
-        return self._flatbuffers_schema_status
-
-    @flatbuffers_schema_status.setter
-    def flatbuffers_schema_status(self, value: bool) -> None:
-        self._flatbuffers_schema_status = value
-        self.notify_observers()

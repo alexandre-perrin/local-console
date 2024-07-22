@@ -13,6 +13,8 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+from pathlib import Path
+
 from kivy.properties import BooleanProperty
 from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
@@ -41,6 +43,11 @@ class CameraStateProxy(CameraStateProxyBase):
     # test_camera_proxy.py::test_difference_of_property_with_force_dispatch
     ai_model_file_valid = BooleanProperty(False, force_dispatch=True)
 
+    vapp_schema_file = ObjectProperty(Path, allownone=True)
+    vapp_config_file = ObjectProperty(Path, allownone=True)
+    vapp_labels_file = ObjectProperty(Path, allownone=True)
+    vapp_type = StringProperty("")
+
     firmware_file = StringProperty("", allownone=True)
     firmware_file_valid = BooleanProperty(False, force_dispatch=True)
     firmware_file_version = StringProperty("", allownone=True)
@@ -58,16 +65,10 @@ class CameraStateProxy(CameraStateProxyBase):
 #        -e 's;self, [^:]*: ;;g' -e 's/-/;/g' \
 #  | sort -t';' -k2) > model-properties.csv
 #
-#   app_configuration(Optional[str])
-#   app_labels(Optional[str])
-#   app_type(Optional[str])
 #   connected(bool)
 #   deploy_stage(DeployStage)
 #   deploy_status(dict[str, str])
 #   dns_server(str)
-#   flatbuffers_process_result(Optional[str])
-#   flatbuffers_schema(Optional[Path])
-#   flatbuffers_schema_status(bool)
 #   gateway(str)
 #   ip_address(str)
 #   local_ip(str)
