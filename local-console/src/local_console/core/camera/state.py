@@ -73,6 +73,7 @@ class CameraState:
         self.vapp_config_file: TrackingVariable[Path] = TrackingVariable()
         self.vapp_labels_file: TrackingVariable[Path] = TrackingVariable()
         self.vapp_type: TrackingVariable[str] = TrackingVariable()
+        self.vapp_labels_map: TrackingVariable[dict[int, str]] = TrackingVariable()
 
         self.firmware_file: TrackingVariable[Path] = TrackingVariable()
         self.firmware_file_valid: TrackingVariable[bool] = TrackingVariable(False)

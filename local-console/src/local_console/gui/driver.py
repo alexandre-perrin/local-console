@@ -70,7 +70,6 @@ class Driver:
         self.temporary_image_directory: Optional[Path] = None
         self.temporary_inference_directory: Optional[Path] = None
         self.total_dir_watcher = StorageSizeWatcher()
-        self.class_id_to_name: Optional[dict] = None
         self.latest_image_file: Optional[Path] = None
         # Used to identify if output tensors are missing
         self.consecutives_images = 0
@@ -173,10 +172,13 @@ class Driver:
         self.gui.mdl.bind_proxy_to_state("vapp_config_file", self.camera_state)
         self.gui.mdl.bind_proxy_to_state("vapp_labels_file", self.camera_state)
         self.gui.mdl.bind_proxy_to_state("vapp_type", self.camera_state)
-        """
-        `vapp_schema_file` is not bound because it is important that the chosen
-        file undergoes thorough validation before being committed.
-        """
+
+        # `vapp_schema_file` is not bound because it is important that the chosen
+        # file undergoes thorough validation before being committed.
+
+        # The labels map is computed from the labels file,
+        # so data binding must be state-->proxy.
+        self.gui.mdl.bind_state_to_proxy("vapp_labels_map", self.camera_state, str)
 
     @property
     def evp1_mode(self) -> bool:
@@ -390,8 +392,9 @@ class Driver:
                     return_value = None
                     with open(self.temporary_base / f"{output_name}.json") as file:
                         json_data = json.load(file)
-                        if self.class_id_to_name:
-                            add_class_names(json_data, self.class_id_to_name)
+                        labels_map = self.camera_state.vapp_labels_map.value
+                        if labels_map:
+                            add_class_names(json_data, labels_map)
 
                         return_value = json_data
                 except FileNotFoundError:

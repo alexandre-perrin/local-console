@@ -46,6 +46,7 @@ class CameraStateProxy(CameraStateProxyBase):
     vapp_schema_file = ObjectProperty(Path, allownone=True)
     vapp_config_file = ObjectProperty(Path, allownone=True)
     vapp_labels_file = ObjectProperty(Path, allownone=True)
+    vapp_labels_map = ObjectProperty({}, allownone=True)
     vapp_type = StringProperty("")
 
     firmware_file = StringProperty("", allownone=True)

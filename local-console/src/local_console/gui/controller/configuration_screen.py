@@ -82,7 +82,7 @@ class ConfigurationScreenController:
 
     def apply_application_configuration(self) -> None:
         try:
-            self.driver.class_id_to_name = map_class_id_to_name(
+            self.driver.camera_state.vapp_labels_map.value = map_class_id_to_name(
                 self.driver.camera_state.vapp_labels_file.value
             )
         except FlatbufferError as e:
