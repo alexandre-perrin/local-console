@@ -70,7 +70,6 @@ class Driver:
         self.temporary_image_directory: Optional[Path] = None
         self.temporary_inference_directory: Optional[Path] = None
         self.total_dir_watcher = StorageSizeWatcher()
-        self.flatbuffers_schema: Optional[Path] = None
         self.class_id_to_name: Optional[dict] = None
         self.latest_image_file: Optional[Path] = None
         # Used to identify if output tensors are missing
@@ -315,7 +314,7 @@ class Driver:
             assert target_dir
             final_file = self.save_into_input_directory(incoming_file, target_dir)
             output_data = self.flatbuffers.get_output_from_inference_results(final_file)
-            if self.flatbuffers_schema:
+            if self.camera_state.vapp_schema_file.value:
                 output_tensor = self.get_flatbuffers_inference_data(output_data)
                 if output_tensor:
                     self.update_inference_data(json.dumps(output_tensor, indent=2))
@@ -377,12 +376,12 @@ class Driver:
         )
 
     def get_flatbuffers_inference_data(self, output: bytes) -> None | str | dict:
-        if self.flatbuffers_schema:
+        if self.camera_state.vapp_schema_file.value:
             output_name = "SmartCamera"
             assert self.temporary_base  # appease mypy
             return_value = None
             if self.flatbuffers.flatbuffer_binary_to_json(
-                self.flatbuffers_schema,
+                self.camera_state.vapp_schema_file.value,
                 output,
                 output_name,
                 self.temporary_base,

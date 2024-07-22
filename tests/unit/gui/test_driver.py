@@ -184,7 +184,7 @@ def test_process_camera_upload_inferences_with_schema(tmp_path_factory):
         driver = Driver(MagicMock())
         driver.camera_state.inference_dir_path.value = inference_dir
         driver.latest_image_file = root / "inferences/a.png"
-        driver.flatbuffers_schema = "objectdetection.fbs"
+        driver.camera_state.vapp_schema_file.value = Path("objectdetection.fbs")
         file = root / "inferences/a.txt"
         mock_save.return_value = file
 
