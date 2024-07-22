@@ -13,7 +13,14 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+import json
+import os
+import subprocess
+import sys
 from pathlib import Path
+from shutil import which
+from tempfile import TemporaryDirectory
+from typing import Any
 from typing import Optional
 
 
@@ -53,3 +60,38 @@ def map_class_id_to_name(labels_file: Optional[Path]) -> Optional[dict[int, str]
             raise FlatbufferError(f"Unknown error while reading labels text file: {e}")
 
     return class_id_to_name
+
+
+
+def conform_flatbuffer_schema(fbs: Path) -> bool:
+    """
+    Verifies if JSON is valid.
+    """
+    try:
+        flatc_path = get_flatc()
+        subprocess.check_output(
+            [flatc_path, "--conform", fbs], stderr=subprocess.STDOUT, text=True
+        )
+    except subprocess.CalledProcessError as e:
+        raise FlatbufferError(e.output)
+
+    return True
+
+
+def get_flatc() -> str:
+    """
+    For linux, this has no relevant effects.
+    For windows, the installer script placed the flatc binary
+                 within the virtualenv's scripts directory.
+    """
+    env_root = str(Path(sys.executable).parent)
+    current_path = os.environ.get("PATH", "")
+    if env_root not in current_path.split(os.pathsep):
+        os.environ["PATH"] = current_path + os.pathsep + env_root
+
+    # Resolve the path to flatc from the PATH
+    flatc_path = which("flatc")
+    if not flatc_path:
+        raise FlatbufferError("flatc not found in PATH")
+    else:
+        return flatc_path

@@ -20,6 +20,7 @@ from unittest.mock import patch
 
 import hypothesis.strategies as st
 from hypothesis import given
+from local_console.core.camera.flatbuffers import FlatbufferError
 from local_console.gui.controller.configuration_screen import (
     ConfigurationScreenController,
 )
@@ -55,8 +56,8 @@ def test_apply_flatbuffers_schema(driver_set, tmp_path):
             "local_console.gui.controller.configuration_screen.ConfigurationScreenView"
         ),
         patch(
-            "local_console.gui.controller.configuration_screen.FlatBuffers"
-        ) as mock_flatbuffers,
+            "local_console.gui.controller.configuration_screen.conform_flatbuffer_schema"
+        ) as mock_conform_flatbuffers,
     ):
         ctrl = ConfigurationScreenController(Mock, driver)
 
@@ -68,23 +69,20 @@ def test_apply_flatbuffers_schema(driver_set, tmp_path):
         ctrl.apply_flatbuffers_schema()
         ctrl.view.display_error.assert_called_with("Not a file or file does not exist!")
 
-        mock_flatbuffers.return_value.conform_flatbuffer_schema.return_value = (
-            False,
-            None,
+        mock_conform_flatbuffers.side_effect = FlatbufferError(
+            "Not a valid flatbuffers schema"
         )
         file = tmp_path / "file.bin"
         file.write_bytes(b"0")
         mock_gui.mdl.vapp_schema_file = file
         ctrl.apply_flatbuffers_schema()
         ctrl.view.display_error.assert_called_with("Not a valid flatbuffers schema")
-
         assert (
             mock_gui.mdl.vapp_schema_file != driver.camera_state.vapp_schema_file.value
         )
-        mock_flatbuffers.return_value.conform_flatbuffer_schema.return_value = (
-            True,
-            None,
-        )
+
+        mock_conform_flatbuffers.return_value = True
+        mock_conform_flatbuffers.side_effect = None
         ctrl.apply_flatbuffers_schema()
         ctrl.view.display_info.assert_called_with("Success!")
         assert (

@@ -16,6 +16,7 @@
 import json
 from pathlib import Path
 
+from local_console.core.camera.flatbuffers import conform_flatbuffer_schema
 from local_console.core.camera.flatbuffers import FlatbufferError
 from local_console.core.camera.flatbuffers import map_class_id_to_name
 from local_console.gui.driver import Driver
@@ -105,12 +106,12 @@ class ConfigurationScreenController:
         schema_file = self.driver.gui.mdl.vapp_schema_file
         if schema_file is not None:
             if schema_file.is_file():
-                result, _ = self.flatbuffers.conform_flatbuffer_schema(schema_file)
-                if result is True:
+                try:
+                    conform_flatbuffer_schema(schema_file)
                     self.driver.camera_state.vapp_schema_file.value = schema_file
                     self.view.display_info("Success!")
-                else:
-                    self.view.display_error("Not a valid flatbuffers schema")
+                except FlatbufferError as e:
+                    self.view.display_error(str(e))
             else:
                 self.view.display_error("Not a file or file does not exist!")
         else:

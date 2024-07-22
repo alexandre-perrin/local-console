@@ -13,12 +13,19 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+import subprocess
+from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
+from hypothesis import given
 from local_console.core.camera.flatbuffers import add_class_names
+from local_console.core.camera.flatbuffers import conform_flatbuffer_schema
 from local_console.core.camera.flatbuffers import FlatbufferError
+from local_console.core.camera.flatbuffers import get_flatc
 from local_console.core.camera.flatbuffers import map_class_id_to_name
+
+from tests.strategies.configs import generate_text
 
 
 def test_add_class_names() -> None:
@@ -85,3 +92,56 @@ def test_map_class_id_to_name_exception(tmp_path) -> None:
 def test_map_class_id_to_name_none(tmp_path) -> None:
     class_id_to_name = map_class_id_to_name(None)
     assert class_id_to_name is None
+
+
+def test_get_flatc():
+    with (patch("local_console.core.camera.flatbuffers.which", return_value="flatc"),):
+        assert get_flatc() == "flatc"
+
+
+def test_get_flatc_error():
+    with (
+        patch("local_console.core.camera.flatbuffers.which", return_value=None),
+        pytest.raises(FlatbufferError, match="flatc not found in PATH"),
+    ):
+        get_flatc()
+
+
+def test_flatc_conform():
+    with (
+        patch("local_console.core.camera.flatbuffers.subprocess") as mock_subprocess,
+        patch("local_console.core.camera.flatbuffers.get_flatc") as mock_flatc,
+    ):
+        path = Mock()
+        assert conform_flatbuffer_schema(path)
+        mock_subprocess.check_output.assert_called_once_with(
+            [mock_flatc.return_value, "--conform", path],
+            stderr=mock_subprocess.STDOUT,
+            text=True,
+        )
+
+
+@given(generate_text())
+def test_flatc_conform_called_process_error(output: str):
+    path = Mock()
+    with (
+        patch(
+            "local_console.core.camera.flatbuffers.subprocess.check_output",
+            side_effect=subprocess.CalledProcessError(1, Mock(), output=output),
+        ),
+        patch("local_console.core.camera.flatbuffers.get_flatc"),
+        pytest.raises(FlatbufferError, match=output),
+    ):
+        conform_flatbuffer_schema(path)
+
+
+def test_flatc_conform_file_not_found_error():
+    path = Mock()
+    with (
+        patch(
+            "local_console.core.camera.flatbuffers.which",
+            return_value=None,
+        ),
+        pytest.raises(FlatbufferError, match="flatc not found in PATH"),
+    ):
+        conform_flatbuffer_schema(path)
