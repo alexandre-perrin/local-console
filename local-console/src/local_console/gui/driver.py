@@ -419,6 +419,21 @@ class Driver:
                     logger.warning(f"Unknown error while reading human-readable {e}")
         return return_value
 
+    def map_class_id_to_name(self) -> None:
+        labels = self.camera_state.vapp_labels_file.value
+        if labels and Path(labels).exists():
+            try:
+                with open(labels) as labels_file:
+                    class_names = labels_file.read().splitlines()
+                # Read labels and create a mapping of class IDs to class names
+                self.class_id_to_name = {i: name for i, name in enumerate(class_names)}
+                return
+            except FileNotFoundError:
+                logger.warning("Error while reading labels text file.")
+            except Exception as e:
+                logger.warning(f"Unknown error while reading labels text file {e}")
+        self.class_id_to_name = None
+
     def save_into_input_directory(self, incoming_file: Path, target_dir: Path) -> Path:
         assert incoming_file.is_file()
 
@@ -438,21 +453,6 @@ class Driver:
 
         self.total_dir_watcher.incoming(final)
         return final
-
-    def map_class_id_to_name(self) -> None:
-        labels = self.gui.views[Screen.CONFIGURATION_SCREEN].model.app_labels
-        if labels is not None and Path(labels).exists():
-            try:
-                with open(labels) as labels_file:
-                    class_names = labels_file.read().splitlines()
-                # Read labels and create a mapping of class IDs to class names
-                self.class_id_to_name = {i: name for i, name in enumerate(class_names)}
-                return
-            except FileNotFoundError:
-                logger.warning("Error while reading labels text file.")
-            except Exception as e:
-                logger.warning(f"Unknown error while reading labels text file {e}")
-        self.class_id_to_name = None
 
     async def streaming_rpc_start(self, roi: Optional[UnitROI] = None) -> None:
         instance_id = "backdoor-EA_Main"
