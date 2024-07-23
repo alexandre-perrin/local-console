@@ -16,6 +16,9 @@
 import json
 from pathlib import Path
 
+from local_console.core.camera.flatbuffers import conform_flatbuffer_schema
+from local_console.core.camera.flatbuffers import FlatbufferError
+from local_console.core.camera.flatbuffers import map_class_id_to_name
 from local_console.gui.driver import Driver
 from local_console.gui.enums import ApplicationSchemaFilePath
 from local_console.gui.enums import ApplicationType
@@ -24,7 +27,6 @@ from local_console.gui.model.configuration_screen import ConfigurationScreenMode
 from local_console.gui.view.configuration_screen.configuration_screen import (
     ConfigurationScreenView,
 )
-from local_console.utils.flatbuffers import FlatBuffers
 
 
 class ConfigurationScreenController:
@@ -39,7 +41,6 @@ class ConfigurationScreenController:
         self.model = model
         self.driver = driver
         self.view = ConfigurationScreenView(controller=self, model=self.model)
-        self.flatbuffers = FlatBuffers()
 
         self.driver.gui.mdl.bind(vapp_type=self.on_vapp_type)
 
@@ -53,17 +54,17 @@ class ConfigurationScreenController:
 
         if app_type == ApplicationType.CUSTOM.value:
             self.driver.camera_state.vapp_schema_file.value = None
-            self.view.ids.schema_pick.accept_path("")
+            self.view.ids.schema_pick.select_path("")
 
         elif app_type == ApplicationType.CLASSIFICATION.value:
             path = ApplicationSchemaFilePath.CLASSIFICATION
             self.driver.camera_state.vapp_schema_file.value = path
-            self.view.ids.schema_pick.accept_path(str(path))
+            self.view.ids.schema_pick.select_path(str(path))
 
         elif app_type == ApplicationType.DETECTION.value:
             path = ApplicationSchemaFilePath.DETECTION
             self.driver.camera_state.vapp_schema_file.value = path
-            self.view.ids.schema_pick.accept_path(str(path))
+            self.view.ids.schema_pick.select_path(str(path))
 
     def get_view(self) -> ConfigurationScreenView:
         return self.view
@@ -78,7 +79,12 @@ class ConfigurationScreenController:
         self.driver.total_dir_watcher.set_storage_limit(size)
 
     def apply_application_configuration(self) -> None:
-        self.driver.map_class_id_to_name()
+        try:
+            self.driver.camera_state.vapp_labels_map.value = map_class_id_to_name(
+                self.driver.camera_state.vapp_labels_file.value
+            )
+        except FlatbufferError as e:
+            self.view.display_error(str(e))
 
         if self.driver.camera_state.vapp_config_file.value is None:
             return
@@ -98,12 +104,12 @@ class ConfigurationScreenController:
         schema_file = self.driver.gui.mdl.vapp_schema_file
         if schema_file is not None:
             if schema_file.is_file():
-                result, _ = self.flatbuffers.conform_flatbuffer_schema(schema_file)
-                if result is True:
+                try:
+                    conform_flatbuffer_schema(schema_file)
                     self.driver.camera_state.vapp_schema_file.value = schema_file
                     self.view.display_info("Success!")
-                else:
-                    self.view.display_error("Not a valid flatbuffers schema")
+                except FlatbufferError as e:
+                    self.view.display_error(str(e))
             else:
                 self.view.display_error("Not a file or file does not exist!")
         else:

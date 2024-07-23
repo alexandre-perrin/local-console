@@ -33,6 +33,10 @@ from local_console.core.camera import OTAUpdateModule
 from local_console.core.camera import StreamStatus
 from local_console.core.camera.axis_mapping import pixel_roi_from_normals
 from local_console.core.camera.axis_mapping import UnitROI
+from local_console.core.camera.flatbuffers import add_class_names
+from local_console.core.camera.flatbuffers import flatbuffer_binary_to_json
+from local_console.core.camera.flatbuffers import FlatbufferError
+from local_console.core.camera.flatbuffers import get_output_from_inference_results
 from local_console.core.commands.ota_deploy import get_package_hash
 from local_console.core.config import get_config
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
@@ -47,7 +51,6 @@ from local_console.gui.utils.sync_async import run_on_ui_thread
 from local_console.gui.utils.sync_async import SyncAsyncBridge
 from local_console.servers.broker import spawn_broker
 from local_console.servers.webserver import AsyncWebserver
-from local_console.utils.flatbuffers import FlatBuffers
 from local_console.utils.fstools import check_and_create_directory
 from local_console.utils.fstools import DirectoryMonitor
 from local_console.utils.fstools import StorageSizeWatcher
@@ -69,15 +72,12 @@ class Driver:
         self.temporary_image_directory: Optional[Path] = None
         self.temporary_inference_directory: Optional[Path] = None
         self.total_dir_watcher = StorageSizeWatcher()
-        self.flatbuffers_schema: Optional[Path] = None
-        self.class_id_to_name: Optional[dict] = None
         self.latest_image_file: Optional[Path] = None
         # Used to identify if output tensors are missing
         self.consecutives_images = 0
 
         self.camera_state = CameraState()
         self.camera_state.device_config.subscribe_async(self.process_factory_reset)
-        self.flatbuffers = FlatBuffers()
 
         # This takes care of ensuring the device reports its state
         # with bounded periodicity (expect to receive a message within 6 seconds)
@@ -173,10 +173,13 @@ class Driver:
         self.gui.mdl.bind_proxy_to_state("vapp_config_file", self.camera_state)
         self.gui.mdl.bind_proxy_to_state("vapp_labels_file", self.camera_state)
         self.gui.mdl.bind_proxy_to_state("vapp_type", self.camera_state)
-        """
-        `vapp_schema_file` is not bound because it is important that the chosen
-        file undergoes thorough validation before being committed.
-        """
+
+        # `vapp_schema_file` is not bound because it is important that the chosen
+        # file undergoes thorough validation before being committed.
+
+        # The labels map is computed from the labels file,
+        # so data binding must be state-->proxy.
+        self.gui.mdl.bind_state_to_proxy("vapp_labels_map", self.camera_state, str)
 
     @property
     def evp1_mode(self) -> bool:
@@ -266,9 +269,6 @@ class Driver:
 
     @run_on_ui_thread
     def update_camera_status(self) -> None:
-        stream_status = self.camera_state.stream_status
-        self.gui.views[Screen.STREAMING_SCREEN].model.stream_status = stream_status
-        self.gui.views[Screen.INFERENCE_SCREEN].model.stream_status = stream_status
         self.gui.views[Screen.APPLICATIONS_SCREEN].model.deploy_status = (
             self.camera_state.deploy_status
         )
@@ -313,14 +313,18 @@ class Driver:
             target_dir = self.camera_state.inference_dir_path.value
             assert target_dir
             final_file = self.save_into_input_directory(incoming_file, target_dir)
-            output_data = self.flatbuffers.get_output_from_inference_results(final_file)
-            if self.flatbuffers_schema:
-                output_tensor = self.get_flatbuffers_inference_data(output_data)
-                if output_tensor:
-                    self.update_inference_data(json.dumps(output_tensor, indent=2))
-                    output_data = output_tensor  # type: ignore
-            else:
-                self.update_inference_data(final_file.read_text())
+            output_data = get_output_from_inference_results(final_file.read_bytes())
+
+            payload_render = final_file.read_text()
+            if self.camera_state.vapp_schema_file.value:
+                try:
+                    output_tensor = self.get_flatbuffers_inference_data(output_data)
+                    if output_tensor:
+                        payload_render = json.dumps(output_tensor, indent=2)
+                        output_data = output_tensor  # type: ignore
+                except FlatbufferError as e:
+                    logger.error("Error decoding inference data:", exc_info=e)
+            self.update_inference_data(payload_render)
 
             # assumes input and output tensor received in that order
             assert self.latest_image_file
@@ -375,64 +379,20 @@ class Driver:
             inference_data
         )
 
-    def add_class_names(self, data: dict, class_id_to_name: dict) -> None:
-        # Add class names to the data recursively
-        if isinstance(data, dict):
-            updates = []
-            for key, value in data.items():
-                if key == "class_id":
-                    updates.append(
-                        ("class_name", class_id_to_name.get(value, "Unknown"))
-                    )
-                else:
-                    self.add_class_names(value, class_id_to_name)
-            for key, value in updates:
-                data[key] = value
-        elif isinstance(data, list):
-            for item in data:
-                self.add_class_names(item, class_id_to_name)
+    def get_flatbuffers_inference_data(
+        self, flatbuffer_payload: bytes
+    ) -> None | str | dict:
+        return_value = None
+        if self.camera_state.vapp_schema_file.value:
+            json_data = flatbuffer_binary_to_json(
+                self.camera_state.vapp_schema_file.value, flatbuffer_payload
+            )
+            labels_map = self.camera_state.vapp_labels_map.value
+            if labels_map:
+                add_class_names(json_data, labels_map)
+            return_value = json_data
 
-    def get_flatbuffers_inference_data(self, output: bytes) -> None | str | dict:
-        if self.flatbuffers_schema:
-            output_name = "SmartCamera"
-            assert self.temporary_base  # appease mypy
-            return_value = None
-            if self.flatbuffers.flatbuffer_binary_to_json(
-                self.flatbuffers_schema,
-                output,
-                output_name,
-                self.temporary_base,
-            ):
-                try:
-                    return_value = None
-                    with open(self.temporary_base / f"{output_name}.json") as file:
-                        json_data = json.load(file)
-                        if self.class_id_to_name:
-                            self.add_class_names(json_data, self.class_id_to_name)
-
-                        return_value = json_data
-                except FileNotFoundError:
-                    logger.warning(
-                        "Error while reading human-readable. Flatbuffers schema might be different from inference data."
-                    )
-                except Exception as e:
-                    logger.warning(f"Unknown error while reading human-readable {e}")
         return return_value
-
-    def map_class_id_to_name(self) -> None:
-        labels = self.camera_state.vapp_labels_file.value
-        if labels and Path(labels).exists():
-            try:
-                with open(labels) as labels_file:
-                    class_names = labels_file.read().splitlines()
-                # Read labels and create a mapping of class IDs to class names
-                self.class_id_to_name = {i: name for i, name in enumerate(class_names)}
-                return
-            except FileNotFoundError:
-                logger.warning("Error while reading labels text file.")
-            except Exception as e:
-                logger.warning(f"Unknown error while reading labels text file {e}")
-        self.class_id_to_name = None
 
     def save_into_input_directory(self, incoming_file: Path, target_dir: Path) -> Path:
         assert incoming_file.is_file()

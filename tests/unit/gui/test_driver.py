@@ -178,13 +178,17 @@ def test_process_camera_upload_inferences_with_schema(tmp_path_factory):
         patch.object(
             Driver, "get_flatbuffers_inference_data"
         ) as mock_get_flatbuffers_inference_data,
-        patch("local_console.gui.driver.FlatBuffers") as mock_flatbuffers,
+        patch(
+            "local_console.gui.driver.get_output_from_inference_results"
+        ) as mock_get_output_from_inference_results,
+        patch("local_console.gui.driver.Path.read_bytes", return_value=b"boo"),
+        patch("local_console.gui.driver.Path.read_text", return_value="boo"),
         patch("local_console.gui.driver.process_frame") as mock_process_frame,
     ):
         driver = Driver(MagicMock())
         driver.camera_state.inference_dir_path.value = inference_dir
         driver.latest_image_file = root / "inferences/a.png"
-        driver.flatbuffers_schema = "objectdetection.fbs"
+        driver.camera_state.vapp_schema_file.value = Path("objectdetection.fbs")
         file = root / "inferences/a.txt"
         mock_save.return_value = file
 
@@ -193,9 +197,7 @@ def test_process_camera_upload_inferences_with_schema(tmp_path_factory):
         driver.process_camera_upload(file)
 
         mock_save.assert_called_once_with(file, inference_dir)
-        mock_flatbuffers.return_value.get_output_from_inference_results.assert_called_once_with(
-            file
-        )
+        mock_get_output_from_inference_results.assert_called_once_with(b"boo")
         mock_update_data.assert_called_once_with(json.dumps({"a": 3}, indent=2))
         mock_process_frame.assert_called_once_with(driver.latest_image_file, {"a": 3})
         mock_update_display.assert_called_once_with(driver.latest_image_file)
@@ -209,7 +211,11 @@ def test_process_camera_upload_inferences_missing_schema(tmp_path_factory):
         patch.object(Driver, "save_into_input_directory") as mock_save,
         patch.object(Driver, "update_inference_data") as mock_update_data,
         patch.object(Driver, "update_images_display") as mock_update_display,
-        patch("local_console.gui.driver.FlatBuffers") as mock_flatbuffers,
+        patch(
+            "local_console.gui.driver.get_output_from_inference_results"
+        ) as mock_get_output_from_inference_results,
+        patch("local_console.gui.driver.Path.read_bytes", return_value=b"boo"),
+        patch("local_console.gui.driver.Path.read_text", return_value="boo"),
         patch("local_console.gui.driver.process_frame") as mock_process_frame,
         patch.object(Path, "read_text", return_value=""),
     ):
@@ -222,15 +228,13 @@ def test_process_camera_upload_inferences_missing_schema(tmp_path_factory):
         driver.process_camera_upload(file)
 
         mock_save.assert_called_once_with(file, inference_dir)
-        mock_flatbuffers.return_value.get_output_from_inference_results.assert_called_once_with(
-            file
-        )
+        mock_get_output_from_inference_results.assert_called_once_with(b"boo")
         mock_update_data.assert_called_once_with(
             mock_save.return_value.read_text.return_value
         )
         mock_process_frame.assert_called_once_with(
             driver.latest_image_file,
-            mock_flatbuffers.return_value.get_output_from_inference_results.return_value,
+            mock_get_output_from_inference_results.return_value,
         )
         mock_update_display.assert_called_once_with(driver.latest_image_file)
 
@@ -346,105 +350,3 @@ async def test_send_ppl_configuration(config: str):
             ApplicationConfiguration.CONFIG_TOPIC,
             config,
         )
-
-
-def test_add_class_names() -> None:
-    with (
-        patch("local_console.gui.driver.Agent"),
-        patch("local_console.gui.driver.spawn_broker"),
-    ):
-        class_id_to_name = {
-            0: "Apple",
-            1: "Banana",
-        }
-        data = {
-            "perception": {
-                "classification_list": [
-                    {
-                        "class_id": 0,
-                        "score": 0.929688,
-                    },
-                    {
-                        "class_id": 1,
-                        "score": 0.070313,
-                    },
-                ]
-            }
-        }
-        driver = Driver(MagicMock())
-        driver.add_class_names(data, class_id_to_name)
-        assert data["perception"]["classification_list"][0]["class_name"] == "Apple"
-        assert data["perception"]["classification_list"][1]["class_name"] == "Banana"
-
-        class_id_to_name = {
-            0: "Apple",
-        }
-        driver.add_class_names(data, class_id_to_name)
-        assert data["perception"]["classification_list"][0]["class_name"] == "Apple"
-        assert data["perception"]["classification_list"][1]["class_name"] == "Unknown"
-
-
-def test_map_class_id_to_name(tmp_path) -> None:
-    label_file = tmp_path / "label.txt"
-    with open(label_file, "w") as file:
-        file.write("Apple\nBanana")
-
-    with (
-        patch("local_console.gui.driver.Agent"),
-        patch("local_console.gui.driver.spawn_broker"),
-    ):
-        gui = MagicMock()
-        driver = Driver(gui)
-        driver.camera_state.vapp_labels_file.value = label_file
-        driver.map_class_id_to_name()
-        assert driver.class_id_to_name == dict({0: "Apple", 1: "Banana"})
-
-
-def test_map_class_id_to_name_file_not_found(tmp_path) -> None:
-    label_file = tmp_path / "label.txt"
-    with open(label_file, "w") as file:
-        file.write("Apple\nBanana")
-
-    with (
-        patch("local_console.gui.driver.Agent"),
-        patch("local_console.gui.driver.spawn_broker"),
-        patch("local_console.gui.driver.logger") as mock_logger,
-        patch("builtins.open", side_effect=FileNotFoundError),
-    ):
-        gui = MagicMock()
-        driver = Driver(gui)
-        driver.camera_state.vapp_labels_file.value = label_file
-        driver.map_class_id_to_name()
-        mock_logger.warning.assert_called_once_with(
-            "Error while reading labels text file."
-        )
-
-
-def test_map_class_id_to_name_exception(tmp_path) -> None:
-    label_file = tmp_path / "label.txt"
-    with open(label_file, "w") as file:
-        file.write("Apple\nBanana")
-
-    with (
-        patch("local_console.gui.driver.Agent"),
-        patch("local_console.gui.driver.spawn_broker"),
-        patch("local_console.gui.driver.logger") as mock_logger,
-        patch("builtins.open", side_effect=Exception),
-    ):
-        gui = MagicMock()
-        driver = Driver(gui)
-        driver.camera_state.vapp_labels_file.value = label_file
-        driver.map_class_id_to_name()
-        mock_logger.warning.assert_called_once_with(
-            "Unknown error while reading labels text file "
-        )
-
-
-def test_map_class_id_to_name_none(tmp_path) -> None:
-    with (
-        patch("local_console.gui.driver.Agent"),
-        patch("local_console.gui.driver.spawn_broker"),
-    ):
-        driver = Driver(MagicMock())
-        driver.map_class_id_to_name()
-        assert driver.class_id_to_name is None

@@ -458,7 +458,7 @@ class PathSelectorCombo(MDBoxLayout):
         super().__init__(**kwargs)
         self.register_event_type(self.SELECTED_EVENT)
         self.file_manager = FileManager(
-            exit_manager=self.exit_manager, select_path=self.select_path
+            exit_manager=self._exit_manager, select_path=self._select_path
         )
 
     def accept_path(self, path: str) -> str:
@@ -471,23 +471,26 @@ class PathSelectorCombo(MDBoxLayout):
         self.file_manager.ext = self.ext
         self.file_manager.open()
 
-    def exit_manager(self, *args: Any) -> None:
-        """Called when the user reaches the root of the directory tree."""
-        self.file_manager.close()
-        self.file_manager.refresh_opening_path()
-
     def select_path(self, path: str) -> None:
-        """
-        It will be called when the user selects the directory.
-        :param path: path to the selected directory;
-        """
-        self.exit_manager()
         self.dispatch(self.SELECTED_EVENT, path)
 
     def on_selected(self, path: str) -> None:
         """
         Default handler for the selected path event
         """
+
+    def _exit_manager(self, *args: Any) -> None:
+        """Called when the user reaches the root of the directory tree."""
+        self.file_manager.close()
+        self.file_manager.refresh_opening_path()
+
+    def _select_path(self, path: str) -> None:
+        """
+        It will be called when the user selects the directory.
+        :param path: path to the selected directory;
+        """
+        self._exit_manager()
+        self.select_path(path)
 
 
 class NumberInputField(MDTextField):
