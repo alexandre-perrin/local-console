@@ -29,7 +29,6 @@ class ApplicationsScreenModel(BaseScreenModel):
 
     def __init__(self) -> None:
         self._manifest: DeploymentManifest = get_empty_deployment()
-        self._deploy_status: dict[str, str] = {}
         self._deploy_stage: Optional[DeployStage] = None
 
     @property
@@ -39,15 +38,6 @@ class ApplicationsScreenModel(BaseScreenModel):
     @manifest.setter
     def manifest(self, value: DeploymentManifest) -> None:
         self._manifest = value
-        self.notify_observers()
-
-    @property
-    def deploy_status(self) -> dict[str, str]:
-        return self._deploy_status
-
-    @deploy_status.setter
-    def deploy_status(self, value: dict[str, str]) -> None:
-        self._deploy_status = value
         self.notify_observers()
 
     @property

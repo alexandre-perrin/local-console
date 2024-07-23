@@ -17,10 +17,10 @@ import json
 import logging
 from pathlib import Path
 from typing import Any
+from typing import Optional
 
 from kivy.properties import StringProperty
 from kivy.uix.image import Image
-from kivymd.app import MDApp
 from kivymd.uix.anchorlayout import MDAnchorLayout
 from kivymd.uix.gridlayout import MDGridLayout
 from kivymd.uix.label import MDIcon
@@ -49,17 +49,20 @@ class StatusLabel(GUITooltip, MDLabel):
 
 
 class ApplicationsScreenView(BaseScreenView):
-    deploy_status = StringProperty("")
 
     def model_is_changed(self) -> None:
         self._render_deploy_stage()
-        self.ids.txt_deployment_data.text = json.dumps(
-            self.model.deploy_status, indent=4
-        )
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
+        self.app.mdl.bind(deploy_status=self.on_deploy_status)
         self.app.mdl.bind(is_ready=self.app_state_refresh)
+
+    def on_deploy_status(
+        self, view: "ApplicationsScreenView", status: Optional[dict[str, Any]]
+    ) -> None:
+        if status:
+            self.ids.txt_deployment_data.text = json.dumps(status, indent=4)
 
     def select_path(self, path: str) -> None:
         """

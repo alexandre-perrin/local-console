@@ -60,10 +60,10 @@ class CameraState:
 
     def __init__(self) -> None:
 
-        self.deploy_status: dict[str, str] = {}
         self._onwire_schema: Optional[OnWireProtocol] = None
         self._last_reception: Optional[datetime] = None
 
+        self.deploy_status: TrackingVariable[dict[str, str]] = TrackingVariable()
         self.device_config: TrackingVariable[DeviceConfiguration] = TrackingVariable()
         self.attributes_available: TrackingVariable[bool] = TrackingVariable(False)
         self.is_connected: TrackingVariable[bool] = TrackingVariable(False)
@@ -207,9 +207,9 @@ class CameraState:
 
     async def _process_deploy_status_topic(self, payload: dict[str, Any]) -> None:
         if self._onwire_schema == OnWireProtocol.EVP1 or self._onwire_schema is None:
-            self.deploy_status = json.loads(payload[self.DEPLOY_STATUS_TOPIC])
+            self.deploy_status.value = json.loads(payload[self.DEPLOY_STATUS_TOPIC])
         else:
-            self.deploy_status = payload[self.DEPLOY_STATUS_TOPIC]
+            self.deploy_status.value = payload[self.DEPLOY_STATUS_TOPIC]
         self.attributes_available.value = True
 
     async def _prepare_ota_event(

@@ -138,6 +138,7 @@ class Driver:
         self.gui.mdl.bind_state_to_proxy("is_ready", self.camera_state)
         self.gui.mdl.bind_state_to_proxy("is_streaming", self.camera_state)
         self.gui.mdl.bind_state_to_proxy("device_config", self.camera_state)
+        self.gui.mdl.bind_state_to_proxy("deploy_status", self.camera_state)
 
     def _init_stream_variables(self) -> None:
         # Proxy->State because we want the user to set this value via the GUI

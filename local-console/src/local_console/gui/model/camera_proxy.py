@@ -31,6 +31,7 @@ class CameraStateProxy(CameraStateProxyBase):
     is_ready = BooleanProperty(False)
     is_streaming = BooleanProperty(False)
     stream_status = ObjectProperty(StreamStatus.Inactive)
+    deploy_status = ObjectProperty(dict(), allownone=True)
     roi = ObjectProperty(DEFAULT_ROI)
 
     image_dir_path = StringProperty("")
