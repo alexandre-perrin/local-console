@@ -334,7 +334,7 @@ class Driver:
                 {
                     ApplicationType.CLASSIFICATION.value: ClassificationDrawer,
                     ApplicationType.DETECTION.value: DetectionDrawer,
-                }[str(self.camera_state.vapp_type)].process_frame(
+                }[str(self.camera_state.vapp_type.value)].process_frame(
                     self.latest_image_file, output_data
                 )
             except Exception as e:
