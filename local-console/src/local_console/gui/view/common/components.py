@@ -34,6 +34,7 @@ from kivy.properties import StringProperty
 from kivy.uix.codeinput import CodeInput
 from kivy.uix.image import Image
 from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.button import MDButton
 from kivymd.uix.dropdownitem import MDDropDownItem
 from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.menu import MDDropdownMenu
@@ -52,6 +53,12 @@ from local_console.gui.enums import FirmwareType
 from local_console.gui.view.common.behaviors import HoverBehavior
 
 logger = logging.getLogger(__name__)
+
+
+class GoHomeButton(MDButton):
+    """
+    Common widget to get back to the Home screen
+    """
 
 
 class ROIState(enum.Enum):
