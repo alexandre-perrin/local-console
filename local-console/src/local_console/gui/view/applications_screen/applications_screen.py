@@ -52,6 +52,7 @@ class ApplicationsScreenView(BaseScreenView):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.app.mdl.bind(deploy_status=self.on_deploy_status)
+        self.app.mdl.bind(is_ready=self.app_state_refresh)
 
     def on_deploy_status(
         self, view: "ApplicationsScreenView", status: Optional[dict[str, Any]]
