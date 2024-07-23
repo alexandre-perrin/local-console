@@ -43,9 +43,9 @@ class CameraStateProxy(CameraStateProxyBase):
     # test_camera_proxy.py::test_difference_of_property_with_force_dispatch
     ai_model_file_valid = BooleanProperty(False, force_dispatch=True)
 
-    vapp_schema_file = ObjectProperty(Path, allownone=True)
-    vapp_config_file = ObjectProperty(Path, allownone=True)
-    vapp_labels_file = ObjectProperty(Path, allownone=True)
+    vapp_schema_file = ObjectProperty(Path(), allownone=True)
+    vapp_config_file = ObjectProperty(Path(), allownone=True)
+    vapp_labels_file = ObjectProperty(Path(), allownone=True)
     vapp_labels_map = ObjectProperty({}, allownone=True)
     vapp_type = StringProperty("")
 
