@@ -18,16 +18,8 @@ from unittest.mock import patch
 
 import cv2
 import numpy as np
-import pytest
-from local_console.gui.drawer.objectdetection import process_frame
-
-
-@pytest.fixture
-def blank_image(tmpdir):
-    image_path = Path(tmpdir) / "a.png"
-    blank_image_np = np.zeros((10, 10, 3), dtype=np.uint8)
-    cv2.imwrite(str(image_path), blank_image_np)
-    return image_path, blank_image_np
+from local_console.gui.drawer.objectdetection import DetectionDrawer
+from tests.fixtures.drawer import blank_image  # noreorder # noqa
 
 
 def test_process_frame(blank_image):
@@ -51,7 +43,7 @@ def test_process_frame(blank_image):
         }
     }
 
-    process_frame(image_path, output)
+    DetectionDrawer.process_frame(image_path, output)
     expected_image = cv2.rectangle(
         blank_image_np, (left, top), (right, bottom), (0, 0, 255), 2
     )
@@ -92,7 +84,7 @@ def test_process_frame_text(blank_image):
     }
 
     with patch("local_console.gui.drawer.objectdetection.cv2") as mock_cv2:
-        process_frame(image_path, output)
+        DetectionDrawer.process_frame(image_path, output)
         mock_cv2.putText.assert_called_once_with(
             mock_cv2.rectangle.return_value,
             "person: 0.10",
@@ -105,4 +97,4 @@ def test_process_frame_text(blank_image):
 
 
 def test_process_frame_without_output_tensor():
-    process_frame(Path("."), None)
+    DetectionDrawer.process_frame(Path("."), None)

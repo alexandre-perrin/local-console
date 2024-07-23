@@ -18,28 +18,31 @@ from typing import Any
 
 import cv2  # type: ignore
 from local_console.core.schemas.tasks.objectdetection import ObjectDetection
+from local_console.gui.drawer.drawer import Drawer
 
 
-def process_frame(image: Path, output_tensor: Any) -> None:
-    if not isinstance(output_tensor, dict):
-        return
+class DetectionDrawer(Drawer):
+    @staticmethod
+    def process_frame(image: Path, output_tensor: Any) -> None:
+        if not isinstance(output_tensor, dict):
+            return
 
-    img = cv2.imread(image)
+        img = cv2.imread(image)
 
-    obj = ObjectDetection(**output_tensor)
-    for detection in obj.perception.object_detection_list:
-        bbox_2d = detection.bounding_box
-        xmin, xmax = bbox_2d.left, bbox_2d.right
-        ymax, ymin = bbox_2d.bottom, bbox_2d.top
+        obj = ObjectDetection(**output_tensor)
+        for detection in obj.perception.object_detection_list:
+            bbox_2d = detection.bounding_box
+            xmin, xmax = bbox_2d.left, bbox_2d.right
+            ymax, ymin = bbox_2d.bottom, bbox_2d.top
 
-        img = cv2.rectangle(img, (xmin, ymin), (xmax, ymax), (0, 0, 255), 2)
-        img = cv2.putText(
-            img,
-            f"{detection.class_name if detection.class_name else detection.class_id}: {detection.score:.2f}",
-            (xmin, ymin),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.5,
-            (255, 255, 255),
-            1,
-        )
-    cv2.imwrite(image, img)
+            img = cv2.rectangle(img, (xmin, ymin), (xmax, ymax), (0, 0, 255), 2)
+            img = cv2.putText(
+                img,
+                f"{detection.class_name if detection.class_name else detection.class_id}: {detection.score:.2f}",
+                (xmin, ymin),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5,
+                (255, 255, 255),
+                1,
+            )
+        cv2.imwrite(image, img)
