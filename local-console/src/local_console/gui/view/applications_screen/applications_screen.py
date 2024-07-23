@@ -29,14 +29,8 @@ from local_console.core.commands.deploy import DeployStage
 from local_console.gui.config import resource_path
 from local_console.gui.view.base_screen import BaseScreenView
 from local_console.gui.view.common.components import (
-    CodeInputCustom,
-)  # nopycln: import # Required by the screen's KV spec file
-from local_console.gui.view.common.components import (
     GUITooltip,
-)  # nopycln: import # Required by the screen's KV spec file
-from local_console.gui.view.common.components import (
-    PathSelectorCombo,
-)  # nopycln: import # Required by the screen's KV spec file
+)
 from local_console.utils.validation import validate_app_file
 
 logger = logging.getLogger(__name__)
