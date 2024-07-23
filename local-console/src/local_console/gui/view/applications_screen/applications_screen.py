@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any
 from typing import Optional
 
-from kivy.properties import StringProperty
+from kivy.properties import BooleanProperty
 from kivy.uix.image import Image
 from kivymd.uix.anchorlayout import MDAnchorLayout
 from kivymd.uix.gridlayout import MDGridLayout
@@ -44,13 +44,14 @@ class StatusLabel(GUITooltip, MDLabel):
 
 class ApplicationsScreenView(BaseScreenView):
 
+    app_file_valid = BooleanProperty(False)
+
     def model_is_changed(self) -> None:
         self._render_deploy_stage()
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.app.mdl.bind(deploy_status=self.on_deploy_status)
-        self.app.mdl.bind(is_ready=self.app_state_refresh)
 
     def on_deploy_status(
         self, view: "ApplicationsScreenView", status: Optional[dict[str, Any]]
@@ -66,18 +67,12 @@ class ApplicationsScreenView(BaseScreenView):
         :param path: path to the selected directory or file;
         """
         if validate_app_file(Path(path)):
+            self.app_file_valid = True
             self.ids.app_file.accept_path(path)
             self.dismiss_message()
-            self.ids.btn_deploy_file.disabled = not self.app.mdl.is_ready
         else:
-            self.ids.btn_deploy_file.disabled = True
+            self.app_file_valid = False
             self.display_error("Invalid AOT-compiled module file")
-
-    def app_state_refresh(self, app: MDApp, value: bool) -> None:
-        """
-        Makes the deploy button react to the camera readiness state.
-        """
-        self.ids.btn_deploy_file.disabled = not self.app.mdl.is_ready
 
     def _render_deploy_stage(self) -> None:
         layout: MDGridLayout = self.ids.layout_status
