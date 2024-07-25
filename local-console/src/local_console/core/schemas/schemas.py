@@ -182,3 +182,27 @@ class OnWireProtocol(StrEnum):
         elif value.lower() == "evp1":
             return cls.EVP1
         raise ValueError(f"On-wire schema version unavailable for spec '{value}'")
+
+
+class DeviceParams(BaseModel):
+    name: str = Field(pattern=r"^[A-Za-z0-9\-_.]+$", min_length=1, max_length=15)
+
+
+class DeviceConnection(BaseModel):
+    mqtt: MQTTParams
+    webserver: WebserverParams
+    tls: TLSConfiguration
+    device: DeviceParams
+
+    @property
+    def is_tls_enabled(self) -> bool:
+        return self.tls.is_valid
+
+
+class DeviceListItem(BaseModel):
+    name: str
+    port: str
+
+    @field_validator("port", mode="before")
+    def convert_int_to_str(cls, value: int) -> str:
+        return str(value)
