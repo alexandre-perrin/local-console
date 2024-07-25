@@ -41,6 +41,12 @@ from pydantic import ValidationError
 logger = logging.getLogger(__name__)
 
 
+class ConfigError(Exception):
+    """
+    Used for conveying error messages in a framework-agnostic way
+    """
+
+
 def get_default_config() -> configparser.ConfigParser:
     config = configparser.ConfigParser()
     config["evp"] = {
@@ -61,8 +67,9 @@ def setup_default_config() -> None:
             with open(config_paths.config_path, "w") as f:
                 get_default_config().write(f)
         except OSError as e:
-            logger.error(f"Error while generating folder {config_file.parent}: {e}")
-            raise SystemExit()
+            raise ConfigError(
+                f"Error while generating folder {config_file.parent}: {e}"
+            )
 
 
 def parse_ini(config_parser: configparser.ConfigParser) -> str:
@@ -97,10 +104,9 @@ def config_to_schema(config: configparser.ConfigParser) -> AgentConfiguration:
             ),
         )
     except KeyError as e:
-        logger.error(
+        raise ConfigError(
             f"Config file not correct. Section or parameter missing is {e}. \n The file should have the following sections and parameters {parse_ini(get_default_config())}"
         )
-        raise SystemExit()
 
 
 def optional_path(path: Optional[str]) -> Optional[Path]:
@@ -112,11 +118,9 @@ def get_config(config_file: Optional[Path] = None) -> AgentConfiguration:
     try:
         config_parser.read(config_paths.config_path if not config_file else config_file)
     except FileNotFoundError:
-        logger.error("Config file not found")
-        exit(1)
+        raise ConfigError("Config file not found")
     except configparser.MissingSectionHeaderError:
-        logger.error("No header found in the specified file")
-        exit(1)
+        raise ConfigError("No header found in the specified file")
     return config_to_schema(config_parser)
 
 
@@ -125,30 +129,28 @@ def get_deployment_schema() -> DeploymentManifest:
         with open(config_paths.deployment_json) as f:
             deployment_data = json.load(f)
     except Exception:
-        logger.error("deployment.json does not exist or is not well formed")
-        exit(1)
+        raise ConfigError("deployment.json does not exist or is not well formed")
     try:
         return DeploymentManifest(**deployment_data)
     except ValidationError as e:
         missing_field = list(e.errors()[0]["loc"])[1:]
-        logger.warning(f"Missing field in the deployment manifest: {missing_field}")
-        exit(1)
+        raise ConfigError(f"Missing field in the deployment manifest: {missing_field}")
 
 
 def check_section_and_params(
     agent_config: AgentConfiguration, section: str, parameter: Optional[str] = None
 ) -> None:
     if section not in agent_config.model_fields:
-        logger.error(f"Invalid section. Valid ones are: {agent_config.__dict__.keys()}")
-        raise ValueError
+        raise ConfigError(
+            f"Invalid section. Valid ones are: {agent_config.__dict__.keys()}"
+        )
 
     section_from_agent_spec = AgentConfiguration.model_fields[section]
     section_model = unwrap_class(section_from_agent_spec.annotation)
     if parameter and parameter not in section_model.model_fields:
-        logger.error(
+        raise ConfigError(
             f"Invalid parameter of the {section} section. Valid ones are: {list(section_model.model_fields.keys())}"
         )
-        raise ValueError
 
 
 def parse_section_to_ini(
@@ -248,8 +250,7 @@ def add_device_to_config(device: DeviceListItem) -> None:
         with open(config_file, "w") as f:
             config_parser.write(f)
     except OSError as e:
-        logger.error(f"Error: {e}")
-        raise SystemExit()
+        raise ConfigError(f"Error: {e}")
 
 
 def mkdir_with_device_config(device: DeviceListItem) -> None:
@@ -261,8 +262,7 @@ def mkdir_with_device_config(device: DeviceListItem) -> None:
         with open(device_dir_path / "config.json", "w") as f:
             json.dump(device_config.model_dump(), f, indent=2)
     except OSError as e:
-        logger.error(f"Error while generating folder {device_dir_path}: {e}")
-        raise SystemExit()
+        raise ConfigError(f"Error while generating folder {device_dir_path}: {e}")
 
 
 def get_global_config() -> configparser.ConfigParser:
@@ -270,11 +270,9 @@ def get_global_config() -> configparser.ConfigParser:
     try:
         config_parser.read(config_paths.config_path)
     except FileNotFoundError:
-        logger.error("Config file not found")
-        exit(1)
+        raise ConfigError("Config file not found")
     except configparser.MissingSectionHeaderError:
-        logger.error("No header found in the specified file")
-        exit(1)
+        raise ConfigError("No header found in the specified file")
     return config_parser
 
 
@@ -298,8 +296,7 @@ def create_device_config(device: DeviceListItem) -> DeviceConnection:
         )
         return device_config
     except ValidationError as e:
-        logger.error(f"ValidationError: {e}")
-        exit(1)
+        raise ConfigError(f"ValidationError: {e}")
 
 
 def get_device_configs() -> list[DeviceListItem]:
@@ -336,8 +333,7 @@ def remove_device_config(device_name: str) -> None:
         with open(config_file, "w") as f:
             config_parser.write(f)
     except OSError as e:
-        logger.error(f"Error: {e}")
-        raise SystemExit()
+        raise ConfigError(f"Error: {e}")
 
     # Remove the device folder
     folder_to_remove = config_paths.config_path.parent / device_name
