@@ -128,12 +128,16 @@ class DeployFSM(ABC):
 
         return should_terminate
 
-    @staticmethod
+    @classmethod
     def instantiate(
+        cls,
         agent: Agent,
         stage_callback: Optional[Callable[[DeployStage], Awaitable[None]]] = None,
         deploy_webserver: bool = True,
     ) -> "DeployFSM":
+        # This is a factory builder, so only run this from this parent class
+        assert cls is DeployFSM
+
         if agent.onwire_schema == OnWireProtocol.EVP1:
             return EVP1DeployFSM(agent, deploy_manifest, stage_callback)
         elif agent.onwire_schema == OnWireProtocol.EVP2:
