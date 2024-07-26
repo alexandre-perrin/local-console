@@ -34,7 +34,6 @@ from typing import Optional
 import trio
 from local_console.core.camera.enums import DeployStage
 import typer
-from local_console.clients.agent import Agent
 from local_console.core.camera.enums import MQTTTopics
 from local_console.core.enums import ModuleExtension
 from local_console.core.enums import Target
@@ -51,12 +50,12 @@ logger = logging.getLogger(__name__)
 class DeployFSM(ABC):
     def __init__(
         self,
-        agent: Agent,
+        deploy_fn: Callable[[DeploymentManifest], Awaitable[None]],
         stage_callback: Optional[Callable[[DeployStage], Awaitable[None]]] = None,
         deploy_webserver: bool = True,
         timeout_secs: int = 30,
     ) -> None:
-        self.agent = agent
+        self.deploy_fn = deploy_fn
         self.stage_callback = stage_callback
         self.webserver = SyncWebserver(Path(), deploy=deploy_webserver)
         self.webserver.start()  # This secures a listening port for the webserver
@@ -132,7 +131,8 @@ class DeployFSM(ABC):
     @classmethod
     def instantiate(
         cls,
-        agent: Agent,
+        onwire_schema: OnWireProtocol,
+        deploy_fn: Callable[[DeploymentManifest], Awaitable[None]],
         stage_callback: Optional[Callable[[DeployStage], Awaitable[None]]] = None,
         deploy_webserver: bool = True,
         timeout_secs: int = 30,
@@ -140,10 +140,14 @@ class DeployFSM(ABC):
         # This is a factory builder, so only run this from this parent class
         assert cls is DeployFSM
 
-        if agent.onwire_schema == OnWireProtocol.EVP1:
-            return EVP1DeployFSM(agent, deploy_manifest, stage_callback)
-        elif agent.onwire_schema == OnWireProtocol.EVP2:
-            return EVP2DeployFSM(agent, deploy_manifest, stage_callback)
+        if onwire_schema == OnWireProtocol.EVP1:
+            return EVP1DeployFSM(
+                deploy_fn, stage_callback, deploy_webserver, timeout_secs
+            )
+        elif onwire_schema == OnWireProtocol.EVP2:
+            return EVP2DeployFSM(
+                deploy_fn, stage_callback, deploy_webserver, timeout_secs
+            )
 
 
 class EVP2DeployFSM(DeployFSM):
@@ -169,7 +173,7 @@ class EVP2DeployFSM(DeployFSM):
 
         if self.stage == DeployStage.WaitFirstStatus:
             logger.debug("Agent can receive deployments. Pushing manifest now.")
-            await self.agent.deploy(self.to_deploy)
+            await self.deploy_fn(self._to_deploy)
             next_stage = DeployStage.WaitAppliedConfirmation
 
         elif self.stage == DeployStage.WaitAppliedConfirmation:

@@ -17,65 +17,59 @@ import hashlib
 import uuid
 from pathlib import Path
 from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
+from unittest.mock import Mock
 from unittest.mock import patch
 
 import hypothesis.strategies as st
 import pytest
+import trio
 from hypothesis import given
 from local_console.core.camera.enums import DeployStage
-from local_console.clients.agent import Agent
 from local_console.core.commands.deploy import DeployFSM
 from local_console.core.commands.deploy import module_deployment_setup
-from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.core.schemas.schemas import DeploymentManifest
 from local_console.core.schemas.schemas import OnWireProtocol
 
-from tests.strategies.configs import generate_agent_config
-from tests.strategies.configs import generate_valid_port_number
 from tests.strategies.deployment import deployment_manifest_strategy
 
 
 @given(
-    generate_agent_config(),
-    generate_valid_port_number(),
     deployment_manifest_strategy(),
     st.sampled_from(OnWireProtocol),
 )
 @pytest.mark.trio
 async def test_callback_on_stage_transitions(
-    agent_config: AgentConfiguration,
-    port: int,
     deploy_manifest: DeploymentManifest,
     onwire_schema: OnWireProtocol,
 ) -> None:
-    with (
-        patch(
-            "local_console.clients.agent.OnWireProtocol.from_iot_spec",
-            return_value=onwire_schema,
-        ),
-        patch("local_console.clients.agent.get_config", return_value=agent_config),
-        patch(
-            "local_console.core.commands.deploy.Agent.initialize_handshake",
-            return_value=AsyncMock(),
-        ),
-        patch("local_console.core.commands.deploy.AsyncWebserver"),
-        # patch("local_console.core.commands.deploy.Agent.mqtt_scope", return_value=AsyncMock()),
-        patch("local_console.clients.agent.paho.Client"),
-        patch("local_console.clients.agent.AsyncClient"),
-        patch("local_console.clients.agent.Agent.publish"),
-    ):
-        stage_cb = MagicMock()
-        agent = Agent()
-        deploy_fsm = DeployFSM.instantiate(agent, deploy_manifest, stage_cb)
-        stage_cb.assert_called_once_with(DeployStage.WaitFirstStatus)
+    stage_cb = AsyncMock()
+    deploy_fn = AsyncMock()
 
-        deploy_fsm.check_termination(is_finished=True, matches=True, is_errored=False)
-        stage_cb.assert_called_with(DeployStage.Done)
+    with patch("local_console.core.commands.deploy.SyncWebserver"):
+
+        deploy_fsm = DeployFSM.instantiate(onwire_schema, deploy_fn, stage_cb)
+        deploy_fsm.set_manifest(deploy_manifest)
+
+        async with trio.open_nursery() as nursery:
+            await deploy_fsm.start(nursery)
+            first_stage = (
+                DeployStage.WaitFirstStatus
+                if onwire_schema == OnWireProtocol.EVP2
+                else DeployStage.WaitAppliedConfirmation
+            )
+            stage_cb.assert_awaited_once_with(first_stage)
+            nursery.cancel_scope.cancel()
+
+        await deploy_fsm.check_termination(
+            is_finished=True, matches=True, is_errored=False
+        )
+        stage_cb.assert_awaited_with(DeployStage.Done)
         assert not deploy_fsm.errored
 
-        deploy_fsm.check_termination(is_finished=False, matches=True, is_errored=True)
-        stage_cb.assert_called_with(DeployStage.Error)
+        await deploy_fsm.check_termination(
+            is_finished=False, matches=True, is_errored=True
+        )
+        stage_cb.assert_awaited_with(DeployStage.Error)
         assert deploy_fsm.errored
 
 

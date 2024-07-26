@@ -27,6 +27,7 @@ import trio
 import typer
 from local_console.clients.agent import Agent
 from local_console.core.camera.enums import DeployStage
+from local_console.core.commands.deploy import DeployFSM
 from local_console.core.commands.deploy import get_empty_deployment
 from local_console.core.commands.deploy import make_unique_module_ids
 from local_console.core.commands.deploy import update_deployment_manifest
@@ -99,6 +100,10 @@ def deploy(
         host = local_ip
         deploy_webserver = True
 
+    deploy_fsm = DeployFSM.instantiate(
+        agent.onwire_schema, agent.deploy, None, deploy_webserver, timeout
+    )
+
     if empty:
         deployment_manifest = get_empty_deployment()
     else:
@@ -113,17 +118,14 @@ def deploy(
 
         make_unique_module_ids(deployment_manifest)
 
-    success = False
-    deployment_fn = partial(
-        exec_deployment,
-        agent,
-        deployment_manifest,
-        deploy_webserver,
-        Path.cwd(),
-        port,
-        timeout,
-    )
     try:
+        success = False
+        deploy_fsm.set_manifest(deployment_manifest)
+        deployment_fn = partial(
+            exec_deployment,
+            agent,
+            deploy_fsm,
+        )
         success = trio.run(deployment_fn)
 
     except Exception as e:
