@@ -43,6 +43,7 @@ from local_console.core.schemas.schemas import DeploymentManifest
 from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.servers.webserver import SyncWebserver
 from local_console.utils.local_network import get_my_ip_by_routing
+from local_console.utils.timing import TimeoutBehavior
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,7 @@ class DeployFSM(ABC):
         agent: Agent,
         stage_callback: Optional[Callable[[DeployStage], Awaitable[None]]] = None,
         deploy_webserver: bool = True,
+        timeout_secs: int = 30,
     ) -> None:
         self.agent = agent
         self.stage_callback = stage_callback
@@ -60,6 +62,7 @@ class DeployFSM(ABC):
         self.webserver.start()  # This secures a listening port for the webserver
 
         self.done = trio.Event()
+        self._timeout_handler = TimeoutBehavior(timeout_secs, self._on_timeout)
         self._to_deploy: Optional[DeploymentManifest] = None
         self.errored: Optional[bool] = None
 
@@ -83,12 +86,17 @@ class DeployFSM(ABC):
         """
         To be called for performing actions at FSM entry, once the
         deployment manifest is set. It must:
+        - call spawn_in() of _timeout_handler
         - await _set_new_stage() with initial stage
         """
 
     def set_manifest(self, to_deploy: DeploymentManifest) -> None:
         self._to_deploy = to_deploy
 
+    def stop(self) -> None:
+        self._timeout_handler.stop()
+        self.webserver.stop()
+        self.done.set()
 
     async def check_termination(
         self, is_finished: bool, matches: bool, is_errored: bool
@@ -109,11 +117,17 @@ class DeployFSM(ABC):
                 logger.error("Deployment errored")
 
         if should_terminate:
-            self.done.set()
+            self.stop()
             assert next_stage
             await self._set_new_stage(next_stage)
 
         return should_terminate
+
+    async def _on_timeout(self) -> None:
+        logger.error("Timeout when sending modules.")
+        self.errored = True
+        self.stop()
+        await self._set_new_stage(DeployStage.Error)
 
     @classmethod
     def instantiate(
@@ -121,6 +135,7 @@ class DeployFSM(ABC):
         agent: Agent,
         stage_callback: Optional[Callable[[DeployStage], Awaitable[None]]] = None,
         deploy_webserver: bool = True,
+        timeout_secs: int = 30,
     ) -> "DeployFSM":
         # This is a factory builder, so only run this from this parent class
         assert cls is DeployFSM
@@ -180,6 +195,7 @@ class EVP1DeployFSM(DeployFSM):
         assert self._to_deploy
         # Deploy immediately, without comparing with current status, to speed-up the process.
         logger.debug("Pushing manifest now.")
+        self._timeout_handler.spawn_in(nursery)
         await self._set_new_stage(DeployStage.WaitAppliedConfirmation)
         await self.deploy_fn(self._to_deploy)
 
