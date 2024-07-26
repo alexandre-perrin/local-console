@@ -19,7 +19,6 @@ import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
-from typing import Callable
 from typing import Optional
 
 import trio
@@ -50,6 +49,7 @@ from local_console.gui.drawer.objectdetection import DetectionDrawer
 from local_console.gui.enums import ApplicationConfiguration
 from local_console.gui.enums import ApplicationType
 from local_console.gui.utils.enums import Screen
+from local_console.gui.utils.sync_async import AsyncFunc
 from local_console.gui.utils.sync_async import run_on_ui_thread
 from local_console.gui.utils.sync_async import SyncAsyncBridge
 from local_console.servers.broker import spawn_broker
@@ -274,7 +274,7 @@ class Driver:
 
                     self.connection_status.tap()
 
-    def from_sync(self, async_fn: Callable, *args: Any) -> None:
+    def from_sync(self, async_fn: AsyncFunc, *args: Any) -> None:
         self.bridge.enqueue_task(async_fn, *args)
 
     async def process_factory_reset(

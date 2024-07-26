@@ -13,6 +13,8 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+from collections.abc import Awaitable
+from collections.abc import Iterable
 from queue import Queue
 from typing import Any
 from typing import Callable
@@ -20,6 +22,10 @@ from typing import Optional
 
 import trio
 from kivy.clock import Clock
+
+
+AsyncFunc = Callable[..., Awaitable[Any]]
+WorkItem = tuple[AsyncFunc, tuple[Any]]
 
 
 class SyncAsyncBridge:
@@ -30,10 +36,10 @@ class SyncAsyncBridge:
     """
 
     def __init__(self) -> None:
-        self.tasks_queue: Queue[Optional[tuple[Callable, tuple[Any]]]] = Queue()
+        self.tasks_queue: Queue[Optional[WorkItem]] = Queue()
 
     # Function to post tasks to the Trio thread from Kivy
-    def enqueue_task(self, func: Callable, *args: Any) -> None:
+    def enqueue_task(self, func: AsyncFunc, *args: Any) -> None:
         self.tasks_queue.put((func, args))
 
     def close_task_queue(self) -> None:
