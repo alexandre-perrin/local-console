@@ -13,30 +13,21 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-import enum
 import hashlib
 import json
 import logging
-import shutil
 import uuid
 from abc import ABC
 from abc import abstractmethod
 from collections.abc import Awaitable
-from collections.abc import Iterator
-from contextlib import contextmanager
 from pathlib import Path
 from pathlib import PurePosixPath
-from tempfile import TemporaryDirectory
 from typing import Any
 from typing import Callable
 from typing import Optional
 
 import trio
 from local_console.core.camera.enums import DeployStage
-import typer
-from local_console.core.camera.enums import MQTTTopics
-from local_console.core.enums import ModuleExtension
-from local_console.core.enums import Target
 from local_console.core.schemas.schemas import Deployment
 from local_console.core.schemas.schemas import DeploymentManifest
 from local_console.core.schemas.schemas import OnWireProtocol
@@ -234,10 +225,17 @@ def verify_report(
     return is_finished, matches, is_errored
 
 
-@contextmanager
 def module_deployment_setup(
-    module_name: str, module_file: Path, webserver_port: int
-) -> Iterator[tuple[Path, DeploymentManifest]]:
+    module_name: str,
+    module_file: Path,
+    webserver: SyncWebserver,
+    port_override: Optional[int] = None,
+    host_override: Optional[str] = None,
+) -> DeploymentManifest:
+    """
+    Generate a single module, single instance deployment manifest,
+    matched to the passed webserver instance.
+    """
     deployment = Deployment.model_validate(
         {
             "deploymentId": "",
@@ -256,20 +254,16 @@ def module_deployment_setup(
             "subscribeTopics": {},
         }
     )
+    deployment.modules[module_name].downloadUrl = str(module_file)
+    deployment_manifest = DeploymentManifest(deployment=deployment)
 
-    with TemporaryDirectory(prefix="lc_deploy_") as temporary_dir:
-        tmpdir = Path(temporary_dir)
-        named_module = tmpdir / "".join([module_name] + module_file.suffixes)
-        shutil.copy(module_file, named_module)
-        deployment.modules[module_name].downloadUrl = str(named_module)
-        deployment_manifest = DeploymentManifest(deployment=deployment)
+    webserver.set_directory(module_file.parent)
+    host = get_my_ip_by_routing() if not host_override else host_override
+    port = webserver.port if not port_override else port_override
+    populate_urls_and_hashes(deployment_manifest, host, port, module_file.parent)
+    make_unique_module_ids(deployment_manifest)
 
-        populate_urls_and_hashes(
-            deployment_manifest, get_my_ip_by_routing(), webserver_port, tmpdir
-        )
-        make_unique_module_ids(deployment_manifest)
-
-        yield tmpdir, deployment_manifest
+    return deployment_manifest
 
 
 def make_unique_module_ids(deploy_man: DeploymentManifest) -> None:
@@ -305,44 +299,6 @@ def get_empty_deployment() -> DeploymentManifest:
     return DeploymentManifest.model_validate(deployment)
 
 
-def update_deployment_manifest(
-    deployment_manifest: DeploymentManifest,
-    host: str,
-    port: int,
-    files_dir: Path,
-    target_arch: Optional[Target],
-    use_signed: bool,
-) -> None:
-    for module in deployment_manifest.deployment.modules.keys():
-        wasm_file = files_dir / f"{module}.{ModuleExtension.WASM}"
-        if not wasm_file.is_file():
-            logger.error(
-                f"{wasm_file} not found. Please build the modules before deployment"
-            )
-            raise typer.Exit(code=1)
-
-        name_parts = [module]
-        if target_arch:
-            name_parts += [target_arch.value, ModuleExtension.AOT.value]
-        else:
-            name_parts.append(ModuleExtension.WASM.value)
-
-        if use_signed and target_arch:
-            name_parts.append(ModuleExtension.SIGNED.value)
-
-        file = files_dir / ".".join(name_parts)
-
-        if use_signed and not target_arch:
-            logger.warning(
-                f"There is no target architecture, the {file} module to be deployed is not signed"
-            )
-
-        # use the downloadUrl field as placeholder, read from the function below
-        deployment_manifest.deployment.modules[module].downloadUrl = str(file)
-
-    populate_urls_and_hashes(deployment_manifest, host, port, files_dir.parent)
-
-
 def calculate_sha256(path: Path) -> str:
     sha256_hash = hashlib.sha256()
     sha256_hash.update(path.read_bytes())
@@ -358,12 +314,10 @@ def populate_urls_and_hashes(
     for module in deployment_manifest.deployment.modules.keys():
         file = Path(deployment_manifest.deployment.modules[module].downloadUrl)
         deployment_manifest.deployment.modules[module].hash = calculate_sha256(file)
-        deployment_manifest.deployment.modules[module].downloadUrl = (
-            f"http://{host}:{port}/{PurePosixPath(file.relative_to(root_path))}"
-        )
+        url = f"http://{host}:{port}/{PurePosixPath(file.relative_to(root_path))}"
+        deployment_manifest.deployment.modules[module].downloadUrl = url
 
     # DeploymentId based on deployment manifest content
-    deployment_manifest.deployment.deploymentId = ""
     deployment_manifest_hash = hashlib.sha256(
         str(deployment_manifest.model_dump()).encode("utf-8")
     )
