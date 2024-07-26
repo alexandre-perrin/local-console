@@ -70,6 +70,7 @@ class CameraStateProxy(CameraStateProxyBase):
     wifi_password_hidden = BooleanProperty(True, force_dispatch=True)
     wifi_icon_eye = StringProperty("")
 
+    module_file = StringProperty("", allownone=True)
     deploy_status = ObjectProperty(dict(), allownone=True)
     deploy_stage = ObjectProperty(DeployStage, allownone=True)
 

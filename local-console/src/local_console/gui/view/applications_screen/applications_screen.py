@@ -67,6 +67,7 @@ class ApplicationsScreenView(BaseScreenView):
         """
         if validate_app_file(Path(path)):
             self.app_file_valid = True
+            self.app.mdl.module_file = path
             self.ids.app_file.accept_path(path)
             self.dismiss_message()
         else:

@@ -107,6 +107,7 @@ class CameraState:
         self.wifi_password_hidden: TrackingVariable[bool] = TrackingVariable(True)
         self.wifi_icon_eye: TrackingVariable[str] = TrackingVariable("")
 
+        self.module_file: TrackingVariable[Path] = TrackingVariable()
         self.deploy_status: TrackingVariable[dict[str, str]] = TrackingVariable()
         self.deploy_stage: TrackingVariable[DeployStage] = TrackingVariable()
 
