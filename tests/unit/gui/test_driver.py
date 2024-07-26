@@ -18,6 +18,7 @@ import json
 import random
 import shutil
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
@@ -66,17 +67,29 @@ def create_new(root: Path) -> Path:
     return new_file
 
 
-@pytest.fixture(autouse=True)
-def common_patches():
+@contextmanager
+def mock_driver_with_agent():
     with (
         patch("local_console.gui.driver.TimeoutBehavior"),
-        # This test does not use Hypothesis' strategies as they are not readily
-        # integrable with the 'tmpdir' fixture, and anyway the functionality tested
-        # by this suite is completely independent on the persistent configuration.
         patch("local_console.gui.driver.get_config", get_default_config_as_schema),
         patch("local_console.clients.agent.get_config", get_default_config_as_schema),
+        patch("local_console.gui.driver.SyncAsyncBridge"),
+        patch("local_console.gui.driver.DirectoryMonitor"),
+        patch("local_console.gui.driver.Agent") as mock_agent,
+        patch("local_console.gui.driver.spawn_broker"),
     ):
-        yield
+        yield (Driver(MagicMock()), mock_agent)
+
+
+@pytest.fixture()
+def mocked_driver_with_agent():
+    """
+    This construction is necessary because hypothesis does not
+    support using custom pytest fixtures from cases that it
+    manages (i.e. cases decorated with @given).
+    """
+    with mock_driver_with_agent() as (driver, agent):
+        yield (driver, agent)
 
 
 def test_file_move(tmpdir):
@@ -88,9 +101,9 @@ def test_file_move(tmpdir):
     assert moved.parent == target
 
 
-def test_storage_paths(tmp_path_factory):
+def test_storage_paths(mocked_driver_with_agent, tmp_path_factory):
     tgd = Path(tmp_path_factory.mktemp("images"))
-    driver = Driver(MagicMock())
+    driver, _ = mocked_driver_with_agent
 
     # Set default image dir
     driver.temporary_image_directory = tgd
@@ -111,11 +124,11 @@ def test_storage_paths(tmp_path_factory):
     assert saved.parent == new_image_dir
 
 
-def test_save_into_image_directory(tmp_path):
+def test_save_into_image_directory(mocked_driver_with_agent, tmp_path):
+    driver, _ = mocked_driver_with_agent
+
     root = tmp_path
     tgd = root / "notexists"
-
-    driver = Driver(MagicMock())
 
     assert not tgd.exists()
     driver.temporary_image_directory = tgd
@@ -129,11 +142,11 @@ def test_save_into_image_directory(tmp_path):
     assert tgd.exists()
 
 
-def test_save_into_inferences_directory(tmp_path):
+def test_save_into_inferences_directory(mocked_driver_with_agent, tmp_path):
+    driver, _ = mocked_driver_with_agent
+
     root = tmp_path
     tgd = root / "notexists"
-
-    driver = Driver(MagicMock())
 
     assert not tgd.exists()
     driver.temporary_inference_directory = tgd
@@ -147,17 +160,17 @@ def test_save_into_inferences_directory(tmp_path):
     assert tgd.exists()
 
 
-def test_process_camera_upload_images(tmp_path_factory):
+def test_process_camera_upload_images(mocked_driver_with_agent, tmp_path_factory):
+    driver, _ = mocked_driver_with_agent
     root = tmp_path_factory.getbasetemp()
     image_dir = tmp_path_factory.mktemp("images")
 
     with (
         patch.object(
-            Driver, "save_into_input_directory"
+            driver, "save_into_input_directory"
         ) as mock_save_into_input_directory,
-        patch.object(Driver, "update_images_display") as mock_update_display,
+        patch.object(driver, "update_images_display") as mock_update_display,
     ):
-        driver = Driver(MagicMock())
         driver.camera_state.image_dir_path.value = image_dir
 
         file = root / "images/a.png"
@@ -170,16 +183,19 @@ def test_process_camera_upload_images(tmp_path_factory):
         )
 
 
-def test_process_camera_upload_inferences_with_schema(tmp_path_factory):
+def test_process_camera_upload_inferences_with_schema(
+    mocked_driver_with_agent, tmp_path_factory
+):
+    driver, _ = mocked_driver_with_agent
     root = tmp_path_factory.getbasetemp()
     inference_dir = tmp_path_factory.mktemp("inferences")
 
     with (
-        patch.object(Driver, "save_into_input_directory") as mock_save,
-        patch.object(Driver, "update_inference_data") as mock_update_data,
-        patch.object(Driver, "update_images_display") as mock_update_display,
+        patch.object(driver, "save_into_input_directory") as mock_save,
+        patch.object(driver, "update_inference_data") as mock_update_data,
+        patch.object(driver, "update_images_display") as mock_update_display,
         patch.object(
-            Driver, "get_flatbuffers_inference_data"
+            driver, "get_flatbuffers_inference_data"
         ) as mock_get_flatbuffers_inference_data,
         patch(
             "local_console.gui.driver.get_output_from_inference_results"
@@ -188,7 +204,6 @@ def test_process_camera_upload_inferences_with_schema(tmp_path_factory):
         patch("local_console.gui.driver.Path.read_text", return_value="boo"),
         patch.object(ClassificationDrawer, "process_frame"),
     ):
-        driver = Driver(MagicMock())
         driver.camera_state.vapp_type = TrackingVariable(
             ApplicationType.CLASSIFICATION.value
         )
@@ -211,14 +226,17 @@ def test_process_camera_upload_inferences_with_schema(tmp_path_factory):
         mock_update_display.assert_called_once_with(driver.latest_image_file)
 
 
-def test_process_camera_upload_inferences_missing_schema(tmp_path_factory):
+def test_process_camera_upload_inferences_missing_schema(
+    mocked_driver_with_agent, tmp_path_factory
+):
+    driver, _ = mocked_driver_with_agent
     root = tmp_path_factory.getbasetemp()
     inference_dir = tmp_path_factory.mktemp("inferences")
 
     with (
-        patch.object(Driver, "save_into_input_directory") as mock_save,
-        patch.object(Driver, "update_inference_data") as mock_update_data,
-        patch.object(Driver, "update_images_display") as mock_update_display,
+        patch.object(driver, "save_into_input_directory") as mock_save,
+        patch.object(driver, "update_inference_data") as mock_update_data,
+        patch.object(driver, "update_images_display") as mock_update_display,
         patch(
             "local_console.gui.driver.get_output_from_inference_results"
         ) as mock_get_output_from_inference_results,
@@ -227,7 +245,6 @@ def test_process_camera_upload_inferences_missing_schema(tmp_path_factory):
         patch.object(ClassificationDrawer, "process_frame"),
         patch.object(Path, "read_text", return_value=""),
     ):
-        driver = Driver(MagicMock())
         driver.camera_state.vapp_type = TrackingVariable(
             ApplicationType.CLASSIFICATION.value
         )
@@ -250,14 +267,14 @@ def test_process_camera_upload_inferences_missing_schema(tmp_path_factory):
         mock_update_display.assert_called_once_with(driver.latest_image_file)
 
 
-def test_process_camera_upload_unknown(tmpdir):
+def test_process_camera_upload_unknown(mocked_driver_with_agent, tmpdir):
+    driver, _ = mocked_driver_with_agent
     root = Path(tmpdir)
 
     with (
-        patch.object(Driver, "update_inference_data") as mock_update_data,
-        patch.object(Driver, "update_images_display") as mock_update_display,
+        patch.object(driver, "update_inference_data") as mock_update_data,
+        patch.object(driver, "update_images_display") as mock_update_display,
     ):
-        driver = Driver(MagicMock())
         file = root / "unknown/a.txt"
 
         driver.process_camera_upload(file)
@@ -269,10 +286,9 @@ def test_process_camera_upload_unknown(tmpdir):
 @given(st.integers(min_value=0, max_value=65535))
 async def test_streaming_stop_required(req_id: int):
     with (
-        patch("local_console.gui.driver.Agent") as mock_agent,
-        patch("local_console.gui.driver.spawn_broker"),
+        mock_driver_with_agent() as (driver, mock_agent),
         patch.object(
-            Driver, "streaming_rpc_stop", AsyncMock()
+            driver, "streaming_rpc_stop", AsyncMock()
         ) as mock_streaming_rpc_stop,
     ):
         mock_agent.return_value.publish = AsyncMock()
@@ -282,64 +298,57 @@ async def test_streaming_stop_required(req_id: int):
         mock_agent.return_value.client.messages.return_value.__aenter__.return_value = (
             MockAsyncIterator([msg])
         )
-        driver = Driver(MagicMock())
         await driver.mqtt_setup()
         mock_streaming_rpc_stop.assert_awaited_once()
 
 
 @pytest.mark.trio
-async def test_streaming_rpc_stop():
-    with (
-        patch("local_console.gui.driver.Agent") as mock_agent,
-        patch("local_console.gui.driver.spawn_broker"),
-    ):
-        mock_agent.return_value.publish = AsyncMock()
-        mock_rpc = AsyncMock()
-        mock_agent.return_value.rpc = mock_rpc
+async def test_streaming_rpc_stop(mocked_driver_with_agent):
+    driver, mock_agent = mocked_driver_with_agent
 
-        driver = Driver(MagicMock())
-        await driver.streaming_rpc_stop()
-        mock_rpc.assert_awaited_with(
-            "backdoor-EA_Main", "StopUploadInferenceData", "{}"
-        )
+    mock_agent.return_value.publish = AsyncMock()
+    mock_rpc = AsyncMock()
+    mock_agent.return_value.rpc = mock_rpc
+
+    await driver.streaming_rpc_stop()
+    mock_rpc.assert_awaited_with("backdoor-EA_Main", "StopUploadInferenceData", "{}")
 
 
 @pytest.mark.trio
-async def test_streaming_rpc_start():
-    with (
-        patch("local_console.gui.driver.Agent") as mock_agent,
-        patch("local_console.gui.driver.spawn_broker"),
-    ):
-        mock_agent.return_value.publish = AsyncMock()
-        mock_rpc = AsyncMock()
-        mock_agent.return_value.rpc = mock_rpc
+async def test_streaming_rpc_start(mocked_driver_with_agent):
+    driver, mock_agent = mocked_driver_with_agent
 
-        driver = Driver(MagicMock())
-        driver.temporary_image_directory = Path("my_image_path")
-        driver.temporary_inference_directory = Path("my_inference_path")
-        upload_url = f"http://{LOCAL_IP}:{driver.upload_port}"
-        h_size, v_size = SENSOR_SIZE
+    mock_agent.return_value.publish = AsyncMock()
+    mock_rpc = AsyncMock()
+    mock_agent.return_value.rpc = mock_rpc
 
-        await driver.streaming_rpc_start()
-        mock_rpc.assert_awaited_with(
-            "backdoor-EA_Main",
-            "StartUploadInferenceData",
-            StartUploadInferenceData(
-                StorageName=upload_url,
-                StorageSubDirectoryPath=driver.temporary_image_directory.name,
-                StorageNameIR=upload_url,
-                StorageSubDirectoryPathIR=driver.temporary_inference_directory.name,
-                CropHOffset=0,
-                CropVOffset=0,
-                CropHSize=h_size,
-                CropVSize=v_size,
-            ).model_dump_json(),
-        )
-
-
-@pytest.mark.trio
-async def test_connection_status_timeout():
     driver = Driver(MagicMock())
+    driver.temporary_image_directory = Path("my_image_path")
+    driver.temporary_inference_directory = Path("my_inference_path")
+    upload_url = f"http://{LOCAL_IP}:{driver.upload_port}"
+    h_size, v_size = SENSOR_SIZE
+
+    await driver.streaming_rpc_start()
+    mock_rpc.assert_awaited_with(
+        "backdoor-EA_Main",
+        "StartUploadInferenceData",
+        StartUploadInferenceData(
+            StorageName=upload_url,
+            StorageSubDirectoryPath=driver.temporary_image_directory.name,
+            StorageNameIR=upload_url,
+            StorageSubDirectoryPathIR=driver.temporary_inference_directory.name,
+            CropHOffset=0,
+            CropVOffset=0,
+            CropHSize=h_size,
+            CropVSize=v_size,
+        ).model_dump_json(),
+    )
+
+
+@pytest.mark.trio
+async def test_connection_status_timeout(mocked_driver_with_agent):
+    driver, _ = mocked_driver_with_agent
+
     driver.camera_state.stream_status.value = StreamStatus.Active
     await driver.connection_status_timeout()
     assert driver.camera_state.stream_status.value == StreamStatus.Inactive
@@ -349,12 +358,8 @@ async def test_connection_status_timeout():
 @given(generate_identifiers(max_size=5))
 async def test_send_ppl_configuration(config: str):
     mock_configure = AsyncMock()
-    with (
-        patch("local_console.gui.driver.Agent") as mock_agent,
-        patch("local_console.gui.driver.spawn_broker"),
-    ):
+    with (mock_driver_with_agent() as (driver, mock_agent),):
         mock_agent.return_value.configure = mock_configure
-        driver = Driver(MagicMock())
         await driver.send_app_config(config)
         mock_configure.assert_awaited_with(
             ApplicationConfiguration.NAME,
