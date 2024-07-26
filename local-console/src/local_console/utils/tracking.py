@@ -44,7 +44,7 @@ class TrackingVariable(Generic[T]):
         return self._current_value
 
     @value.setter
-    def value(self, new_value: T) -> None:
+    def value(self, new_value: OptT) -> None:
         """Set a new value for the variable, updating the previous value."""
         self._previous_value = self._current_value
         self._current_value = new_value
