@@ -21,6 +21,7 @@ import shutil
 import uuid
 from abc import ABC
 from abc import abstractmethod
+from collections.abc import Awaitable
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -50,7 +51,7 @@ class DeployFSM(ABC):
     def __init__(
         self,
         agent: Agent,
-        stage_callback: Optional[Callable[[DeployStage], None]] = None,
+        stage_callback: Optional[Callable[[DeployStage], Awaitable[None]]] = None,
         deploy_webserver: bool = True,
     ) -> None:
         self.agent = agent
@@ -62,14 +63,12 @@ class DeployFSM(ABC):
         self._to_deploy: Optional[DeploymentManifest] = None
         self.errored: Optional[bool] = None
 
-        # This redundant declaration appeases the static checker
-        self.stage = DeployStage.WaitFirstStatus
-        self._set_new_stage(DeployStage.WaitFirstStatus)
+        self.stage: Optional[DeployStage] = None
 
-    def _set_new_stage(self, new_stage: DeployStage) -> None:
+    async def _set_new_stage(self, new_stage: DeployStage) -> None:
         self.stage = new_stage
         if self.stage_callback:
-            self.stage_callback(self.stage)
+            await self.stage_callback(self.stage)
 
     @abstractmethod
     async def update(self, deploy_status: dict[str, Any]) -> None:
@@ -104,32 +103,35 @@ class DeployFSM(ABC):
 
         return is_finished, matches, is_errored
 
-    def check_termination(
+    async def check_termination(
         self, is_finished: bool, matches: bool, is_errored: bool
     ) -> bool:
         should_terminate = False
+        next_stage = self.stage
         if matches:
             if is_finished:
                 should_terminate = True
-                self._set_new_stage(DeployStage.Done)
+                next_stage = DeployStage.Done
                 self.errored = False
                 logger.info("Deployment complete")
 
             elif is_errored:
                 should_terminate = True
-                self._set_new_stage(DeployStage.Error)
+                next_stage = DeployStage.Error
                 self.errored = True
-                logger.info("Deployment errored")
+                logger.error("Deployment errored")
 
         if should_terminate:
             self.done.set()
+            assert next_stage
+            await self._set_new_stage(next_stage)
 
         return should_terminate
 
     @staticmethod
     def instantiate(
         agent: Agent,
-        stage_callback: Optional[Callable[[DeployStage], None]] = None,
+        stage_callback: Optional[Callable[[DeployStage], Awaitable[None]]] = None,
         deploy_webserver: bool = True,
     ) -> "DeployFSM":
         if agent.onwire_schema == OnWireProtocol.EVP1:
@@ -169,7 +171,7 @@ class EVP2DeployFSM(DeployFSM):
                 json.dumps(deploy_status),
             )
 
-        self._set_new_stage(next_stage)
+        await self._set_new_stage(next_stage)
 
     async def message_task(self) -> None:
         """
