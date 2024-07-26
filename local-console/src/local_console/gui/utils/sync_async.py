@@ -42,21 +42,27 @@ class SyncAsyncBridge:
     def enqueue_task(self, func: AsyncFunc, *args: Any) -> None:
         self.tasks_queue.put((func, args))
 
+    def has_pending(self) -> bool:
+        return not self.tasks_queue.empty()
+
     def close_task_queue(self) -> None:
         self.tasks_queue.put(None)
 
     # Async task listener
     async def bridge_listener(self) -> None:
-        while True:
-            # Wait for tasks from the queue
-            assert self.tasks_queue
-            items = await trio.to_thread.run_sync(self.tasks_queue.get)
-            if items is None:
-                return
-            else:
-                func = items[0]
-                args = items[1]
-                await func(*args)
+        async with trio.open_nursery() as nursery:
+            while True:
+                # Wait for tasks from the queue
+                assert self.tasks_queue
+                items: Optional[WorkItem] = await trio.to_thread.run_sync(
+                    self.tasks_queue.get
+                )
+                if items is None:
+                    break
+                else:
+                    func: AsyncFunc = items[0]
+                    args: Iterable[Any] = items[1]
+                    nursery.start_soon(func, *args)
 
 
 def run_on_ui_thread(func: Callable) -> Callable:
