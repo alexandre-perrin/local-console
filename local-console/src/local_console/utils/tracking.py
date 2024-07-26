@@ -53,7 +53,14 @@ class TrackingVariable(Generic[T]):
         for obs in self._observers:
             obs(self.value, self.previous)
 
-    async def set(self, new_value: T) -> None:
+    def set(self, new_value: OptT) -> None:
+        """
+        Method for setting the value.
+        Useful to avoid using lambdas
+        """
+        self.value = new_value
+
+    async def aset(self, new_value: OptT) -> None:
         """Value setter for using in an async context"""
         self.value = new_value
 

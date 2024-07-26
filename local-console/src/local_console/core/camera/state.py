@@ -189,7 +189,7 @@ class CameraState:
 
         if firmware_is_supported:
             try:
-                await self.device_config.set(
+                await self.device_config.aset(
                     DeviceConfiguration.model_validate(decoded)
                 )
                 if self.device_config.value:
