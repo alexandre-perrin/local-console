@@ -219,18 +219,14 @@ class Driver:
         async with trio.open_nursery() as nursery:
             try:
                 nursery.start_soon(self.bridge.bridge_listener)
-                nursery.start_soon(self.services_loop)
+                nursery.start_soon(self.mqtt_setup)
+                nursery.start_soon(self.blobs_webserver_task)
                 await self.gui.async_run(async_lib="trio")
             except KeyboardInterrupt:
                 logger.info("Cancelled per user request via keyboard")
             finally:
                 self.bridge.close_task_queue()
                 nursery.cancel_scope.cancel()
-
-    async def services_loop(self) -> None:
-        async with trio.open_nursery() as nursery:
-            nursery.start_soon(self.mqtt_setup)
-            nursery.start_soon(self.blobs_webserver_task)
 
     async def mqtt_setup(self) -> None:
         async with (
