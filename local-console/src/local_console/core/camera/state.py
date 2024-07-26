@@ -29,6 +29,7 @@ from local_console.core.camera.enums import DeployStage
 from local_console.core.camera.enums import MQTTTopics
 from local_console.core.camera.enums import OTAUpdateModule
 from local_console.core.camera.enums import StreamStatus
+from local_console.core.commands.deploy import DeployFSM
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.core.schemas.schemas import OnWireProtocol
@@ -62,6 +63,7 @@ class CameraState:
 
     def __init__(self) -> None:
 
+        self._nursery: Optional[trio.Nursery] = None
         self._onwire_schema: Optional[OnWireProtocol] = None
         self._last_reception: Optional[datetime] = None
 
@@ -144,6 +146,10 @@ class CameraState:
             self.is_streaming.value = _is_streaming
 
         self.stream_status.subscribe(compute_is_streaming)
+
+
+    def set_nursery(self, nursery: trio.Nursery) -> None:
+        self._nursery = nursery
 
     def initialize_connection_variables(self, config: AgentConfiguration) -> None:
         self.local_ip.value = get_my_ip_by_routing()

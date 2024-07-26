@@ -231,6 +231,7 @@ class Driver:
                 nursery.start_soon(self.bridge.bridge_listener)
                 nursery.start_soon(self.mqtt_setup)
                 nursery.start_soon(self.blobs_webserver_task)
+                self.camera_state.set_nursery(nursery)
                 await self.gui.async_run(async_lib="trio")
             except KeyboardInterrupt:
                 logger.info("Cancelled per user request via keyboard")
