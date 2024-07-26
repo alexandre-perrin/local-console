@@ -29,18 +29,9 @@ from local_console.core.camera.enums import DeployStage
 from local_console.gui.config import resource_path
 from local_console.gui.model.camera_proxy import CameraStateProxy
 from local_console.gui.view.base_screen import BaseScreenView
-from local_console.gui.view.common.components import (
-    GUITooltip,
-)
 from local_console.utils.validation import validate_app_file
 
 logger = logging.getLogger(__name__)
-
-
-class StatusLabel(GUITooltip, MDLabel):
-    """
-    Endows a Label with a given tooltip. See the associated KV file.
-    """
 
 
 class ApplicationsScreenView(BaseScreenView):
