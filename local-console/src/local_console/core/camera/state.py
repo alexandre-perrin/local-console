@@ -24,6 +24,7 @@ from typing import Optional
 
 import trio
 from local_console.core.camera.axis_mapping import UnitROI
+from local_console.core.camera.enums import DeploymentType
 from local_console.core.camera.enums import DeployStage
 from local_console.core.camera.enums import MQTTTopics
 from local_console.core.camera.enums import OTAUpdateModule
@@ -110,6 +111,7 @@ class CameraState:
         self.module_file: TrackingVariable[Path] = TrackingVariable()
         self.deploy_status: TrackingVariable[dict[str, str]] = TrackingVariable()
         self.deploy_stage: TrackingVariable[DeployStage] = TrackingVariable()
+        self.deploy_operation: TrackingVariable[DeploymentType] = TrackingVariable()
 
         self._init_bindings()
 

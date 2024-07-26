@@ -66,3 +66,7 @@ class DeployStage(Enum):
     WaitAppliedConfirmation = "WaitAppliedConfirmation"
     Done = "Done"
     Error = "Error"
+
+
+class DeploymentType(Enum):
+    Application = "Application"

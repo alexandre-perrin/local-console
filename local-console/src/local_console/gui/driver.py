@@ -215,6 +215,7 @@ class Driver:
         # or from states computed within the camera tracking
         self.gui.mdl.bind_state_to_proxy("deploy_status", self.camera_state)
         self.gui.mdl.bind_state_to_proxy("deploy_stage", self.camera_state)
+        self.gui.mdl.bind_state_to_proxy("deploy_operation", self.camera_state)
 
         # Proxy->State because we want the user to set this value via the GUI
         self.gui.mdl.bind_proxy_to_state("module_file", self.camera_state, Path)
