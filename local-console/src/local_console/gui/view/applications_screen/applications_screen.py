@@ -47,13 +47,10 @@ class ApplicationsScreenView(BaseScreenView):
 
     app_file_valid = BooleanProperty(False)
 
-    def model_is_changed(self) -> None:
-        self._render_deploy_stage()
-
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.app.mdl.bind(deploy_status=self.on_deploy_status)
-        self.app.mdl.bind(is_ready=self.app_state_refresh)
+        self.app.mdl.bind(deploy_stage=self.on_deploy_stage)
 
     def on_deploy_status(
         self, proxy: CameraStateProxy, status: Optional[dict[str, Any]]
@@ -76,7 +73,9 @@ class ApplicationsScreenView(BaseScreenView):
             self.app_file_valid = False
             self.display_error("Invalid AOT-compiled module file")
 
-    def _render_deploy_stage(self) -> None:
+    def on_deploy_stage(
+        self, proxy: CameraStateProxy, stage: Optional[DeployStage]
+    ) -> None:
         layout: MDGridLayout = self.ids.layout_status
 
         # pre-emptive cleanup
@@ -86,15 +85,15 @@ class ApplicationsScreenView(BaseScreenView):
             width=32,
         )
 
-        if self.model.deploy_stage is None:
+        if stage is None:
             layout.add_widget(MDLabel(text="N/A"))
 
-        elif self.model.deploy_stage == DeployStage.Error:
+        elif stage == DeployStage.Error:
             icon_box.add_widget(MDIcon(icon="alert-circle"))
             layout.add_widget(icon_box)
             layout.add_widget(MDLabel(text="Error"))
 
-        elif self.model.deploy_stage in (
+        elif stage in (
             DeployStage.WaitFirstStatus,
             DeployStage.WaitAppliedConfirmation,
         ):
@@ -108,7 +107,7 @@ class ApplicationsScreenView(BaseScreenView):
             layout.add_widget(icon_box)
             layout.add_widget(MDLabel(text="Deploying..."))
 
-        elif self.model.deploy_stage == DeployStage.Done:
+        elif stage == DeployStage.Done:
             icon_box.add_widget(MDIcon(icon="check-circle"))
             layout.add_widget(icon_box)
             layout.add_widget(MDLabel(text="Complete"))

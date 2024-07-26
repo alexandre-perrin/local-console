@@ -19,6 +19,7 @@ from kivy.properties import BooleanProperty
 from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
 from local_console.core.camera.axis_mapping import DEFAULT_ROI
+from local_console.core.camera.enums import DeployStage
 from local_console.core.camera.enums import OTAUpdateModule
 from local_console.core.camera.enums import StreamStatus
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
@@ -70,6 +71,7 @@ class CameraStateProxy(CameraStateProxyBase):
     wifi_icon_eye = StringProperty("")
 
     deploy_status = ObjectProperty(dict(), allownone=True)
+    deploy_stage = ObjectProperty(DeployStage, allownone=True)
 
 # Listing of model properties to move over into this class. It is
 # derived from the result of the following command, running

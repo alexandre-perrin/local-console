@@ -214,6 +214,7 @@ class Driver:
         # State->Proxy because these are either read from the device state
         # or from states computed within the camera tracking
         self.gui.mdl.bind_state_to_proxy("deploy_status", self.camera_state)
+        self.gui.mdl.bind_state_to_proxy("deploy_stage", self.camera_state)
 
     @property
     def evp1_mode(self) -> bool:

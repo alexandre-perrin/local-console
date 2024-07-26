@@ -13,8 +13,6 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-from typing import Optional
-
 from local_console.commands.deploy import get_empty_deployment
 from local_console.core.schemas.schemas import DeploymentManifest
 from local_console.gui.model.base_model import BaseScreenModel
@@ -28,7 +26,6 @@ class ApplicationsScreenModel(BaseScreenModel):
 
     def __init__(self) -> None:
         self._manifest: DeploymentManifest = get_empty_deployment()
-        self._deploy_stage: Optional[DeployStage] = None
 
     @property
     def manifest(self) -> DeploymentManifest:
@@ -37,13 +34,4 @@ class ApplicationsScreenModel(BaseScreenModel):
     @manifest.setter
     def manifest(self, value: DeploymentManifest) -> None:
         self._manifest = value
-        self.notify_observers()
-
-    @property
-    def deploy_stage(self) -> Optional[DeployStage]:
-        return self._deploy_stage
-
-    @deploy_stage.setter
-    def deploy_stage(self, value: DeployStage) -> None:
-        self._deploy_stage = value
         self.notify_observers()

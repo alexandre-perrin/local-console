@@ -23,7 +23,6 @@ from local_console.core.config import get_config
 from local_console.gui.driver import Driver
 from local_console.gui.enums import ApplicationConfiguration
 from local_console.gui.model.applications_screen import ApplicationsScreenModel
-from local_console.gui.utils.sync_async import run_on_ui_thread
 from local_console.gui.view.applications_screen.applications_screen import (
     ApplicationsScreenView,
 )
@@ -77,8 +76,3 @@ class ApplicationsScreenController:
                 logger.exception("Deployment error", exc_info=e)
                 return False
             return True
-
-    @run_on_ui_thread
-    def update_deploy_stage(self, deploy_stage: DeployStage) -> None:
-        logger.info(f"WASM deployment stage is now: {deploy_stage.name}")
-        self.model.deploy_stage = deploy_stage
