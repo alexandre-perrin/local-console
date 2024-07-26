@@ -59,3 +59,10 @@ class OTAUpdateModule(StrEnum):
 class FirmwareExtension(StrEnum):
     APPLICATION_FW = ".bin"
     SENSOR_FW = ".fpk"
+
+
+class DeployStage(Enum):
+    WaitFirstStatus = "WaitFirstStatus"
+    WaitAppliedConfirmation = "WaitAppliedConfirmation"
+    Done = "Done"
+    Error = "Error"

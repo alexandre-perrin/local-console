@@ -23,9 +23,9 @@ from unittest.mock import patch
 import hypothesis.strategies as st
 import pytest
 from hypothesis import given
+from local_console.core.camera.enums import DeployStage
 from local_console.clients.agent import Agent
 from local_console.core.commands.deploy import DeployFSM
-from local_console.core.commands.deploy import DeployStage
 from local_console.core.commands.deploy import module_deployment_setup
 from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.core.schemas.schemas import DeploymentManifest

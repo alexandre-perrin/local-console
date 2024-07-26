@@ -16,7 +16,6 @@
 from typing import Optional
 
 from local_console.commands.deploy import get_empty_deployment
-from local_console.core.commands.deploy import DeployStage
 from local_console.core.schemas.schemas import DeploymentManifest
 from local_console.gui.model.base_model import BaseScreenModel
 

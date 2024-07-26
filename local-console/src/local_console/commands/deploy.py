@@ -24,6 +24,7 @@ from typing import Optional
 import trio
 import typer
 from local_console.clients.agent import Agent
+from local_console.core.camera.enums import DeployStage
 from local_console.core.commands.deploy import exec_deployment
 from local_console.core.commands.deploy import get_empty_deployment
 from local_console.core.commands.deploy import make_unique_module_ids

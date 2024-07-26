@@ -17,7 +17,6 @@ import logging
 from pathlib import Path
 
 from local_console.clients.agent import Agent
-from local_console.core.commands.deploy import DeployStage
 from local_console.core.commands.deploy import exec_deployment
 from local_console.core.commands.deploy import module_deployment_setup
 from local_console.core.config import get_config

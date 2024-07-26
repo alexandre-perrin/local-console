@@ -25,7 +25,7 @@ from kivymd.uix.anchorlayout import MDAnchorLayout
 from kivymd.uix.gridlayout import MDGridLayout
 from kivymd.uix.label import MDIcon
 from kivymd.uix.label import MDLabel
-from local_console.core.commands.deploy import DeployStage
+from local_console.core.camera.enums import DeployStage
 from local_console.gui.config import resource_path
 from local_console.gui.view.base_screen import BaseScreenView
 from local_console.gui.view.common.components import (

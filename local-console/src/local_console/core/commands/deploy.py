@@ -31,6 +31,7 @@ from typing import Callable
 from typing import Optional
 
 import trio
+from local_console.core.camera.enums import DeployStage
 import typer
 from local_console.clients.agent import Agent
 from local_console.core.camera.enums import MQTTTopics
@@ -43,13 +44,6 @@ from local_console.servers.webserver import AsyncWebserver
 from local_console.utils.local_network import get_my_ip_by_routing
 
 logger = logging.getLogger(__name__)
-
-
-class DeployStage(enum.IntEnum):
-    WaitFirstStatus = enum.auto()
-    WaitAppliedConfirmation = enum.auto()
-    Done = enum.auto()
-    Error = enum.auto()
 
 
 async def exec_deployment(
