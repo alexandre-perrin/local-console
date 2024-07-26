@@ -40,47 +40,10 @@ from local_console.core.enums import Target
 from local_console.core.schemas.schemas import Deployment
 from local_console.core.schemas.schemas import DeploymentManifest
 from local_console.core.schemas.schemas import OnWireProtocol
-from local_console.servers.webserver import AsyncWebserver
 from local_console.servers.webserver import SyncWebserver
 from local_console.utils.local_network import get_my_ip_by_routing
 
 logger = logging.getLogger(__name__)
-
-
-async def exec_deployment(
-    agent: Agent,
-    deploy_manifest: DeploymentManifest,
-    deploy_webserver: bool,
-    webserver_path: Path,
-    webserver_port: int,
-    timeout_secs: int,
-    stage_callback: Optional[Callable[[DeployStage], None]] = None,
-) -> bool:
-    deploy_fsm = DeployFSM.instantiate(agent, deploy_manifest, stage_callback)
-
-    # GUI mode starts responding to requests in the background, but not the CLI
-    # NOTE: revisit GUI - CLI interaction
-    await agent.initialize_handshake()
-
-    success = False
-    with trio.move_on_after(timeout_secs) as timeout_scope:
-        assert agent.onwire_schema  # make mypy happy
-        logger.debug(f"Opening webserver at {webserver_path}")
-        async with (
-            agent.mqtt_scope([MQTTTopics.ATTRIBUTES.value]),
-            AsyncWebserver(webserver_path, webserver_port, None, deploy_webserver),
-        ):
-            assert agent.nursery is not None  # make mypy happy
-            agent.nursery.start_soon(deploy_fsm.message_task)
-            await deploy_fsm.done.wait()
-            success = not deploy_fsm.errored
-
-    if timeout_scope.cancelled_caught:
-        logger.error("Timeout when sending modules.")
-        if stage_callback:
-            stage_callback(DeployStage.Error)
-
-    return success
 
 
 class DeployFSM(ABC):

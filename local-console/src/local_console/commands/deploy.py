@@ -25,7 +25,6 @@ import trio
 import typer
 from local_console.clients.agent import Agent
 from local_console.core.camera.enums import DeployStage
-from local_console.core.commands.deploy import exec_deployment
 from local_console.core.commands.deploy import get_empty_deployment
 from local_console.core.commands.deploy import make_unique_module_ids
 from local_console.core.commands.deploy import update_deployment_manifest
@@ -134,3 +133,31 @@ def deploy(
 
 class DeployCommand(PluginBase):
     implementer = app
+
+
+async def exec_deployment(
+    agent: Agent,
+    deploy_fsm: DeployFSM,
+    stage_callback: Optional[Callable[[DeployStage], None]] = None,
+) -> bool:
+    assert agent.onwire_schema
+    success = False
+
+    # Ensure device readiness to receive a deployment manifest
+    await agent.initialize_handshake()
+
+    async with (
+        trio.open_nursery() as nursery,
+        agent.mqtt_scope([MQTTTopics.ATTRIBUTES.value]),
+    ):
+
+        # assert agent.nursery
+        deploy_loop = partial(stimuli_loop, agent, deploy_fsm)
+        nursery.start_soon(deploy_loop)
+
+        await deploy_fsm.start(nursery)
+        await deploy_fsm.done.wait()
+        success = not deploy_fsm.errored
+        nursery.cancel_scope.cancel()
+
+    return success
