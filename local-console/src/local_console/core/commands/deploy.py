@@ -322,3 +322,16 @@ def populate_urls_and_hashes(
         str(deployment_manifest.model_dump()).encode("utf-8")
     )
     deployment_manifest.deployment.deploymentId = deployment_manifest_hash.hexdigest()
+
+
+def deploy_status_empty(deploy_status: Optional[dict[str, Any]]) -> bool:
+    if not deploy_status:
+        return True
+
+    if "reconcileStatus" not in deploy_status:
+        return True
+
+    if "deploymentId" not in deploy_status:
+        return True
+
+    return False

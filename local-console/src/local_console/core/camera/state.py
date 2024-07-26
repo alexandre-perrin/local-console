@@ -23,16 +23,21 @@ from typing import Any
 from typing import Optional
 
 import trio
+from local_console.clients.agent import Agent
 from local_console.core.camera.axis_mapping import UnitROI
 from local_console.core.camera.enums import DeploymentType
 from local_console.core.camera.enums import DeployStage
 from local_console.core.camera.enums import MQTTTopics
 from local_console.core.camera.enums import OTAUpdateModule
 from local_console.core.camera.enums import StreamStatus
+from local_console.core.commands.deploy import deploy_status_empty
 from local_console.core.commands.deploy import DeployFSM
+from local_console.core.commands.deploy import module_deployment_setup
+from local_console.core.commands.deploy import verify_report
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.core.schemas.schemas import OnWireProtocol
+from local_console.gui.enums import ApplicationConfiguration
 from local_console.utils.local_network import get_my_ip_by_routing
 from local_console.utils.tracking import TrackingVariable
 from pydantic import ValidationError
@@ -114,6 +119,7 @@ class CameraState:
         self.deploy_status: TrackingVariable[dict[str, str]] = TrackingVariable()
         self.deploy_stage: TrackingVariable[DeployStage] = TrackingVariable()
         self.deploy_operation: TrackingVariable[DeploymentType] = TrackingVariable()
+        self._deploy_fsm: Optional[DeployFSM] = None
 
         self._init_bindings()
 
@@ -147,9 +153,64 @@ class CameraState:
 
         self.stream_status.subscribe(compute_is_streaming)
 
+        self.deploy_stage.subscribe_async(self._on_deploy_stage)
+        self.deploy_status.subscribe_async(self._on_deploy_status)
+        self.deploy_operation.subscribe_async(self._on_deployment_operation)
 
     def set_nursery(self, nursery: trio.Nursery) -> None:
         self._nursery = nursery
+
+    async def _on_deploy_status(
+        self, current: Optional[dict[str, Any]], previous: Optional[dict[str, Any]]
+    ) -> None:
+        if self._deploy_fsm is None:
+            if deploy_status_empty(current):
+                await self.deploy_stage.aset(None)
+            else:
+                assert current  # See deploy_status_empty(...) above
+                is_finished, _, is_errored = verify_report("", current)
+                if is_errored:
+                    await self.deploy_stage.aset(DeployStage.Error)
+                else:
+                    if is_finished:
+                        await self.deploy_stage.aset(DeployStage.Done)
+                    else:
+                        await self.deploy_stage.aset(DeployStage.WaitFirstStatus)
+        else:
+            if current:
+                await self._deploy_fsm.update(current)
+
+    async def _on_deployment_operation(
+        self, current: Optional[DeploymentType], previous: Optional[DeploymentType]
+    ) -> None:
+        if previous != current:
+            if current == DeploymentType.Application:
+                assert self._deploy_fsm
+                assert self._nursery
+                await self._deploy_fsm.start(self._nursery)
+            elif not current:
+                self._deploy_fsm = None
+
+    async def _on_deploy_stage(
+        self, current: Optional[DeployStage], previous: Optional[DeployStage]
+    ) -> None:
+        if current in (DeployStage.Done, DeployStage.Error):
+            await self.deploy_operation.aset(None)
+
+    async def do_app_deployment(self, agent: Agent) -> None:
+        assert self.module_file.value
+        assert self._deploy_fsm is None
+
+        self._deploy_fsm = DeployFSM.instantiate(
+            agent.onwire_schema, agent.deploy, self.deploy_stage.aset
+        )
+        manifest = module_deployment_setup(
+            ApplicationConfiguration.NAME,
+            self.module_file.value,
+            self._deploy_fsm.webserver,
+        )
+        self._deploy_fsm.set_manifest(manifest)
+        await self.deploy_operation.aset(DeploymentType.Application)
 
     def initialize_connection_variables(self, config: AgentConfiguration) -> None:
         self.local_ip.value = get_my_ip_by_routing()

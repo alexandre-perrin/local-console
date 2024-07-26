@@ -16,6 +16,7 @@
 import json
 import logging
 import shutil
+from functools import partial
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
@@ -507,3 +508,7 @@ class Driver:
             ApplicationConfiguration.CONFIG_TOPIC,
             config,
         )
+
+    def do_app_deployment(self) -> None:
+        task = partial(self.camera_state.do_app_deployment, self.mqtt_client)
+        self.from_sync(task)

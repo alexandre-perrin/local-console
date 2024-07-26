@@ -57,6 +57,7 @@ def test_get_empty_deployment():
 def test_deploy_empty_command(agent_config: AgentConfiguration) -> None:
     with (
         patch("local_console.commands.deploy.Agent") as mock_agent_client,
+        patch("local_console.commands.deploy.DeployFSM") as mock_gen_deploy_fsm,
         patch(
             "local_console.commands.deploy.get_empty_deployment"
         ) as mock_get_deployment,
@@ -66,9 +67,18 @@ def test_deploy_empty_command(agent_config: AgentConfiguration) -> None:
     ):
         result = runner.invoke(app, ["-e"])
         mock_agent_client.assert_called_once()
+
+        mock_gen_deploy_fsm.instantiate.assert_called_once()
+        mock_deploy_fsm = mock_gen_deploy_fsm.instantiate.return_value
+
         mock_get_deployment.assert_called_once()
+        mock_deploy_fsm.set_manifest.assert_called_once_with(
+            mock_get_deployment.return_value
+        )
+
         mock_exec_deploy.assert_called_once_with(
-            mock_agent_client(), mock_get_deployment.return_value, True, ANY, ANY, ANY
+            mock_agent_client(),
+            mock_deploy_fsm,
         )
         assert result.exit_code == 0
 
@@ -83,34 +93,42 @@ def test_deploy_command_target(
         patch("local_console.commands.deploy.Agent") as mock_agent_client,
         patch("local_console.commands.deploy.get_config", return_value=agent_config),
         patch("local_console.commands.deploy.is_localhost", return_value=True),
+        patch("local_console.commands.deploy.DeployFSM") as mock_gen_deploy_fsm,
         patch("local_console.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
-            "local_console.commands.deploy.update_deployment_manifest"
-        ) as mock_update_manifest,
-        patch(
-            "local_console.commands.deploy.make_unique_module_ids"
-        ) as mock_make_unique_ids,
-        patch(
-            "local_console.commands.deploy.get_deployment_schema",
+            "local_console.commands.deploy.module_deployment_setup",
             return_value=deployment_manifest,
-        ) as mock_get_deployment,
+        ) as mock_setup_manifest,
+        patch(
+            "local_console.commands.deploy.project_binary_lookup",
+        ) as mock_get_path,
         patch("pathlib.Path.is_dir") as mock_check_dir,
     ):
         result = runner.invoke(app, [target.value])
         mock_agent_client.assert_called_once()
         mock_check_dir.assert_called_once()
-        mock_get_deployment.assert_called_once()
-        mock_update_manifest.assert_called_once_with(
-            deployment_manifest,
-            ANY,
+
+        mock_gen_deploy_fsm.instantiate.assert_called_once()
+        mock_deploy_fsm = mock_gen_deploy_fsm.instantiate.return_value
+
+        mock_get_path.assert_called_once_with(
             ANY,
             ANY,
             target,
             False,
         )
-        mock_make_unique_ids.assert_called_once()
+        mock_setup_manifest.assert_called_once_with(
+            ANY,
+            mock_get_path.return_value,
+            mock_deploy_fsm.webserver,
+            ANY,
+            ANY,
+        )
+
+        mock_deploy_fsm.set_manifest.assert_called_once_with(deployment_manifest)
         mock_exec_deploy.assert_called_once_with(
-            mock_agent_client(), deployment_manifest, ANY, ANY, ANY, ANY
+            mock_agent_client(),
+            mock_deploy_fsm,
         )
         assert result.exit_code == 0
 
@@ -124,34 +142,42 @@ def test_deploy_command_signed(
         patch("local_console.commands.deploy.Agent") as mock_agent_client,
         patch("local_console.commands.deploy.get_config", return_value=agent_config),
         patch("local_console.commands.deploy.is_localhost", return_value=True),
+        patch("local_console.commands.deploy.DeployFSM") as mock_gen_deploy_fsm,
         patch("local_console.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
-            "local_console.commands.deploy.update_deployment_manifest"
-        ) as mock_update_manifest,
-        patch(
-            "local_console.commands.deploy.make_unique_module_ids"
-        ) as mock_make_unique_ids,
-        patch(
-            "local_console.commands.deploy.get_deployment_schema",
+            "local_console.commands.deploy.module_deployment_setup",
             return_value=deployment_manifest,
-        ) as mock_get_deployment,
+        ) as mock_setup_manifest,
+        patch(
+            "local_console.commands.deploy.project_binary_lookup",
+        ) as mock_get_path,
         patch("pathlib.Path.is_dir") as mock_check_dir,
     ):
         result = runner.invoke(app, ["-s"])
         mock_agent_client.assert_called_once()
         mock_check_dir.assert_called_once()
-        mock_get_deployment.assert_called_once()
-        mock_update_manifest.assert_called_once_with(
-            deployment_manifest,
-            ANY,
+
+        mock_gen_deploy_fsm.instantiate.assert_called_once()
+        mock_deploy_fsm = mock_gen_deploy_fsm.instantiate.return_value
+
+        mock_get_path.assert_called_once_with(
             ANY,
             ANY,
             ANY,
             True,
         )
-        mock_make_unique_ids.assert_called_once()
+        mock_setup_manifest.assert_called_once_with(
+            ANY,
+            mock_get_path.return_value,
+            mock_deploy_fsm.webserver,
+            ANY,
+            ANY,
+        )
+
+        mock_deploy_fsm.set_manifest.assert_called_once_with(deployment_manifest)
         mock_exec_deploy.assert_called_once_with(
-            mock_agent_client(), deployment_manifest, ANY, ANY, ANY, ANY
+            mock_agent_client(),
+            mock_deploy_fsm,
         )
         assert result.exit_code == 0
 
@@ -167,34 +193,48 @@ def test_deploy_command_timeout(
         patch("local_console.commands.deploy.Agent") as mock_agent_client,
         patch("local_console.commands.deploy.get_config", return_value=agent_config),
         patch("local_console.commands.deploy.is_localhost", return_value=True),
+        patch("local_console.commands.deploy.DeployFSM") as mock_gen_deploy_fsm,
         patch("local_console.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
-            "local_console.commands.deploy.update_deployment_manifest"
-        ) as mock_update_manifest,
-        patch(
-            "local_console.commands.deploy.make_unique_module_ids"
-        ) as mock_make_unique_ids,
-        patch(
-            "local_console.commands.deploy.get_deployment_schema",
+            "local_console.commands.deploy.module_deployment_setup",
             return_value=deployment_manifest,
-        ) as mock_get_deployment,
+        ) as mock_setup_manifest,
+        patch(
+            "local_console.commands.deploy.project_binary_lookup",
+        ) as mock_get_path,
         patch("pathlib.Path.is_dir") as mock_check_dir,
     ):
         result = runner.invoke(app, ["-t", timeout])
         mock_agent_client.assert_called_once()
         mock_check_dir.assert_called_once()
-        mock_get_deployment.assert_called_once()
-        mock_update_manifest.assert_called_once_with(
-            deployment_manifest,
+
+        mock_gen_deploy_fsm.instantiate.assert_called_once_with(
+            mock_agent_client.return_value.onwire_schema,
+            mock_agent_client.return_value.deploy,
+            None,
             ANY,
+            timeout,
+        )
+        mock_deploy_fsm = mock_gen_deploy_fsm.instantiate.return_value
+
+        mock_get_path.assert_called_once_with(
             ANY,
             ANY,
             None,
             False,
         )
-        mock_make_unique_ids.assert_called_once()
+        mock_setup_manifest.assert_called_once_with(
+            ANY,
+            mock_get_path.return_value,
+            mock_deploy_fsm.webserver,
+            ANY,
+            ANY,
+        )
+
+        mock_deploy_fsm.set_manifest.assert_called_once_with(deployment_manifest)
         mock_exec_deploy.assert_called_once_with(
-            mock_agent_client(), deployment_manifest, ANY, ANY, ANY, timeout
+            mock_agent_client(),
+            mock_deploy_fsm,
         )
         assert result.exit_code == 0
 
@@ -262,37 +302,52 @@ def test_deploy_forced_webserver(
     deployment_manifest: DeploymentManifest, agent_config: AgentConfiguration
 ) -> None:
     with (
+        patch("local_console.commands.deploy.is_localhost", return_value=False),
         patch("local_console.commands.deploy.Agent") as mock_agent_client,
         patch("local_console.commands.deploy.get_config", return_value=agent_config),
-        patch("local_console.commands.deploy.is_localhost", return_value=False),
+        patch("local_console.commands.deploy.is_localhost", return_value=True),
+        patch("local_console.commands.deploy.DeployFSM") as mock_gen_deploy_fsm,
         patch("local_console.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
-            "local_console.commands.deploy.update_deployment_manifest"
-        ) as mock_update_manifest,
-        patch(
-            "local_console.commands.deploy.make_unique_module_ids"
-        ) as mock_make_unique_ids,
-        patch(
-            "local_console.commands.deploy.get_deployment_schema",
+            "local_console.commands.deploy.module_deployment_setup",
             return_value=deployment_manifest,
-        ) as mock_get_deployment,
+        ) as mock_setup_manifest,
+        patch(
+            "local_console.commands.deploy.project_binary_lookup",
+        ) as mock_get_path,
         patch("pathlib.Path.is_dir") as mock_check_dir,
     ):
         result = runner.invoke(app, ["-f"])
         mock_agent_client.assert_called_once()
         mock_check_dir.assert_called_once()
-        mock_get_deployment.assert_called_once()
-        mock_update_manifest.assert_called_once_with(
-            deployment_manifest,
+
+        mock_gen_deploy_fsm.instantiate.assert_called_once_with(
+            mock_agent_client.return_value.onwire_schema,
+            mock_agent_client.return_value.deploy,
+            None,
+            True,
             ANY,
-            ANY,
-            ANY,
-            ANY,
-            False,
         )
-        mock_make_unique_ids.assert_called_once()
+        mock_deploy_fsm = mock_gen_deploy_fsm.instantiate.return_value
+
+        mock_get_path.assert_called_once_with(
+            ANY,
+            ANY,
+            ANY,
+            ANY,
+        )
+        mock_setup_manifest.assert_called_once_with(
+            ANY,
+            mock_get_path.return_value,
+            mock_deploy_fsm.webserver,
+            ANY,
+            ANY,
+        )
+
+        mock_deploy_fsm.set_manifest.assert_called_once_with(deployment_manifest)
         mock_exec_deploy.assert_called_once_with(
-            mock_agent_client(), deployment_manifest, True, ANY, ANY, ANY
+            mock_agent_client(),
+            mock_deploy_fsm,
         )
         assert result.exit_code == 0
 

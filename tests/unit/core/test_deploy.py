@@ -91,13 +91,15 @@ def test_deployment_setup(tmpdir):
             "local_console.core.commands.deploy.get_my_ip_by_routing",
             return_value=server_add,
         ),
-        module_deployment_setup(instance_name, origin, 8888) as (
-            temp_dir,
-            deployment_manifest,
-        ),
     ):
-        dm = deployment_manifest
+        port = 8888
+        webserver = Mock()
+        webserver.port = port
+        dm = module_deployment_setup(instance_name, origin, webserver)
+
+        webserver.set_directory.assert_called_once_with(origin.parent)
         assert instance_name in dm.deployment.instanceSpecs
         assert computed_mod_name in dm.deployment.modules
         assert dm.deployment.modules[computed_mod_name].hash == mod_sha
         assert server_add in dm.deployment.modules[computed_mod_name].downloadUrl
+        assert str(port) in dm.deployment.modules[computed_mod_name].downloadUrl

@@ -14,14 +14,8 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 import logging
-from pathlib import Path
 
-from local_console.clients.agent import Agent
-from local_console.core.commands.deploy import exec_deployment
-from local_console.core.commands.deploy import module_deployment_setup
-from local_console.core.config import get_config
 from local_console.gui.driver import Driver
-from local_console.gui.enums import ApplicationConfiguration
 from local_console.gui.model.applications_screen import ApplicationsScreenModel
 from local_console.gui.view.applications_screen.applications_screen import (
     ApplicationsScreenView,
@@ -48,31 +42,5 @@ class ApplicationsScreenController:
     def get_view(self) -> ApplicationsScreenView:
         return self.view
 
-    def deploy(self, module_file_str: str) -> None:
-        self.driver.from_sync(self.deploy_task, Path(module_file_str))
-
-    async def deploy_task(self, module_file: Path) -> bool:
-        config: AgentConfiguration = get_config()  # type:ignore
-        port = config.webserver.port
-
-        with module_deployment_setup(
-            ApplicationConfiguration.NAME, module_file, port
-        ) as (
-            tmpdir,
-            deployment_manifest,
-        ):
-            self.model.manifest = deployment_manifest
-            try:
-                await exec_deployment(
-                    Agent(),
-                    deployment_manifest,
-                    True,
-                    tmpdir,
-                    port,
-                    60,
-                    self.update_deploy_stage,
-                )
-            except Exception as e:
-                logger.exception("Deployment error", exc_info=e)
-                return False
-            return True
+    def deploy(self) -> None:
+        self.driver.do_app_deployment()
