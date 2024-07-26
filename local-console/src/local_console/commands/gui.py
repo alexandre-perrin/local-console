@@ -40,6 +40,8 @@ def gui() -> None:
     """
     from local_console.gui.main import LocalConsoleGUIAPP
 
+    logging.getLogger("PIL").setLevel(logging.ERROR)
+
     trio.run(LocalConsoleGUIAPP().app_main)
 
 
