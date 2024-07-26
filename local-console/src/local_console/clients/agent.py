@@ -28,7 +28,7 @@ import paho.mqtt.client as paho
 import trio
 from exceptiongroup import catch
 from local_console.clients.trio_paho_mqtt import AsyncClient
-from local_console.core.camera import MQTTTopics
+from local_console.core.camera.enums import MQTTTopics
 from local_console.core.config import config_paths
 from local_console.core.config import get_config
 from local_console.core.schemas.schemas import AgentConfiguration

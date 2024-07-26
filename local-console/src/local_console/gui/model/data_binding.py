@@ -20,7 +20,7 @@ from typing import Optional
 
 from kivy.event import EventDispatcher
 from kivy.uix.widget import Widget
-from local_console.core.camera import CameraState
+from local_console.core.camera.state import CameraState
 from local_console.utils.tracking import TrackingVariable
 
 

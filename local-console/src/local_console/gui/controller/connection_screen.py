@@ -13,9 +13,7 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-import logging
-
-from local_console.core.camera import get_qr_object
+from local_console.core.camera.qr import get_qr_object
 from local_console.gui.driver import Driver
 from local_console.gui.model.connection_screen import ConnectionScreenModel
 from local_console.gui.utils.qr import Color

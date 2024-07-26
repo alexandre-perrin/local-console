@@ -21,8 +21,8 @@ from typing import Callable
 
 import trio
 from local_console.clients.agent import Agent
-from local_console.core.camera import CameraState
-from local_console.core.camera import MQTTTopics
+from local_console.core.camera.enums import MQTTTopics
+from local_console.core.camera.state import CameraState
 from local_console.core.commands.ota_deploy import configuration_spec
 from local_console.core.commands.ota_deploy import get_network_id
 from local_console.core.commands.ota_deploy import get_network_ids

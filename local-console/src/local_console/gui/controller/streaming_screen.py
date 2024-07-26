@@ -13,8 +13,8 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-from local_console.core.camera import StreamStatus
 from local_console.core.camera.axis_mapping import UnitROI
+from local_console.core.camera.enums import StreamStatus
 from local_console.gui.driver import Driver
 from local_console.gui.model.camera_proxy import CameraStateProxy
 from local_console.gui.model.streaming_screen import StreamingScreenModel

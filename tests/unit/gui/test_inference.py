@@ -16,7 +16,7 @@
 from unittest.mock import Mock
 from unittest.mock import patch
 
-from local_console.core.camera import StreamStatus
+from local_console.core.camera.enums import StreamStatus
 from local_console.gui.controller.inference_screen import InferenceScreenController
 
 from tests.fixtures.gui import driver_set

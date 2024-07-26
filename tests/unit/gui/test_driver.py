@@ -26,8 +26,8 @@ from unittest.mock import patch
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from local_console.core.camera import StreamStatus
 from local_console.core.camera.axis_mapping import SENSOR_SIZE
+from local_console.core.camera.enums import StreamStatus
 from local_console.core.config import config_to_schema
 from local_console.core.config import get_default_config
 from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
