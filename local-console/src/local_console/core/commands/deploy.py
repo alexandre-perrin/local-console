@@ -41,6 +41,7 @@ from local_console.core.schemas.schemas import Deployment
 from local_console.core.schemas.schemas import DeploymentManifest
 from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.servers.webserver import AsyncWebserver
+from local_console.servers.webserver import SyncWebserver
 from local_console.utils.local_network import get_my_ip_by_routing
 
 logger = logging.getLogger(__name__)
@@ -87,9 +88,12 @@ class DeployFSM(ABC):
         self,
         agent: Agent,
         stage_callback: Optional[Callable[[DeployStage], None]] = None,
+        deploy_webserver: bool = True,
     ) -> None:
         self.agent = agent
         self.stage_callback = stage_callback
+        self.webserver = SyncWebserver(Path(), deploy=deploy_webserver)
+        self.webserver.start()  # This secures a listening port for the webserver
 
         self.done = trio.Event()
         self._to_deploy: Optional[DeploymentManifest] = None
@@ -163,6 +167,7 @@ class DeployFSM(ABC):
     def instantiate(
         agent: Agent,
         stage_callback: Optional[Callable[[DeployStage], None]] = None,
+        deploy_webserver: bool = True,
     ) -> "DeployFSM":
         if agent.onwire_schema == OnWireProtocol.EVP1:
             return EVP1DeployFSM(agent, deploy_manifest, stage_callback)
