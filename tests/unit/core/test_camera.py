@@ -228,7 +228,7 @@ async def test_process_deploy_status_evp1() -> None:
     status_report = {"deploymentStatus": json.dumps(dummy_deployment)}
     await camera._process_deploy_status_topic(status_report)
 
-    assert camera.deploy_status == dummy_deployment
+    assert camera.deploy_status.value == dummy_deployment
     assert camera.attributes_available
 
 
@@ -241,7 +241,7 @@ async def test_process_deploy_status_evp2() -> None:
     status_report = {"deploymentStatus": dummy_deployment}
     await camera._process_deploy_status_topic(status_report)
 
-    assert camera.deploy_status == dummy_deployment
+    assert camera.deploy_status.value == dummy_deployment
     assert camera.attributes_available
 
 
