@@ -32,6 +32,7 @@ from local_console.core.config import get_config
 from local_console.core.config import get_deployment_schema
 from local_console.core.enums import config_paths
 from local_console.core.enums import Target
+from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.plugin import PluginBase
 from local_console.utils.local_network import get_my_ip_by_routing
 from local_console.utils.local_network import is_localhost
@@ -86,7 +87,7 @@ def deploy(
     ] = False,
 ) -> None:
     agent = Agent()
-    config: AgentConfiguration = get_config()  # type: ignore
+    config: AgentConfiguration = get_config()
     port = config.webserver.port
     host = config.webserver.host.ip_value
     deploy_webserver = force_webserver

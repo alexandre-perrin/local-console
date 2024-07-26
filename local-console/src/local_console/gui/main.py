@@ -63,7 +63,6 @@ logger = logging.getLogger(__name__)
 
 
 class LocalConsoleGUIAPP(MDApp):
-    nursery = None
     driver = None
     mdl = ObjectProperty(CameraStateProxy)
 
