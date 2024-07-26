@@ -86,14 +86,13 @@ class DeployFSM(ABC):
     def __init__(
         self,
         agent: Agent,
-        to_deploy: DeploymentManifest,
         stage_callback: Optional[Callable[[DeployStage], None]] = None,
     ) -> None:
         self.agent = agent
-        self.to_deploy = to_deploy
         self.stage_callback = stage_callback
 
         self.done = trio.Event()
+        self._to_deploy: Optional[DeploymentManifest] = None
         self.errored: Optional[bool] = None
 
         # This redundant declaration appeases the static checker
@@ -119,6 +118,8 @@ class DeployFSM(ABC):
         deployment status report.
         """
 
+    def set_manifest(self, to_deploy: DeploymentManifest) -> None:
+        self._to_deploy = to_deploy
     @staticmethod
     def verify_report(
         deployment_id: str, deploy_status: dict[str, Any]
@@ -161,7 +162,6 @@ class DeployFSM(ABC):
     @staticmethod
     def instantiate(
         agent: Agent,
-        deploy_manifest: DeploymentManifest,
         stage_callback: Optional[Callable[[DeployStage], None]] = None,
     ) -> "DeployFSM":
         if agent.onwire_schema == OnWireProtocol.EVP1:
