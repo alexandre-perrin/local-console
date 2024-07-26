@@ -75,33 +75,20 @@ class DeployFSM(ABC):
         """
         Updates the FSM as it progresses through its states.
         """
+        assert self.stage
+        assert self._to_deploy
 
     @abstractmethod
-    async def message_task(self) -> None:
+    async def start(self, nursery: trio.Nursery) -> None:
         """
-        Receives messages from the agent and reacts
-        accordingly, calling update() with the latest
-        deployment status report.
+        To be called for performing actions at FSM entry, once the
+        deployment manifest is set. It must:
+        - await _set_new_stage() with initial stage
         """
 
     def set_manifest(self, to_deploy: DeploymentManifest) -> None:
         self._to_deploy = to_deploy
-    @staticmethod
-    def verify_report(
-        deployment_id: str, deploy_status: dict[str, Any]
-    ) -> tuple[bool, bool, bool]:
-        matches = deploy_status.get("deploymentId") == deployment_id
-        is_finished = deploy_status.get("reconcileStatus") == "ok"
 
-        error_in_modules = any(
-            n["status"] == "error" for n in deploy_status.get("modules", {}).values()
-        )
-        error_in_modinsts = any(
-            n["status"] == "error" for n in deploy_status.get("instances", {}).values()
-        )
-        is_errored = error_in_modinsts or error_in_modules
-
-        return is_finished, matches, is_errored
 
     async def check_termination(
         self, is_finished: bool, matches: bool, is_errored: bool
@@ -145,15 +132,24 @@ class DeployFSM(ABC):
 
 
 class EVP2DeployFSM(DeployFSM):
-    async def update(self, deploy_status: Optional[dict[str, Any]]) -> None:
-        assert isinstance(deploy_status, dict)
 
+    async def start(self, nursery: trio.Nursery) -> None:
+        """
+        No further start actions required
+        """
+        assert self._to_deploy
+        self._timeout_handler.spawn_in(nursery)
+        await self._set_new_stage(DeployStage.WaitFirstStatus)
+
+    async def update(self, deploy_status: dict[str, Any]) -> None:
+        assert self._to_deploy
+        assert self.stage
         next_stage = self.stage
 
-        is_finished, matches, is_errored = self.verify_report(
-            self.to_deploy.deployment.deploymentId, deploy_status
+        is_finished, matches, is_errored = verify_report(
+            self._to_deploy.deployment.deploymentId, deploy_status
         )
-        if self.check_termination(is_finished, matches, is_errored):
+        if await self.check_termination(is_finished, matches, is_errored):
             return
 
         if self.stage == DeployStage.WaitFirstStatus:
@@ -177,54 +173,45 @@ class EVP2DeployFSM(DeployFSM):
 
         await self._set_new_stage(next_stage)
 
-    async def message_task(self) -> None:
-        """
-        Notes:
-        - Assumes report interval is short to perform the handshake.
-        """
-        assert self.agent.client is not None
-        async with self.agent.client.messages() as mgen:
-            async for msg in mgen:
-                payload = json.loads(msg.payload)
-                logger.debug("Incoming on %s: %s", msg.topic, str(payload))
-
-                if payload and msg.topic == MQTTTopics.ATTRIBUTES.value:
-                    if "deploymentStatus" in payload:
-                        deploy_status = payload.get("deploymentStatus")
-                        await self.update(deploy_status)
-
 
 class EVP1DeployFSM(DeployFSM):
-    async def update(self, deploy_status: dict[str, Any]) -> None:
-        """
-        Sending deployment is done in message_task.
-        This method waits until current deployment in agent matches deployed.
-        """
-        is_finished, matches, is_errored = self.verify_report(
-            self.to_deploy.deployment.deploymentId, deploy_status
-        )
-        if self.check_termination(is_finished, matches, is_errored):
-            return
 
-    async def message_task(self) -> None:
+    async def start(self, nursery: trio.Nursery) -> None:
+        assert self._to_deploy
+        # Deploy immediately, without comparing with current status, to speed-up the process.
+        logger.debug("Pushing manifest now.")
+        await self._set_new_stage(DeployStage.WaitAppliedConfirmation)
+        await self.deploy_fn(self._to_deploy)
+
+    async def update(self, deploy_status: dict[str, Any]) -> None:
         """
         Simplified handshake compared to EVP2:
         - Sends deployment at beginning.
-        - Check current is the one applied.
+        - Checks current is the one to be applied.
         """
-        assert self.agent.client is not None
+        assert self._to_deploy
+        is_finished, matches, is_errored = verify_report(
+            self._to_deploy.deployment.deploymentId, deploy_status
+        )
+        if await self.check_termination(is_finished, matches, is_errored):
+            return
 
-        # Deploy without comparing with current to speed-up the process
-        await self.agent.deploy(self.to_deploy)
-        async with self.agent.client.messages() as mgen:
-            async for msg in mgen:
-                payload = json.loads(msg.payload)
-                logger.debug("Incoming on %s: %s", msg.topic, str(payload))
 
-                if payload and msg.topic == MQTTTopics.ATTRIBUTES.value:
-                    if "deploymentStatus" in payload:
-                        deploy_status = json.loads(payload.get("deploymentStatus"))
-                        await self.update(deploy_status)
+def verify_report(
+    deployment_id: str, deploy_status: dict[str, Any]
+) -> tuple[bool, bool, bool]:
+    matches = deploy_status.get("deploymentId") == deployment_id
+    is_finished = deploy_status.get("reconcileStatus") == "ok"
+
+    error_in_modules = any(
+        n["status"] == "error" for n in deploy_status.get("modules", {}).values()
+    )
+    error_in_modinsts = any(
+        n["status"] == "error" for n in deploy_status.get("instances", {}).values()
+    )
+    is_errored = error_in_modinsts or error_in_modules
+
+    return is_finished, matches, is_errored
 
 
 @contextmanager

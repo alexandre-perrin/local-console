@@ -19,6 +19,8 @@ import sys
 from functools import partial
 from pathlib import Path
 from typing import Annotated
+from typing import Any
+from typing import Callable
 from typing import Optional
 
 import trio
@@ -162,3 +164,37 @@ async def exec_deployment(
         nursery.cancel_scope.cancel()
 
     return success
+
+
+async def stimuli_loop(agent: Agent, fsm: DeployFSM) -> None:
+    """
+    Used to stimulate a deployment FSM, calling its update()
+    method with deployment status updates as they come.
+    """
+    assert agent.client is not None
+
+    async with agent.client.messages() as mgen:
+        async for msg in mgen:
+            payload = json.loads(msg.payload)
+            await stimulus_proc(msg.topic, payload, agent.onwire_schema, fsm)
+
+
+async def stimulus_proc(
+    topic: str,
+    payload: dict[str, Any],
+    onwire_schema: Optional[OnWireProtocol],
+    fsm: DeployFSM,
+) -> None:
+    if (
+        payload
+        and topic == MQTTTopics.ATTRIBUTES.value
+        and "deploymentStatus" in payload
+    ):
+        deploy_status_repr = payload.get("deploymentStatus", {})
+        if onwire_schema == OnWireProtocol.EVP1 or onwire_schema is None:
+            deploy_status = json.loads(deploy_status_repr)
+        else:
+            deploy_status = deploy_status_repr
+
+        logger.debug("Deploy: %s", deploy_status)
+        await fsm.update(deploy_status)  # type: ignore  # mypy is not seeing the argument???
