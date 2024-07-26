@@ -63,7 +63,6 @@ class CameraState:
         self._onwire_schema: Optional[OnWireProtocol] = None
         self._last_reception: Optional[datetime] = None
 
-        self.deploy_status: TrackingVariable[dict[str, str]] = TrackingVariable()
         self.device_config: TrackingVariable[DeviceConfiguration] = TrackingVariable()
         self.attributes_available: TrackingVariable[bool] = TrackingVariable(False)
         self.is_connected: TrackingVariable[bool] = TrackingVariable(False)
@@ -106,6 +105,8 @@ class CameraState:
         self.wifi_password: TrackingVariable[str] = TrackingVariable("")
         self.wifi_password_hidden: TrackingVariable[bool] = TrackingVariable(True)
         self.wifi_icon_eye: TrackingVariable[str] = TrackingVariable("")
+
+        self.deploy_status: TrackingVariable[dict[str, str]] = TrackingVariable()
 
         self._init_bindings()
 
@@ -207,10 +208,12 @@ class CameraState:
 
     async def _process_deploy_status_topic(self, payload: dict[str, Any]) -> None:
         if self._onwire_schema == OnWireProtocol.EVP1 or self._onwire_schema is None:
-            self.deploy_status.value = json.loads(payload[self.DEPLOY_STATUS_TOPIC])
+            update = json.loads(payload[self.DEPLOY_STATUS_TOPIC])
         else:
-            self.deploy_status.value = payload[self.DEPLOY_STATUS_TOPIC]
+            update = payload[self.DEPLOY_STATUS_TOPIC]
+
         self.attributes_available.value = True
+        await self.deploy_status.aset(update)
 
     async def _prepare_ota_event(
         self,

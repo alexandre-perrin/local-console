@@ -27,6 +27,7 @@ from kivymd.uix.label import MDIcon
 from kivymd.uix.label import MDLabel
 from local_console.core.camera.enums import DeployStage
 from local_console.gui.config import resource_path
+from local_console.gui.model.camera_proxy import CameraStateProxy
 from local_console.gui.view.base_screen import BaseScreenView
 from local_console.gui.view.common.components import (
     GUITooltip,
@@ -55,7 +56,7 @@ class ApplicationsScreenView(BaseScreenView):
         self.app.mdl.bind(is_ready=self.app_state_refresh)
 
     def on_deploy_status(
-        self, view: "ApplicationsScreenView", status: Optional[dict[str, Any]]
+        self, proxy: CameraStateProxy, status: Optional[dict[str, Any]]
     ) -> None:
         if status:
             self.ids.txt_deployment_data.text = json.dumps(status, indent=4)

@@ -31,7 +31,6 @@ class CameraStateProxy(CameraStateProxyBase):
     is_ready = BooleanProperty(False)
     is_streaming = BooleanProperty(False)
     stream_status = ObjectProperty(StreamStatus.Inactive)
-    deploy_status = ObjectProperty(dict(), allownone=True)
     roi = ObjectProperty(DEFAULT_ROI)
 
     image_dir_path = StringProperty("")
@@ -70,6 +69,7 @@ class CameraStateProxy(CameraStateProxyBase):
     wifi_password_hidden = BooleanProperty(True, force_dispatch=True)
     wifi_icon_eye = StringProperty("")
 
+    deploy_status = ObjectProperty(dict(), allownone=True)
 
 # Listing of model properties to move over into this class. It is
 # derived from the result of the following command, running
