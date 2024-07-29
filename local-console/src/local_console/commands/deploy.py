@@ -30,15 +30,17 @@ from local_console.core.camera.enums import DeployStage
 from local_console.core.camera.enums import MQTTTopics
 from local_console.core.commands.deploy import DeployFSM
 from local_console.core.commands.deploy import get_empty_deployment
-from local_console.core.commands.deploy import module_deployment_setup
+from local_console.core.commands.deploy import manifest_setup_epilog
 from local_console.core.config import get_config
+from local_console.core.config import get_deployment_schema
 from local_console.core.enums import config_paths
 from local_console.core.enums import ModuleExtension
 from local_console.core.enums import Target
 from local_console.core.schemas.schemas import AgentConfiguration
+from local_console.core.schemas.schemas import DeploymentManifest
 from local_console.core.schemas.schemas import OnWireProtocol
-from local_console.gui.enums import ApplicationConfiguration
 from local_console.plugin import PluginBase
+from local_console.servers.webserver import SyncWebserver
 from local_console.utils.local_network import get_my_ip_by_routing
 from local_console.utils.local_network import is_localhost
 
@@ -117,13 +119,11 @@ def deploy(
         if not bin_fp.is_dir():
             raise Exception(f"'bin' folder does not exist at {bin_fp.parent}")
 
-        target_file = project_binary_lookup(
-            bin_fp, ApplicationConfiguration.NAME, target, signed
-        )
-        deployment_manifest = module_deployment_setup(
-            ApplicationConfiguration.NAME,
-            target_file,
+        deployment_manifest = multiple_module_manifest_setup(
+            bin_fp,
             deploy_fsm.webserver,
+            target,
+            signed,
             port_override,
             host_override,
         )
@@ -150,6 +150,35 @@ def deploy(
 
 class DeployCommand(PluginBase):
     implementer = app
+
+
+def multiple_module_manifest_setup(
+    files_dir: Path,
+    webserver: SyncWebserver,
+    target_arch: Optional[Target],
+    use_signed: bool,
+    port_override: Optional[int] = None,
+    host_override: Optional[str] = None,
+) -> DeploymentManifest:
+    """
+    Fill all fields in of a preliminary deployment manifest that
+    comes with a set of modules specified, having their file paths
+    set in the corresponding module's `downloadUrl` field.
+
+    All module files must be located in `files_dir`
+    """
+    assert files_dir.is_dir()
+    webserver.set_directory(files_dir)
+    manifest = get_deployment_schema()
+    mod_identifiers = list(manifest.deployment.modules.keys())
+    for ident in mod_identifiers:
+        manifest.deployment.modules[ident].downloadUrl = str(
+            project_binary_lookup(files_dir, ident, target_arch, use_signed)
+        )
+
+    return manifest_setup_epilog(
+        files_dir, manifest, webserver, port_override, host_override
+    )
 
 
 def project_binary_lookup(
