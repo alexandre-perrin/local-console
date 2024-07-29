@@ -16,6 +16,7 @@
 import json
 import logging
 import shutil
+from functools import partial
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
@@ -109,6 +110,7 @@ class Driver:
         self._init_input_directories()
         self._init_stream_variables()
         self._init_vapp_file_functions()
+        self._init_app_module_functions()
         self._init_connection()
         self.camera_state.initialize_connection_variables(self.config)
 
@@ -138,7 +140,6 @@ class Driver:
         self.gui.mdl.bind_state_to_proxy("is_ready", self.camera_state)
         self.gui.mdl.bind_state_to_proxy("is_streaming", self.camera_state)
         self.gui.mdl.bind_state_to_proxy("device_config", self.camera_state)
-        self.gui.mdl.bind_state_to_proxy("deploy_status", self.camera_state)
 
     def _init_stream_variables(self) -> None:
         # Proxy->State because we want the user to set this value via the GUI
@@ -210,6 +211,16 @@ class Driver:
         # so data binding must be state-->proxy.
         self.gui.mdl.bind_state_to_proxy("vapp_labels_map", self.camera_state, str)
 
+    def _init_app_module_functions(self) -> None:
+        # State->Proxy because these are either read from the device state
+        # or from states computed within the camera tracking
+        self.gui.mdl.bind_state_to_proxy("deploy_status", self.camera_state)
+        self.gui.mdl.bind_state_to_proxy("deploy_stage", self.camera_state)
+        self.gui.mdl.bind_state_to_proxy("deploy_operation", self.camera_state)
+
+        # Proxy->State because we want the user to set this value via the GUI
+        self.gui.mdl.bind_proxy_to_state("module_file", self.camera_state, Path)
+
     @property
     def evp1_mode(self) -> bool:
         return self.config.evp.iot_platform.lower() == "evp1"
@@ -221,6 +232,7 @@ class Driver:
                 nursery.start_soon(self.bridge.bridge_listener)
                 nursery.start_soon(self.mqtt_setup)
                 nursery.start_soon(self.blobs_webserver_task)
+                self.camera_state.set_nursery(nursery)
                 await self.gui.async_run(async_lib="trio")
             except KeyboardInterrupt:
                 logger.info("Cancelled per user request via keyboard")
@@ -496,3 +508,7 @@ class Driver:
             ApplicationConfiguration.CONFIG_TOPIC,
             config,
         )
+
+    def do_app_deployment(self) -> None:
+        task = partial(self.camera_state.do_app_deployment, self.mqtt_client)
+        self.from_sync(task)

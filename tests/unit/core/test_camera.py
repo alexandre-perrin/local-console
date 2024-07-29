@@ -22,6 +22,9 @@ from unittest.mock import patch
 import hypothesis.strategies as st
 import pytest
 from hypothesis import given
+from local_console.core.camera.enums import DeploymentType
+from local_console.core.camera.enums import DeployStage
+from local_console.core.camera.enums import MQTTTopics
 from local_console.core.camera.enums import StreamStatus
 from local_console.core.camera.qr import get_qr_object
 from local_console.core.camera.qr import qr_string
@@ -35,6 +38,7 @@ from tests.strategies.configs import generate_random_characters
 from tests.strategies.configs import generate_valid_device_configuration
 from tests.strategies.configs import generate_valid_ip
 from tests.strategies.configs import generate_valid_port_number
+from tests.unit.core.test_deploy import template_deploy_status_for_manifest
 
 
 @given(
@@ -187,7 +191,7 @@ def test_get_qr_string_no_static_ip(
 
 @pytest.mark.trio
 @given(generate_valid_device_configuration())
-async def test_process_state_topic(device_config: DeviceConfiguration) -> None:
+async def test_process_state_topic_correct(device_config: DeviceConfiguration) -> None:
     observer = AsyncMock()
     camera = CameraState()
     camera.device_config.subscribe_async(observer)
@@ -205,6 +209,18 @@ async def test_process_state_topic(device_config: DeviceConfiguration) -> None:
     assert camera.stream_status.value == StreamStatus.from_string(
         device_config.Status.Sensor
     )
+
+
+@pytest.mark.trio
+async def test_process_state_topic_wrong(caplog) -> None:
+    camera = CameraState()
+
+    wrong_obj = {"a": "b"}
+    backdoor_state = {
+        "state/backdoor-EA_Main/placeholder": b64encode(json.dumps(wrong_obj).encode())
+    }
+    await camera._process_state_topic(backdoor_state)
+    assert "Error while validating device configuration" in caplog.text
 
 
 @pytest.mark.trio
@@ -256,3 +272,105 @@ async def test_process_incoming_telemetry() -> None:
         await camera.process_incoming("v1/devices/me/telemetry", dummy_telemetry)
 
         assert camera._last_reception == mock_now
+
+
+@pytest.mark.trio
+@pytest.mark.parametrize(
+    "topic, function",
+    [
+        (CameraState.EA_STATE_TOPIC, "_process_state_topic"),
+        (CameraState.SYSINFO_TOPIC, "_process_sysinfo_topic"),
+        (CameraState.DEPLOY_STATUS_TOPIC, "_process_deploy_status_topic"),
+    ],
+)
+async def test_process_incoming(topic, function) -> None:
+    camera = CameraState()
+    with (patch.object(camera, function) as mock_proc,):
+        payload = {topic: {"a": "b"}}
+        await camera.process_incoming(MQTTTopics.ATTRIBUTES.value, payload)
+        mock_proc.assert_awaited_once_with(payload)
+
+
+@pytest.mark.trio
+async def test_process_deploy_fsm_evp2_happy(nursery, tmp_path) -> None:
+    camera = CameraState()
+
+    # setup for parsing deployment status messages
+    camera._onwire_schema = OnWireProtocol.EVP2
+    wrap_dep_sta = lambda dep_sta: {"deploymentStatus": dep_sta}
+
+    # Dummy module to deploy
+    module = tmp_path / "module"
+    module.touch()
+
+    # async setup
+    with (
+        patch("local_console.core.commands.deploy.SyncWebserver"),
+        patch("local_console.core.camera.state.Agent") as mock_agent,
+    ):
+        camera.set_nursery(nursery)
+        mock_agent.onwire_schema = camera._onwire_schema
+        mock_agent.deploy = AsyncMock()
+
+        # initial state
+        assert camera.deploy_operation.value is None
+        assert camera.deploy_stage.value is None
+
+        # trigger deployment
+        camera.module_file.value = module
+        await camera.do_app_deployment(mock_agent)
+        assert camera.deploy_operation.value == DeploymentType.Application
+        assert camera.deploy_stage.value == DeployStage.WaitFirstStatus
+        dep_sta_tpl = template_deploy_status_for_manifest(camera._deploy_fsm._to_deploy)
+
+        dep_sta_tpl["reconcileStatus"] = "applying"
+        await camera._process_deploy_status_topic(wrap_dep_sta(dep_sta_tpl))
+        assert camera.deploy_stage.value == DeployStage.WaitAppliedConfirmation
+
+        dep_sta_tpl["reconcileStatus"] = "ok"
+        await camera._process_deploy_status_topic(wrap_dep_sta(dep_sta_tpl))
+        assert camera.deploy_stage.value == DeployStage.Done
+        assert camera.deploy_operation.value is None
+
+
+@pytest.mark.trio
+async def test_process_deploy_fsm_evp1_error(nursery, tmp_path) -> None:
+    camera = CameraState()
+
+    # setup for parsing deployment status messages
+    camera._onwire_schema = OnWireProtocol.EVP1
+    wrap_dep_sta = lambda dep_sta: {"deploymentStatus": json.dumps(dep_sta)}
+
+    # Dummy module to deploy
+    module = tmp_path / "module"
+    module.touch()
+
+    # async setup
+    with (
+        patch("local_console.core.commands.deploy.SyncWebserver"),
+        patch("local_console.core.camera.state.Agent") as mock_agent,
+    ):
+        camera.set_nursery(nursery)
+        mock_agent.onwire_schema = camera._onwire_schema
+        mock_agent.deploy = AsyncMock()
+
+        # initial state
+        assert camera.deploy_operation.value is None
+        assert camera.deploy_stage.value is None
+
+        # trigger deployment
+        camera.module_file.value = module
+        await camera.do_app_deployment(mock_agent)
+        assert camera.deploy_operation.value == DeploymentType.Application
+        assert camera.deploy_stage.value == DeployStage.WaitAppliedConfirmation
+        dep_sta_tpl = template_deploy_status_for_manifest(camera._deploy_fsm._to_deploy)
+
+        dep_sta_tpl["reconcileStatus"] = "applying"
+        await camera._process_deploy_status_topic(wrap_dep_sta(dep_sta_tpl))
+        assert camera.deploy_stage.value == DeployStage.WaitAppliedConfirmation
+
+        module_id = next(iter(dep_sta_tpl["modules"].keys()))
+        dep_sta_tpl["modules"][module_id]["status"] = "error"
+        await camera._process_deploy_status_topic(wrap_dep_sta(dep_sta_tpl))
+        assert camera.deploy_stage.value == DeployStage.Error
+        assert camera.deploy_operation.value is None

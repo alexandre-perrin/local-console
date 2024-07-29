@@ -13,184 +13,158 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-import enum
 import hashlib
 import json
 import logging
-import shutil
 import uuid
 from abc import ABC
 from abc import abstractmethod
-from collections.abc import Iterator
-from contextlib import contextmanager
+from collections.abc import Awaitable
 from pathlib import Path
 from pathlib import PurePosixPath
-from tempfile import TemporaryDirectory
 from typing import Any
 from typing import Callable
 from typing import Optional
 
 import trio
-import typer
-from local_console.clients.agent import Agent
-from local_console.core.camera.enums import MQTTTopics
-from local_console.core.enums import ModuleExtension
-from local_console.core.enums import Target
+from local_console.core.camera.enums import DeployStage
 from local_console.core.schemas.schemas import Deployment
 from local_console.core.schemas.schemas import DeploymentManifest
 from local_console.core.schemas.schemas import OnWireProtocol
-from local_console.servers.webserver import AsyncWebserver
+from local_console.servers.webserver import SyncWebserver
 from local_console.utils.local_network import get_my_ip_by_routing
+from local_console.utils.timing import TimeoutBehavior
 
 logger = logging.getLogger(__name__)
-
-
-class DeployStage(enum.IntEnum):
-    WaitFirstStatus = enum.auto()
-    WaitAppliedConfirmation = enum.auto()
-    Done = enum.auto()
-    Error = enum.auto()
-
-
-async def exec_deployment(
-    agent: Agent,
-    deploy_manifest: DeploymentManifest,
-    deploy_webserver: bool,
-    webserver_path: Path,
-    webserver_port: int,
-    timeout_secs: int,
-    stage_callback: Optional[Callable[[DeployStage], None]] = None,
-) -> bool:
-    deploy_fsm = DeployFSM.instantiate(agent, deploy_manifest, stage_callback)
-
-    # GUI mode starts responding to requests in the background, but not the CLI
-    # NOTE: revisit GUI - CLI interaction
-    await agent.initialize_handshake()
-
-    success = False
-    with trio.move_on_after(timeout_secs) as timeout_scope:
-        assert agent.onwire_schema  # make mypy happy
-        logger.debug(f"Opening webserver at {webserver_path}")
-        async with (
-            agent.mqtt_scope([MQTTTopics.ATTRIBUTES.value]),
-            AsyncWebserver(webserver_path, webserver_port, None, deploy_webserver),
-        ):
-            assert agent.nursery is not None  # make mypy happy
-            agent.nursery.start_soon(deploy_fsm.message_task)
-            await deploy_fsm.done.wait()
-            success = not deploy_fsm.errored
-
-    if timeout_scope.cancelled_caught:
-        logger.error("Timeout when sending modules.")
-        if stage_callback:
-            stage_callback(DeployStage.Error)
-
-    return success
 
 
 class DeployFSM(ABC):
     def __init__(
         self,
-        agent: Agent,
-        to_deploy: DeploymentManifest,
-        stage_callback: Optional[Callable[[DeployStage], None]] = None,
+        deploy_fn: Callable[[DeploymentManifest], Awaitable[None]],
+        stage_callback: Optional[Callable[[DeployStage], Awaitable[None]]] = None,
+        deploy_webserver: bool = True,
+        timeout_secs: int = 30,
     ) -> None:
-        self.agent = agent
-        self.to_deploy = to_deploy
+        self.deploy_fn = deploy_fn
         self.stage_callback = stage_callback
+        self.webserver = SyncWebserver(Path(), deploy=deploy_webserver)
+        self.webserver.start()  # This secures a listening port for the webserver
 
         self.done = trio.Event()
+        self._timeout_handler = TimeoutBehavior(timeout_secs, self._on_timeout)
+        self._to_deploy: Optional[DeploymentManifest] = None
         self.errored: Optional[bool] = None
 
-        # This redundant declaration appeases the static checker
-        self.stage = DeployStage.WaitFirstStatus
-        self._set_new_stage(DeployStage.WaitFirstStatus)
+        self.stage: Optional[DeployStage] = None
 
-    def _set_new_stage(self, new_stage: DeployStage) -> None:
+    async def _set_new_stage(self, new_stage: DeployStage) -> None:
         self.stage = new_stage
         if self.stage_callback:
-            self.stage_callback(self.stage)
+            await self.stage_callback(self.stage)
 
     @abstractmethod
     async def update(self, deploy_status: dict[str, Any]) -> None:
         """
         Updates the FSM as it progresses through its states.
         """
+        assert self.stage
+        assert self._to_deploy
 
     @abstractmethod
-    async def message_task(self) -> None:
+    async def start(self, nursery: trio.Nursery) -> None:
         """
-        Receives messages from the agent and reacts
-        accordingly, calling update() with the latest
-        deployment status report.
+        To be called for performing actions at FSM entry, once the
+        deployment manifest is set. It must:
+        - call spawn_in() of _timeout_handler
+        - await _set_new_stage() with initial stage
         """
 
-    @staticmethod
-    def verify_report(
-        deployment_id: str, deploy_status: dict[str, Any]
-    ) -> tuple[bool, bool, bool]:
-        matches = deploy_status.get("deploymentId") == deployment_id
-        is_finished = deploy_status.get("reconcileStatus") == "ok"
+    def set_manifest(self, to_deploy: DeploymentManifest) -> None:
+        self._to_deploy = to_deploy
 
-        error_in_modules = any(
-            n["status"] == "error" for n in deploy_status.get("modules", {}).values()
-        )
-        error_in_modinsts = any(
-            n["status"] == "error" for n in deploy_status.get("instances", {}).values()
-        )
-        is_errored = error_in_modinsts or error_in_modules
+    def stop(self) -> None:
+        self._timeout_handler.stop()
+        self.webserver.stop()
+        self.done.set()
 
-        return is_finished, matches, is_errored
-
-    def check_termination(
+    async def check_termination(
         self, is_finished: bool, matches: bool, is_errored: bool
     ) -> bool:
         should_terminate = False
+        next_stage = self.stage
         if matches:
             if is_finished:
                 should_terminate = True
-                self._set_new_stage(DeployStage.Done)
+                next_stage = DeployStage.Done
                 self.errored = False
                 logger.info("Deployment complete")
 
             elif is_errored:
                 should_terminate = True
-                self._set_new_stage(DeployStage.Error)
+                next_stage = DeployStage.Error
                 self.errored = True
-                logger.info("Deployment errored")
+                logger.error("Deployment errored")
 
         if should_terminate:
-            self.done.set()
+            self.stop()
+            assert next_stage
+            await self._set_new_stage(next_stage)
 
         return should_terminate
 
-    @staticmethod
+    async def _on_timeout(self) -> None:
+        logger.error("Timeout when sending modules.")
+        self.errored = True
+        self.stop()
+        await self._set_new_stage(DeployStage.Error)
+
+    @classmethod
     def instantiate(
-        agent: Agent,
-        deploy_manifest: DeploymentManifest,
-        stage_callback: Optional[Callable[[DeployStage], None]] = None,
+        cls,
+        onwire_schema: OnWireProtocol,
+        deploy_fn: Callable[[DeploymentManifest], Awaitable[None]],
+        stage_callback: Optional[Callable[[DeployStage], Awaitable[None]]] = None,
+        deploy_webserver: bool = True,
+        timeout_secs: int = 30,
     ) -> "DeployFSM":
-        if agent.onwire_schema == OnWireProtocol.EVP1:
-            return EVP1DeployFSM(agent, deploy_manifest, stage_callback)
-        elif agent.onwire_schema == OnWireProtocol.EVP2:
-            return EVP2DeployFSM(agent, deploy_manifest, stage_callback)
+        # This is a factory builder, so only run this from this parent class
+        assert cls is DeployFSM
+
+        if onwire_schema == OnWireProtocol.EVP1:
+            return EVP1DeployFSM(
+                deploy_fn, stage_callback, deploy_webserver, timeout_secs
+            )
+        elif onwire_schema == OnWireProtocol.EVP2:
+            return EVP2DeployFSM(
+                deploy_fn, stage_callback, deploy_webserver, timeout_secs
+            )
 
 
 class EVP2DeployFSM(DeployFSM):
-    async def update(self, deploy_status: Optional[dict[str, Any]]) -> None:
-        assert isinstance(deploy_status, dict)
 
+    async def start(self, nursery: trio.Nursery) -> None:
+        """
+        No further start actions required
+        """
+        assert self._to_deploy
+        self._timeout_handler.spawn_in(nursery)
+        await self._set_new_stage(DeployStage.WaitFirstStatus)
+
+    async def update(self, deploy_status: dict[str, Any]) -> None:
+        assert self._to_deploy
+        assert self.stage
         next_stage = self.stage
 
-        is_finished, matches, is_errored = self.verify_report(
-            self.to_deploy.deployment.deploymentId, deploy_status
+        is_finished, matches, is_errored = verify_report(
+            self._to_deploy.deployment.deploymentId, deploy_status
         )
-        if self.check_termination(is_finished, matches, is_errored):
+        if await self.check_termination(is_finished, matches, is_errored):
             return
 
         if self.stage == DeployStage.WaitFirstStatus:
             logger.debug("Agent can receive deployments. Pushing manifest now.")
-            await self.agent.deploy(self.to_deploy)
+            await self.deploy_fn(self._to_deploy)
             next_stage = DeployStage.WaitAppliedConfirmation
 
         elif self.stage == DeployStage.WaitAppliedConfirmation:
@@ -207,62 +181,61 @@ class EVP2DeployFSM(DeployFSM):
                 json.dumps(deploy_status),
             )
 
-        self._set_new_stage(next_stage)
-
-    async def message_task(self) -> None:
-        """
-        Notes:
-        - Assumes report interval is short to perform the handshake.
-        """
-        assert self.agent.client is not None
-        async with self.agent.client.messages() as mgen:
-            async for msg in mgen:
-                payload = json.loads(msg.payload)
-                logger.debug("Incoming on %s: %s", msg.topic, str(payload))
-
-                if payload and msg.topic == MQTTTopics.ATTRIBUTES.value:
-                    if "deploymentStatus" in payload:
-                        deploy_status = payload.get("deploymentStatus")
-                        await self.update(deploy_status)
+        await self._set_new_stage(next_stage)
 
 
 class EVP1DeployFSM(DeployFSM):
-    async def update(self, deploy_status: dict[str, Any]) -> None:
-        """
-        Sending deployment is done in message_task.
-        This method waits until current deployment in agent matches deployed.
-        """
-        is_finished, matches, is_errored = self.verify_report(
-            self.to_deploy.deployment.deploymentId, deploy_status
-        )
-        if self.check_termination(is_finished, matches, is_errored):
-            return
 
-    async def message_task(self) -> None:
+    async def start(self, nursery: trio.Nursery) -> None:
+        assert self._to_deploy
+        # Deploy immediately, without comparing with current status, to speed-up the process.
+        logger.debug("Pushing manifest now.")
+        self._timeout_handler.spawn_in(nursery)
+        await self._set_new_stage(DeployStage.WaitAppliedConfirmation)
+        await self.deploy_fn(self._to_deploy)
+
+    async def update(self, deploy_status: dict[str, Any]) -> None:
         """
         Simplified handshake compared to EVP2:
         - Sends deployment at beginning.
-        - Check current is the one applied.
+        - Checks current is the one to be applied.
         """
-        assert self.agent.client is not None
-
-        # Deploy without comparing with current to speed-up the process
-        await self.agent.deploy(self.to_deploy)
-        async with self.agent.client.messages() as mgen:
-            async for msg in mgen:
-                payload = json.loads(msg.payload)
-                logger.debug("Incoming on %s: %s", msg.topic, str(payload))
-
-                if payload and msg.topic == MQTTTopics.ATTRIBUTES.value:
-                    if "deploymentStatus" in payload:
-                        deploy_status = json.loads(payload.get("deploymentStatus"))
-                        await self.update(deploy_status)
+        assert self._to_deploy
+        is_finished, matches, is_errored = verify_report(
+            self._to_deploy.deployment.deploymentId, deploy_status
+        )
+        if await self.check_termination(is_finished, matches, is_errored):
+            return
 
 
-@contextmanager
+def verify_report(
+    deployment_id: str, deploy_status: dict[str, Any]
+) -> tuple[bool, bool, bool]:
+    matches = deploy_status.get("deploymentId") == deployment_id
+    is_finished = deploy_status.get("reconcileStatus") == "ok"
+
+    error_in_modules = any(
+        n["status"] == "error" for n in deploy_status.get("modules", {}).values()
+    )
+    error_in_modinsts = any(
+        n["status"] == "error" for n in deploy_status.get("instances", {}).values()
+    )
+    is_errored = error_in_modinsts or error_in_modules
+
+    return is_finished, matches, is_errored
+
+
 def module_deployment_setup(
-    module_name: str, module_file: Path, webserver_port: int
-) -> Iterator[tuple[Path, DeploymentManifest]]:
+    module_name: str,
+    module_file: Path,
+    webserver: SyncWebserver,
+    port_override: Optional[int] = None,
+    host_override: Optional[str] = None,
+) -> DeploymentManifest:
+    """
+    Generate a single module, single instance deployment manifest,
+    matched to the passed webserver instance.
+    """
     deployment = Deployment.model_validate(
         {
             "deploymentId": "",
@@ -281,20 +254,16 @@ def module_deployment_setup(
             "subscribeTopics": {},
         }
     )
+    deployment.modules[module_name].downloadUrl = str(module_file)
+    deployment_manifest = DeploymentManifest(deployment=deployment)
 
-    with TemporaryDirectory(prefix="lc_deploy_") as temporary_dir:
-        tmpdir = Path(temporary_dir)
-        named_module = tmpdir / "".join([module_name] + module_file.suffixes)
-        shutil.copy(module_file, named_module)
-        deployment.modules[module_name].downloadUrl = str(named_module)
-        deployment_manifest = DeploymentManifest(deployment=deployment)
+    webserver.set_directory(module_file.parent)
+    host = get_my_ip_by_routing() if not host_override else host_override
+    port = webserver.port if not port_override else port_override
+    populate_urls_and_hashes(deployment_manifest, host, port, module_file.parent)
+    make_unique_module_ids(deployment_manifest)
 
-        populate_urls_and_hashes(
-            deployment_manifest, get_my_ip_by_routing(), webserver_port, tmpdir
-        )
-        make_unique_module_ids(deployment_manifest)
-
-        yield tmpdir, deployment_manifest
+    return deployment_manifest
 
 
 def make_unique_module_ids(deploy_man: DeploymentManifest) -> None:
@@ -330,44 +299,6 @@ def get_empty_deployment() -> DeploymentManifest:
     return DeploymentManifest.model_validate(deployment)
 
 
-def update_deployment_manifest(
-    deployment_manifest: DeploymentManifest,
-    host: str,
-    port: int,
-    files_dir: Path,
-    target_arch: Optional[Target],
-    use_signed: bool,
-) -> None:
-    for module in deployment_manifest.deployment.modules.keys():
-        wasm_file = files_dir / f"{module}.{ModuleExtension.WASM}"
-        if not wasm_file.is_file():
-            logger.error(
-                f"{wasm_file} not found. Please build the modules before deployment"
-            )
-            raise typer.Exit(code=1)
-
-        name_parts = [module]
-        if target_arch:
-            name_parts += [target_arch.value, ModuleExtension.AOT.value]
-        else:
-            name_parts.append(ModuleExtension.WASM.value)
-
-        if use_signed and target_arch:
-            name_parts.append(ModuleExtension.SIGNED.value)
-
-        file = files_dir / ".".join(name_parts)
-
-        if use_signed and not target_arch:
-            logger.warning(
-                f"There is no target architecture, the {file} module to be deployed is not signed"
-            )
-
-        # use the downloadUrl field as placeholder, read from the function below
-        deployment_manifest.deployment.modules[module].downloadUrl = str(file)
-
-    populate_urls_and_hashes(deployment_manifest, host, port, files_dir.parent)
-
-
 def calculate_sha256(path: Path) -> str:
     sha256_hash = hashlib.sha256()
     sha256_hash.update(path.read_bytes())
@@ -383,13 +314,24 @@ def populate_urls_and_hashes(
     for module in deployment_manifest.deployment.modules.keys():
         file = Path(deployment_manifest.deployment.modules[module].downloadUrl)
         deployment_manifest.deployment.modules[module].hash = calculate_sha256(file)
-        deployment_manifest.deployment.modules[module].downloadUrl = (
-            f"http://{host}:{port}/{PurePosixPath(file.relative_to(root_path))}"
-        )
+        url = f"http://{host}:{port}/{PurePosixPath(file.relative_to(root_path))}"
+        deployment_manifest.deployment.modules[module].downloadUrl = url
 
     # DeploymentId based on deployment manifest content
-    deployment_manifest.deployment.deploymentId = ""
     deployment_manifest_hash = hashlib.sha256(
         str(deployment_manifest.model_dump()).encode("utf-8")
     )
     deployment_manifest.deployment.deploymentId = deployment_manifest_hash.hexdigest()
+
+
+def deploy_status_empty(deploy_status: Optional[dict[str, Any]]) -> bool:
+    if not deploy_status:
+        return True
+
+    if "reconcileStatus" not in deploy_status:
+        return True
+
+    if "deploymentId" not in deploy_status:
+        return True
+
+    return False

@@ -25,36 +25,26 @@ from kivymd.uix.anchorlayout import MDAnchorLayout
 from kivymd.uix.gridlayout import MDGridLayout
 from kivymd.uix.label import MDIcon
 from kivymd.uix.label import MDLabel
-from local_console.core.commands.deploy import DeployStage
+from local_console.core.camera.enums import DeployStage
 from local_console.gui.config import resource_path
+from local_console.gui.model.camera_proxy import CameraStateProxy
 from local_console.gui.view.base_screen import BaseScreenView
-from local_console.gui.view.common.components import (
-    GUITooltip,
-)
 from local_console.utils.validation import validate_app_file
 
 logger = logging.getLogger(__name__)
-
-
-class StatusLabel(GUITooltip, MDLabel):
-    """
-    Endows a Label with a given tooltip. See the associated KV file.
-    """
 
 
 class ApplicationsScreenView(BaseScreenView):
 
     app_file_valid = BooleanProperty(False)
 
-    def model_is_changed(self) -> None:
-        self._render_deploy_stage()
-
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.app.mdl.bind(deploy_status=self.on_deploy_status)
+        self.app.mdl.bind(deploy_stage=self.on_deploy_stage)
 
     def on_deploy_status(
-        self, view: "ApplicationsScreenView", status: Optional[dict[str, Any]]
+        self, proxy: CameraStateProxy, status: Optional[dict[str, Any]]
     ) -> None:
         if status:
             self.ids.txt_deployment_data.text = json.dumps(status, indent=4)
@@ -68,13 +58,16 @@ class ApplicationsScreenView(BaseScreenView):
         """
         if validate_app_file(Path(path)):
             self.app_file_valid = True
+            self.app.mdl.module_file = path
             self.ids.app_file.accept_path(path)
             self.dismiss_message()
         else:
             self.app_file_valid = False
             self.display_error("Invalid AOT-compiled module file")
 
-    def _render_deploy_stage(self) -> None:
+    def on_deploy_stage(
+        self, proxy: CameraStateProxy, stage: Optional[DeployStage]
+    ) -> None:
         layout: MDGridLayout = self.ids.layout_status
 
         # pre-emptive cleanup
@@ -84,15 +77,15 @@ class ApplicationsScreenView(BaseScreenView):
             width=32,
         )
 
-        if self.model.deploy_stage is None:
+        if stage is None:
             layout.add_widget(MDLabel(text="N/A"))
 
-        elif self.model.deploy_stage == DeployStage.Error:
+        elif stage == DeployStage.Error:
             icon_box.add_widget(MDIcon(icon="alert-circle"))
             layout.add_widget(icon_box)
             layout.add_widget(MDLabel(text="Error"))
 
-        elif self.model.deploy_stage in (
+        elif stage in (
             DeployStage.WaitFirstStatus,
             DeployStage.WaitAppliedConfirmation,
         ):
@@ -106,7 +99,7 @@ class ApplicationsScreenView(BaseScreenView):
             layout.add_widget(icon_box)
             layout.add_widget(MDLabel(text="Deploying..."))
 
-        elif self.model.deploy_stage == DeployStage.Done:
+        elif stage == DeployStage.Done:
             icon_box.add_widget(MDIcon(icon="check-circle"))
             layout.add_widget(icon_box)
             layout.add_widget(MDLabel(text="Complete"))

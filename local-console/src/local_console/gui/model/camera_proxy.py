@@ -19,6 +19,8 @@ from kivy.properties import BooleanProperty
 from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
 from local_console.core.camera.axis_mapping import DEFAULT_ROI
+from local_console.core.camera.enums import DeploymentType
+from local_console.core.camera.enums import DeployStage
 from local_console.core.camera.enums import OTAUpdateModule
 from local_console.core.camera.enums import StreamStatus
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
@@ -31,7 +33,6 @@ class CameraStateProxy(CameraStateProxyBase):
     is_ready = BooleanProperty(False)
     is_streaming = BooleanProperty(False)
     stream_status = ObjectProperty(StreamStatus.Inactive)
-    deploy_status = ObjectProperty(dict(), allownone=True)
     roi = ObjectProperty(DEFAULT_ROI)
 
     image_dir_path = StringProperty("")
@@ -69,6 +70,11 @@ class CameraStateProxy(CameraStateProxyBase):
     wifi_password = StringProperty("")
     wifi_password_hidden = BooleanProperty(True, force_dispatch=True)
     wifi_icon_eye = StringProperty("")
+
+    module_file = StringProperty("", allownone=True)
+    deploy_status = ObjectProperty(dict(), allownone=True)
+    deploy_stage = ObjectProperty(DeployStage, allownone=True)
+    deploy_operation = ObjectProperty(DeploymentType, allownone=True)
 
 
 # Listing of model properties to move over into this class. It is

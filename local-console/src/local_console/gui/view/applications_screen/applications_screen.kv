@@ -2,35 +2,6 @@
 #:import GoHomeButton local_console.gui.view.common.components.GoHomeButton
 #:import PathSelectorCombo local_console.gui.view.common.components.PathSelectorCombo
 
-<StatusLabel>:
-    text: "Current stage:"
-    font_style: 'Body'
-
-    MDTooltipPlain:
-        text:
-            "This indicator might not reflect the correct status upon camera reset. \n" \
-            "This indicator is only updated during a deployment operation."
-
-
-<StatusTitle@MDBoxLayout>:
-    orientation: "horizontal"
-    size_hint_y: 0.1
-
-    StatusLabel:
-        adaptive_width: True
-
-    MDAnchorLayout:
-        size_hint_x: None
-        width: "16sp"
-        anchor_y: "top"
-        anchor_x: "left"
-
-        MDIcon:
-            icon: "help-box"
-            theme_font_size: "Custom"
-            font_size: "16sp"
-
-
 <ApplicationsScreenView>
     md_bg_color: self.theme_cls.backgroundColor
 
@@ -72,7 +43,7 @@
 
                 MDButton:
                     id: btn_deploy_file
-                    on_release: if not self.disabled: root.controller.deploy(app_file.path)
+                    on_release: if not self.disabled: root.controller.deploy()
                     pos_hint: {"center_y": 0.5}
                     disabled: not (app.mdl.is_ready and root.app_file_valid)
                     MDButtonText:
@@ -107,12 +78,20 @@
                 orientation: "vertical"
                 size_hint_x: 0.25
 
-                StatusTitle:
+                MDLabel:
+                    text: "Current stage:"
+                    font_style: 'Body'
+                    adaptive_width: True
+                    size_hint_y: 0.1
 
                 MDGridLayout:
                     id: layout_status
                     rows: 1
                     size_hint_y: 0.2
+
+                    # Start this way by default
+                    MDLabel:
+                        text: "N/A"
 
                 MDWidget:
                     size_hint_y: 0.7
