@@ -258,12 +258,34 @@ def single_module_manifest_setup(
     deployment_manifest = DeploymentManifest(deployment=deployment)
 
     webserver.set_directory(module_file.parent)
+    return manifest_setup_epilog(
+        module_file.parent, deployment_manifest, webserver, port_override, host_override
+    )
+
+
+def manifest_setup_epilog(
+    files_dir: Path,
+    manifest: DeploymentManifest,
+    webserver: SyncWebserver,
+    port_override: Optional[int] = None,
+    host_override: Optional[str] = None,
+) -> DeploymentManifest:
+    """
+    Fills in the URLs and hashes of a deployment manifest,
+    and renames modules to ensure a module entry matches the
+    hash of its target file (which ensures that subsequent
+    versions of the same module won't be mistaken by the device's
+    module cache as a cache hit.)
+    """
+    assert files_dir.is_dir()
+
+    dm = manifest.copy(deep=True)
     host = get_my_ip_by_routing() if not host_override else host_override
     port = webserver.port if not port_override else port_override
-    populate_urls_and_hashes(deployment_manifest, host, port, module_file.parent)
-    make_unique_module_ids(deployment_manifest)
+    populate_urls_and_hashes(dm, host, port, files_dir)
+    make_unique_module_ids(dm)
 
-    return deployment_manifest
+    return dm
 
 
 def make_unique_module_ids(deploy_man: DeploymentManifest) -> None:
