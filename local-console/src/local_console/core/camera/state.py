@@ -32,7 +32,7 @@ from local_console.core.camera.enums import OTAUpdateModule
 from local_console.core.camera.enums import StreamStatus
 from local_console.core.commands.deploy import deploy_status_empty
 from local_console.core.commands.deploy import DeployFSM
-from local_console.core.commands.deploy import module_deployment_setup
+from local_console.core.commands.deploy import single_module_manifest_setup
 from local_console.core.commands.deploy import verify_report
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.schemas import AgentConfiguration
@@ -204,7 +204,7 @@ class CameraState:
         self._deploy_fsm = DeployFSM.instantiate(
             agent.onwire_schema, agent.deploy, self.deploy_stage.aset
         )
-        manifest = module_deployment_setup(
+        manifest = single_module_manifest_setup(
             ApplicationConfiguration.NAME,
             self.module_file.value,
             self._deploy_fsm.webserver,

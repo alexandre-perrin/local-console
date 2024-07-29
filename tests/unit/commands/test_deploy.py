@@ -96,7 +96,7 @@ def test_deploy_command_target(
         patch("local_console.commands.deploy.DeployFSM") as mock_gen_deploy_fsm,
         patch("local_console.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
-            "local_console.commands.deploy.module_deployment_setup",
+            "local_console.commands.deploy.single_module_manifest_setup",
             return_value=deployment_manifest,
         ) as mock_setup_manifest,
         patch(
@@ -145,7 +145,7 @@ def test_deploy_command_signed(
         patch("local_console.commands.deploy.DeployFSM") as mock_gen_deploy_fsm,
         patch("local_console.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
-            "local_console.commands.deploy.module_deployment_setup",
+            "local_console.commands.deploy.single_module_manifest_setup",
             return_value=deployment_manifest,
         ) as mock_setup_manifest,
         patch(
@@ -196,7 +196,7 @@ def test_deploy_command_timeout(
         patch("local_console.commands.deploy.DeployFSM") as mock_gen_deploy_fsm,
         patch("local_console.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
-            "local_console.commands.deploy.module_deployment_setup",
+            "local_console.commands.deploy.single_module_manifest_setup",
             return_value=deployment_manifest,
         ) as mock_setup_manifest,
         patch(
@@ -309,7 +309,7 @@ def test_deploy_forced_webserver(
         patch("local_console.commands.deploy.DeployFSM") as mock_gen_deploy_fsm,
         patch("local_console.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
-            "local_console.commands.deploy.module_deployment_setup",
+            "local_console.commands.deploy.single_module_manifest_setup",
             return_value=deployment_manifest,
         ) as mock_setup_manifest,
         patch(

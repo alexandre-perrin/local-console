@@ -225,7 +225,7 @@ def verify_report(
     return is_finished, matches, is_errored
 
 
-def module_deployment_setup(
+def single_module_manifest_setup(
     module_name: str,
     module_file: Path,
     webserver: SyncWebserver,
