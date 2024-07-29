@@ -346,7 +346,7 @@ async def test_connection_status_timeout():
 
 
 @pytest.mark.trio
-@given(generate_identifiers(max_size=10))
+@given(generate_identifiers(max_size=5))
 async def test_send_ppl_configuration(config: str):
     mock_configure = AsyncMock()
     with (

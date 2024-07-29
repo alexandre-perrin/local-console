@@ -109,6 +109,30 @@ class Driver:
         self._init_input_directories()
         self._init_stream_variables()
         self._init_vapp_file_functions()
+        self._init_connection()
+        self.camera_state.initialize_connection_variables(self.config)
+
+    def _init_connection(self) -> None:
+        self.gui.mdl.bind_proxy_to_state("local_ip", self.camera_state)
+        self.gui.mdl.bind_proxy_to_state("mqtt_host", self.camera_state)
+        self.gui.mdl.bind_proxy_to_state("mqtt_port", self.camera_state)
+        self.gui.mdl.bind_proxy_to_state("ntp_host", self.camera_state)
+        self.gui.mdl.bind_proxy_to_state("ip_address", self.camera_state)
+        self.gui.mdl.bind_proxy_to_state("subnet_mask", self.camera_state)
+        self.gui.mdl.bind_proxy_to_state("gateway", self.camera_state)
+        self.gui.mdl.bind_proxy_to_state("dns_server", self.camera_state)
+        self.gui.mdl.bind_proxy_to_state("wifi_ssid", self.camera_state)
+        self.gui.mdl.bind_proxy_to_state("wifi_password", self.camera_state)
+
+        # to propagate initialization in `CameraState`
+        self.gui.mdl.bind_state_to_proxy("local_ip", self.camera_state)
+        self.gui.mdl.bind_state_to_proxy("mqtt_host", self.camera_state)
+        self.gui.mdl.bind_state_to_proxy("mqtt_port", self.camera_state)
+        self.gui.mdl.bind_state_to_proxy("ntp_host", self.camera_state)
+
+        self.gui.mdl.bind_state_to_proxy("is_connected", self.camera_state)
+        self.gui.mdl.bind_state_to_proxy("wifi_password_hidden", self.camera_state)
+        self.gui.mdl.bind_state_to_proxy("wifi_icon_eye", self.camera_state)
 
     def _init_core_variables(self) -> None:
         self.gui.mdl.bind_state_to_proxy("is_ready", self.camera_state)
@@ -276,9 +300,7 @@ class Driver:
         self.gui.views[Screen.APPLICATIONS_SCREEN].model.deploy_status = (
             self.camera_state.deploy_status
         )
-        self.gui.views[Screen.CONNECTION_SCREEN].model.connected = (
-            self.camera_state.connected
-        )
+        self.camera_state.update_connection_status()
 
     async def blobs_webserver_task(self) -> None:
         """

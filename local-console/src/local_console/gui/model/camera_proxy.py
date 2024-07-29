@@ -27,6 +27,7 @@ from local_console.gui.model.data_binding import CameraStateProxyBase
 
 class CameraStateProxy(CameraStateProxyBase):
 
+    is_connected = BooleanProperty(False)
     is_ready = BooleanProperty(False)
     is_streaming = BooleanProperty(False)
     stream_status = ObjectProperty(StreamStatus.Inactive)
@@ -55,6 +56,19 @@ class CameraStateProxy(CameraStateProxyBase):
     firmware_file_type = ObjectProperty(OTAUpdateModule, allownone=True)
     firmware_file_hash = StringProperty("", allownone=True)
 
+    local_ip = StringProperty("")
+    mqtt_host = StringProperty("")
+    mqtt_port = StringProperty("")
+    ntp_host = StringProperty("")
+    ip_address = StringProperty("")
+    subnet_mask = StringProperty("")
+    gateway = StringProperty("")
+    dns_server = StringProperty("")
+    wifi_ssid = StringProperty("")
+    wifi_password = StringProperty("")
+    wifi_password_hidden = BooleanProperty(True, force_dispatch=True)
+    wifi_icon_eye = StringProperty("")
+
 
 # Listing of model properties to move over into this class. It is
 # derived from the result of the following command, running
@@ -66,20 +80,6 @@ class CameraStateProxy(CameraStateProxyBase):
 #        -e 's;self, [^:]*: ;;g' -e 's/-/;/g' \
 #  | sort -t';' -k2) > model-properties.csv
 #
-#   connected(bool)
 #   deploy_stage(DeployStage)
 #   deploy_status(dict[str, str])
-#   dns_server(str)
-#   gateway(str)
-#   ip_address(str)
-#   local_ip(str)
 #   manifest(DeploymentManifest)
-#   mqtt_host(str)
-#   mqtt_port(str)
-#   ntp_host(str)
-#   subnet_mask(str)
-#   warning_message(str)
-#   wifi_icon_eye(str)
-#   wifi_password_hidden(bool)
-#   wifi_password(str)
-#   wifi_ssid(str)
