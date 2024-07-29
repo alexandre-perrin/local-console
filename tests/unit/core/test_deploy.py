@@ -16,6 +16,7 @@
 import hashlib
 import uuid
 from pathlib import Path
+from typing import Any
 from unittest.mock import AsyncMock
 from unittest.mock import Mock
 from unittest.mock import patch
@@ -73,6 +74,38 @@ async def test_callback_on_stage_transitions(
         assert deploy_fsm.errored
 
 
+@given(
+    deployment_manifest_strategy(),
+)
+@pytest.mark.trio
+async def test_evp2_stage_transitions(
+    deploy_manifest: DeploymentManifest,
+) -> None:
+    stage_cb = AsyncMock()
+    deploy_fn = AsyncMock()
+
+    with patch("local_console.core.commands.deploy.SyncWebserver"):
+
+        deploy_fsm = DeployFSM.instantiate(OnWireProtocol.EVP2, deploy_fn, stage_cb)
+        deploy_fsm.set_manifest(deploy_manifest)
+        dep_sta_tpl = template_deploy_status_for_manifest(deploy_manifest)
+
+        async with trio.open_nursery() as nursery:
+            await deploy_fsm.start(nursery)
+            first_stage = DeployStage.WaitFirstStatus
+            stage_cb.assert_awaited_once_with(first_stage)
+
+            dep_sta_tpl["reconcileStatus"] = "applying"
+            await deploy_fsm.update(dep_sta_tpl)
+            stage_cb.assert_awaited_with(DeployStage.WaitAppliedConfirmation)
+
+            dep_sta_tpl["reconcileStatus"] = "ok"
+            await deploy_fsm.update(dep_sta_tpl)
+            stage_cb.assert_awaited_with(DeployStage.Done)
+
+            nursery.cancel_scope.cancel()
+
+
 def test_deployment_setup(tmpdir):
     origin = Path(tmpdir.join("a_module_file"))
     contents = str(uuid.uuid4())
@@ -103,3 +136,15 @@ def test_deployment_setup(tmpdir):
         assert dm.deployment.modules[computed_mod_name].hash == mod_sha
         assert server_add in dm.deployment.modules[computed_mod_name].downloadUrl
         assert str(port) in dm.deployment.modules[computed_mod_name].downloadUrl
+
+
+def template_deploy_status_for_manifest(manifest: DeploymentManifest) -> dict[str, Any]:
+    deploy_id = manifest.deployment.deploymentId
+    instances = list(manifest.deployment.instanceSpecs.keys())
+    modules = list(manifest.deployment.modules.keys())
+    return {
+        "deploymentId": deploy_id,
+        "reconcileStatus": "",
+        "modules": {name: {"status": ""} for name in modules},
+        "instances": {name: {"status": ""} for name in instances},
+    }
