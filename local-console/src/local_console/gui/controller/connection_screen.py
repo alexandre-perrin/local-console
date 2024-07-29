@@ -27,8 +27,6 @@ from local_console.gui.view.connection_screen.connection_screen import (
 from local_console.utils.local_network import get_my_ip_by_routing
 from local_console.utils.local_network import replace_local_address
 
-logger = logging.getLogger(__name__)
-
 
 class ConnectionScreenController:
     """
