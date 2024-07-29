@@ -15,7 +15,6 @@
 
 <ConnectionScreenView>
     md_bg_color: self.theme_cls.backgroundColor
-    on_enter: self.entry_actions()
 
     MDBoxLayout:
         orientation: "vertical"
@@ -50,6 +49,7 @@
                     size_hint_x: 1
                 MDLabel:
                     id: lbl_conn_status
+                    text: "Disconnected"
                     size_hint_x: 1
 
         MDBoxLayout:
@@ -64,7 +64,7 @@
                 EntryLabel:
                     text: "Local IP Address:"
                 MDLabel:
-                    id: txt_local_ip
+                    text: app.mdl.local_ip
                     allow_selection: True
                     size_hint_y: None
                     height: root.INPUTBOX_HEIGHT
@@ -73,7 +73,8 @@
                     text: "MQTT host address:"
                 LocalIPInput:
                     id: txt_mqtt_host
-                    on_text: root.validate_mqtt_host(*args)
+                    text: app.mdl.mqtt_host
+                    on_text: root.controller.set_mqtt_host(args[1])
                     multiline: False
                     size_hint_y: None
                     max_height: root.INPUTBOX_HEIGHT
@@ -86,7 +87,8 @@
                     text: "MQTT port:"
                 FocusText:
                     id: txt_mqtt_port
-                    on_text: root.validate_mqtt_port(*args)
+                    text: app.mdl.mqtt_port
+                    on_text: root.controller.set_mqtt_port(args[1])
                     multiline: False
                     size_hint_y: None
                     max_height: root.INPUTBOX_HEIGHT
@@ -100,7 +102,8 @@
                     text: "NTP server address:"
                 LocalIPInput:
                     id: txt_ntp_host
-                    on_text: root.validate_ntp_host(*args)
+                    text: app.mdl.ntp_host
+                    on_text: root.controller.set_ntp_host(args[1])
                     multiline: False
                     size_hint_y: None
                     max_height: root.INPUTBOX_HEIGHT
@@ -115,7 +118,8 @@
                     text: "IP Address:"
                 FocusText:
                     id: txt_ip_address
-                    on_text: root.validate_ip_address(*args)
+                    text: app.mdl.ip_address
+                    on_text: root.controller.set_ip_address(args[1])
                     multiline: False
                     size_hint_y: None
                     max_height: root.INPUTBOX_HEIGHT
@@ -130,7 +134,8 @@
                     text: "Subnet Mask:"
                 FocusText:
                     id: txt_subnet_mask
-                    on_text: root.validate_subnet_mask(*args)
+                    text: app.mdl.subnet_mask
+                    on_text: root.controller.set_subnet_mask(args[1])
                     multiline: False
                     size_hint_y: None
                     max_height: root.INPUTBOX_HEIGHT
@@ -145,7 +150,8 @@
                     text: "Gateway:"
                 FocusText:
                     id: txt_gateway
-                    on_text: root.validate_gateway(*args)
+                    text: app.mdl.gateway
+                    on_text: root.controller.set_gateway(args[1])
                     multiline: False
                     size_hint_y: None
                     max_height: root.INPUTBOX_HEIGHT
@@ -160,7 +166,8 @@
                     text: "DNS server:"
                 FocusText:
                     id: txt_dns_server
-                    on_text: root.validate_dns_server(*args)
+                    text: app.mdl.dns_server
+                    on_text: root.controller.set_dns_server(args[1])
                     multiline: False
                     size_hint_y: None
                     max_height: root.INPUTBOX_HEIGHT
@@ -175,7 +182,8 @@
                     text: "Wi-Fi SSID"
                 FocusText:
                     id: txt_wifi_ssid
-                    on_text: root.validate_wifi_ssid(*args)
+                    text: app.mdl.wifi_ssid
+                    on_text: root.controller.set_wifi_ssid(args[1])
                     multiline: False
                     size_hint_y: None
                     max_height: root.INPUTBOX_HEIGHT
@@ -195,7 +203,8 @@
                     cols: 2
                     FocusText:
                         id: txt_wifi_password
-                        on_text: root.validate_wifi_password(*args)
+                        text: app.mdl.wifi_password
+                        on_text: root.controller.set_wifi_password(args[1])
                         multiline: False
                         max_height: root.INPUTBOX_HEIGHT
                         height: root.INPUTBOX_HEIGHT
@@ -207,7 +216,7 @@
                             mode: "on_focus"
                     MDIconButton:
                         id: btn_icon_eye
-                        icon: "eye-off"
+                        icon: app.mdl.wifi_icon_eye
                         width: "27dp"
                         style: "tonal"
                         max_height: root.INPUTBOX_HEIGHT

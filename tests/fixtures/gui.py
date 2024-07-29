@@ -13,12 +13,14 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+from contextlib import contextmanager
 from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
 from local_console.core.config import config_to_schema
 from local_console.core.config import get_default_config
+from local_console.core.config import setup_default_config
 from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.gui.model.camera_proxy import CameraStateProxy
 
@@ -27,8 +29,8 @@ def get_default_config_as_schema() -> AgentConfiguration:
     return config_to_schema(get_default_config())
 
 
-@pytest.fixture()
-def driver_set():
+@contextmanager
+def driver_context():
     """
     Enables testing the Driver business logic with the GUI
     objects mocked, leveraging the CameraStateProxy interface.
@@ -44,4 +46,16 @@ def driver_set():
         mock_gui = Mock()
         mock_gui.mdl = CameraStateProxy()
         driver = Driver(mock_gui)
+        yield driver, mock_gui
+
+
+@pytest.fixture()
+def driver_set():
+    """
+    Enables testing the Driver business logic with the GUI
+    objects mocked, leveraging the CameraStateProxy interface.
+    """
+    # Generate default config file if missing
+    setup_default_config()
+    with driver_context() as (driver, mock_gui):
         yield driver, mock_gui
