@@ -28,7 +28,9 @@ from local_console.core.camera.enums import MQTTTopics
 from local_console.core.camera.enums import OTAUpdateModule
 from local_console.core.camera.enums import StreamStatus
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
+from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.core.schemas.schemas import OnWireProtocol
+from local_console.utils.local_network import get_my_ip_by_routing
 from local_console.utils.tracking import TrackingVariable
 from pydantic import ValidationError
 
@@ -49,6 +51,13 @@ class CameraState:
 
     CONNECTION_STATUS_TIMEOUT = timedelta(seconds=180)
 
+    # For Connection view
+    MAX_LEN_DOMAIN_NAME = int(64)
+    MAX_LEN_IP_ADDRESS = int(39)
+    MAX_LEN_PORT = int(5)
+    MAX_LEN_WIFI_SSID = int(32)
+    MAX_LEN_WIFI_PASSWORD = int(32)
+
     def __init__(self) -> None:
 
         self.deploy_status: dict[str, str] = {}
@@ -57,6 +66,7 @@ class CameraState:
 
         self.device_config: TrackingVariable[DeviceConfiguration] = TrackingVariable()
         self.attributes_available: TrackingVariable[bool] = TrackingVariable(False)
+        self.is_connected: TrackingVariable[bool] = TrackingVariable(False)
         self.is_ready: TrackingVariable[bool] = TrackingVariable(False)
         self.stream_status: TrackingVariable[StreamStatus] = TrackingVariable(
             StreamStatus.Inactive
@@ -83,6 +93,19 @@ class CameraState:
 
         self.image_dir_path: TrackingVariable[Path] = TrackingVariable()
         self.inference_dir_path: TrackingVariable[Path] = TrackingVariable()
+
+        self.local_ip: TrackingVariable[str] = TrackingVariable("")
+        self.mqtt_host: TrackingVariable[str] = TrackingVariable("")
+        self.mqtt_port: TrackingVariable[str] = TrackingVariable("")
+        self.ntp_host: TrackingVariable[str] = TrackingVariable("")
+        self.ip_address: TrackingVariable[str] = TrackingVariable("")
+        self.subnet_mask: TrackingVariable[str] = TrackingVariable("")
+        self.gateway: TrackingVariable[str] = TrackingVariable("")
+        self.dns_server: TrackingVariable[str] = TrackingVariable("")
+        self.wifi_ssid: TrackingVariable[str] = TrackingVariable("")
+        self.wifi_password: TrackingVariable[str] = TrackingVariable("")
+        self.wifi_password_hidden: TrackingVariable[bool] = TrackingVariable(True)
+        self.wifi_icon_eye: TrackingVariable[str] = TrackingVariable("")
 
         self._init_bindings()
 
@@ -116,14 +139,23 @@ class CameraState:
 
         self.stream_status.subscribe(compute_is_streaming)
 
-    @property
-    def connected(self) -> bool:
+    def initialize_connection_variables(self, config: AgentConfiguration) -> None:
+        self.local_ip.value = get_my_ip_by_routing()
+        self.mqtt_host.value = config.mqtt.host.ip_value
+        self.mqtt_port.value = str(config.mqtt.port)
+        self.ntp_host.value = "pool.ntp.org"
+        self.wifi_icon_eye.value = "eye-off"
+
+    def _check_connection_status(self) -> bool:
         if self._last_reception is None:
             return False
         else:
             return (
                 datetime.now() - self._last_reception
             ) < self.CONNECTION_STATUS_TIMEOUT
+
+    def update_connection_status(self) -> None:
+        self.is_connected.value = self._check_connection_status()
 
     async def process_incoming(self, topic: str, payload: dict[str, Any]) -> None:
         sent_from_camera = False
