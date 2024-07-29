@@ -22,7 +22,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 from local_console.clients.agent import Agent
-from local_console.core.camera import MQTTTopics
+from local_console.core.camera.enums import MQTTTopics
 from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.core.schemas.schemas import OnWireProtocol
 from paho.mqtt.client import MQTT_ERR_ERRNO

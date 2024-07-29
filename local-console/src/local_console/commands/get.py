@@ -21,7 +21,7 @@ from typing import Callable
 import trio
 import typer
 from local_console.clients.agent import Agent
-from local_console.core.camera import MQTTTopics
+from local_console.core.camera.enums import MQTTTopics
 from local_console.plugin import PluginBase
 
 logger = logging.getLogger(__name__)

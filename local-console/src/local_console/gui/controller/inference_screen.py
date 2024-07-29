@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-from local_console.core.camera import StreamStatus
+from local_console.core.camera.enums import StreamStatus
 from local_console.gui.driver import Driver
 from local_console.gui.model.inference_screen import InferenceScreenModel
 from local_console.gui.view.inference_screen.inference_screen import InferenceScreenView

@@ -18,7 +18,7 @@ from unittest.mock import patch
 from hypothesis import given
 from hypothesis import strategies as st
 from local_console.commands.logs import app
-from local_console.core.camera import MQTTTopics
+from local_console.core.camera.enums import MQTTTopics
 from local_console.core.schemas.schemas import OnWireProtocol
 from typer.testing import CliRunner
 

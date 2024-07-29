@@ -20,7 +20,7 @@ from typing import Annotated
 from typing import Optional
 
 import typer
-from local_console.core.camera import get_qr_object
+from local_console.core.camera.qr import get_qr_object
 from local_console.core.config import get_config
 from local_console.plugin import PluginBase
 from local_console.utils.local_network import get_my_ip_by_routing

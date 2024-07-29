@@ -13,6 +13,8 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+from collections.abc import Awaitable
+from collections.abc import Iterable
 from queue import Queue
 from typing import Any
 from typing import Callable
@@ -20,6 +22,10 @@ from typing import Optional
 
 import trio
 from kivy.clock import Clock
+
+
+AsyncFunc = Callable[..., Awaitable[Any]]
+WorkItem = tuple[AsyncFunc, tuple[Any]]
 
 
 class SyncAsyncBridge:
@@ -30,27 +36,33 @@ class SyncAsyncBridge:
     """
 
     def __init__(self) -> None:
-        self.tasks_queue: Queue[Optional[tuple[Callable, tuple[Any]]]] = Queue()
+        self.tasks_queue: Queue[Optional[WorkItem]] = Queue()
 
     # Function to post tasks to the Trio thread from Kivy
-    def enqueue_task(self, func: Callable, *args: Any) -> None:
+    def enqueue_task(self, func: AsyncFunc, *args: Any) -> None:
         self.tasks_queue.put((func, args))
+
+    def has_pending(self) -> bool:
+        return not self.tasks_queue.empty()
 
     def close_task_queue(self) -> None:
         self.tasks_queue.put(None)
 
     # Async task listener
     async def bridge_listener(self) -> None:
-        while True:
-            # Wait for tasks from the queue
-            assert self.tasks_queue
-            items = await trio.to_thread.run_sync(self.tasks_queue.get)
-            if items is None:
-                return
-            else:
-                func = items[0]
-                args = items[1]
-                await func(*args)
+        async with trio.open_nursery() as nursery:
+            while True:
+                # Wait for tasks from the queue
+                assert self.tasks_queue
+                items: Optional[WorkItem] = await trio.to_thread.run_sync(
+                    self.tasks_queue.get
+                )
+                if items is None:
+                    break
+                else:
+                    func: AsyncFunc = items[0]
+                    args: Iterable[Any] = items[1]
+                    nursery.start_soon(func, *args)
 
 
 def run_on_ui_thread(func: Callable) -> Callable:

@@ -17,10 +17,10 @@ import json
 import logging
 from pathlib import Path
 from typing import Any
+from typing import Optional
 
-from kivy.properties import StringProperty
+from kivy.properties import BooleanProperty
 from kivy.uix.image import Image
-from kivymd.app import MDApp
 from kivymd.uix.anchorlayout import MDAnchorLayout
 from kivymd.uix.gridlayout import MDGridLayout
 from kivymd.uix.label import MDIcon
@@ -29,14 +29,8 @@ from local_console.core.commands.deploy import DeployStage
 from local_console.gui.config import resource_path
 from local_console.gui.view.base_screen import BaseScreenView
 from local_console.gui.view.common.components import (
-    CodeInputCustom,
-)  # nopycln: import # Required by the screen's KV spec file
-from local_console.gui.view.common.components import (
     GUITooltip,
-)  # nopycln: import # Required by the screen's KV spec file
-from local_console.gui.view.common.components import (
-    PathSelectorCombo,
-)  # nopycln: import # Required by the screen's KV spec file
+)
 from local_console.utils.validation import validate_app_file
 
 logger = logging.getLogger(__name__)
@@ -49,17 +43,21 @@ class StatusLabel(GUITooltip, MDLabel):
 
 
 class ApplicationsScreenView(BaseScreenView):
-    deploy_status = StringProperty("")
+
+    app_file_valid = BooleanProperty(False)
 
     def model_is_changed(self) -> None:
         self._render_deploy_stage()
-        self.ids.txt_deployment_data.text = json.dumps(
-            self.model.deploy_status, indent=4
-        )
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.app.mdl.bind(is_ready=self.app_state_refresh)
+        self.app.mdl.bind(deploy_status=self.on_deploy_status)
+
+    def on_deploy_status(
+        self, view: "ApplicationsScreenView", status: Optional[dict[str, Any]]
+    ) -> None:
+        if status:
+            self.ids.txt_deployment_data.text = json.dumps(status, indent=4)
 
     def select_path(self, path: str) -> None:
         """
@@ -69,18 +67,12 @@ class ApplicationsScreenView(BaseScreenView):
         :param path: path to the selected directory or file;
         """
         if validate_app_file(Path(path)):
+            self.app_file_valid = True
             self.ids.app_file.accept_path(path)
             self.dismiss_message()
-            self.ids.btn_deploy_file.disabled = not self.app.mdl.is_ready
         else:
-            self.ids.btn_deploy_file.disabled = True
+            self.app_file_valid = False
             self.display_error("Invalid AOT-compiled module file")
-
-    def app_state_refresh(self, app: MDApp, value: bool) -> None:
-        """
-        Makes the deploy button react to the camera readiness state.
-        """
-        self.ids.btn_deploy_file.disabled = not self.app.mdl.is_ready
 
     def _render_deploy_stage(self) -> None:
         layout: MDGridLayout = self.ids.layout_status

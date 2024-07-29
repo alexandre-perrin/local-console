@@ -19,7 +19,7 @@ from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
-from local_console.core.camera import OTAUpdateModule
+from local_console.core.camera.enums import OTAUpdateModule
 from local_console.core.camera.firmware import validate_firmware_file
 from local_console.core.commands.ota_deploy import get_package_hash
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
@@ -237,7 +237,7 @@ async def test_update_firmware_task_invalid(tmp_path):
 
     from local_console.core.camera.firmware import update_firmware_task
 
-    from local_console.core.camera import CameraState
+    from local_console.core.camera.state import CameraState
     from local_console.core.camera.firmware import TransientStatus
     from local_console.core.camera.firmware import FirmwareException
 
@@ -266,9 +266,9 @@ async def test_update_firmware_task_valid(tmp_path):
 
     from local_console.core.camera.firmware import update_firmware_task
 
-    from local_console.core.camera import CameraState
+    from local_console.core.camera.state import CameraState
     from local_console.core.camera.firmware import TransientStatus
-    from local_console.core.camera import OTAUpdateModule
+    from local_console.core.camera.enums import OTAUpdateModule
 
     camera_state = CameraState()
     indicator = TransientStatus()

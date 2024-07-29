@@ -19,7 +19,7 @@ from hypothesis import given
 from local_console.commands.get import app
 from local_console.commands.get import on_message_print_payload
 from local_console.commands.get import on_message_telemetry
-from local_console.core.camera import MQTTTopics
+from local_console.core.camera.enums import MQTTTopics
 from local_console.core.enums import GetObjects
 from typer.testing import CliRunner
 

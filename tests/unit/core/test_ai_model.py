@@ -18,9 +18,9 @@ from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import pytest
-from local_console.core.camera import CameraState
 from local_console.core.camera.ai_model import deploy_step
 from local_console.core.camera.ai_model import undeploy_step
+from local_console.core.camera.state import CameraState
 from local_console.core.commands.ota_deploy import get_package_hash
 from local_console.core.config import config_to_schema
 from local_console.core.config import get_default_config

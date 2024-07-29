@@ -31,6 +31,7 @@ def gui() -> None:
     os.environ["KIVY_NO_CONSOLELOG"] = "1"
     os.environ["KIVY_NO_FILELOG"] = "1"
     os.environ["KIVY_NO_CONFIG"] = "1"
+    os.environ["KCFG_KIVY_LOG_LEVEL"] = "warning"
 
     """
     This import must happen within this callback, as
@@ -38,6 +39,8 @@ def gui() -> None:
     imports, that override logging and input handling.
     """
     from local_console.gui.main import LocalConsoleGUIAPP
+
+    logging.getLogger("PIL").setLevel(logging.ERROR)
 
     trio.run(LocalConsoleGUIAPP().app_main)
 

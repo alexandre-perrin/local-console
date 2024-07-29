@@ -69,7 +69,7 @@ def test_observers_sync():
     observer.assert_called_with(42, None)
     assert observer.call_count == 1
 
-    var.value = 11
+    var.set(11)
     observer.assert_called_with(11, 42)
     assert observer.call_count == 2
 
@@ -86,15 +86,15 @@ async def test_observers_async():
     observer = AsyncMock()
     var.subscribe_async(observer)
 
-    await var.set(42)
+    await var.aset(42)
     observer.assert_awaited_with(42, None)
     assert observer.call_count == 1
 
-    await var.set(11)
+    await var.aset(11)
     observer.assert_awaited_with(11, 42)
     assert observer.await_count == 2
 
     var.unsubscribe_async(observer)
 
-    await var.set(0)
+    await var.aset(0)
     assert observer.await_count == 2

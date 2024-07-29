@@ -33,7 +33,7 @@ from typing import Optional
 import trio
 import typer
 from local_console.clients.agent import Agent
-from local_console.core.camera import MQTTTopics
+from local_console.core.camera.enums import MQTTTopics
 from local_console.core.enums import ModuleExtension
 from local_console.core.enums import Target
 from local_console.core.schemas.schemas import Deployment

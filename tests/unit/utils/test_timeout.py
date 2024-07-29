@@ -33,6 +33,19 @@ async def test_timeout_expires_once(autojump_clock, nursery):
 
 
 @pytest.mark.trio
+async def test_timeout_stop(autojump_clock, nursery):
+    timeout = 3
+    callable_mock = AsyncMock()
+    timeout_obj = TimeoutBehavior(timeout, callable_mock)
+    timeout_obj.spawn_in(nursery)
+
+    await trio.sleep(0.5 * timeout)
+    timeout_obj.stop()
+    await trio.sleep(10 * timeout)
+    callable_mock.assert_not_awaited()
+
+
+@pytest.mark.trio
 async def test_timeout_expires_multiple_times(autojump_clock, nursery):
     timeout = 3
     expirations = 4

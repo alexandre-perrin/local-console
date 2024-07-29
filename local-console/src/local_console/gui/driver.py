@@ -19,24 +19,23 @@ import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
-from typing import Callable
 from typing import Optional
 
 import trio
 from kivymd.app import MDApp
 from local_console.clients.agent import Agent
 from local_console.clients.agent import check_attributes_request
-from local_console.core.camera import CameraState
-from local_console.core.camera import FirmwareExtension
-from local_console.core.camera import MQTTTopics
-from local_console.core.camera import OTAUpdateModule
-from local_console.core.camera import StreamStatus
 from local_console.core.camera.axis_mapping import pixel_roi_from_normals
 from local_console.core.camera.axis_mapping import UnitROI
+from local_console.core.camera.enums import FirmwareExtension
+from local_console.core.camera.enums import MQTTTopics
+from local_console.core.camera.enums import OTAUpdateModule
+from local_console.core.camera.enums import StreamStatus
 from local_console.core.camera.flatbuffers import add_class_names
 from local_console.core.camera.flatbuffers import flatbuffer_binary_to_json
 from local_console.core.camera.flatbuffers import FlatbufferError
 from local_console.core.camera.flatbuffers import get_output_from_inference_results
+from local_console.core.camera.state import CameraState
 from local_console.core.commands.ota_deploy import get_package_hash
 from local_console.core.config import get_config
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
@@ -50,6 +49,7 @@ from local_console.gui.drawer.objectdetection import DetectionDrawer
 from local_console.gui.enums import ApplicationConfiguration
 from local_console.gui.enums import ApplicationType
 from local_console.gui.utils.enums import Screen
+from local_console.gui.utils.sync_async import AsyncFunc
 from local_console.gui.utils.sync_async import run_on_ui_thread
 from local_console.gui.utils.sync_async import SyncAsyncBridge
 from local_console.servers.broker import spawn_broker
@@ -138,6 +138,7 @@ class Driver:
         self.gui.mdl.bind_state_to_proxy("is_ready", self.camera_state)
         self.gui.mdl.bind_state_to_proxy("is_streaming", self.camera_state)
         self.gui.mdl.bind_state_to_proxy("device_config", self.camera_state)
+        self.gui.mdl.bind_state_to_proxy("deploy_status", self.camera_state)
 
     def _init_stream_variables(self) -> None:
         # Proxy->State because we want the user to set this value via the GUI
@@ -218,18 +219,14 @@ class Driver:
         async with trio.open_nursery() as nursery:
             try:
                 nursery.start_soon(self.bridge.bridge_listener)
-                nursery.start_soon(self.services_loop)
+                nursery.start_soon(self.mqtt_setup)
+                nursery.start_soon(self.blobs_webserver_task)
                 await self.gui.async_run(async_lib="trio")
             except KeyboardInterrupt:
                 logger.info("Cancelled per user request via keyboard")
             finally:
                 self.bridge.close_task_queue()
                 nursery.cancel_scope.cancel()
-
-    async def services_loop(self) -> None:
-        async with trio.open_nursery() as nursery:
-            nursery.start_soon(self.mqtt_setup)
-            nursery.start_soon(self.blobs_webserver_task)
 
     async def mqtt_setup(self) -> None:
         async with (
@@ -273,7 +270,7 @@ class Driver:
 
                     self.connection_status.tap()
 
-    def from_sync(self, async_fn: Callable, *args: Any) -> None:
+    def from_sync(self, async_fn: AsyncFunc, *args: Any) -> None:
         self.bridge.enqueue_task(async_fn, *args)
 
     async def process_factory_reset(

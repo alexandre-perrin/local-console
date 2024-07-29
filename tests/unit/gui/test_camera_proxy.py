@@ -16,7 +16,7 @@
 from pathlib import Path
 
 from hypothesis import given
-from local_console.core.camera import CameraState
+from local_console.core.camera.state import CameraState
 from local_console.gui.model.camera_proxy import CameraStateProxy
 
 from tests.strategies.configs import generate_valid_device_configuration

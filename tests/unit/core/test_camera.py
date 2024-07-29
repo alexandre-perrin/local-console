@@ -22,10 +22,10 @@ from unittest.mock import patch
 import hypothesis.strategies as st
 import pytest
 from hypothesis import given
-from local_console.core.camera import CameraState
-from local_console.core.camera import get_qr_object
-from local_console.core.camera import qr_string
-from local_console.core.camera import StreamStatus
+from local_console.core.camera.enums import StreamStatus
+from local_console.core.camera.qr import get_qr_object
+from local_console.core.camera.qr import qr_string
+from local_console.core.camera.state import CameraState
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.schemas import OnWireProtocol
 
@@ -228,7 +228,7 @@ async def test_process_deploy_status_evp1() -> None:
     status_report = {"deploymentStatus": json.dumps(dummy_deployment)}
     await camera._process_deploy_status_topic(status_report)
 
-    assert camera.deploy_status == dummy_deployment
+    assert camera.deploy_status.value == dummy_deployment
     assert camera.attributes_available
 
 
@@ -241,7 +241,7 @@ async def test_process_deploy_status_evp2() -> None:
     status_report = {"deploymentStatus": dummy_deployment}
     await camera._process_deploy_status_topic(status_report)
 
-    assert camera.deploy_status == dummy_deployment
+    assert camera.deploy_status.value == dummy_deployment
     assert camera.attributes_available
 
 

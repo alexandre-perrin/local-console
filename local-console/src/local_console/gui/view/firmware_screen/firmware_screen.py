@@ -22,9 +22,9 @@ from kivy.properties import BooleanProperty
 from kivy.properties import NumericProperty
 from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
-from local_console.core.camera import FirmwareExtension
-from local_console.core.camera import OTAUpdateModule
-from local_console.core.camera import OTAUpdateStatus
+from local_console.core.camera.enums import FirmwareExtension
+from local_console.core.camera.enums import OTAUpdateModule
+from local_console.core.camera.enums import OTAUpdateStatus
 from local_console.core.camera.firmware import TransientStatus
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.gui.enums import FirmwareType

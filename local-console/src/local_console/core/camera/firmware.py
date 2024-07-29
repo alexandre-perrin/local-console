@@ -22,11 +22,11 @@ from typing import Optional
 
 import trio
 from local_console.clients.agent import Agent
-from local_console.core.camera import CameraState
-from local_console.core.camera import FirmwareExtension
-from local_console.core.camera import MQTTTopics
-from local_console.core.camera import OTAUpdateModule
-from local_console.core.camera import OTAUpdateStatus
+from local_console.core.camera.enums import FirmwareExtension
+from local_console.core.camera.enums import MQTTTopics
+from local_console.core.camera.enums import OTAUpdateModule
+from local_console.core.camera.enums import OTAUpdateStatus
+from local_console.core.camera.state import CameraState
 from local_console.core.commands.ota_deploy import configuration_spec
 from local_console.core.config import get_config
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration

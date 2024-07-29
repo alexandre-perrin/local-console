@@ -25,7 +25,7 @@ from hypothesis import settings
 from local_console.clients.agent import Agent
 from local_console.clients.agent import check_attributes_request
 from local_console.commands.deploy import app
-from local_console.core.camera import MQTTTopics
+from local_console.core.camera.enums import MQTTTopics
 from local_console.core.commands.deploy import get_empty_deployment
 from local_console.core.enums import Target
 from local_console.core.schemas.schemas import AgentConfiguration

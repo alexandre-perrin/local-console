@@ -1,5 +1,4 @@
-#:import res_path local_console.gui.config.resource_path
-#:include res_path(components.kv)
+#:import GoHomeButton local_console.gui.view.common.components.GoHomeButton
 
 <AIModelScreenView>
     md_bg_color: self.theme_cls.backgroundColor
@@ -53,7 +52,7 @@
             halign: "center"
             font_style: 'Title'
             adaptive_height: True
-            padding_y: "10dp"
+            padding: 0, "10dp"
 
         MDBoxLayout:
         # Readout block

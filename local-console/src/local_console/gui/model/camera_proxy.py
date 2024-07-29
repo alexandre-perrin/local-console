@@ -18,8 +18,8 @@ from pathlib import Path
 from kivy.properties import BooleanProperty
 from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
-from local_console.core.camera import OTAUpdateModule
 from local_console.core.camera.axis_mapping import DEFAULT_ROI
+from local_console.core.camera.enums import OTAUpdateModule
 from local_console.core.camera.enums import StreamStatus
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.gui.model.data_binding import CameraStateProxyBase
@@ -31,6 +31,7 @@ class CameraStateProxy(CameraStateProxyBase):
     is_ready = BooleanProperty(False)
     is_streaming = BooleanProperty(False)
     stream_status = ObjectProperty(StreamStatus.Inactive)
+    deploy_status = ObjectProperty(dict(), allownone=True)
     roi = ObjectProperty(DEFAULT_ROI)
 
     image_dir_path = StringProperty("")
