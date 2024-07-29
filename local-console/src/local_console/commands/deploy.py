@@ -193,10 +193,6 @@ def project_binary_lookup(
     """
     assert files_dir.is_dir()
 
-    wasm_file = files_dir / f"{module_base_name}.{ModuleExtension.WASM}"
-    if not wasm_file.is_file():
-        raise FileNotFoundError(f"{wasm_file} not found.")
-
     name_parts: list[str] = [module_base_name]
     if target_arch:
         name_parts += [target_arch.value, ModuleExtension.AOT.value]
