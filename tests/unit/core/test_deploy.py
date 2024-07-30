@@ -27,7 +27,7 @@ import trio
 from hypothesis import given
 from local_console.core.camera.enums import DeployStage
 from local_console.core.commands.deploy import DeployFSM
-from local_console.core.commands.deploy import module_deployment_setup
+from local_console.core.commands.deploy import single_module_manifest_setup
 from local_console.core.schemas.schemas import DeploymentManifest
 from local_console.core.schemas.schemas import OnWireProtocol
 
@@ -128,7 +128,7 @@ def test_deployment_setup(tmpdir):
         port = 8888
         webserver = Mock()
         webserver.port = port
-        dm = module_deployment_setup(instance_name, origin, webserver)
+        dm = single_module_manifest_setup(instance_name, origin, webserver)
 
         webserver.set_directory.assert_called_once_with(origin.parent)
         assert instance_name in dm.deployment.instanceSpecs

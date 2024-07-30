@@ -19,6 +19,7 @@ from datetime import timedelta
 from pathlib import Path
 from unittest.mock import ANY
 from unittest.mock import AsyncMock
+from unittest.mock import Mock
 from unittest.mock import patch
 
 import hypothesis.strategies as st
@@ -30,6 +31,7 @@ from local_console.clients.agent import Agent
 from local_console.clients.agent import check_attributes_request
 from local_console.commands.deploy import app
 from local_console.commands.deploy import exec_deployment
+from local_console.commands.deploy import multiple_module_manifest_setup
 from local_console.commands.deploy import project_binary_lookup
 from local_console.commands.deploy import stimulus_proc
 from local_console.core.camera.enums import MQTTTopics
@@ -96,12 +98,9 @@ def test_deploy_command_target(
         patch("local_console.commands.deploy.DeployFSM") as mock_gen_deploy_fsm,
         patch("local_console.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
-            "local_console.commands.deploy.module_deployment_setup",
+            "local_console.commands.deploy.multiple_module_manifest_setup",
             return_value=deployment_manifest,
         ) as mock_setup_manifest,
-        patch(
-            "local_console.commands.deploy.project_binary_lookup",
-        ) as mock_get_path,
         patch("pathlib.Path.is_dir") as mock_check_dir,
     ):
         result = runner.invoke(app, [target.value])
@@ -111,16 +110,11 @@ def test_deploy_command_target(
         mock_gen_deploy_fsm.instantiate.assert_called_once()
         mock_deploy_fsm = mock_gen_deploy_fsm.instantiate.return_value
 
-        mock_get_path.assert_called_once_with(
-            ANY,
-            ANY,
-            target,
-            False,
-        )
         mock_setup_manifest.assert_called_once_with(
             ANY,
-            mock_get_path.return_value,
             mock_deploy_fsm.webserver,
+            ANY,
+            ANY,
             ANY,
             ANY,
         )
@@ -145,12 +139,9 @@ def test_deploy_command_signed(
         patch("local_console.commands.deploy.DeployFSM") as mock_gen_deploy_fsm,
         patch("local_console.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
-            "local_console.commands.deploy.module_deployment_setup",
+            "local_console.commands.deploy.multiple_module_manifest_setup",
             return_value=deployment_manifest,
         ) as mock_setup_manifest,
-        patch(
-            "local_console.commands.deploy.project_binary_lookup",
-        ) as mock_get_path,
         patch("pathlib.Path.is_dir") as mock_check_dir,
     ):
         result = runner.invoke(app, ["-s"])
@@ -160,16 +151,11 @@ def test_deploy_command_signed(
         mock_gen_deploy_fsm.instantiate.assert_called_once()
         mock_deploy_fsm = mock_gen_deploy_fsm.instantiate.return_value
 
-        mock_get_path.assert_called_once_with(
-            ANY,
-            ANY,
-            ANY,
-            True,
-        )
         mock_setup_manifest.assert_called_once_with(
             ANY,
-            mock_get_path.return_value,
             mock_deploy_fsm.webserver,
+            ANY,
+            True,
             ANY,
             ANY,
         )
@@ -196,12 +182,9 @@ def test_deploy_command_timeout(
         patch("local_console.commands.deploy.DeployFSM") as mock_gen_deploy_fsm,
         patch("local_console.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
-            "local_console.commands.deploy.module_deployment_setup",
+            "local_console.commands.deploy.multiple_module_manifest_setup",
             return_value=deployment_manifest,
         ) as mock_setup_manifest,
-        patch(
-            "local_console.commands.deploy.project_binary_lookup",
-        ) as mock_get_path,
         patch("pathlib.Path.is_dir") as mock_check_dir,
     ):
         result = runner.invoke(app, ["-t", timeout])
@@ -213,20 +196,15 @@ def test_deploy_command_timeout(
             mock_agent_client.return_value.deploy,
             None,
             ANY,
+            ANY,
             timeout,
         )
         mock_deploy_fsm = mock_gen_deploy_fsm.instantiate.return_value
-
-        mock_get_path.assert_called_once_with(
-            ANY,
-            ANY,
-            None,
-            False,
-        )
         mock_setup_manifest.assert_called_once_with(
             ANY,
-            mock_get_path.return_value,
             mock_deploy_fsm.webserver,
+            ANY,
+            ANY,
             ANY,
             ANY,
         )
@@ -309,12 +287,9 @@ def test_deploy_forced_webserver(
         patch("local_console.commands.deploy.DeployFSM") as mock_gen_deploy_fsm,
         patch("local_console.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
-            "local_console.commands.deploy.module_deployment_setup",
+            "local_console.commands.deploy.multiple_module_manifest_setup",
             return_value=deployment_manifest,
         ) as mock_setup_manifest,
-        patch(
-            "local_console.commands.deploy.project_binary_lookup",
-        ) as mock_get_path,
         patch("pathlib.Path.is_dir") as mock_check_dir,
     ):
         result = runner.invoke(app, ["-f"])
@@ -327,19 +302,15 @@ def test_deploy_forced_webserver(
             None,
             True,
             ANY,
+            ANY,
         )
         mock_deploy_fsm = mock_gen_deploy_fsm.instantiate.return_value
 
-        mock_get_path.assert_called_once_with(
-            ANY,
-            ANY,
-            ANY,
-            ANY,
-        )
         mock_setup_manifest.assert_called_once_with(
             ANY,
-            mock_get_path.return_value,
             mock_deploy_fsm.webserver,
+            ANY,
+            ANY,
             ANY,
             ANY,
         )
@@ -350,6 +321,61 @@ def test_deploy_forced_webserver(
             mock_deploy_fsm,
         )
         assert result.exit_code == 0
+
+
+def test_deploy_forced_webserver_port_override() -> None:
+    # Set a port to check against
+    port_override = 9876
+
+    from local_console.core.schemas.schemas import EVPParams
+    from local_console.core.schemas.schemas import IPAddress
+    from local_console.core.schemas.schemas import MQTTParams
+    from local_console.core.schemas.schemas import TLSConfiguration
+    from local_console.core.schemas.schemas import WebserverParams
+
+    agent_config = AgentConfiguration(
+        evp=EVPParams(
+            iot_platform="evp1",
+        ),
+        webserver=WebserverParams(
+            host=IPAddress(ip_value="1.2.3.4"),
+            port=port_override,
+        ),
+        mqtt=MQTTParams(
+            host=IPAddress(ip_value="127.0.0.1"),
+            port=1883,
+            device_id=None,
+        ),
+        tls=TLSConfiguration(
+            ca_certificate=None,
+            ca_key=None,
+        ),
+    )
+    with (
+        patch("local_console.commands.deploy.is_localhost", return_value=False),
+        patch("local_console.commands.deploy.get_config", return_value=agent_config),
+        patch("local_console.commands.deploy.Agent") as mock_agent_client,
+        patch("local_console.commands.deploy.exec_deployment"),
+        patch("local_console.core.commands.deploy.TimeoutBehavior"),
+        patch("local_console.servers.webserver.threading.Thread") as mock_server_thread,
+        patch(
+            "local_console.commands.deploy.multiple_module_manifest_setup",
+        ) as mock_manifest,
+        patch("pathlib.Path.is_dir") as mock_check_dir,
+        patch("pathlib.Path.write_text"),
+    ):
+        mock_agent_client.return_value.onwire_schema = OnWireProtocol.EVP1
+        mock_manifest.return_value.model_dump.return_value = {}
+
+        result = runner.invoke(app, ["-f"])
+        assert result.exit_code == 0
+
+        mock_agent_client.assert_called_once()
+        mock_check_dir.assert_called_once()
+
+        mock_server_thread.assert_called_once_with(
+            target=ANY, name=f"Webserver_{port_override}"
+        )
 
 
 def test_project_binary_lookup_no_interpreted_wasm(tmp_path):
@@ -367,6 +393,76 @@ def test_project_binary_lookup_no_arch(signed):
         patch("pathlib.Path.is_file", return_value=True),
     ):
         assert project_binary_lookup(parent, "node", None, signed) == mod_file
+
+
+def test_multiple_module_setup(tmp_path):
+
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    classification_file = bin_dir / "classification.xtensa.aot.signed"
+    classification_file.touch()
+    detection_file = bin_dir / "detection.xtensa.aot.signed"
+    detection_file.touch()
+    manifest = DeploymentManifest.model_validate(
+        {
+            "deployment": {
+                "deploymentId": "0000aaaa",
+                "instanceSpecs": {
+                    "classi": {
+                        "moduleId": "classification",
+                        "subscribe": {},
+                        "publish": {},
+                    },
+                    "detect": {
+                        "moduleId": "classification",
+                        "subscribe": {},
+                        "publish": {},
+                    },
+                },
+                "modules": {
+                    "classification": {
+                        "entryPoint": "main",
+                        "moduleImpl": "wasm",
+                        "downloadUrl": "",
+                        "hash": "00",
+                    },
+                    "detection": {
+                        "entryPoint": "main",
+                        "moduleImpl": "wasm",
+                        "downloadUrl": "",
+                        "hash": "00",
+                    },
+                },
+                "publishTopics": {},
+                "subscribeTopics": {},
+            }
+        }
+    )
+
+    with (
+        patch(
+            "local_console.commands.deploy.get_deployment_schema", return_value=manifest
+        ),
+    ):
+        port = 8888
+        webserver = Mock()
+        webserver.port = port
+        overridden_port = 9999
+        overridden_host = "9.8.7.6"
+        dm = multiple_module_manifest_setup(
+            bin_dir, webserver, Target.XTENSA, True, overridden_port, overridden_host
+        )
+
+        webserver.set_directory.assert_called_once_with(bin_dir)
+        assert "classi" in dm.deployment.instanceSpecs
+        assert "detect" in dm.deployment.instanceSpecs
+        assert all(
+            overridden_host in mod.downloadUrl for mod in dm.deployment.modules.values()
+        )
+        assert all(
+            str(overridden_port) in mod.downloadUrl
+            for mod in dm.deployment.modules.values()
+        )
 
 
 @pytest.mark.parametrize(

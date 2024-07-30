@@ -44,11 +44,14 @@ class DeployFSM(ABC):
         deploy_fn: Callable[[DeploymentManifest], Awaitable[None]],
         stage_callback: Optional[Callable[[DeployStage], Awaitable[None]]] = None,
         deploy_webserver: bool = True,
+        webserver_port: int = 0,
         timeout_secs: int = 30,
     ) -> None:
         self.deploy_fn = deploy_fn
         self.stage_callback = stage_callback
-        self.webserver = SyncWebserver(Path(), deploy=deploy_webserver)
+        self.webserver = SyncWebserver(
+            Path(), port=webserver_port, deploy=deploy_webserver
+        )
         self.webserver.start()  # This secures a listening port for the webserver
 
         self.done = trio.Event()
@@ -126,6 +129,7 @@ class DeployFSM(ABC):
         deploy_fn: Callable[[DeploymentManifest], Awaitable[None]],
         stage_callback: Optional[Callable[[DeployStage], Awaitable[None]]] = None,
         deploy_webserver: bool = True,
+        webserver_port_override: int = 0,
         timeout_secs: int = 30,
     ) -> "DeployFSM":
         # This is a factory builder, so only run this from this parent class
@@ -133,11 +137,19 @@ class DeployFSM(ABC):
 
         if onwire_schema == OnWireProtocol.EVP1:
             return EVP1DeployFSM(
-                deploy_fn, stage_callback, deploy_webserver, timeout_secs
+                deploy_fn,
+                stage_callback,
+                deploy_webserver,
+                webserver_port_override,
+                timeout_secs,
             )
         elif onwire_schema == OnWireProtocol.EVP2:
             return EVP2DeployFSM(
-                deploy_fn, stage_callback, deploy_webserver, timeout_secs
+                deploy_fn,
+                stage_callback,
+                deploy_webserver,
+                webserver_port_override,
+                timeout_secs,
             )
 
 
@@ -225,7 +237,7 @@ def verify_report(
     return is_finished, matches, is_errored
 
 
-def module_deployment_setup(
+def single_module_manifest_setup(
     module_name: str,
     module_file: Path,
     webserver: SyncWebserver,
@@ -258,12 +270,34 @@ def module_deployment_setup(
     deployment_manifest = DeploymentManifest(deployment=deployment)
 
     webserver.set_directory(module_file.parent)
+    return manifest_setup_epilog(
+        module_file.parent, deployment_manifest, webserver, port_override, host_override
+    )
+
+
+def manifest_setup_epilog(
+    files_dir: Path,
+    manifest: DeploymentManifest,
+    webserver: SyncWebserver,
+    port_override: Optional[int] = None,
+    host_override: Optional[str] = None,
+) -> DeploymentManifest:
+    """
+    Fills in the URLs and hashes of a deployment manifest,
+    and renames modules to ensure a module entry matches the
+    hash of its target file (which ensures that subsequent
+    versions of the same module won't be mistaken by the device's
+    module cache as a cache hit.)
+    """
+    assert files_dir.is_dir()
+
+    dm = manifest.copy(deep=True)
     host = get_my_ip_by_routing() if not host_override else host_override
     port = webserver.port if not port_override else port_override
-    populate_urls_and_hashes(deployment_manifest, host, port, module_file.parent)
-    make_unique_module_ids(deployment_manifest)
+    populate_urls_and_hashes(dm, host, port, files_dir)
+    make_unique_module_ids(dm)
 
-    return deployment_manifest
+    return dm
 
 
 def make_unique_module_ids(deploy_man: DeploymentManifest) -> None:
