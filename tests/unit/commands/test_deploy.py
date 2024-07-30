@@ -196,6 +196,7 @@ def test_deploy_command_timeout(
             mock_agent_client.return_value.deploy,
             None,
             ANY,
+            ANY,
             timeout,
         )
         mock_deploy_fsm = mock_gen_deploy_fsm.instantiate.return_value
@@ -301,6 +302,7 @@ def test_deploy_forced_webserver(
             None,
             True,
             ANY,
+            ANY,
         )
         mock_deploy_fsm = mock_gen_deploy_fsm.instantiate.return_value
 
@@ -319,6 +321,61 @@ def test_deploy_forced_webserver(
             mock_deploy_fsm,
         )
         assert result.exit_code == 0
+
+
+def test_deploy_forced_webserver_port_override() -> None:
+    # Set a port to check against
+    port_override = 9876
+
+    from local_console.core.schemas.schemas import EVPParams
+    from local_console.core.schemas.schemas import IPAddress
+    from local_console.core.schemas.schemas import MQTTParams
+    from local_console.core.schemas.schemas import TLSConfiguration
+    from local_console.core.schemas.schemas import WebserverParams
+
+    agent_config = AgentConfiguration(
+        evp=EVPParams(
+            iot_platform="evp1",
+        ),
+        webserver=WebserverParams(
+            host=IPAddress(ip_value="1.2.3.4"),
+            port=port_override,
+        ),
+        mqtt=MQTTParams(
+            host=IPAddress(ip_value="127.0.0.1"),
+            port=1883,
+            device_id=None,
+        ),
+        tls=TLSConfiguration(
+            ca_certificate=None,
+            ca_key=None,
+        ),
+    )
+    with (
+        patch("local_console.commands.deploy.is_localhost", return_value=False),
+        patch("local_console.commands.deploy.get_config", return_value=agent_config),
+        patch("local_console.commands.deploy.Agent") as mock_agent_client,
+        patch("local_console.commands.deploy.exec_deployment"),
+        patch("local_console.core.commands.deploy.TimeoutBehavior"),
+        patch("local_console.servers.webserver.threading.Thread") as mock_server_thread,
+        patch(
+            "local_console.commands.deploy.multiple_module_manifest_setup",
+        ) as mock_manifest,
+        patch("pathlib.Path.is_dir") as mock_check_dir,
+        patch("pathlib.Path.write_text"),
+    ):
+        mock_agent_client.return_value.onwire_schema = OnWireProtocol.EVP1
+        mock_manifest.return_value.model_dump.return_value = {}
+
+        result = runner.invoke(app, ["-f"])
+        assert result.exit_code == 0
+
+        mock_agent_client.assert_called_once()
+        mock_check_dir.assert_called_once()
+
+        mock_server_thread.assert_called_once_with(
+            target=ANY, name=f"Webserver_{port_override}"
+        )
 
 
 def test_project_binary_lookup_no_interpreted_wasm(tmp_path):

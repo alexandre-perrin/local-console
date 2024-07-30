@@ -44,11 +44,14 @@ class DeployFSM(ABC):
         deploy_fn: Callable[[DeploymentManifest], Awaitable[None]],
         stage_callback: Optional[Callable[[DeployStage], Awaitable[None]]] = None,
         deploy_webserver: bool = True,
+        webserver_port: int = 0,
         timeout_secs: int = 30,
     ) -> None:
         self.deploy_fn = deploy_fn
         self.stage_callback = stage_callback
-        self.webserver = SyncWebserver(Path(), deploy=deploy_webserver)
+        self.webserver = SyncWebserver(
+            Path(), port=webserver_port, deploy=deploy_webserver
+        )
         self.webserver.start()  # This secures a listening port for the webserver
 
         self.done = trio.Event()
@@ -126,6 +129,7 @@ class DeployFSM(ABC):
         deploy_fn: Callable[[DeploymentManifest], Awaitable[None]],
         stage_callback: Optional[Callable[[DeployStage], Awaitable[None]]] = None,
         deploy_webserver: bool = True,
+        webserver_port_override: int = 0,
         timeout_secs: int = 30,
     ) -> "DeployFSM":
         # This is a factory builder, so only run this from this parent class
@@ -133,11 +137,19 @@ class DeployFSM(ABC):
 
         if onwire_schema == OnWireProtocol.EVP1:
             return EVP1DeployFSM(
-                deploy_fn, stage_callback, deploy_webserver, timeout_secs
+                deploy_fn,
+                stage_callback,
+                deploy_webserver,
+                webserver_port_override,
+                timeout_secs,
             )
         elif onwire_schema == OnWireProtocol.EVP2:
             return EVP2DeployFSM(
-                deploy_fn, stage_callback, deploy_webserver, timeout_secs
+                deploy_fn,
+                stage_callback,
+                deploy_webserver,
+                webserver_port_override,
+                timeout_secs,
             )
 
 

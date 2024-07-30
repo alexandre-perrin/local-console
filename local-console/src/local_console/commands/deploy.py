@@ -97,7 +97,7 @@ def deploy(
     config: AgentConfiguration = get_config()
     local_ip = get_my_ip_by_routing()
 
-    port_override: Optional[int] = None
+    port = 0
     host_override: Optional[str] = None
 
     deploy_webserver = force_webserver
@@ -106,10 +106,15 @@ def deploy(
         deploy_webserver = True
     else:
         host_override = configured_host
-        port_override = config.webserver.port
+        port = config.webserver.port
 
     deploy_fsm = DeployFSM.instantiate(
-        agent.onwire_schema, agent.deploy, None, deploy_webserver, timeout
+        agent.onwire_schema,
+        agent.deploy,
+        None,
+        deploy_webserver,
+        port,
+        timeout,
     )
 
     if empty:
@@ -124,7 +129,7 @@ def deploy(
             deploy_fsm.webserver,
             target,
             signed,
-            port_override,
+            port,
             host_override,
         )
         with open(config_paths.deployment_json, "w") as f:
