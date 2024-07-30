@@ -167,7 +167,7 @@ jobs:
         github_token: ${{ secrets.TEMPORARY_PAT_TOKEN }}
         github_user: ${{ secrets.TEMPORARY_PAT_USER }}
         workflow_file_name: execute-system-tests.yaml
-        ref: DTS-778.updates-from-refactor
+        ref: main
         client_payload: |
           {
             "lc-artifact-name": "${{ needs.wheel.outputs.artifact }}",
