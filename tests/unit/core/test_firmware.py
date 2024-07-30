@@ -311,7 +311,7 @@ async def test_update_firmware_task_valid(tmp_path):
         mock_agent.configure.assert_awaited_once_with(
             "backdoor-EA_Main", "placeholder", payload
         )
-        mock_ota_event.assert_not_awaited()
+        mock_ota_event.assert_awaited_once_with()
         error_notify.assert_not_called()
         assert indicator.progress_download == 100
         assert indicator.progress_update == 100

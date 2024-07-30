@@ -177,15 +177,15 @@ async def update_firmware_task(
                     loop that reacts to reports from the camera, such as
                     `Driver.mqtt_setup`.
                     """
+                    await state.ota_event()
+                    timeout_scope.deadline += timeout_secs
+
                     if state.device_config.value:
                         if progress_update_checkpoint(
                             state.device_config.value, indicator
                         ):
                             logger.debug("Finished updating.")
                             break
-
-                    await state.ota_event()
-                    timeout_scope.deadline += timeout_secs
 
         if timeout_scope.cancelled_caught:
             error_notify("Firmware update timed out!")
