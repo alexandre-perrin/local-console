@@ -132,8 +132,9 @@ def deploy(
             port,
             host_override,
         )
-        with open(config_paths.deployment_json, "w") as f:
-            json.dump(deployment_manifest.model_dump(), f, indent=2)
+        Path(config_paths.deployment_json).write_text(
+            json.dumps(deployment_manifest.model_dump(), indent=2)
+        )
 
     try:
         success = False
