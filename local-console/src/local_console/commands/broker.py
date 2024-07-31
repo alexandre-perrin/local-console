@@ -36,25 +36,17 @@ def broker(
         bool,
         typer.Option("--verbose", "-v", help="Starts the broker in verbose mode"),
     ] = False,
-    server_name: Annotated[
-        str,
-        typer.Argument(
-            help="Server name to assign for TLS server verification, if TLS is enabled"
-        ),
-    ] = "localhost",
 ) -> None:
     logger.setLevel(logging.DEBUG if verbose else logging.INFO)
     config = get_config()
-    trio.run(broker_task, config, verbose, server_name)
+    trio.run(broker_task, config, verbose)
 
 
-async def broker_task(
-    config: AgentConfiguration, verbose: bool, server_name: str
-) -> None:
+async def broker_task(config: AgentConfiguration, verbose: bool) -> None:
     logger.setLevel(logging.INFO)
     async with (
         trio.open_nursery() as nursery,
-        spawn_broker(config, nursery, verbose, server_name),
+        spawn_broker(config, nursery, verbose),
     ):
         try:
             logger.info(f"MQTT broker listening on port {config.mqtt.port}")

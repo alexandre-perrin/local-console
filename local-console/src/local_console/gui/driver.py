@@ -243,7 +243,7 @@ class Driver:
     async def mqtt_setup(self) -> None:
         async with (
             trio.open_nursery() as nursery,
-            spawn_broker(self.config, nursery, False, "nicebroker"),
+            spawn_broker(self.config, nursery, False),
             self.mqtt_client.mqtt_scope(
                 [
                     MQTTTopics.ATTRIBUTES_REQ.value,
