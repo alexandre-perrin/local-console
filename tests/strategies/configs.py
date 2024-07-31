@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-from pathlib import Path
 from socket import inet_ntoa
 from string import printable
 from struct import pack
@@ -29,7 +28,6 @@ from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.core.schemas.schemas import EVPParams
 from local_console.core.schemas.schemas import IPAddress
 from local_console.core.schemas.schemas import MQTTParams
-from local_console.core.schemas.schemas import TLSConfiguration
 from local_console.core.schemas.schemas import WebserverParams
 
 
@@ -172,22 +170,6 @@ def generate_agent_config(draw: st.DrawFn) -> AgentConfiguration:
                     host=IPAddress(ip_value=draw(generate_valid_ip())),
                     port=draw(generate_valid_port_number()),
                 ),
-                tls=TLSConfiguration.model_construct(
-                    ca_certificate=draw(st.none()),
-                    ca_key=draw(st.none()),
-                ),
-            )
-        )
-    )
-
-
-@st.composite
-def generate_tls_config(draw: st.DrawFn) -> TLSConfiguration:
-    return draw(
-        st.just(
-            TLSConfiguration.model_construct(
-                ca_certificate=draw(st.just(Path("ca.crt"))),
-                ca_key=draw(st.just(Path("ca.key"))),
             )
         )
     )

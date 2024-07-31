@@ -132,15 +132,3 @@ local-console qr
 ```
 
 By default, it will use the settings of the CLI. If the MQTT host is set to localhost, it will produce the QR code with the IP address of the externally-accessible interface to the local machine. For other settings, try the `--help` flag.
-
-### Using TLS for MQTT
-
-Local-console supports connecting to the broker (and issuing a client certificate for the device) when the paths to a CA certificate and its private key are registered, by doing:
-
-```sh
-local-console config set tls ca_certificate path/to/ca/certificate_file
-local-console config set tls ca_key path/to/ca/private_key_file
-```
-
-> [!TIP]
-> Don't forget to also update the `mqtt port` setting, as the default `1883` is for unsecured MQTT connections, whereas it is customary to use `8883` for TLS connections.
