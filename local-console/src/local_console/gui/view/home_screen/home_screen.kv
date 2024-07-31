@@ -111,7 +111,7 @@
                 size_hint_y: .1
                 pos_hint:{"center_x": 0.5}
                 halign:"right"
-                on_selected: app.device_manager.set_active_device(args[1]); app.switch_proxy();
+                on_selected: app.driver.device_manager.set_active_device(args[1]); app.switch_proxy();
                 padding: "20dp", "0dp"
                 _selected_device: app.selected
                 canvas.before:

@@ -116,9 +116,9 @@ class LocalConsoleGUIAPP(MDApp):
         assert self.driver
         assert self.driver.device_manager.active_device
         self.selected = self.driver.device_manager.active_device.name
-        self.driver.camera_state = self.device_manager.get_active_device_state()
-        self.driver.mqtt_client = self.device_manager.get_active_mqtt_client()
-        self.mdl = self.device_manager.get_active_device_proxy()
+        self.driver.camera_state = self.driver.device_manager.get_active_device_state()
+        self.driver.mqtt_client = self.driver.device_manager.get_active_mqtt_client()
+        self.mdl = self.driver.device_manager.get_active_device_proxy()
 
 
 class GUIExceptionHandler(ExceptionHandler):
