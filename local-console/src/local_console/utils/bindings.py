@@ -1,14 +1,15 @@
-from local_console.core.camera.state import CameraState
-from local_console.gui.model.camera_proxy import CameraStateProxy
 from pathlib import Path
 from typing import Optional
-from local_console.utils.validation import validate_imx500_model_file
-from local_console.core.camera.enums import OTAUpdateModule
+
 from local_console.core.camera.enums import FirmwareExtension
+from local_console.core.camera.enums import OTAUpdateModule
+from local_console.core.camera.state import CameraState
 from local_console.core.commands.ota_deploy import get_package_hash
+from local_console.gui.model.camera_proxy import CameraStateProxy
+from local_console.utils.validation import validate_imx500_model_file
 
 
-def bind_connections(proxy:CameraStateProxy, camera_state:CameraState):
+def bind_connections(proxy: CameraStateProxy, camera_state: CameraState) -> None:
     proxy.bind_state_to_proxy("local_ip", camera_state)
     proxy.bind_state_to_proxy("mqtt_host", camera_state)
     proxy.bind_state_to_proxy("mqtt_port", camera_state)
@@ -23,12 +24,14 @@ def bind_connections(proxy:CameraStateProxy, camera_state:CameraState):
     # to propagate initialization in `CameraState`
     proxy.bind_state_to_proxy("is_connected", camera_state)
 
-def bind_core_variables(proxy:CameraStateProxy, camera_state:CameraState):
+
+def bind_core_variables(proxy: CameraStateProxy, camera_state: CameraState) -> None:
     proxy.bind_state_to_proxy("is_ready", camera_state)
     proxy.bind_state_to_proxy("is_streaming", camera_state)
     proxy.bind_state_to_proxy("device_config", camera_state)
 
-def bind_stream_variables(proxy:CameraStateProxy, camera_state:CameraState):
+
+def bind_stream_variables(proxy: CameraStateProxy, camera_state: CameraState) -> None:
     # Proxy->State because we want the user to set this value via the GUI
     proxy.bind_proxy_to_state("roi", camera_state)
 
@@ -36,7 +39,8 @@ def bind_stream_variables(proxy:CameraStateProxy, camera_state:CameraState):
     # or from states computed within the GUI code
     proxy.bind_state_to_proxy("stream_status", camera_state)
 
-def bind_ai_model_function(proxy:CameraStateProxy, camera_state:CameraState):
+
+def bind_ai_model_function(proxy: CameraStateProxy, camera_state: CameraState) -> None:
     # Proxy->State because we want the user to set this value via the GUI
     proxy.bind_proxy_to_state("ai_model_file", camera_state, Path)
 
@@ -45,15 +49,15 @@ def bind_ai_model_function(proxy:CameraStateProxy, camera_state:CameraState):
 
     def validate_file(current: Optional[Path], previous: Optional[Path]) -> None:
         if current:
-            camera_state.ai_model_file_valid.value = (
-                validate_imx500_model_file(current)
-            )
+            camera_state.ai_model_file_valid.value = validate_imx500_model_file(current)
 
     camera_state.ai_model_file.subscribe(validate_file)
 
 
-def bind_firmware_file_functions(proxy:CameraStateProxy, camera_state:CameraState) -> None:
-        # Proxy->State because we want the user to set these values via the GUI
+def bind_firmware_file_functions(
+    proxy: CameraStateProxy, camera_state: CameraState
+) -> None:
+    # Proxy->State because we want the user to set these values via the GUI
     proxy.bind_proxy_to_state("firmware_file", camera_state, Path)
     proxy.bind_proxy_to_state("firmware_file_version", camera_state)
     proxy.bind_proxy_to_state("firmware_file_type", camera_state)
@@ -81,11 +85,15 @@ def bind_firmware_file_functions(proxy:CameraStateProxy, camera_state:CameraStat
 
     camera_state.firmware_file.subscribe(validate_file)
 
-def bind_input_directories(proxy:CameraStateProxy, camera_state:CameraState) -> None:
+
+def bind_input_directories(proxy: CameraStateProxy, camera_state: CameraState) -> None:
     proxy.bind_state_to_proxy("image_dir_path", camera_state, str)
     proxy.bind_state_to_proxy("inference_dir_path", camera_state, str)
 
-def bind_vapp_file_functions(proxy:CameraStateProxy, camera_state:CameraState) -> None:
+
+def bind_vapp_file_functions(
+    proxy: CameraStateProxy, camera_state: CameraState
+) -> None:
     proxy.bind_proxy_to_state("vapp_config_file", camera_state)
     proxy.bind_proxy_to_state("vapp_labels_file", camera_state)
     proxy.bind_proxy_to_state("vapp_type", camera_state)
@@ -97,7 +105,10 @@ def bind_vapp_file_functions(proxy:CameraStateProxy, camera_state:CameraState) -
     # so data binding must be state-->proxy.
     proxy.bind_state_to_proxy("vapp_labels_map", camera_state, str)
 
-def bind_app_module_functions(proxy:CameraStateProxy, camera_state:CameraState) -> None:
+
+def bind_app_module_functions(
+    proxy: CameraStateProxy, camera_state: CameraState
+) -> None:
     # State->Proxy because these are either read from the device state
     # or from states computed within the camera tracking
     proxy.bind_state_to_proxy("deploy_status", camera_state)

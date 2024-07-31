@@ -41,6 +41,7 @@ from local_console.core.schemas.edge_cloud_if_v1 import Permission
 from local_console.core.schemas.edge_cloud_if_v1 import SetFactoryReset
 from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
 from local_console.core.schemas.schemas import DesiredDeviceConfig
+from local_console.gui.device_manager import DeviceManager
 from local_console.gui.drawer.classification import ClassificationDrawer
 from local_console.gui.drawer.objectdetection import DetectionDrawer
 from local_console.gui.enums import ApplicationConfiguration
@@ -51,19 +52,19 @@ from local_console.gui.utils.sync_async import run_on_ui_thread
 from local_console.gui.utils.sync_async import SyncAsyncBridge
 from local_console.servers.broker import spawn_broker
 from local_console.servers.webserver import AsyncWebserver
+from local_console.utils.bindings import bind_ai_model_function
+from local_console.utils.bindings import bind_app_module_functions
+from local_console.utils.bindings import bind_connections
+from local_console.utils.bindings import bind_core_variables
+from local_console.utils.bindings import bind_firmware_file_functions
+from local_console.utils.bindings import bind_input_directories
+from local_console.utils.bindings import bind_stream_variables
+from local_console.utils.bindings import bind_vapp_file_functions
 from local_console.utils.fstools import check_and_create_directory
 from local_console.utils.fstools import DirectoryMonitor
 from local_console.utils.fstools import StorageSizeWatcher
 from local_console.utils.local_network import get_my_ip_by_routing
 from local_console.utils.timing import TimeoutBehavior
-from local_console.utils.bindings import bind_connections
-from local_console.utils.bindings import bind_core_variables
-from local_console.utils.bindings import bind_stream_variables
-from local_console.utils.bindings import bind_ai_model_function
-from local_console.utils.bindings import bind_firmware_file_functions
-from local_console.utils.bindings import bind_input_directories
-from local_console.utils.bindings import bind_vapp_file_functions
-from local_console.utils.bindings import bind_app_module_functions
 
 
 logger = logging.getLogger(__name__)
@@ -74,6 +75,7 @@ class Driver:
         self.gui = gui
         self.config = get_config()
         self.mqtt_client = Agent(self.config)
+        self.device_manager = DeviceManager()
         self.upload_port = 0
         self.temporary_base: Optional[Path] = None
         self.temporary_image_directory: Optional[Path] = None
@@ -118,10 +120,10 @@ class Driver:
 
     def _init_connection(self) -> None:
         bind_connections(self.gui.mdl, self.camera_state)
-    
+
     def _init_core_variables(self) -> None:
         bind_core_variables(self.gui.mdl, self.camera_state)
-        
+
     def _init_stream_variables(self) -> None:
         bind_stream_variables(self.gui.mdl, self.camera_state)
 

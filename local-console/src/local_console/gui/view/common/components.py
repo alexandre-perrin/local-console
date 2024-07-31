@@ -35,8 +35,6 @@ from kivy.uix.codeinput import CodeInput
 from kivy.uix.image import Image
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDButton
-from kivymd.uix.label import MDLabel
-
 from kivymd.uix.dropdownitem import MDDropDownItem
 from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.menu import MDDropdownMenu
@@ -50,10 +48,10 @@ from local_console.core.camera.axis_mapping import get_dead_zone_within_image
 from local_console.core.camera.axis_mapping import get_dead_zone_within_widget
 from local_console.core.camera.axis_mapping import get_normalized_center_subregion
 from local_console.core.camera.axis_mapping import snap_point_in_deadzone
+from local_console.core.schemas.schemas import DeviceListItem
 from local_console.gui.enums import ApplicationType
 from local_console.gui.enums import FirmwareType
 from local_console.gui.view.common.behaviors import HoverBehavior
-from local_console.core.schemas.schemas import DeviceListItem
 
 logger = logging.getLogger(__name__)
 
@@ -721,6 +719,7 @@ class DeviceItem(MDBoxLayout):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
+
 class DeviceDropDownList(MDBoxLayout):
     SELECTED_EVENT: str = "on_selected"
 
@@ -730,7 +729,9 @@ class DeviceDropDownList(MDBoxLayout):
         super().__init__(**kwargs)
         self.register_event_type(self.SELECTED_EVENT)
 
-    def open_menu(self, devices_items:list[DeviceListItem], widget:MDDropDownItem) -> None:
+    def open_menu(
+        self, devices_items: list[DeviceListItem], widget: MDDropDownItem
+    ) -> None:
         menu_items = [
             {
                 "text": device.name,
@@ -741,7 +742,7 @@ class DeviceDropDownList(MDBoxLayout):
 
         self.menu = MDDropdownMenu(items=menu_items)
 
-        self.menu.caller = widget    
+        self.menu.caller = widget
         self.menu.open()
 
     def set_type(self, type_item: str) -> None:

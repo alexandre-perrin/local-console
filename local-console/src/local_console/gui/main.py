@@ -59,7 +59,6 @@ from local_console.gui.driver import Driver
 from local_console.gui.model.camera_proxy import CameraStateProxy
 from local_console.gui.view.screens import screen_dict
 from local_console.gui.view.screens import start_screen
-from local_console.gui.device_manager import DeviceManager
 
 
 logger = logging.getLogger(__name__)
@@ -69,11 +68,10 @@ class LocalConsoleGUIAPP(MDApp):
     driver = None
     mdl = ObjectProperty(CameraStateProxy, rebind=True)
     selected = StringProperty("")
-    device_manager=None
 
     async def app_main(self) -> None:
         self.driver = Driver(self)
-        if self.device_manager.active_device!=None:
+        if self.driver.device_manager.active_device is not None:
             self.switch_proxy()
         await self.driver.main()
 
@@ -83,7 +81,6 @@ class LocalConsoleGUIAPP(MDApp):
         self.load_all_kv_files(self.directory)
         self.manager_screens = MDScreenManager()
         self.views: dict[str, type[MDScreen]] = {}
-        self.device_manager = DeviceManager()
         configure()
 
     def build(self) -> MDScreenManager:
@@ -115,8 +112,10 @@ class LocalConsoleGUIAPP(MDApp):
     ) -> None:
         self.manager_screens.current_screen.display_error(text, support_text, duration)
 
-    def switch_proxy(self):
-        self.selected = self.device_manager.active_device.name
+    def switch_proxy(self) -> None:
+        assert self.driver
+        assert self.driver.device_manager.active_device
+        self.selected = self.driver.device_manager.active_device.name
         self.driver.camera_state = self.device_manager.get_active_device_state()
         self.driver.mqtt_client = self.device_manager.get_active_mqtt_client()
         self.mdl = self.device_manager.get_active_device_proxy()
