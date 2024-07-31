@@ -47,9 +47,9 @@ def qr(
         typer.Option(help="TCP port on which the MQTT broker is listening"),
     ] = None,
     enable_tls: Annotated[
-        Optional[bool],
-        typer.Option(help="Whether to connect using TLS"),
-    ] = None,
+        bool,
+        typer.Option("--tls", "-t", help="Whether to connect using TLS"),
+    ] = False,
     ntp_server: Annotated[
         str,
         typer.Option(help="NTP server to connect to for time synchronization"),
@@ -63,7 +63,7 @@ def qr(
     config = get_config()
     host = config.mqtt.host.ip_value if not host else host
     port = config.mqtt.port if port is None else port
-    tls_enabled = config.is_tls_enabled if enable_tls is None else enable_tls
+    tls_enabled = enable_tls
 
     local_ip = get_my_ip_by_routing()
     if is_localhost(host) or host == local_ip:
