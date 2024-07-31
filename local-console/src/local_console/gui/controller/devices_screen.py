@@ -43,7 +43,7 @@ class DevicesScreenController:
         self.model = model
         self.driver = driver
         self.view = DevicesScreenView(controller=self, model=self.model)
-        self.device_manager: DeviceManager = self.driver.device_manager
+        self.device_manager: DeviceManager = self.driver.gui.device_manager
 
         self.restore_device_list(self.device_manager.get_device_config())
 
@@ -104,6 +104,10 @@ class DevicesScreenController:
         # Save device list into device configuration
         self.device_manager.add_device(DeviceListItem(name=name, port=port))
 
+        if self.device_manager.num_devices==1:
+            self.device_manager.set_active_device(name)
+            self.driver.gui.switch_proxy() 
+
     def validate_new_device(self, name: str, port: str, device_list: list) -> bool:
         if not name or not port:
             self.view.display_error("Please input name and port for new device.")
@@ -144,3 +148,7 @@ class DevicesScreenController:
         for device in remove_devices:
             self.view.ids.box_device_list.remove_widget(device)
             self.device_manager.remove_device(device.name)
+        
+        if self.driver.gui.device_manager.num_devices==1:
+            self.device_manager.set_active_device(device_list[0].name)
+            self.driver.gui.switch_proxy() 

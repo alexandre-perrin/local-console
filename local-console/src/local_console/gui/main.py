@@ -50,6 +50,7 @@ from typing import Optional
 from kivy.base import ExceptionHandler
 from kivy.base import ExceptionManager
 from kivy.properties import ObjectProperty
+from kivy.properties import StringProperty
 from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.screenmanager import MDScreenManager
@@ -58,16 +59,22 @@ from local_console.gui.driver import Driver
 from local_console.gui.model.camera_proxy import CameraStateProxy
 from local_console.gui.view.screens import screen_dict
 from local_console.gui.view.screens import start_screen
+from local_console.gui.device_manager import DeviceManager
+
 
 logger = logging.getLogger(__name__)
 
 
 class LocalConsoleGUIAPP(MDApp):
     driver = None
-    mdl = ObjectProperty(CameraStateProxy)
+    mdl = ObjectProperty(CameraStateProxy, rebind=True)
+    selected = StringProperty("")
+    device_manager=None
 
     async def app_main(self) -> None:
         self.driver = Driver(self)
+        if self.device_manager.active_device!=None:
+            self.switch_proxy()
         await self.driver.main()
 
     def __init__(self, **kwargs: Any) -> None:
@@ -76,6 +83,7 @@ class LocalConsoleGUIAPP(MDApp):
         self.load_all_kv_files(self.directory)
         self.manager_screens = MDScreenManager()
         self.views: dict[str, type[MDScreen]] = {}
+        self.device_manager = DeviceManager()
         configure()
 
     def build(self) -> MDScreenManager:
@@ -106,6 +114,12 @@ class LocalConsoleGUIAPP(MDApp):
         self, text: str, support_text: Optional[str] = None, duration: int = 5
     ) -> None:
         self.manager_screens.current_screen.display_error(text, support_text, duration)
+
+    def switch_proxy(self):
+        self.selected = self.device_manager.active_device.name
+        self.driver.camera_state = self.device_manager.get_active_device_state()
+        self.driver.mqtt_client = self.device_manager.get_active_mqtt_client()
+        self.mdl = self.device_manager.get_active_device_proxy()
 
 
 class GUIExceptionHandler(ExceptionHandler):
