@@ -24,6 +24,10 @@ from local_console.core.schemas.schemas import DeviceListItem
 from local_console.gui.device_manager import DeviceManager
 from local_console.gui.controller.devices_screen import DevicesScreenController
 from local_console.gui.model.devices_screen import DevicesScreenModel
+from local_console.core.camera.state import CameraState
+from local_console.gui.model.camera_proxy import CameraStateProxy
+from local_console.clients.agent import Agent
+
 from pytest import mark
 
 
@@ -187,11 +191,11 @@ def test_remove_device_no_device_selected(device_list, error_message):
         ctrl = DevicesScreenController(model, mock_driver)
 
         ctrl.view.ids.box_device_list.children = device_list
-        ctrl.device_manager.remove_device = MagicMock()
+        ctrl.driver.device_manager.remove_device = MagicMock()
 
         ctrl.remove_device()
         ctrl.view.display_error.assert_called_once_with(error_message)
-        ctrl.device_manager.remove_device.assert_not_called()
+        ctrl.driver.device_manager.remove_device.assert_not_called()
 
 
 def test_remove_device():
@@ -205,9 +209,9 @@ def test_remove_device():
         device_list = [device1]
         ctrl.view.ids.box_device_list.children = device_list
 
-        ctrl.device_manager.remove_device = MagicMock()
+        ctrl.driver.device_manager.remove_device = MagicMock()
         ctrl.remove_device()
-        ctrl.device_manager.remove_device.assert_called_once_with(device1.name)
+        ctrl.driver.device_manager.remove_device.assert_called_once_with(device1.name)
 
 
 def test_devices_screen():
@@ -240,6 +244,9 @@ def test_device_manager():
         patch("local_console.gui.device_manager.add_device_to_config") as mock_add_dev,
         patch("local_console.gui.device_manager.get_device_configs") as mock_get_dev,
         patch("local_console.gui.device_manager.remove_device_config") as mock_remove,
+        patch(
+            "local_console.gui.device_manager.DeviceManager.bind_state_proxy"
+        ) as mock_add_internals,
     ):
         device_manager = DeviceManager()
 
@@ -247,12 +254,20 @@ def test_device_manager():
 
         device_manager.add_device(device)
         mock_add_dev.assert_called_once()
+        mock_add_internals.assert_called_once()
+        assert len(device_manager.proxies_factory) == device_manager.num_devices
+        assert len(device_manager.state_factory) == device_manager.num_devices
+        assert len(device_manager.agent_factory) == device_manager.num_devices
 
         device_manager.remove_device(device.name)
         mock_remove.assert_called_once()
 
+        assert len(device_manager.proxies_factory) == device_manager.num_devices
+        assert len(device_manager.state_factory) == device_manager.num_devices
+        assert len(device_manager.agent_factory) == device_manager.num_devices
+
         device_manager.get_device_config()
-        mock_get_dev.assert_called_once()
+        assert mock_get_dev.call_count == 3
 
 
 def test_device_manager_with_config():
@@ -277,6 +292,14 @@ def test_device_manager_with_config():
         device_manager.add_device(device1)
         device_items = device_manager.get_device_config()
         assert device_items[0] == device1
+        device_manager.set_active_device(device1.name)
+
+        state_1 = device_manager.get_active_device_state()
+        assert isinstance(state_1, CameraState)
+        proxy_1 = device_manager.get_active_device_proxy()
+        assert isinstance(proxy_1, CameraStateProxy)
+        mqtt_1 = device_manager.get_active_mqtt_client()
+        assert isinstance(mqtt_1, Agent)
 
         device_manager.add_device(device2)
         device_manager.add_device(device3)
@@ -284,6 +307,15 @@ def test_device_manager_with_config():
         assert device_items[0] == device1
         assert device_items[1] == device2
         assert device_items[2] == device3
+
+        device_manager.set_active_device(device2.name)
+
+        state_2 = device_manager.get_active_device_state()
+        assert state_2 != state_1
+        proxy_2 = device_manager.get_active_device_proxy()
+        assert proxy_2 != proxy_1
+        mqtt_2 = device_manager.get_active_mqtt_client()
+        assert mqtt_2 != mqtt_1
 
         device_manager.remove_device(device2.name)
         device_items = device_manager.get_device_config()

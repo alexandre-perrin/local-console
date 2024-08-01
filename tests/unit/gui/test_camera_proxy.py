@@ -16,8 +16,14 @@
 from pathlib import Path
 
 from hypothesis import given
+from local_console.core.camera.enums import DeploymentType
+from local_console.core.camera.enums import DeployStage
+from local_console.core.camera.enums import OTAUpdateModule
+from local_console.core.camera.enums import StreamStatus
 from local_console.core.camera.state import CameraState
+from local_console.core.config import get_config
 from local_console.gui.model.camera_proxy import CameraStateProxy
+from local_console.utils.local_network import get_my_ip_by_routing
 
 from tests.strategies.configs import generate_valid_device_configuration
 
@@ -70,6 +76,122 @@ def test_proxy_to_state_binding():
     # The value must have been set in the camera state's variable
     assert camera_state.ai_model_file.value == some_path
     assert camera_state.ai_model_file.previous is None
+
+
+def test_bind_connections():
+
+    camera_proxy = CameraStateProxy()
+    camera_state = CameraState()
+
+    camera_proxy.bind_connections(camera_state)
+    camera_state.initialize_connection_variables(get_config())
+
+    # The value must have been set in the camera state's variable
+    assert camera_proxy.local_ip == get_my_ip_by_routing()
+    assert camera_proxy.mqtt_host == "localhost"
+    assert camera_proxy.mqtt_port == "1883"
+    assert camera_proxy.ntp_host == "pool.ntp.org"
+    assert camera_proxy.ip_address == ""
+    assert camera_proxy.subnet_mask == ""
+    assert camera_proxy.gateway == ""
+    assert camera_proxy.dns_server == ""
+    assert camera_proxy.wifi_ssid == ""
+    assert camera_proxy.wifi_password == ""
+    assert not camera_proxy.is_connected
+
+
+def test_bind_core_variables():
+    camera_proxy = CameraStateProxy()
+    camera_state = CameraState()
+
+    camera_proxy.bind_core_variables(camera_state)
+    camera_state.is_ready.value = True
+
+    # The value must have been set in the camera state's variable
+    assert camera_proxy.is_ready
+    assert not camera_proxy.is_streaming
+    assert camera_proxy.device_config is not None
+
+
+def test_bind_stream_variables():
+    camera_proxy = CameraStateProxy()
+    camera_state = CameraState()
+
+    camera_proxy.bind_stream_variables(camera_state)
+
+    camera_proxy.roi = ((0, 0), (0.5, 0.5))
+    camera_state.stream_status.value = StreamStatus.Active
+
+    assert camera_state.roi.value == camera_proxy.roi
+    assert camera_proxy.stream_status == StreamStatus.Active
+
+
+def test_bind_ai_model_function():
+    camera_proxy = CameraStateProxy()
+    camera_state = CameraState()
+
+    camera_proxy.bind_ai_model_function(camera_state)
+
+    camera_proxy.ai_model_file = str(Path("testing_path"))
+    camera_state.ai_model_file_valid = True
+
+    assert camera_state.ai_model_file.value == Path("testing_path")
+    assert not camera_proxy.ai_model_file_valid
+
+
+def test_bind_firmware_file_functions():
+    camera_proxy = CameraStateProxy()
+    camera_state = CameraState()
+
+    camera_proxy.bind_firmware_file_functions(camera_state)
+
+    camera_state.firmware_file_valid.value = True
+
+    camera_proxy.firmware_file = str(Path("testing_path"))
+    camera_proxy.firmware_file_version = "0.0.0"
+    camera_proxy.firmware_file_type = OTAUpdateModule.APFW
+
+    assert camera_state.firmware_file.value == Path("testing_path")
+    assert camera_state.firmware_file_version.value == "0.0.0"
+    assert camera_state.firmware_file_type.value == OTAUpdateModule.APFW
+    assert not camera_proxy.firmware_file_valid
+    assert camera_proxy.firmware_file_hash == ""
+
+
+def test_bind_vapp_file_functions():
+    camera_proxy = CameraStateProxy()
+    camera_state = CameraState()
+
+    camera_proxy.bind_vapp_file_functions(camera_state)
+
+    camera_proxy.vapp_config_file = Path("testing_path")
+    camera_proxy.vapp_labels_file = Path("testing_path")
+    camera_proxy.vapp_type = "type_test"
+
+    camera_state.vapp_labels_map.value = {0: "test"}
+
+    assert camera_state.vapp_config_file.value == Path("testing_path")
+    assert camera_state.vapp_labels_file.value == Path("testing_path")
+    assert camera_state.vapp_type.value == "type_test"
+    assert camera_proxy.vapp_labels_map == str({0: "test"})
+
+
+def test_bind_app_module_functions():
+    camera_proxy = CameraStateProxy()
+    camera_state = CameraState()
+
+    camera_proxy.bind_app_module_functions(camera_state)
+
+    camera_state.deploy_status.value = {0: "test"}
+    camera_state.deploy_stage.value = DeployStage.WaitAppliedConfirmation
+    camera_state.deploy_operation.value = DeploymentType.Application
+
+    camera_proxy.module_file = str(Path("test_path"))
+
+    assert camera_proxy.deploy_stage == DeployStage.WaitAppliedConfirmation
+    assert camera_proxy.deploy_status == {0: "test"}
+    assert camera_proxy.deploy_operation == DeploymentType.Application
+    assert camera_state.module_file.value == Path("test_path")
 
 
 @given(generate_valid_device_configuration())
