@@ -64,6 +64,8 @@ class CameraStatePersister(BaseModel):
     """
 
     module_file: str | None = None
+    ai_model_file: str | None = None
+    ai_model_file_valid: bool = False
 
 
 class CameraState:
@@ -248,6 +250,8 @@ class CameraState:
     def _create_persister(self) -> CameraStatePersister:
         return CameraStatePersister(
             module_file=str(self.module_file.value),
+            ai_model_file=str(self.ai_model_file.value),
+            ai_model_file_valid=bool(self.ai_model_file_valid.value),
         )
 
     def _register_persistency(self, device_name: str) -> None:
@@ -258,6 +262,7 @@ class CameraState:
 
         # List of attributes that trigger persistency
         self.module_file.subscribe(save_configuration)
+        self.ai_model_file.subscribe(save_configuration)
 
     def _update_from_persistency(self, device_name: str) -> None:
         # TODO: handle error
@@ -267,6 +272,9 @@ class CameraState:
         # Update attributes from persistent configuration
         if config.module_file:
             self.module_file.value = Path(config.module_file)
+        if config.ai_model_file:
+            self.ai_model_file.value = Path(config.ai_model_file)
+            self.ai_model_file_valid.value = config.ai_model_file_valid
 
     def initialize_persistency(self, device_name: str) -> None:
         self._update_from_persistency(device_name)
