@@ -306,6 +306,24 @@ def get_device_configs() -> list[DeviceListItem]:
     return device_items
 
 
+def update_device_persistent_config(device_name: str, config: dict) -> None:
+    config_fp = config_paths.config_path.parent / device_name / "config.json"
+    with open(config_fp) as f:
+        device_config = json.load(f)
+
+    device_config["persistency"] = config
+
+    with open(config_fp, "w") as f:
+        json.dump(device_config, f, indent=2)
+
+
+def get_device_persistent_config(device_name: str) -> dict:
+    config_fp = config_paths.config_path.parent / device_name / "config.json"
+    with open(config_fp) as f:
+        config: dict = json.load(f)
+        return config.get("persistency", {})  # type: ignore
+
+
 def remove_device_config(device_name: str) -> None:
     """
     This function removes the given device from the global config

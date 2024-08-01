@@ -66,6 +66,7 @@ class DeviceManager:
         config: AgentConfiguration = get_config()
         config.mqtt.port = int(device.port)
         self.state_factory[device.name].initialize_connection_variables(config)
+        self.state_factory[device.name].initialize_persistency(device.name)
 
     def add_device(self, device: DeviceListItem) -> None:
         add_device_to_config(device)
