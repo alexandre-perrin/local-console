@@ -24,14 +24,6 @@ from local_console.core.config import remove_device_config
 from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.core.schemas.schemas import DeviceListItem
 from local_console.gui.model.camera_proxy import CameraStateProxy
-from local_console.utils.bindings import bind_ai_model_function
-from local_console.utils.bindings import bind_app_module_functions
-from local_console.utils.bindings import bind_connections
-from local_console.utils.bindings import bind_core_variables
-from local_console.utils.bindings import bind_firmware_file_functions
-from local_console.utils.bindings import bind_input_directories
-from local_console.utils.bindings import bind_stream_variables
-from local_console.utils.bindings import bind_vapp_file_functions
 
 logger = logging.getLogger(__name__)
 
@@ -99,11 +91,11 @@ class DeviceManager:
     def bind_state_proxy(
         self, proxy: CameraStateProxy, camera_state: CameraState
     ) -> None:
-        bind_core_variables(proxy, camera_state)
-        bind_stream_variables(proxy, camera_state)
-        bind_connections(proxy, camera_state)
-        bind_ai_model_function(proxy, camera_state)
-        bind_firmware_file_functions(proxy, camera_state)
-        bind_input_directories(proxy, camera_state)
-        bind_vapp_file_functions(proxy, camera_state)
-        bind_app_module_functions(proxy, camera_state)
+        proxy.bind_core_variables(camera_state)
+        proxy.bind_stream_variables(camera_state)
+        proxy.bind_connections(camera_state)
+        proxy.bind_ai_model_function(camera_state)
+        proxy.bind_firmware_file_functions(camera_state)
+        proxy.bind_input_directories(camera_state)
+        proxy.bind_vapp_file_functions(camera_state)
+        proxy.bind_app_module_functions(camera_state)

@@ -52,14 +52,6 @@ from local_console.gui.utils.sync_async import run_on_ui_thread
 from local_console.gui.utils.sync_async import SyncAsyncBridge
 from local_console.servers.broker import spawn_broker
 from local_console.servers.webserver import AsyncWebserver
-from local_console.utils.bindings import bind_ai_model_function
-from local_console.utils.bindings import bind_app_module_functions
-from local_console.utils.bindings import bind_connections
-from local_console.utils.bindings import bind_core_variables
-from local_console.utils.bindings import bind_firmware_file_functions
-from local_console.utils.bindings import bind_input_directories
-from local_console.utils.bindings import bind_stream_variables
-from local_console.utils.bindings import bind_vapp_file_functions
 from local_console.utils.fstools import check_and_create_directory
 from local_console.utils.fstools import DirectoryMonitor
 from local_console.utils.fstools import StorageSizeWatcher
@@ -119,30 +111,30 @@ class Driver:
         self.camera_state.initialize_connection_variables(self.config)
 
     def _init_connection(self) -> None:
-        bind_connections(self.gui.mdl, self.camera_state)
+        self.gui.mdl.bind_connections(self.camera_state)
 
     def _init_core_variables(self) -> None:
-        bind_core_variables(self.gui.mdl, self.camera_state)
+        self.gui.mdl.bind_core_variables(self.camera_state)
 
     def _init_stream_variables(self) -> None:
-        bind_stream_variables(self.gui.mdl, self.camera_state)
+        self.gui.mdl.bind_stream_variables(self.camera_state)
 
     def _init_ai_model_functions(self) -> None:
-        bind_ai_model_function(self.gui.mdl, self.camera_state)
+        self.gui.mdl.bind_ai_model_function(self.camera_state)
 
     def _init_firmware_file_functions(self) -> None:
-        bind_firmware_file_functions(self.gui.mdl, self.camera_state)
+        self.gui.mdl.bind_firmware_file_functions(self.camera_state)
 
     def _init_input_directories(self) -> None:
-        bind_input_directories(self.gui.mdl, self.camera_state)
+        self.gui.mdl.bind_input_directories(self.camera_state)
         self.camera_state.image_dir_path.subscribe(self.input_directory_setup)
         self.camera_state.inference_dir_path.subscribe(self.input_directory_setup)
 
     def _init_vapp_file_functions(self) -> None:
-        bind_vapp_file_functions(self.gui.mdl, self.camera_state)
+        self.gui.mdl.bind_vapp_file_functions(self.camera_state)
 
     def _init_app_module_functions(self) -> None:
-        bind_app_module_functions(self.gui.mdl, self.camera_state)
+        self.gui.mdl.bind_app_module_functions(self.camera_state)
 
     @property
     def evp1_mode(self) -> bool:
