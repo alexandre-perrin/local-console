@@ -46,7 +46,8 @@ class AIModelScreenController:
         return self.view
 
     def deploy(self) -> None:
-        self.view.update_camera_status = False
+        assert self.driver.camera_state
+
         self.driver.from_sync(
             deployment_task,
             self.driver.camera_state,

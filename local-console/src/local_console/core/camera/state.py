@@ -27,6 +27,7 @@ from local_console.clients.agent import Agent
 from local_console.core.camera.axis_mapping import UnitROI
 from local_console.core.camera.enums import DeploymentType
 from local_console.core.camera.enums import DeployStage
+from local_console.core.camera.enums import FirmwareExtension
 from local_console.core.camera.enums import MQTTTopics
 from local_console.core.camera.enums import OTAUpdateModule
 from local_console.core.camera.enums import StreamStatus
@@ -34,15 +35,23 @@ from local_console.core.commands.deploy import deploy_status_empty
 from local_console.core.commands.deploy import DeployFSM
 from local_console.core.commands.deploy import single_module_manifest_setup
 from local_console.core.commands.deploy import verify_report
+from local_console.core.commands.ota_deploy import get_package_hash
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.gui.enums import ApplicationConfiguration
+from local_console.utils.fstools import check_and_create_directory
+from local_console.utils.fstools import DirectoryMonitor
+from local_console.utils.fstools import StorageSizeWatcher
 from local_console.utils.local_network import get_my_ip_by_routing
+from local_console.utils.timing import TimeoutBehavior
 from local_console.utils.tracking import TrackingVariable
+from local_console.utils.validation import validate_imx500_model_file
 from pydantic import ValidationError
 
 logger = logging.getLogger(__name__)
+
+MessageType = tuple[str, str]
 
 
 class CameraState:
@@ -66,9 +75,15 @@ class CameraState:
     MAX_LEN_WIFI_SSID = int(32)
     MAX_LEN_WIFI_PASSWORD = int(32)
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        message_send_channel: trio.MemorySendChannel[MessageType],
+        nursery: trio.Nursery,
+        trio_token: trio.lowlevel.TrioToken,
+    ) -> None:
 
-        self._nursery: Optional[trio.Nursery] = None
+        self._nursery: Optional[trio.Nursery] = nursery
+        self.trio_token: trio.lowlevel.TrioToken = trio_token
         self._onwire_schema: Optional[OnWireProtocol] = None
         self._last_reception: Optional[datetime] = None
 
@@ -121,6 +136,18 @@ class CameraState:
         self.deploy_operation: TrackingVariable[DeploymentType] = TrackingVariable()
         self._deploy_fsm: Optional[DeployFSM] = None
 
+        self.total_dir_watcher = StorageSizeWatcher()
+        self.dir_monitor = DirectoryMonitor()
+
+        self.connection_status = TimeoutBehavior(
+            CameraState.CONNECTION_STATUS_TIMEOUT.seconds,
+            self.connection_status_timeout,
+        )
+        self.connection_status.spawn_in(self._nursery)
+
+        self.message_send_channel: trio.MemorySendChannel[MessageType] = (
+            message_send_channel
+        )
         self._init_bindings()
 
     def _init_bindings(self) -> None:
@@ -157,8 +184,54 @@ class CameraState:
         self.deploy_status.subscribe_async(self._on_deploy_status)
         self.deploy_operation.subscribe_async(self._on_deployment_operation)
 
-    def set_nursery(self, nursery: trio.Nursery) -> None:
-        self._nursery = nursery
+        def validate_fw_file(current: Optional[Path], previous: Optional[Path]) -> None:
+            if current:
+                is_valid = True
+                if self.firmware_file_type.value == OTAUpdateModule.APFW:
+                    if current.suffix != FirmwareExtension.APPLICATION_FW:
+                        is_valid = False
+                else:
+                    if current.suffix != FirmwareExtension.SENSOR_FW:
+                        is_valid = False
+
+                self.firmware_file_hash.value = (
+                    get_package_hash(current) if is_valid else ""
+                )
+                self.firmware_file_valid.value = is_valid
+
+        self.firmware_file.subscribe(validate_fw_file)
+
+        self.image_dir_path.subscribe(self.input_directory_setup)
+        self.inference_dir_path.subscribe(self.input_directory_setup)
+
+        def validate_ai_model_file(
+            current: Optional[Path], previous: Optional[Path]
+        ) -> None:
+            if current:
+                self.ai_model_file_valid.value = validate_imx500_model_file(current)
+
+        self.ai_model_file.subscribe(validate_ai_model_file)
+
+    def input_directory_setup(
+        self, current: Optional[Path], previous: Optional[Path]
+    ) -> None:
+        assert current
+
+        check_and_create_directory(current)
+        if previous:
+            self.total_dir_watcher.unwatch_path(previous)
+        self.total_dir_watcher.set_path(current)
+
+        self.dir_monitor.watch(current, self.notify_directory_deleted)
+        if previous:
+            self.dir_monitor.unwatch(previous)
+
+    def notify_directory_deleted(self, dir_path: Path) -> None:
+        trio.from_thread.run(
+            self.message_send_channel.send,
+            ("error", str(dir_path) + " does not exist."),
+            trio_token=self.trio_token,
+        )
 
     async def _on_deploy_status(
         self, current: Optional[dict[str, Any]], previous: Optional[dict[str, Any]]
@@ -212,6 +285,10 @@ class CameraState:
         self._deploy_fsm.set_manifest(manifest)
         await self.deploy_operation.aset(DeploymentType.Application)
 
+    async def connection_status_timeout(self) -> None:
+        logger.debug("Connection status timed out: camera is disconnected")
+        self.stream_status.value = StreamStatus.Inactive
+
     def initialize_connection_variables(self, config: AgentConfiguration) -> None:
         self.local_ip.value = get_my_ip_by_routing()
         self.mqtt_host.value = config.mqtt.host.ip_value
@@ -251,6 +328,8 @@ class CameraState:
         if sent_from_camera:
             self._last_reception = datetime.now()
             logger.debug("Incoming on %s: %s", topic, str(payload))
+
+        self.connection_status.tap()
 
     async def _process_state_topic(self, payload: dict[str, Any]) -> None:
         firmware_is_supported = False

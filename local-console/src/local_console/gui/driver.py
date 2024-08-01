@@ -29,12 +29,12 @@ from local_console.clients.agent import check_attributes_request
 from local_console.core.camera.axis_mapping import pixel_roi_from_normals
 from local_console.core.camera.axis_mapping import UnitROI
 from local_console.core.camera.enums import MQTTTopics
-from local_console.core.camera.enums import StreamStatus
 from local_console.core.camera.flatbuffers import add_class_names
 from local_console.core.camera.flatbuffers import flatbuffer_binary_to_json
 from local_console.core.camera.flatbuffers import FlatbufferError
 from local_console.core.camera.flatbuffers import get_output_from_inference_results
 from local_console.core.camera.state import CameraState
+from local_console.core.camera.state import MessageType
 from local_console.core.config import get_config
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.edge_cloud_if_v1 import Permission
@@ -53,9 +53,8 @@ from local_console.gui.utils.sync_async import SyncAsyncBridge
 from local_console.servers.broker import spawn_broker
 from local_console.servers.webserver import AsyncWebserver
 from local_console.utils.fstools import check_and_create_directory
-from local_console.utils.fstools import DirectoryMonitor
-from local_console.utils.fstools import StorageSizeWatcher
 from local_console.utils.local_network import get_my_ip_by_routing
+from local_console.utils.local_network import LOCAL_IP
 from local_console.utils.timing import TimeoutBehavior
 
 
@@ -67,18 +66,18 @@ class Driver:
         self.gui = gui
         self.config = get_config()
         self.mqtt_client = Agent(self.config)
-        self.device_manager = DeviceManager()
         self.upload_port = 0
         self.temporary_base: Optional[Path] = None
         self.temporary_image_directory: Optional[Path] = None
         self.temporary_inference_directory: Optional[Path] = None
-        self.total_dir_watcher = StorageSizeWatcher()
         self.latest_image_file: Optional[Path] = None
         # Used to identify if output tensors are missing
         self.consecutives_images = 0
+        self.send_channel: trio.MemorySendChannel[MessageType] | None = None
+        self.receive_channel: trio.MemoryReceiveChannel[MessageType] | None = None
 
-        self.camera_state = CameraState()
-        self.camera_state.device_config.subscribe_async(self.process_factory_reset)
+        self.device_manager: Optional[DeviceManager] = None
+        self.camera_state: Optional[CameraState] = None
 
         # This takes care of ensuring the device reports its state
         # with bounded periodicity (expect to receive a message within 6 seconds)
@@ -88,53 +87,12 @@ class Driver:
         # This timeout behavior takes care of updating the connectivity
         # status in case there are no incoming messages from the camera
         # for longer than the threshold
-        self.connection_status = TimeoutBehavior(
-            CameraState.CONNECTION_STATUS_TIMEOUT.seconds,
-            self.connection_status_timeout,
-        )
 
         self.start_flags = {
             "mqtt": trio.Event(),
             "webserver": trio.Event(),
         }
         self.bridge = SyncAsyncBridge()
-        self.dir_monitor = DirectoryMonitor()
-
-        self._init_core_variables()
-        self._init_ai_model_functions()
-        self._init_firmware_file_functions()
-        self._init_input_directories()
-        self._init_stream_variables()
-        self._init_vapp_file_functions()
-        self._init_app_module_functions()
-        self._init_connection()
-        self.camera_state.initialize_connection_variables(self.config)
-
-    def _init_connection(self) -> None:
-        self.gui.mdl.bind_connections(self.camera_state)
-
-    def _init_core_variables(self) -> None:
-        self.gui.mdl.bind_core_variables(self.camera_state)
-
-    def _init_stream_variables(self) -> None:
-        self.gui.mdl.bind_stream_variables(self.camera_state)
-
-    def _init_ai_model_functions(self) -> None:
-        self.gui.mdl.bind_ai_model_function(self.camera_state)
-
-    def _init_firmware_file_functions(self) -> None:
-        self.gui.mdl.bind_firmware_file_functions(self.camera_state)
-
-    def _init_input_directories(self) -> None:
-        self.gui.mdl.bind_input_directories(self.camera_state)
-        self.camera_state.image_dir_path.subscribe(self.input_directory_setup)
-        self.camera_state.inference_dir_path.subscribe(self.input_directory_setup)
-
-    def _init_vapp_file_functions(self) -> None:
-        self.gui.mdl.bind_vapp_file_functions(self.camera_state)
-
-    def _init_app_module_functions(self) -> None:
-        self.gui.mdl.bind_app_module_functions(self.camera_state)
 
     @property
     def evp1_mode(self) -> bool:
@@ -147,7 +105,24 @@ class Driver:
                 nursery.start_soon(self.bridge.bridge_listener)
                 nursery.start_soon(self.mqtt_setup)
                 nursery.start_soon(self.blobs_webserver_task)
-                self.camera_state.set_nursery(nursery)
+                self.send_channel, self.receive_channel = trio.open_memory_channel(0)
+                self.camera_state = CameraState(
+                    self.send_channel, nursery, trio.lowlevel.current_trio_token()
+                )
+                assert self.camera_state is not None
+                assert self.device_manager is not None
+                self.camera_state.device_config.subscribe_async(
+                    self.process_factory_reset
+                )
+                self.camera_state.initialize_connection_variables(self.config)
+
+                self.device_manager = DeviceManager(
+                    self.send_channel, nursery, trio.lowlevel.current_trio_token()
+                )
+
+                if self.device_manager.active_device is not None:
+                    self.gui.switch_proxy()
+
                 await self.gui.async_run(async_lib="trio")
             except KeyboardInterrupt:
                 logger.info("Cancelled per user request via keyboard")
@@ -171,9 +146,9 @@ class Driver:
             self.start_flags["mqtt"].set()
 
             assert self.mqtt_client.client  # appease mypy
-            self.connection_status.spawn_in(nursery)
             if not self.evp1_mode:
                 self.periodic_reports.spawn_in(nursery)
+            assert self.camera_state is not None
 
             streaming_stop_required = True
             async with self.mqtt_client.client.messages() as mgen:
@@ -181,6 +156,7 @@ class Driver:
                     if await check_attributes_request(
                         self.mqtt_client, msg.topic, msg.payload.decode()
                     ):
+
                         self.camera_state.attributes_available.value = True
                         # attributes request handshake is performed at (re)connect
                         # when reconnecting, multiple requests might be made
@@ -190,12 +166,9 @@ class Driver:
 
                     payload = json.loads(msg.payload)
                     await self.camera_state.process_incoming(msg.topic, payload)
-                    self.update_camera_status()
 
                     if not self.evp1_mode and self.camera_state.is_ready:
                         self.periodic_reports.tap()
-
-                    self.connection_status.tap()
 
     def from_sync(self, async_fn: AsyncFunc, *args: Any) -> None:
         self.bridge.enqueue_task(async_fn, *args)
@@ -219,13 +192,6 @@ class Driver:
                 ).model_dump_json(),
             )
 
-    @run_on_ui_thread
-    def update_camera_status(self) -> None:
-        self.gui.views[Screen.APPLICATIONS_SCREEN].model.deploy_status = (
-            self.camera_state.deploy_status
-        )
-        self.camera_state.update_connection_status()
-
     async def blobs_webserver_task(self) -> None:
         """
         Spawn a webserver on an arbitrary available port for receiving
@@ -241,6 +207,8 @@ class Driver:
             ) as image_serve,
         ):
             logger.info(f"Uploading data into {tempdir}")
+
+            assert self.camera_state
 
             assert image_serve.port
             self.upload_port = image_serve.port
@@ -259,6 +227,8 @@ class Driver:
             await trio.sleep_forever()
 
     def process_camera_upload(self, incoming_file: Path) -> None:
+        assert self.camera_state
+
         if incoming_file.parent.name == "inferences":
             target_dir = self.camera_state.inference_dir_path.value
             assert target_dir
@@ -301,23 +271,16 @@ class Driver:
         else:
             logger.warning(f"Unknown incoming file: {incoming_file}")
 
-    def input_directory_setup(
-        self, current: Optional[Path], previous: Optional[Path]
-    ) -> None:
-        assert current
-
-        check_and_create_directory(current)
-        if previous:
-            self.total_dir_watcher.unwatch_path(previous)
-        self.total_dir_watcher.set_path(current)
-
-        self.dir_monitor.watch(current, self.notify_directory_deleted)
-        if previous:
-            self.dir_monitor.unwatch(previous)
+    async def show_messages(self) -> None:
+        assert self.receive_channel
+        async for value in self.receive_channel:
+            self.show_message_gui(value)
 
     @run_on_ui_thread
-    def notify_directory_deleted(self, directory: Path) -> None:
-        self.gui.display_error(str(directory), "has been unexpectedly removed", 30)
+    def show_message_gui(self, msg: MessageType) -> None:
+        type_ = msg[0]
+        if type_ == "error":
+            self.gui.display_error(msg[1], 30)
 
     @run_on_ui_thread
     def update_images_display(self, incoming_file: Path) -> None:
@@ -338,6 +301,7 @@ class Driver:
         self, flatbuffer_payload: bytes
     ) -> None | str | dict:
         return_value = None
+        assert self.camera_state
         if self.camera_state.vapp_schema_file.value:
             json_data = flatbuffer_binary_to_json(
                 self.camera_state.vapp_schema_file.value, flatbuffer_payload
@@ -365,8 +329,8 @@ class Driver:
         if incoming_file.parent != target_dir:
             check_and_create_directory(target_dir)
             final = Path(shutil.move(incoming_file, target_dir))
-
-        self.total_dir_watcher.incoming(final)
+        assert self.camera_state
+        self.camera_state.total_dir_watcher.incoming(final)
         return final
 
     async def streaming_rpc_start(self, roi: Optional[UnitROI] = None) -> None:
@@ -413,11 +377,6 @@ class Driver:
             )
         )
 
-    async def connection_status_timeout(self) -> None:
-        logger.debug("Connection status timed out: camera is disconnected")
-        self.camera_state.stream_status.value = StreamStatus.Inactive
-        self.update_camera_status()
-
     async def send_app_config(self, config: str) -> None:
         await self.mqtt_client.configure(
             ApplicationConfiguration.NAME,
@@ -426,5 +385,6 @@ class Driver:
         )
 
     def do_app_deployment(self) -> None:
+        assert self.camera_state
         task = partial(self.camera_state.do_app_deployment, self.mqtt_client)
         self.from_sync(task)

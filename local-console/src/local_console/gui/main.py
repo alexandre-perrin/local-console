@@ -71,8 +71,6 @@ class LocalConsoleGUIAPP(MDApp):
 
     async def app_main(self) -> None:
         self.driver = Driver(self)
-        if self.driver.device_manager.active_device is not None:
-            self.switch_proxy()
         await self.driver.main()
 
     def __init__(self, **kwargs: Any) -> None:
@@ -114,6 +112,7 @@ class LocalConsoleGUIAPP(MDApp):
 
     def switch_proxy(self) -> None:
         assert self.driver
+        assert self.driver.device_manager
         assert self.driver.device_manager.active_device
         self.selected = self.driver.device_manager.active_device.name
         self.driver.camera_state = self.driver.device_manager.get_active_device_state()

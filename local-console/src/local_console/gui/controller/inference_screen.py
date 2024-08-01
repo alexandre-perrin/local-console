@@ -36,6 +36,8 @@ class InferenceScreenController:
         return self.view
 
     def toggle_stream_status(self) -> None:
+        assert self.driver.camera_state
+
         camera_status = self.driver.camera_state.stream_status.value
         if camera_status == StreamStatus.Active:
             self.driver.from_sync(self.driver.streaming_rpc_stop)

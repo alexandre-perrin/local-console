@@ -14,7 +14,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 from pathlib import Path
-from typing import Optional
 
 from kivy.properties import BooleanProperty
 from kivy.properties import ObjectProperty
@@ -22,14 +21,11 @@ from kivy.properties import StringProperty
 from local_console.core.camera.axis_mapping import DEFAULT_ROI
 from local_console.core.camera.enums import DeploymentType
 from local_console.core.camera.enums import DeployStage
-from local_console.core.camera.enums import FirmwareExtension
 from local_console.core.camera.enums import OTAUpdateModule
 from local_console.core.camera.enums import StreamStatus
 from local_console.core.camera.state import CameraState
-from local_console.core.commands.ota_deploy import get_package_hash
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.gui.model.data_binding import CameraStateProxyBase
-from local_console.utils.validation import validate_imx500_model_file
 
 
 class CameraStateProxy(CameraStateProxyBase):
@@ -116,14 +112,6 @@ class CameraStateProxy(CameraStateProxyBase):
         # State->Proxy because this is computed from the model file
         self.bind_state_to_proxy("ai_model_file_valid", camera_state)
 
-        def validate_file(current: Optional[Path], previous: Optional[Path]) -> None:
-            if current:
-                camera_state.ai_model_file_valid.value = validate_imx500_model_file(
-                    current
-                )
-
-        camera_state.ai_model_file.subscribe(validate_file)
-
     def bind_firmware_file_functions(self, camera_state: CameraState) -> None:
         # Proxy->State because we want the user to set these values via the GUI
         self.bind_proxy_to_state("firmware_file", camera_state, Path)
@@ -135,23 +123,6 @@ class CameraStateProxy(CameraStateProxyBase):
         # State->Proxy because these are computed from the firmware_file
         self.bind_state_to_proxy("firmware_file_valid", camera_state)
         self.bind_state_to_proxy("firmware_file_hash", camera_state)
-
-        def validate_file(current: Optional[Path], previous: Optional[Path]) -> None:
-            if current:
-                is_valid = True
-                if camera_state.firmware_file_type.value == OTAUpdateModule.APFW:
-                    if current.suffix != FirmwareExtension.APPLICATION_FW:
-                        is_valid = False
-                else:
-                    if current.suffix != FirmwareExtension.SENSOR_FW:
-                        is_valid = False
-
-                camera_state.firmware_file_hash.value = (
-                    get_package_hash(current) if is_valid else ""
-                )
-                camera_state.firmware_file_valid.value = is_valid
-
-        camera_state.firmware_file.subscribe(validate_file)
 
     def bind_input_directories(self, camera_state: CameraState) -> None:
         self.bind_state_to_proxy("image_dir_path", camera_state, str)

@@ -42,6 +42,7 @@ class DevicesScreenController:
         self.model = model
         self.driver = driver
         self.view = DevicesScreenView(controller=self, model=self.model)
+        assert self.driver.device_manager
 
         self.restore_device_list(self.driver.device_manager.get_device_config())
 
@@ -99,6 +100,8 @@ class DevicesScreenController:
         # Add the device to the view
         self.add_device_to_device_list(DeviceItem(name=name, port=port))
 
+        assert self.driver.device_manager
+
         # Save device list into device configuration
         self.driver.device_manager.add_device(DeviceListItem(name=name, port=port))
 
@@ -142,6 +145,7 @@ class DevicesScreenController:
         if not remove_devices:
             self.view.display_error("No device is selected.")
             return
+        assert self.driver.device_manager
 
         for device in remove_devices:
             self.view.ids.box_device_list.remove_widget(device)

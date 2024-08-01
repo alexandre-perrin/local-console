@@ -45,54 +45,72 @@ class ConnectionScreenController:
         return self.view
 
     def set_mqtt_host(self, value: str) -> None:
+        assert self.driver.camera_state
+
         self.driver.camera_state.mqtt_host.value = value[
             : self.driver.camera_state.MAX_LEN_DOMAIN_NAME
         ]
         self.view.ids.txt_mqtt_host.text = self.driver.camera_state.mqtt_host.value
 
     def set_mqtt_port(self, value: str) -> None:
+        assert self.driver.camera_state
+
         self.driver.camera_state.mqtt_port.value = value[
             : self.driver.camera_state.MAX_LEN_PORT
         ]
         self.view.ids.txt_mqtt_port.text = self.driver.camera_state.mqtt_port.value
 
     def set_ntp_host(self, value: str) -> None:
+        assert self.driver.camera_state
+
         self.driver.camera_state.ntp_host.value = value[
             : self.driver.camera_state.MAX_LEN_DOMAIN_NAME
         ]
         self.view.ids.txt_ntp_host.text = self.driver.camera_state.ntp_host.value
 
     def set_ip_address(self, value: str) -> None:
+        assert self.driver.camera_state
+
         self.driver.camera_state.ip_address.value = value[
             : self.driver.camera_state.MAX_LEN_IP_ADDRESS
         ]
         self.view.ids.txt_ip_address.text = self.driver.camera_state.ip_address.value
 
     def set_subnet_mask(self, value: str) -> None:
+        assert self.driver.camera_state
+
         self.driver.camera_state.subnet_mask.value = value[
             : self.driver.camera_state.MAX_LEN_IP_ADDRESS
         ]
         self.view.ids.txt_subnet_mask.text = self.driver.camera_state.subnet_mask.value
 
     def set_gateway(self, value: str) -> None:
+        assert self.driver.camera_state
+
         self.driver.camera_state.gateway.value = value[
             : self.driver.camera_state.MAX_LEN_IP_ADDRESS
         ]
         self.view.ids.txt_gateway.text = self.driver.camera_state.gateway.value
 
     def set_dns_server(self, value: str) -> None:
+        assert self.driver.camera_state
+
         self.driver.camera_state.dns_server.value = value[
             : self.driver.camera_state.MAX_LEN_IP_ADDRESS
         ]
         self.view.ids.txt_dns_server.text = self.driver.camera_state.dns_server.value
 
     def set_wifi_ssid(self, value: str) -> None:
+        assert self.driver.camera_state
+
         self.driver.camera_state.wifi_ssid.value = value[
             : self.driver.camera_state.MAX_LEN_WIFI_SSID
         ]
         self.view.ids.txt_wifi_ssid.text = self.driver.camera_state.wifi_ssid.value
 
     def set_wifi_password(self, value: str) -> None:
+        assert self.driver.camera_state
+
         self.driver.camera_state.wifi_password.value = value[
             : self.driver.camera_state.MAX_LEN_WIFI_PASSWORD
         ]
@@ -101,6 +119,8 @@ class ConnectionScreenController:
         )
 
     def toggle_password_visible(self) -> None:
+        assert self.driver.camera_state
+
         if self.driver.camera_state.wifi_password_hidden.value:
             self.driver.camera_state.wifi_password_hidden.value = False
             self.driver.camera_state.wifi_icon_eye.value = "eye"
@@ -109,6 +129,8 @@ class ConnectionScreenController:
             self.driver.camera_state.wifi_icon_eye.value = "eye-off"
 
     def validate_all_settings(self) -> bool:
+        assert self.driver.camera_state
+
         warning_message = ""
         # Mandatory parameters
         if self.driver.camera_state.mqtt_host.value and validate_hostname(
@@ -175,6 +197,7 @@ class ConnectionScreenController:
             self.view.display_info(
                 "Warning, No Local IP Address.\nPlease check connectivity."
             )
+        assert self.driver.camera_state
 
         if self.driver.camera_state.local_ip.value != ip:
             self.view.display_info("Warning, Local IP Address is updated.")
@@ -185,6 +208,7 @@ class ConnectionScreenController:
         self.refresh_local_ip()
         if not self.validate_all_settings():
             return
+        assert self.driver.camera_state
 
         # non-empty string
         assert self.driver.camera_state.mqtt_host.value

@@ -15,8 +15,10 @@
 # SPDX-License-Identifier: Apache-2.0
 import logging
 
+import trio
 from local_console.clients.agent import Agent
 from local_console.core.camera.state import CameraState
+from local_console.core.camera.state import MessageType
 from local_console.core.config import add_device_to_config
 from local_console.core.config import get_config
 from local_console.core.config import get_device_configs
@@ -29,12 +31,20 @@ logger = logging.getLogger(__name__)
 
 
 class DeviceManager:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        send_channel: trio.MemorySendChannel[MessageType],
+        nursery: trio.Nursery,
+        trio_token: trio.lowlevel.TrioToken,
+    ) -> None:
         self.active_device: DeviceListItem | None = None
         self.proxies_factory: dict[str, CameraStateProxy] = {}
         self.state_factory: dict[str, CameraState] = {}
         self.agent_factory: dict[str, Agent] = {}
         self.num_devices = len(get_device_configs())
+        self.send_channel = send_channel
+        self.nursery = nursery
+        self.trio_token = trio_token
         for device in get_device_configs():
             self.add_device_to_internals(device)
             if self.num_devices == 1:
@@ -43,7 +53,9 @@ class DeviceManager:
     def add_device_to_internals(self, device: DeviceListItem) -> None:
         self.proxies_factory[device.name] = CameraStateProxy()
         self.agent_factory[device.name] = Agent(get_config())
-        self.state_factory[device.name] = CameraState()
+        self.state_factory[device.name] = CameraState(
+            self.send_channel.clone(), self.nursery, self.trio_token
+        )
         self.bind_state_proxy(
             self.proxies_factory[device.name], self.state_factory[device.name]
         )
