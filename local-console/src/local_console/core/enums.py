@@ -32,28 +32,6 @@ class Config:
         return self.home / self._config_file
 
     @property
-    def tls_cert_root(self) -> Path:
-        return self.home / "tls_client_certs"
-
-    @property
-    def cli_cert_pair(self) -> tuple[Path, Path]:
-        return self.tls_cert_root / "cli.crt.pem", self.tls_cert_root / "cli.key.pem"
-
-    @property
-    def broker_cert_pair(self) -> tuple[Path, Path]:
-        return (
-            self.tls_cert_root / "broker.crt.pem",
-            self.tls_cert_root / "broker.key.pem",
-        )
-
-    @property
-    def agent_cert_pair(self) -> tuple[Path, Path]:
-        return (
-            self.tls_cert_root / "agent.crt.pem",
-            self.tls_cert_root / "agent.key.pem",
-        )
-
-    @property
     def home(self) -> Path:
         return self._home
 

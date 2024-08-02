@@ -28,8 +28,8 @@ from tests.strategies.configs import generate_valid_port_number
 runner = CliRunner()
 
 
-@given(generate_agent_config())
-def test_qr_with_defaults(config: AgentConfiguration) -> None:
+@given(generate_agent_config(), st.booleans())
+def test_qr_with_defaults(config: AgentConfiguration, tls_enabled: bool) -> None:
     with (
         patch("local_console.commands.qr.get_config", return_value=config),
         patch("local_console.commands.qr.is_localhost", return_value=False),
@@ -38,13 +38,16 @@ def test_qr_with_defaults(config: AgentConfiguration) -> None:
             "local_console.core.camera.qr.qr_string", return_value=""
         ) as mock_qr_string,
     ):
-        result = runner.invoke(app, [])
+        args = []
+        if tls_enabled:
+            args.append("--tls")
+        result = runner.invoke(app, args)
         assert result.exit_code == 0
 
         mock_qr_string.assert_called_once_with(
             config.mqtt.host.ip_value,
             config.mqtt.port,
-            config.is_tls_enabled,
+            tls_enabled,
             "pool.ntp.org",
             "",
             "",
@@ -77,18 +80,16 @@ def test_qr_with_overrides(
             "local_console.core.camera.qr.qr_string", return_value=""
         ) as mock_qr_string,
     ):
-        result = runner.invoke(
-            app,
-            [
-                "--host",
-                host_override,
-                "--port",
-                port_override,
-                f"--{'' if tls_enable_override else 'no-'}enable-tls",
-                "--ntp-server",
-                ntp_override,
-            ],
-        )
+        args = [
+            "--host",
+            host_override,
+            "--port",
+            port_override,
+            *(("--tls",) if tls_enable_override else ()),
+            "--ntp-server",
+            ntp_override,
+        ]
+        result = runner.invoke(app, args)
         assert result.exit_code == 0
 
         mock_qr_string.assert_called_once_with(
@@ -126,7 +127,7 @@ def test_qr_for_local_host(config: AgentConfiguration, local_host_alias: str) ->
         mock_qr_string.assert_called_once_with(
             "1.2.3.4",
             config.mqtt.port,
-            config.is_tls_enabled,
+            False,
             "pool.ntp.org",
             "",
             "",

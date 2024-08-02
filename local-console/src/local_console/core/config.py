@@ -33,7 +33,6 @@ from local_console.core.schemas.schemas import DeviceParams
 from local_console.core.schemas.schemas import EVPParams
 from local_console.core.schemas.schemas import IPAddress
 from local_console.core.schemas.schemas import MQTTParams
-from local_console.core.schemas.schemas import TLSConfiguration
 from local_console.core.schemas.schemas import WebserverParams
 from pydantic import BaseModel
 from pydantic import ValidationError
@@ -95,12 +94,6 @@ def config_to_schema(config: configparser.ConfigParser) -> AgentConfiguration:
             webserver=WebserverParams(
                 host=IPAddress(ip_value=config["webserver"]["host"]),
                 port=int(config["webserver"]["port"]),
-            ),
-            tls=TLSConfiguration(
-                ca_certificate=optional_path(
-                    config.get("tls", "ca_certificate", fallback=None)
-                ),
-                ca_key=optional_path(config.get("tls", "ca_key", fallback=None)),
             ),
         )
     except KeyError as e:
@@ -287,10 +280,6 @@ def create_device_config(device: DeviceListItem) -> DeviceConnection:
             webserver=WebserverParams(
                 host=IPAddress(ip_value="localhost"),
                 port=8000,
-            ),
-            tls=TLSConfiguration.model_construct(
-                ca_certificate=None,
-                ca_key=None,
             ),
             device=DeviceParams(name=device.name),
         )

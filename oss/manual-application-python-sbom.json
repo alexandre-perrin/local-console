@@ -101,11 +101,11 @@
       ]
     },
     {
-      "bom-ref": "urllib3==2.2.1",
+      "bom-ref": "urllib3==2.0.7",
       "externalReferences": [
         {
           "type": "license",
-          "url": "https://github.com/urllib3/urllib3/blob/2.2.1/LICENSE.txt"
+          "url": "https://github.com/urllib3/urllib3/blob/2.0.7/LICENSE.txt"
         }
       ]
     }

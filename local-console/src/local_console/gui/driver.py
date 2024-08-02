@@ -58,7 +58,7 @@ from local_console.servers.webserver import AsyncWebserver
 from local_console.utils.fstools import check_and_create_directory
 from local_console.utils.fstools import DirectoryMonitor
 from local_console.utils.fstools import StorageSizeWatcher
-from local_console.utils.local_network import LOCAL_IP
+from local_console.utils.local_network import get_my_ip_by_routing
 from local_console.utils.timing import TimeoutBehavior
 from local_console.utils.validation import validate_imx500_model_file
 
@@ -243,7 +243,7 @@ class Driver:
     async def mqtt_setup(self) -> None:
         async with (
             trio.open_nursery() as nursery,
-            spawn_broker(self.config, nursery, False, "nicebroker"),
+            spawn_broker(self.config, nursery, False),
             self.mqtt_client.mqtt_scope(
                 [
                     MQTTTopics.ATTRIBUTES_REQ.value,
@@ -457,7 +457,8 @@ class Driver:
     async def streaming_rpc_start(self, roi: Optional[UnitROI] = None) -> None:
         instance_id = "backdoor-EA_Main"
         method = "StartUploadInferenceData"
-        upload_url = f"http://{LOCAL_IP}:{self.upload_port}"
+        host = get_my_ip_by_routing()
+        upload_url = f"http://{host}:{self.upload_port}"
         assert self.temporary_image_directory  # appease mypy
         assert self.temporary_inference_directory  # appease mypy
 

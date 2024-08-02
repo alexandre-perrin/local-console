@@ -330,7 +330,6 @@ def test_deploy_forced_webserver_port_override() -> None:
     from local_console.core.schemas.schemas import EVPParams
     from local_console.core.schemas.schemas import IPAddress
     from local_console.core.schemas.schemas import MQTTParams
-    from local_console.core.schemas.schemas import TLSConfiguration
     from local_console.core.schemas.schemas import WebserverParams
 
     agent_config = AgentConfiguration(
@@ -345,10 +344,6 @@ def test_deploy_forced_webserver_port_override() -> None:
             host=IPAddress(ip_value="127.0.0.1"),
             port=1883,
             device_id=None,
-        ),
-        tls=TLSConfiguration(
-            ca_certificate=None,
-            ca_key=None,
         ),
     )
     with (

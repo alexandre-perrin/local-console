@@ -26,9 +26,7 @@ from string import Template
 from tempfile import TemporaryDirectory
 
 import trio
-from local_console.core.enums import config_paths
 from local_console.core.schemas.schemas import AgentConfiguration
-from local_console.utils.tls import ensure_certificate_pair_exists
 
 logger = logging.getLogger(__name__)
 
@@ -37,13 +35,8 @@ broker_assets = Path(__file__).parents[1] / "assets" / "broker"
 
 @asynccontextmanager
 async def spawn_broker(
-    config: AgentConfiguration, nursery: trio.Nursery, verbose: bool, server_name: str
+    config: AgentConfiguration, nursery: trio.Nursery, verbose: bool
 ) -> AsyncIterator[trio.Process]:
-    if config.is_tls_enabled:
-        broker_cert_path, broker_key_path = config_paths.broker_cert_pair
-        ensure_certificate_pair_exists(
-            server_name, broker_cert_path, broker_key_path, config.tls, is_server=True
-        )
 
     broker_bin = which("mosquitto")
     if not broker_bin:
@@ -86,20 +79,7 @@ async def spawn_broker(
 
 def populate_broker_conf(config: AgentConfiguration, config_file: Path) -> None:
     data = {"mqtt_port": str(config.mqtt.port)}
-
-    if config.is_tls_enabled:
-        broker_cert_path, broker_key_path = config_paths.broker_cert_pair
-        variant = "tls"
-        data.update(
-            {
-                "ca_crt": str(config.tls.ca_certificate),
-                "server_crt": str(broker_cert_path),
-                "server_key": str(broker_key_path),
-            }
-        )
-    else:
-        variant = "no-tls"
-
+    variant = "no-tls"
     logger.info(f"MQTT broker in {variant} mode")
     template_file = broker_assets / f"config.{variant}.toml.tpl"
     template = Template(template_file.read_text())

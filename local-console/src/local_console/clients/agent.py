@@ -29,15 +29,11 @@ import trio
 from exceptiongroup import catch
 from local_console.clients.trio_paho_mqtt import AsyncClient
 from local_console.core.camera.enums import MQTTTopics
-from local_console.core.config import config_paths
 from local_console.core.config import get_config
 from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.core.schemas.schemas import DeploymentManifest
 from local_console.core.schemas.schemas import DesiredDeviceConfig
 from local_console.core.schemas.schemas import OnWireProtocol
-from local_console.utils.local_network import is_localhost
-from local_console.utils.tls import ensure_certificate_pair_exists
-from local_console.utils.tls import get_random_identifier
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 
 logger = logging.getLogger(__name__)
@@ -56,32 +52,6 @@ class Agent:
 
         client_id = f"cli-client-{random.randint(0, 10**7)}"
         self.mqttc = paho.Client(clean_session=True, client_id=client_id)
-
-        self.configure_tls(config_parse)
-
-    def configure_tls(self, agent_config: AgentConfiguration) -> None:
-        tls_conf = agent_config.tls
-        if not (tls_conf.ca_certificate and tls_conf.ca_key):
-            return
-
-        cli_cert_path, cli_key_path = config_paths.cli_cert_pair
-        ensure_certificate_pair_exists(
-            get_random_identifier("local-console-"),
-            cli_cert_path,
-            cli_key_path,
-            tls_conf,
-        )
-
-        self.mqttc.tls_set(
-            ca_certs=str(tls_conf.ca_certificate),
-            certfile=str(cli_cert_path),
-            keyfile=str(cli_key_path),
-        )
-
-        # No server validation is necessary if the server is localhost
-        # This spares us from needing to setup custom name resolution for
-        # complying with TLS' Subject Common Name matching.
-        self.mqttc.tls_insecure_set(is_localhost(agent_config.mqtt.host.ip_value))
 
     async def initialize_handshake(self, timeout: int = 5) -> None:
         async with self.mqtt_scope(
