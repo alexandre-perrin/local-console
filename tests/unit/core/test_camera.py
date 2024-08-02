@@ -21,6 +21,7 @@ from unittest.mock import patch
 
 import hypothesis.strategies as st
 import pytest
+import trio
 from hypothesis import given
 from local_console.core.camera.enums import DeploymentType
 from local_console.core.camera.enums import DeployStage
@@ -190,31 +191,34 @@ def test_get_qr_string_no_static_ip(
 
 
 @pytest.mark.trio
-@given(generate_valid_device_configuration())
+@given(device_config=generate_valid_device_configuration())
 async def test_process_state_topic_correct(device_config: DeviceConfiguration) -> None:
-    observer = AsyncMock()
-    camera = CameraState()
-    camera.device_config.subscribe_async(observer)
-    observer.assert_not_awaited()
+    async with trio.open_nursery() as nursery:
+        observer = AsyncMock()
+        send_channel, _ = trio.open_memory_channel(0)
+        camera = CameraState(send_channel, nursery, trio.lowlevel.current_trio_token())
+        camera.device_config.subscribe_async(observer)
+        observer.assert_not_awaited()
 
-    backdoor_state = {
-        "state/backdoor-EA_Main/placeholder": b64encode(
-            device_config.model_dump_json().encode("utf-8")
-        ).decode("utf-8")
-    }
-    await camera._process_state_topic(backdoor_state)
+        backdoor_state = {
+            "state/backdoor-EA_Main/placeholder": b64encode(
+                device_config.model_dump_json().encode("utf-8")
+            ).decode("utf-8")
+        }
+        await camera._process_state_topic(backdoor_state)
 
-    observer.assert_awaited_once_with(device_config, None)
-    assert camera.device_config.value == device_config
-    assert camera.stream_status.value == StreamStatus.from_string(
-        device_config.Status.Sensor
-    )
+        observer.assert_awaited_once_with(device_config, None)
+        assert camera.device_config.value == device_config
+        assert camera.stream_status.value == StreamStatus.from_string(
+            device_config.Status.Sensor
+        )
+        nursery.cancel_scope.cancel()
 
 
 @pytest.mark.trio
-async def test_process_state_topic_wrong(caplog) -> None:
-    camera = CameraState()
-
+async def test_process_state_topic_wrong(caplog, nursery) -> None:
+    send_channel, _ = trio.open_memory_channel(0)
+    camera = CameraState(send_channel, nursery, trio.lowlevel.current_trio_token())
     wrong_obj = {"a": "b"}
     backdoor_state = {
         "state/backdoor-EA_Main/placeholder": b64encode(json.dumps(wrong_obj).encode())
@@ -224,20 +228,24 @@ async def test_process_state_topic_wrong(caplog) -> None:
 
 
 @pytest.mark.trio
-@given(st.sampled_from(OnWireProtocol))
+@given(proto_spec=st.sampled_from(OnWireProtocol))
 async def test_process_systeminfo(proto_spec: OnWireProtocol) -> None:
-    camera = CameraState()
+    async with trio.open_nursery() as nursery:
+        send_channel, _ = trio.open_memory_channel(0)
+        camera = CameraState(send_channel, nursery, trio.lowlevel.current_trio_token())
 
-    sysinfo_report = {"systemInfo": {"protocolVersion": str(proto_spec)}}
-    await camera._process_sysinfo_topic(sysinfo_report)
+        sysinfo_report = {"systemInfo": {"protocolVersion": str(proto_spec)}}
+        await camera._process_sysinfo_topic(sysinfo_report)
 
-    assert camera.attributes_available
-    assert camera._onwire_schema == proto_spec
+        assert camera.attributes_available
+        assert camera._onwire_schema == proto_spec
+        nursery.cancel_scope.cancel()
 
 
 @pytest.mark.trio
-async def test_process_deploy_status_evp1() -> None:
-    camera = CameraState()
+async def test_process_deploy_status_evp1(nursery) -> None:
+    send_channel, _ = trio.open_memory_channel(0)
+    camera = CameraState(send_channel, nursery, trio.lowlevel.current_trio_token())
     camera._onwire_schema = OnWireProtocol.EVP1
     dummy_deployment = {"a": "b"}
 
@@ -249,8 +257,9 @@ async def test_process_deploy_status_evp1() -> None:
 
 
 @pytest.mark.trio
-async def test_process_deploy_status_evp2() -> None:
-    camera = CameraState()
+async def test_process_deploy_status_evp2(nursery) -> None:
+    send_channel, _ = trio.open_memory_channel(0)
+    camera = CameraState(send_channel, nursery, trio.lowlevel.current_trio_token())
     camera._onwire_schema = OnWireProtocol.EVP2
     dummy_deployment = {"a": "b"}
 
@@ -262,12 +271,13 @@ async def test_process_deploy_status_evp2() -> None:
 
 
 @pytest.mark.trio
-async def test_process_incoming_telemetry() -> None:
+async def test_process_incoming_telemetry(nursery) -> None:
     with patch("local_console.core.camera.state.datetime") as mock_time:
         mock_now = Mock()
         mock_time.now.return_value = mock_now
 
-        camera = CameraState()
+        send_channel, _ = trio.open_memory_channel(0)
+        camera = CameraState(send_channel, nursery, trio.lowlevel.current_trio_token())
         dummy_telemetry = {"a": "b"}
         await camera.process_incoming("v1/devices/me/telemetry", dummy_telemetry)
 
@@ -283,8 +293,9 @@ async def test_process_incoming_telemetry() -> None:
         (CameraState.DEPLOY_STATUS_TOPIC, "_process_deploy_status_topic"),
     ],
 )
-async def test_process_incoming(topic, function) -> None:
-    camera = CameraState()
+async def test_process_incoming(topic, function, nursery) -> None:
+    send_channel, _ = trio.open_memory_channel(0)
+    camera = CameraState(send_channel, nursery, trio.lowlevel.current_trio_token())
     with (patch.object(camera, function) as mock_proc,):
         payload = {topic: {"a": "b"}}
         await camera.process_incoming(MQTTTopics.ATTRIBUTES.value, payload)
@@ -293,7 +304,8 @@ async def test_process_incoming(topic, function) -> None:
 
 @pytest.mark.trio
 async def test_process_deploy_fsm_evp2_happy(nursery, tmp_path) -> None:
-    camera = CameraState()
+    send_channel, _ = trio.open_memory_channel(0)
+    camera = CameraState(send_channel, nursery, trio.lowlevel.current_trio_token())
 
     # setup for parsing deployment status messages
     camera._onwire_schema = OnWireProtocol.EVP2
@@ -308,7 +320,6 @@ async def test_process_deploy_fsm_evp2_happy(nursery, tmp_path) -> None:
         patch("local_console.core.commands.deploy.SyncWebserver"),
         patch("local_console.core.camera.state.Agent") as mock_agent,
     ):
-        camera.set_nursery(nursery)
         mock_agent.onwire_schema = camera._onwire_schema
         mock_agent.deploy = AsyncMock()
 
@@ -335,7 +346,8 @@ async def test_process_deploy_fsm_evp2_happy(nursery, tmp_path) -> None:
 
 @pytest.mark.trio
 async def test_process_deploy_fsm_evp1_error(nursery, tmp_path) -> None:
-    camera = CameraState()
+    send_channel, _ = trio.open_memory_channel(0)
+    camera = CameraState(send_channel, nursery, trio.lowlevel.current_trio_token())
 
     # setup for parsing deployment status messages
     camera._onwire_schema = OnWireProtocol.EVP1
@@ -350,7 +362,6 @@ async def test_process_deploy_fsm_evp1_error(nursery, tmp_path) -> None:
         patch("local_console.core.commands.deploy.SyncWebserver"),
         patch("local_console.core.camera.state.Agent") as mock_agent,
     ):
-        camera.set_nursery(nursery)
         mock_agent.onwire_schema = camera._onwire_schema
         mock_agent.deploy = AsyncMock()
 

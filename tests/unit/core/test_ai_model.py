@@ -18,6 +18,7 @@ from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import pytest
+import trio
 from local_console.core.camera.ai_model import deploy_step
 from local_console.core.camera.ai_model import undeploy_step
 from local_console.core.camera.state import CameraState
@@ -51,8 +52,12 @@ def fixture_get_config():
 
 
 @pytest.mark.trio
-async def test_undeploy_step_rpc_sent(network_id: str):
-    camera_state = CameraState()
+async def test_undeploy_step_rpc_sent(network_id: str, nursery):
+    send_channel, _ = trio.open_memory_channel(0)
+    camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
+
     mock_agent = MagicMock()
     mock_agent.mqtt_scope.return_value = AsyncMock()
     mock_agent.configure = AsyncMock()
@@ -71,8 +76,11 @@ async def test_undeploy_step_rpc_sent(network_id: str):
 
 
 @pytest.mark.trio
-async def test_undeploy_step_not_deployed_model(update_status: str):
-    camera_state = CameraState()
+async def test_undeploy_step_not_deployed_model(update_status: str, nursery):
+    send_channel, _ = trio.open_memory_channel(0)
+    camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
     mock_agent = MagicMock()
     mock_agent.mqtt_scope.return_value = AsyncMock()
     mock_agent.configure = AsyncMock()
@@ -87,11 +95,14 @@ async def test_undeploy_step_not_deployed_model(update_status: str):
 
 
 @pytest.mark.trio
-async def test_deploy_step(tmp_path, network_id, update_status: str):
+async def test_deploy_step(tmp_path, network_id, update_status: str, nursery):
     filename = "dummy.bin"
     tmp_file = tmp_path / filename
 
-    camera_state = CameraState()
+    send_channel, _ = trio.open_memory_channel(0)
+    camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
     mock_agent = MagicMock()
     mock_agent.mqtt_scope.return_value = AsyncMock()
     mock_agent.configure = AsyncMock()

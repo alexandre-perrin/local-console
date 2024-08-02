@@ -18,6 +18,9 @@ from pathlib import Path
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
+import pytest
+import trio
+
 patch("local_console.gui.view.common.components.DeviceItem").start()
 
 from local_console.core.schemas.schemas import DeviceListItem
@@ -239,7 +242,8 @@ def test_devices_screen():
         ctrl.remove_device()
 
 
-def test_device_manager():
+@pytest.mark.trio
+async def test_device_manager(nursery):
     with (
         patch("local_console.gui.device_manager.add_device_to_config") as mock_add_dev,
         patch("local_console.gui.device_manager.get_device_configs") as mock_get_dev,
@@ -248,7 +252,10 @@ def test_device_manager():
             "local_console.gui.device_manager.DeviceManager.bind_state_proxy"
         ) as mock_add_internals,
     ):
-        device_manager = DeviceManager()
+        send_channel, _ = trio.open_memory_channel(0)
+        device_manager = DeviceManager(
+            send_channel, nursery, trio.lowlevel.current_trio_token()
+        )
 
         device = DeviceListItem(name="test_device", port="1234")
 
@@ -270,7 +277,8 @@ def test_device_manager():
         assert mock_get_dev.call_count == 3
 
 
-def test_device_manager_with_config():
+@pytest.mark.trio
+async def test_device_manager_with_config(nursery):
     with (patch("local_console.core.config.config_paths") as mock_config_paths,):
         app_subdir = Path("local-console")
         dummy_home = Path("/tmp/test_devices")
@@ -281,8 +289,10 @@ def test_device_manager_with_config():
         from local_console.core.config import setup_default_config
 
         setup_default_config()
-
-        device_manager = DeviceManager()
+        send_channel, _ = trio.open_memory_channel(0)
+        device_manager = DeviceManager(
+            send_channel, nursery, trio.lowlevel.current_trio_token()
+        )
         assert device_manager.get_device_config() == []
 
         device1 = DeviceListItem(name="test_device_1", port="1234")

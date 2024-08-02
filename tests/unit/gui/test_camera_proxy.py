@@ -15,6 +15,8 @@
 # SPDX-License-Identifier: Apache-2.0
 from pathlib import Path
 
+import pytest
+import trio
 from hypothesis import given
 from local_console.core.camera.enums import DeploymentType
 from local_console.core.camera.enums import DeployStage
@@ -52,7 +54,8 @@ def test_simple_property_binding():
     assert callback_state["value"] == "new value"
 
 
-def test_proxy_to_state_binding():
+@pytest.mark.trio
+async def test_proxy_to_state_binding(nursery):
     """
     This test shows how to perform a proxy-->state data binding,
     by means of the bind_proxy_to_state() method of CameraProxy.
@@ -63,7 +66,10 @@ def test_proxy_to_state_binding():
 
     camera_proxy = CameraStateProxy()
 
-    camera_state = CameraState()
+    send_channel, _ = trio.open_memory_channel(0)
+    camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
     assert camera_state.ai_model_file.previous is None
     assert camera_state.ai_model_file.value is None
 
@@ -78,10 +84,14 @@ def test_proxy_to_state_binding():
     assert camera_state.ai_model_file.previous is None
 
 
-def test_bind_connections():
+@pytest.mark.trio
+async def test_bind_connections(nursery):
 
     camera_proxy = CameraStateProxy()
-    camera_state = CameraState()
+    send_channel, _ = trio.open_memory_channel(0)
+    camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
 
     camera_proxy.bind_connections(camera_state)
     camera_state.initialize_connection_variables(get_config())
@@ -100,9 +110,13 @@ def test_bind_connections():
     assert not camera_proxy.is_connected
 
 
-def test_bind_core_variables():
+@pytest.mark.trio
+async def test_bind_core_variables(nursery):
     camera_proxy = CameraStateProxy()
-    camera_state = CameraState()
+    send_channel, _ = trio.open_memory_channel(0)
+    camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
 
     camera_proxy.bind_core_variables(camera_state)
     camera_state.is_ready.value = True
@@ -113,9 +127,13 @@ def test_bind_core_variables():
     assert camera_proxy.device_config is not None
 
 
-def test_bind_stream_variables():
+@pytest.mark.trio
+async def test_bind_stream_variables(nursery):
     camera_proxy = CameraStateProxy()
-    camera_state = CameraState()
+    send_channel, _ = trio.open_memory_channel(0)
+    camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
 
     camera_proxy.bind_stream_variables(camera_state)
 
@@ -126,9 +144,13 @@ def test_bind_stream_variables():
     assert camera_proxy.stream_status == StreamStatus.Active
 
 
-def test_bind_ai_model_function():
+@pytest.mark.trio
+async def test_bind_ai_model_function(nursery):
     camera_proxy = CameraStateProxy()
-    camera_state = CameraState()
+    send_channel, _ = trio.open_memory_channel(0)
+    camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
 
     camera_proxy.bind_ai_model_function(camera_state)
 
@@ -139,9 +161,13 @@ def test_bind_ai_model_function():
     assert not camera_proxy.ai_model_file_valid
 
 
-def test_bind_firmware_file_functions():
+@pytest.mark.trio
+async def test_bind_firmware_file_functions(nursery):
     camera_proxy = CameraStateProxy()
-    camera_state = CameraState()
+    send_channel, _ = trio.open_memory_channel(0)
+    camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
 
     camera_proxy.bind_firmware_file_functions(camera_state)
 
@@ -158,9 +184,13 @@ def test_bind_firmware_file_functions():
     assert camera_proxy.firmware_file_hash == ""
 
 
-def test_bind_vapp_file_functions():
+@pytest.mark.trio
+async def test_bind_vapp_file_functions(nursery):
     camera_proxy = CameraStateProxy()
-    camera_state = CameraState()
+    send_channel, _ = trio.open_memory_channel(0)
+    camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
 
     camera_proxy.bind_vapp_file_functions(camera_state)
 
@@ -176,9 +206,13 @@ def test_bind_vapp_file_functions():
     assert camera_proxy.vapp_labels_map == str({0: "test"})
 
 
-def test_bind_app_module_functions():
+@pytest.mark.trio
+async def test_bind_app_module_functions(nursery):
     camera_proxy = CameraStateProxy()
-    camera_state = CameraState()
+    send_channel, _ = trio.open_memory_channel(0)
+    camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
 
     camera_proxy.bind_app_module_functions(camera_state)
 
@@ -194,8 +228,9 @@ def test_bind_app_module_functions():
     assert camera_state.module_file.value == Path("test_path")
 
 
+@pytest.mark.trio
 @given(generate_valid_device_configuration())
-def test_state_to_proxy_binding(a_device_config):
+async def test_state_to_proxy_binding(a_device_config):
     """
     This test shows how to perform a state-->proxy data binding,
     by means of the subscribe() method of TrackingVariable members
@@ -204,27 +239,35 @@ def test_state_to_proxy_binding(a_device_config):
     This is useful for propagating messages issued by the camera
     into GUI widgets that are data-bound via proxy properties.
     """
+    async with trio.open_nursery() as nursery:
+        camera_proxy = CameraStateProxy()
+        send_channel, _ = trio.open_memory_channel(0)
+        camera_state = CameraState(
+            send_channel, nursery, trio.lowlevel.current_trio_token()
+        )
 
-    camera_proxy = CameraStateProxy()
-    camera_state = CameraState()
+        # Use bind_state_to_proxy to connect to the camera_state
+        camera_proxy.bind_state_to_proxy("device_config", camera_state)
+        # Update the state variable
+        camera_state.device_config.value = a_device_config
 
-    # Use bind_state_to_proxy to connect to the camera_state
-    camera_proxy.bind_state_to_proxy("device_config", camera_state)
-    # Update the state variable
-    camera_state.device_config.value = a_device_config
-
-    # The value must have been set in the proxy property
-    assert camera_proxy.device_config == a_device_config
+        # The value must have been set in the proxy property
+        assert camera_proxy.device_config == a_device_config
+        nursery.cancel_scope.cancel()
 
 
-def test_state_to_proxy_binding_reassignment(tmp_path_factory):
+@pytest.mark.trio
+async def test_state_to_proxy_binding_reassignment(tmp_path_factory, nursery):
     """
     This test serves to make sure further updates to the
     state variable will be reflected on the proxy property
     """
 
     camera_proxy = CameraStateProxy()
-    camera_state = CameraState()
+    send_channel, _ = trio.open_memory_channel(0)
+    camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
 
     # Value binding
     camera_proxy.bind_state_to_proxy("ai_model_file", camera_state, str)
@@ -240,14 +283,18 @@ def test_state_to_proxy_binding_reassignment(tmp_path_factory):
     assert camera_proxy.ai_model_file == str(second_dir)
 
 
-def test_state_to_proxy_binding_with_observer(tmp_path_factory):
+@pytest.mark.trio
+async def test_state_to_proxy_binding_with_observer(tmp_path_factory, nursery):
     """
     This test serves to see a binding of an observer callback
     to a proxy property that is bound to a state variable in action.
     """
 
     camera_proxy = CameraStateProxy()
-    camera_state = CameraState()
+    send_channel, _ = trio.open_memory_channel(0)
+    camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
 
     callback_state = {"was_called": False, "instance": None, "value": None}
 

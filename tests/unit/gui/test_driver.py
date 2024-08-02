@@ -25,10 +25,12 @@ from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import pytest
+import trio
 from hypothesis import given
 from hypothesis import strategies as st
 from local_console.core.camera.axis_mapping import SENSOR_SIZE
 from local_console.core.camera.enums import StreamStatus
+from local_console.core.camera.state import CameraState
 from local_console.core.config import config_to_schema
 from local_console.core.config import get_default_config
 from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
@@ -74,7 +76,6 @@ def mock_driver_with_agent():
         patch("local_console.gui.driver.get_config", get_default_config_as_schema),
         patch("local_console.clients.agent.get_config", get_default_config_as_schema),
         patch("local_console.gui.driver.SyncAsyncBridge"),
-        patch("local_console.gui.driver.DirectoryMonitor"),
         patch("local_console.gui.driver.Agent") as mock_agent,
         patch("local_console.gui.driver.spawn_broker"),
     ):
@@ -101,10 +102,14 @@ def test_file_move(tmpdir):
     assert moved.parent == target
 
 
-def test_storage_paths(mocked_driver_with_agent, tmp_path_factory):
+@pytest.mark.trio
+async def test_storage_paths(mocked_driver_with_agent, tmp_path_factory, nursery):
     tgd = Path(tmp_path_factory.mktemp("images"))
     driver, _ = mocked_driver_with_agent
-
+    send_channel, _ = trio.open_memory_channel(0)
+    driver.camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
     # Set default image dir
     driver.temporary_image_directory = tgd
     driver.camera_state.image_dir_path.value = tgd
@@ -124,9 +129,14 @@ def test_storage_paths(mocked_driver_with_agent, tmp_path_factory):
     assert saved.parent == new_image_dir
 
 
-def test_save_into_image_directory(mocked_driver_with_agent, tmp_path):
+@pytest.mark.trio
+async def test_save_into_image_directory(mocked_driver_with_agent, tmp_path, nursery):
     driver, _ = mocked_driver_with_agent
 
+    send_channel, _ = trio.open_memory_channel(0)
+    driver.camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
     root = tmp_path
     tgd = root / "notexists"
 
@@ -142,9 +152,15 @@ def test_save_into_image_directory(mocked_driver_with_agent, tmp_path):
     assert tgd.exists()
 
 
-def test_save_into_inferences_directory(mocked_driver_with_agent, tmp_path):
+@pytest.mark.trio
+async def test_save_into_inferences_directory(
+    mocked_driver_with_agent, tmp_path, nursery
+):
     driver, _ = mocked_driver_with_agent
-
+    send_channel, _ = trio.open_memory_channel(0)
+    driver.camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
     root = tmp_path
     tgd = root / "notexists"
 
@@ -160,7 +176,10 @@ def test_save_into_inferences_directory(mocked_driver_with_agent, tmp_path):
     assert tgd.exists()
 
 
-def test_process_camera_upload_images(mocked_driver_with_agent, tmp_path_factory):
+@pytest.mark.trio
+async def test_process_camera_upload_images(
+    mocked_driver_with_agent, tmp_path_factory, nursery
+):
     driver, _ = mocked_driver_with_agent
     root = tmp_path_factory.getbasetemp()
     image_dir = tmp_path_factory.mktemp("images")
@@ -171,6 +190,10 @@ def test_process_camera_upload_images(mocked_driver_with_agent, tmp_path_factory
         ) as mock_save_into_input_directory,
         patch.object(driver, "update_images_display") as mock_update_display,
     ):
+        send_channel, _ = trio.open_memory_channel(0)
+        driver.camera_state = CameraState(
+            send_channel, nursery, trio.lowlevel.current_trio_token()
+        )
         driver.camera_state.image_dir_path.value = image_dir
 
         file = root / "images/a.png"
@@ -181,10 +204,12 @@ def test_process_camera_upload_images(mocked_driver_with_agent, tmp_path_factory
         mock_update_display.assert_called_once_with(
             mock_save_into_input_directory.return_value
         )
+        nursery.cancel_scope.cancel()
 
 
-def test_process_camera_upload_inferences_with_schema(
-    mocked_driver_with_agent, tmp_path_factory
+@pytest.mark.trio
+async def test_process_camera_upload_inferences_with_schema(
+    mocked_driver_with_agent, tmp_path_factory, nursery
 ):
     driver, _ = mocked_driver_with_agent
     root = tmp_path_factory.getbasetemp()
@@ -204,6 +229,11 @@ def test_process_camera_upload_inferences_with_schema(
         patch("local_console.gui.driver.Path.read_text", return_value="boo"),
         patch.object(ClassificationDrawer, "process_frame"),
     ):
+
+        send_channel, _ = trio.open_memory_channel(0)
+        driver.camera_state = CameraState(
+            send_channel, nursery, trio.lowlevel.current_trio_token()
+        )
         driver.camera_state.vapp_type = TrackingVariable(
             ApplicationType.CLASSIFICATION.value
         )
@@ -226,8 +256,9 @@ def test_process_camera_upload_inferences_with_schema(
         mock_update_display.assert_called_once_with(driver.latest_image_file)
 
 
-def test_process_camera_upload_inferences_missing_schema(
-    mocked_driver_with_agent, tmp_path_factory
+@pytest.mark.trio
+async def test_process_camera_upload_inferences_missing_schema(
+    mocked_driver_with_agent, tmp_path_factory, nursery
 ):
     driver, _ = mocked_driver_with_agent
     root = tmp_path_factory.getbasetemp()
@@ -245,6 +276,11 @@ def test_process_camera_upload_inferences_missing_schema(
         patch.object(ClassificationDrawer, "process_frame"),
         patch.object(Path, "read_text", return_value=""),
     ):
+
+        send_channel, _ = trio.open_memory_channel(0)
+        driver.camera_state = CameraState(
+            send_channel, nursery, trio.lowlevel.current_trio_token()
+        )
         driver.camera_state.vapp_type = TrackingVariable(
             ApplicationType.CLASSIFICATION.value
         )
@@ -267,7 +303,8 @@ def test_process_camera_upload_inferences_missing_schema(
         mock_update_display.assert_called_once_with(driver.latest_image_file)
 
 
-def test_process_camera_upload_unknown(mocked_driver_with_agent, tmpdir):
+@pytest.mark.trio
+async def test_process_camera_upload_unknown(mocked_driver_with_agent, tmpdir, nursery):
     driver, _ = mocked_driver_with_agent
     root = Path(tmpdir)
 
@@ -276,6 +313,11 @@ def test_process_camera_upload_unknown(mocked_driver_with_agent, tmpdir):
         patch.object(driver, "update_images_display") as mock_update_display,
     ):
         file = root / "unknown/a.txt"
+
+        send_channel, _ = trio.open_memory_channel(0)
+        driver.camera_state = CameraState(
+            send_channel, nursery, trio.lowlevel.current_trio_token()
+        )
 
         driver.process_camera_upload(file)
         mock_update_display.assert_not_called()
@@ -298,8 +340,15 @@ async def test_streaming_stop_required(req_id: int):
         mock_agent.return_value.client.messages.return_value.__aenter__.return_value = (
             MockAsyncIterator([msg])
         )
-        await driver.mqtt_setup()
-        mock_streaming_rpc_stop.assert_awaited_once()
+        async with trio.open_nursery() as nursery:
+            send_channel, _ = trio.open_memory_channel(0)
+            driver.camera_state = CameraState(
+                send_channel, nursery, trio.lowlevel.current_trio_token()
+            )
+            await driver.mqtt_setup()
+
+            mock_streaming_rpc_stop.assert_awaited_once()
+            nursery.cancel_scope.cancel()
 
 
 @pytest.mark.trio
@@ -346,11 +395,14 @@ async def test_streaming_rpc_start(mocked_driver_with_agent):
 
 
 @pytest.mark.trio
-async def test_connection_status_timeout(mocked_driver_with_agent):
+async def test_connection_status_timeout(mocked_driver_with_agent, nursery):
     driver, _ = mocked_driver_with_agent
-
+    send_channel, _ = trio.open_memory_channel(0)
+    driver.camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
     driver.camera_state.stream_status.value = StreamStatus.Active
-    await driver.connection_status_timeout()
+    await driver.camera_state.connection_status_timeout()
     assert driver.camera_state.stream_status.value == StreamStatus.Inactive
 
 

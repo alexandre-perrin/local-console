@@ -17,8 +17,12 @@ from unittest.mock import Mock
 from unittest.mock import patch
 
 import hypothesis.strategies as st
+import pytest
+import trio
 from hypothesis import given
 from hypothesis import strategies as st
+from local_console.core.camera.state import CameraState
+from local_console.core.config import get_config
 from local_console.gui.controller.connection_screen import ConnectionScreenController
 from local_console.gui.utils.validators import validate_ip_address
 from local_console.utils.local_network import get_my_ip_by_routing
@@ -31,8 +35,14 @@ from tests.strategies.configs import generate_random_characters
 from tests.strategies.configs import generate_valid_port_number
 
 
-def test_initialization():
+@pytest.mark.trio
+async def test_initialization(nursery):
     with driver_context() as (driver, _):
+        send_channel, _ = trio.open_memory_channel(0)
+        driver.camera_state = CameraState(
+            send_channel, nursery, trio.lowlevel.current_trio_token()
+        )
+        driver.camera_state.initialize_connection_variables(get_config())
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
@@ -58,38 +68,54 @@ def test_initialization():
 # local_ip
 
 
+@pytest.mark.trio
 @given(ip=st.ip_addresses(v=4))
-def test_local_ip_valid_update(ip: str):
+async def test_local_ip_valid_update(ip: str):
     with driver_context() as (driver, _):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            ctrl = ConnectionScreenController(Mock(), driver)
-            # reset ip
-            driver.camera_state.local_ip.value = ""
-            ctrl.set_ip_address(str(ip))
-            # validate ip
-            assert ctrl.validate_all_settings()
-            # check warning raised if changed
-            ctrl.view.display_info.assert_not_called()
-            ctrl.refresh_local_ip()
-            ctrl.view.display_info.assert_called_once_with(
-                "Warning, Local IP Address is updated."
-            )
+            async with trio.open_nursery() as nursery:
+                send_channel, _ = trio.open_memory_channel(0)
+                driver.camera_state = CameraState(
+                    send_channel, nursery, trio.lowlevel.current_trio_token()
+                )
+                driver.camera_state.initialize_connection_variables(get_config())
+                ctrl = ConnectionScreenController(Mock(), driver)
+                # reset ip
+                driver.camera_state.local_ip.value = ""
+                ctrl.set_ip_address(str(ip))
+                # validate ip
+                assert ctrl.validate_all_settings()
+                # check warning raised if changed
+                ctrl.view.display_info.assert_not_called()
+                ctrl.refresh_local_ip()
+                ctrl.view.display_info.assert_called_once_with(
+                    "Warning, Local IP Address is updated."
+                )
+                nursery.cancel_scope.cancel()
 
 
+@pytest.mark.trio
 @given(ip=generate_invalid_ip())
-def test_local_ip_invalid_update(ip: str):
+async def test_local_ip_invalid_update(ip: str):
     with driver_context() as (driver, _):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            ctrl = ConnectionScreenController(Mock(), driver)
-            # reset ip
-            driver.camera_state.local_ip.value = ""
-            ctrl.set_ip_address(str(ip))
-            # validate ip
-            assert not ctrl.validate_all_settings()
+            async with trio.open_nursery() as nursery:
+                send_channel, _ = trio.open_memory_channel(0)
+                driver.camera_state = CameraState(
+                    send_channel, nursery, trio.lowlevel.current_trio_token()
+                )
+                driver.camera_state.initialize_connection_variables(get_config())
+                ctrl = ConnectionScreenController(Mock(), driver)
+                # reset ip
+                driver.camera_state.local_ip.value = ""
+                ctrl.set_ip_address(str(ip))
+                # validate ip
+                assert not ctrl.validate_all_settings()
+                nursery.cancel_scope.cancel()
 
 
 # List of addresses to check
@@ -118,7 +144,8 @@ def test_local_ip_invalid_update_from_list(ip: str):
             assert not validate_ip_address(ip)
 
 
-def test_local_ip_empty():
+@pytest.mark.trio
+async def test_local_ip_empty(nursery):
     with driver_context() as (driver, _):
         with (
             patch(
@@ -129,6 +156,11 @@ def test_local_ip_empty():
                 return_value="",
             ),
         ):
+            send_channel, _ = trio.open_memory_channel(0)
+            driver.camera_state = CameraState(
+                send_channel, nursery, trio.lowlevel.current_trio_token()
+            )
+            driver.camera_state.initialize_connection_variables(get_config())
             ctrl = ConnectionScreenController(Mock(), driver)
             driver.camera_state.local_ip.value = ""
             # validate ip
@@ -142,62 +174,92 @@ def test_local_ip_empty():
 # mqtt_host
 
 
+@pytest.mark.trio
 @given(ip=st.ip_addresses(v=4))
-def test_mqtt_host_valid_update(ip: str):
+async def test_mqtt_host_valid_update(ip: str):
     with driver_context() as (driver, _):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            ctrl = ConnectionScreenController(Mock(), driver)
-            # reset ip
-            ctrl.set_mqtt_host(str(ip))
-            # validate ip
-            assert ctrl.validate_all_settings()
-            # check warning raised if changed
-            ctrl.view.display_info.assert_not_called()
+            async with trio.open_nursery() as nursery:
+                send_channel, _ = trio.open_memory_channel(0)
+                driver.camera_state = CameraState(
+                    send_channel, nursery, trio.lowlevel.current_trio_token()
+                )
+                driver.camera_state.initialize_connection_variables(get_config())
+                ctrl = ConnectionScreenController(Mock(), driver)
+                # reset ip
+                ctrl.set_mqtt_host(str(ip))
+                # validate ip
+                assert ctrl.validate_all_settings()
+                # check warning raised if changed
+                ctrl.view.display_info.assert_not_called()
+                nursery.cancel_scope.cancel()
 
 
+@pytest.mark.trio
 @given(ip=generate_invalid_ip())
-def test_mqtt_host_invalid_update(ip: str):
+async def test_mqtt_host_invalid_update(ip: str):
     with driver_context() as (driver, _):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            ctrl = ConnectionScreenController(Mock(), driver)
-            # reset ip
-            ctrl.set_mqtt_host(str(ip))
-            # validate ip
-            assert not ctrl.validate_all_settings()
-            # check warning raised if changed
-            ctrl.view.display_error.assert_called_once_with(
-                "Warning, invalid parameters:\n- MQTT host address"
-            )
+            async with trio.open_nursery() as nursery:
+                send_channel, _ = trio.open_memory_channel(0)
+                driver.camera_state = CameraState(
+                    send_channel, nursery, trio.lowlevel.current_trio_token()
+                )
+                driver.camera_state.initialize_connection_variables(get_config())
+                ctrl = ConnectionScreenController(Mock(), driver)
+                # reset ip
+                ctrl.set_mqtt_host(str(ip))
+                # validate ip
+                assert not ctrl.validate_all_settings()
+                # check warning raised if changed
+                ctrl.view.display_error.assert_called_once_with(
+                    "Warning, invalid parameters:\n- MQTT host address"
+                )
+                nursery.cancel_scope.cancel()
 
 
 # mqtt_port
 
 
+@pytest.mark.trio
 @given(port=generate_valid_port_number())
-def test_mqtt_port_valid_update(port: str):
+async def test_mqtt_port_valid_update(port: str):
     with driver_context() as (driver, _):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            ctrl = ConnectionScreenController(Mock(), driver)
-            # reset ip
-            ctrl.set_mqtt_port(str(port))
-            # validate ip
-            assert ctrl.validate_all_settings()
-            # check warning raised if changed
-            ctrl.view.display_info.assert_not_called()
+            async with trio.open_nursery() as nursery:
+                send_channel, _ = trio.open_memory_channel(0)
+                driver.camera_state = CameraState(
+                    send_channel, nursery, trio.lowlevel.current_trio_token()
+                )
+                driver.camera_state.initialize_connection_variables(get_config())
+                ctrl = ConnectionScreenController(Mock(), driver)
+                # reset ip
+                ctrl.set_mqtt_port(str(port))
+                # validate ip
+                assert ctrl.validate_all_settings()
+                # check warning raised if changed
+                ctrl.view.display_info.assert_not_called()
+                nursery.cancel_scope.cancel()
 
 
-def test_mqtt_port_invalid_update():
+@pytest.mark.trio
+async def test_mqtt_port_invalid_update(nursery):
     port = -1
     with driver_context() as (driver, _):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
+            send_channel, _ = trio.open_memory_channel(0)
+            driver.camera_state = CameraState(
+                send_channel, nursery, trio.lowlevel.current_trio_token()
+            )
+            driver.camera_state.initialize_connection_variables(get_config())
             ctrl = ConnectionScreenController(Mock(), driver)
             # reset ip
             ctrl.set_mqtt_port(str(port))
@@ -210,213 +272,307 @@ def test_mqtt_port_invalid_update():
 
 
 # ntp_host
-
-
+@pytest.mark.trio
 @given(ip=st.ip_addresses(v=4))
-def test_ntp_host_valid_update(ip: str):
+async def test_ntp_host_valid_update(ip: str):
     with driver_context() as (driver, _):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            ctrl = ConnectionScreenController(Mock(), driver)
-            # reset ip
-            ctrl.set_ntp_host(str(ip))
-            # validate ip
-            assert ctrl.validate_all_settings()
-            # check warning raised if changed
-            ctrl.view.display_info.assert_not_called()
+            async with trio.open_nursery() as nursery:
+                send_channel, _ = trio.open_memory_channel(0)
+                driver.camera_state = CameraState(
+                    send_channel, nursery, trio.lowlevel.current_trio_token()
+                )
+                driver.camera_state.initialize_connection_variables(get_config())
+                ctrl = ConnectionScreenController(Mock(), driver)
+                # reset ip
+                ctrl.set_ntp_host(str(ip))
+                # validate ip
+                assert ctrl.validate_all_settings()
+                # check warning raised if changed
+                ctrl.view.display_info.assert_not_called()
+                nursery.cancel_scope.cancel()
 
 
+@pytest.mark.trio
 @given(ip=generate_invalid_ip())
-def test_ntp_host_invalid_update(ip: str):
+async def test_ntp_host_invalid_update(ip: str):
     with driver_context() as (driver, _):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            ctrl = ConnectionScreenController(Mock(), driver)
-            # reset ip
-            ctrl.set_ntp_host(str(ip))
-            # validate ip
-            assert not ctrl.validate_all_settings()
-            # check warning raised if changed
-            ctrl.view.display_error.assert_called_once_with(
-                "Warning, invalid parameters:\n- NTP server address"
-            )
+            async with trio.open_nursery() as nursery:
+                send_channel, _ = trio.open_memory_channel(0)
+                driver.camera_state = CameraState(
+                    send_channel, nursery, trio.lowlevel.current_trio_token()
+                )
+                driver.camera_state.initialize_connection_variables(get_config())
+                ctrl = ConnectionScreenController(Mock(), driver)
+                # reset ip
+                ctrl.set_ntp_host(str(ip))
+                # validate ip
+                assert not ctrl.validate_all_settings()
+                # check warning raised if changed
+                ctrl.view.display_error.assert_called_once_with(
+                    "Warning, invalid parameters:\n- NTP server address"
+                )
+                nursery.cancel_scope.cancel()
 
 
 # ip_address
 
 
+@pytest.mark.trio
 @given(ip=st.ip_addresses(v=4))
-def test_ip_address_valid_update(ip: str):
+async def test_ip_address_valid_update(ip: str):
     with driver_context() as (driver, _):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            ctrl = ConnectionScreenController(Mock(), driver)
-            # reset ip
-            ctrl.set_ip_address(str(ip))
-            # validate ip
-            assert ctrl.validate_all_settings()
-            # check warning raised if changed
-            ctrl.view.display_info.assert_not_called()
+            async with trio.open_nursery() as nursery:
+                send_channel, _ = trio.open_memory_channel(0)
+                driver.camera_state = CameraState(
+                    send_channel, nursery, trio.lowlevel.current_trio_token()
+                )
+                driver.camera_state.initialize_connection_variables(get_config())
+                ctrl = ConnectionScreenController(Mock(), driver)
+                # reset ip
+                ctrl.set_ip_address(str(ip))
+                # validate ip
+                assert ctrl.validate_all_settings()
+                # check warning raised if changed
+                ctrl.view.display_info.assert_not_called()
+                nursery.cancel_scope.cancel()
 
 
+@pytest.mark.trio
 @given(ip=generate_invalid_ip())
-def test_ip_address_invalid_update(ip: str):
+async def test_ip_address_invalid_update(ip: str):
     with driver_context() as (driver, _):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            ctrl = ConnectionScreenController(Mock(), driver)
-            # reset ip
-            ctrl.set_ip_address(str(ip))
-            # validate ip
-            assert not ctrl.validate_all_settings()
-            # check warning raised if changed
-            ctrl.view.display_error.assert_called_once_with(
-                "Warning, invalid parameters:\n- IP Address"
-            )
+            async with trio.open_nursery() as nursery:
+                send_channel, _ = trio.open_memory_channel(0)
+                driver.camera_state = CameraState(
+                    send_channel, nursery, trio.lowlevel.current_trio_token()
+                )
+                driver.camera_state.initialize_connection_variables(get_config())
+                ctrl = ConnectionScreenController(Mock(), driver)
+                # reset ip
+                ctrl.set_ip_address(str(ip))
+                # validate ip
+                assert not ctrl.validate_all_settings()
+                # check warning raised if changed
+                ctrl.view.display_error.assert_called_once_with(
+                    "Warning, invalid parameters:\n- IP Address"
+                )
+                nursery.cancel_scope.cancel()
 
 
 # subnet_mask
 
 
+@pytest.mark.trio
 @given(ip=st.ip_addresses(v=4))
-def test_subnet_mask_valid_update(ip: str):
+async def test_subnet_mask_valid_update(ip: str):
     with driver_context() as (driver, _):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            ctrl = ConnectionScreenController(Mock(), driver)
-            # reset ip
-            ctrl.set_subnet_mask(str(ip))
-            # validate ip
-            assert ctrl.validate_all_settings()
-            # check warning raised if changed
-            ctrl.view.display_info.assert_not_called()
+            async with trio.open_nursery() as nursery:
+                send_channel, _ = trio.open_memory_channel(0)
+                driver.camera_state = CameraState(
+                    send_channel, nursery, trio.lowlevel.current_trio_token()
+                )
+                driver.camera_state.initialize_connection_variables(get_config())
+                ctrl = ConnectionScreenController(Mock(), driver)
+                # reset ip
+                ctrl.set_subnet_mask(str(ip))
+                # validate ip
+                assert ctrl.validate_all_settings()
+                # check warning raised if changed
+                ctrl.view.display_info.assert_not_called()
+                nursery.cancel_scope.cancel()
 
 
+@pytest.mark.trio
 @given(ip=generate_invalid_ip())
-def test_subnet_mask_invalid_update(ip: str):
+async def test_subnet_mask_invalid_update(ip: str):
     with driver_context() as (driver, _):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            ctrl = ConnectionScreenController(Mock(), driver)
-            # reset ip
-            ctrl.set_subnet_mask(str(ip))
-            # validate ip
-            assert not ctrl.validate_all_settings()
-            # check warning raised if changed
-            ctrl.view.display_error.assert_called_once_with(
-                "Warning, invalid parameters:\n- Subnet Mask"
-            )
+            async with trio.open_nursery() as nursery:
+                send_channel, _ = trio.open_memory_channel(0)
+                driver.camera_state = CameraState(
+                    send_channel, nursery, trio.lowlevel.current_trio_token()
+                )
+                driver.camera_state.initialize_connection_variables(get_config())
+                ctrl = ConnectionScreenController(Mock(), driver)
+                # reset ip
+                ctrl.set_subnet_mask(str(ip))
+                # validate ip
+                assert not ctrl.validate_all_settings()
+                # check warning raised if changed
+                ctrl.view.display_error.assert_called_once_with(
+                    "Warning, invalid parameters:\n- Subnet Mask"
+                )
+                nursery.cancel_scope.cancel()
 
 
 # gateway
 
 
+@pytest.mark.trio
 @given(ip=st.ip_addresses(v=4))
-def test_gateway_valid_update(ip: str):
+async def test_gateway_valid_update(ip: str):
     with driver_context() as (driver, _):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            ctrl = ConnectionScreenController(Mock(), driver)
-            # reset ip
-            ctrl.set_gateway(str(ip))
-            # validate ip
-            assert ctrl.validate_all_settings()
-            # check warning raised if changed
-            ctrl.view.display_info.assert_not_called()
+            async with trio.open_nursery() as nursery:
+                send_channel, _ = trio.open_memory_channel(0)
+                driver.camera_state = CameraState(
+                    send_channel, nursery, trio.lowlevel.current_trio_token()
+                )
+                driver.camera_state.initialize_connection_variables(get_config())
+                ctrl = ConnectionScreenController(Mock(), driver)
+                # reset ip
+                ctrl.set_gateway(str(ip))
+                # validate ip
+                assert ctrl.validate_all_settings()
+                # check warning raised if changed
+                ctrl.view.display_info.assert_not_called()
+                nursery.cancel_scope.cancel()
 
 
+@pytest.mark.trio
 @given(ip=generate_invalid_ip())
-def test_gateway_invalid_update(ip: str):
+async def test_gateway_invalid_update(ip: str):
     with driver_context() as (driver, _):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            ctrl = ConnectionScreenController(Mock(), driver)
-            # reset ip
-            ctrl.set_gateway(str(ip))
-            # validate ip
-            assert not ctrl.validate_all_settings()
-            # check warning raised if changed
-            ctrl.view.display_error.assert_called_once_with(
-                "Warning, invalid parameters:\n- Gateway"
-            )
+            async with trio.open_nursery() as nursery:
+                send_channel, _ = trio.open_memory_channel(0)
+                driver.camera_state = CameraState(
+                    send_channel, nursery, trio.lowlevel.current_trio_token()
+                )
+                driver.camera_state.initialize_connection_variables(get_config())
+                ctrl = ConnectionScreenController(Mock(), driver)
+                # reset ip
+                ctrl.set_gateway(str(ip))
+                # validate ip
+                assert not ctrl.validate_all_settings()
+                # check warning raised if changed
+                ctrl.view.display_error.assert_called_once_with(
+                    "Warning, invalid parameters:\n- Gateway"
+                )
+                nursery.cancel_scope.cancel()
 
 
 # dns_server
 
 
+@pytest.mark.trio
 @given(ip=st.ip_addresses(v=4))
-def test_dns_server_valid_update(ip: str):
+async def test_dns_server_valid_update(ip: str):
     with driver_context() as (driver, _):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            ctrl = ConnectionScreenController(Mock(), driver)
-            # reset ip
-            ctrl.set_dns_server(str(ip))
-            # validate ip
-            assert ctrl.validate_all_settings()
-            # check warning raised if changed
-            ctrl.view.display_info.assert_not_called()
+            async with trio.open_nursery() as nursery:
+                send_channel, _ = trio.open_memory_channel(0)
+                driver.camera_state = CameraState(
+                    send_channel, nursery, trio.lowlevel.current_trio_token()
+                )
+                driver.camera_state.initialize_connection_variables(get_config())
+                ctrl = ConnectionScreenController(Mock(), driver)
+                # reset ip
+                ctrl.set_dns_server(str(ip))
+                # validate ip
+                assert ctrl.validate_all_settings()
+                # check warning raised if changed
+                ctrl.view.display_info.assert_not_called()
+                nursery.cancel_scope.cancel()
 
 
+@pytest.mark.trio
 @given(ip=generate_invalid_ip())
-def test_dns_server_invalid_update(ip: str):
+async def test_dns_server_invalid_update(ip: str):
     with driver_context() as (driver, _):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            ctrl = ConnectionScreenController(Mock(), driver)
-            # reset ip
-            ctrl.set_dns_server(str(ip))
-            # validate ip
-            assert not ctrl.validate_all_settings()
-            # check warning raised if changed
-            ctrl.view.display_error.assert_called_once_with(
-                "Warning, invalid parameters:\n- DNS server"
-            )
+            async with trio.open_nursery() as nursery:
+                send_channel, _ = trio.open_memory_channel(0)
+                driver.camera_state = CameraState(
+                    send_channel, nursery, trio.lowlevel.current_trio_token()
+                )
+                driver.camera_state.initialize_connection_variables(get_config())
+                ctrl = ConnectionScreenController(Mock(), driver)
+                # reset ip
+                ctrl.set_dns_server(str(ip))
+                # validate ip
+                assert not ctrl.validate_all_settings()
+                # check warning raised if changed
+                ctrl.view.display_error.assert_called_once_with(
+                    "Warning, invalid parameters:\n- DNS server"
+                )
+                nursery.cancel_scope.cancel()
 
 
 # wifi_ssid / wifi_password
 
 
-def test_wifi_password_toggle():
+@pytest.mark.trio
+async def test_wifi_password_toggle():
     with driver_context() as (driver, _):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            ctrl = ConnectionScreenController(Mock(), driver)
-            assert driver.camera_state.wifi_password_hidden.value
-            assert driver.camera_state.wifi_icon_eye.value == "eye-off"
-            ctrl.toggle_password_visible()
-            assert not driver.camera_state.wifi_password_hidden.value
-            assert driver.camera_state.wifi_icon_eye.value == "eye"
+            async with trio.open_nursery() as nursery:
+                send_channel, _ = trio.open_memory_channel(0)
+                driver.camera_state = CameraState(
+                    send_channel, nursery, trio.lowlevel.current_trio_token()
+                )
+                driver.camera_state.initialize_connection_variables(get_config())
+                ctrl = ConnectionScreenController(Mock(), driver)
+                assert driver.camera_state.wifi_password_hidden.value
+                assert driver.camera_state.wifi_icon_eye.value == "eye-off"
+                ctrl.toggle_password_visible()
+                assert not driver.camera_state.wifi_password_hidden.value
+                assert driver.camera_state.wifi_icon_eye.value == "eye"
+                nursery.cancel_scope.cancel()
 
 
+@pytest.mark.trio
 @given(
     generate_random_characters(min_size=33, max_size=35),
     generate_random_characters(min_size=33, max_size=35),
 )
-def test_wifi_ssid_password_long(ssid: str, password: str):
+async def test_wifi_ssid_password_long(ssid: str, password: str):
     with driver_context() as (driver, _):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            ctrl = ConnectionScreenController(Mock(), driver)
-            ctrl.set_wifi_ssid(str(ssid))
-            assert (
-                driver.camera_state.wifi_ssid.value
-                == ssid[: driver.camera_state.MAX_LEN_WIFI_SSID]
-            )
-            ctrl.set_wifi_password(password)
-            assert (
-                driver.camera_state.wifi_password.value
-                == password[: driver.camera_state.MAX_LEN_WIFI_PASSWORD]
-            )
+            async with trio.open_nursery() as nursery:
+                send_channel, _ = trio.open_memory_channel(0)
+                driver.camera_state = CameraState(
+                    send_channel, nursery, trio.lowlevel.current_trio_token()
+                )
+                driver.camera_state.initialize_connection_variables(get_config())
+                ctrl = ConnectionScreenController(Mock(), driver)
+                ctrl.set_wifi_ssid(str(ssid))
+                assert (
+                    driver.camera_state.wifi_ssid.value
+                    == ssid[: driver.camera_state.MAX_LEN_WIFI_SSID]
+                )
+                ctrl.set_wifi_password(password)
+                assert (
+                    driver.camera_state.wifi_password.value
+                    == password[: driver.camera_state.MAX_LEN_WIFI_PASSWORD]
+                )
+                nursery.cancel_scope.cancel()
