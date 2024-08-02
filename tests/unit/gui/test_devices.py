@@ -30,6 +30,9 @@ from local_console.gui.model.devices_screen import DevicesScreenModel
 from local_console.core.camera.state import CameraState
 from local_console.gui.model.camera_proxy import CameraStateProxy
 from local_console.clients.agent import Agent
+from local_console.core.config import add_device_to_config
+from local_console.core.config import get_device_configs
+
 
 from pytest import mark
 
@@ -274,7 +277,7 @@ async def test_device_manager(nursery):
         assert len(device_manager.agent_factory) == device_manager.num_devices
 
         device_manager.get_device_config()
-        assert mock_get_dev.call_count == 3
+        assert mock_get_dev.call_count == 1
 
 
 @pytest.mark.trio
@@ -339,3 +342,31 @@ async def test_device_manager_with_config(nursery):
 
         if dummy_home.is_dir:
             shutil.rmtree(dummy_home)
+
+
+@pytest.mark.trio
+async def test_device_manager_start_devices(nursery):
+    with (patch("local_console.core.config.config_paths") as mock_config_paths,):
+        app_subdir = Path("local-console")
+        dummy_home = Path("/tmp/test_devices")
+        dummy_default_home = dummy_home / ".config" / app_subdir
+        dummy_config_path = dummy_default_home / "config.ini"
+
+        mock_config_paths.config_path = dummy_config_path
+        from local_console.core.config import setup_default_config
+
+        setup_default_config()
+        send_channel, _ = trio.open_memory_channel(0)
+        device_manager = DeviceManager(
+            send_channel, nursery, trio.lowlevel.current_trio_token()
+        )
+        assert device_manager.get_device_config() == []
+
+        device1 = DeviceListItem(name="test_device_1", port="1234")
+
+        add_device_to_config(device1)
+        device_manager.start_previous_devices(get_device_configs())
+        device_items = device_manager.get_device_config()
+        assert device_items[0] == device1
+        assert device_manager.active_device == device1
+        assert device_manager.num_devices == 1
