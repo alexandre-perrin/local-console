@@ -106,14 +106,14 @@
             spacing: "5dp"
 
             ImageWithROI:
-                id: stream_image
                 radius: "10dp"
                 fit_mode: "contain"
                 size_hint_x: 0.7
+                source: str(app.mdl.stream_image)
 
             MDBoxLayout:
                 size_hint_x: 0.3
                 orientation: "vertical"
 
                 CodeInputCustom:
-                    id: inference_field
+                    text: app.mdl.inference_field

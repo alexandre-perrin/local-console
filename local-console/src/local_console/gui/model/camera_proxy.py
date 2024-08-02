@@ -77,6 +77,9 @@ class CameraStateProxy(CameraStateProxyBase):
     deploy_stage = ObjectProperty(DeployStage, allownone=True)
     deploy_operation = ObjectProperty(DeploymentType, allownone=True)
 
+    stream_image = StringProperty("")
+    inference_field = StringProperty("")
+
     def bind_connections(self, camera_state: CameraState) -> None:
         self.bind_state_to_proxy("local_ip", camera_state)
         self.bind_state_to_proxy("mqtt_host", camera_state)
@@ -149,6 +152,10 @@ class CameraStateProxy(CameraStateProxyBase):
 
         # Proxy->State because we want the user to set this value via the GUI
         self.bind_proxy_to_state("module_file", camera_state, Path)
+
+    def bind_streaming_and_inference(self, camera_state: CameraState) -> None:
+        self.bind_state_to_proxy("stream_image", camera_state)
+        self.bind_state_to_proxy("inference_field", camera_state)
 
 
 # Listing of model properties to move over into this class. It is
