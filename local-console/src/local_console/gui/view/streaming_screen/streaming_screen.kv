@@ -83,12 +83,12 @@
 
             ImageWithROI:
                 id: stream_image
+                source: app.mdl.stream_image
                 radius: "10dp"
                 fit_mode: "contain"
                 on_size: self.update_roi()
                 on_texture: self.prime_for_roi(args[1])
                 size_hint_x: 0.7
-                source: str(app.mdl.stream_image)
 
             MDBoxLayout:
                 size_hint_x: 0.3

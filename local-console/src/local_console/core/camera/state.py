@@ -51,6 +51,7 @@ from local_console.gui.drawer.classification import ClassificationDrawer
 from local_console.gui.drawer.objectdetection import DetectionDrawer
 from local_console.gui.enums import ApplicationConfiguration
 from local_console.gui.enums import ApplicationType
+from local_console.gui.utils.sync_async import run_on_ui_thread
 from local_console.servers.webserver import AsyncWebserver
 from local_console.utils.fstools import check_and_create_directory
 from local_console.utils.fstools import DirectoryMonitor
@@ -352,6 +353,7 @@ class CameraState:
     async def connection_status_timeout(self) -> None:
         logger.debug("Connection status timed out: camera is disconnected")
         self.stream_status.value = StreamStatus.Inactive
+        self._check_connection_status()
 
     def initialize_connection_variables(self, config: AgentConfiguration) -> None:
         self.local_ip.value = get_my_ip_by_routing()
@@ -475,6 +477,7 @@ class CameraState:
 
         return return_value
 
+    @run_on_ui_thread
     def _process_camera_upload(self, incoming_file: Path) -> None:
         if incoming_file.parent.name == "inferences":
             target_dir = self.inference_dir_path.value
@@ -492,8 +495,7 @@ class CameraState:
                 except FlatbufferError as e:
                     logger.error("Error decoding inference data:", exc_info=e)
 
-            self.inference_dir_path.value = payload_render
-
+            self.inference_field.value = payload_render
             # assumes input and output tensor received in that order
             assert self.latest_image_file
             try:
@@ -505,16 +507,17 @@ class CameraState:
                 )
             except Exception as e:
                 logger.error(f"Error while performing the drawing: {e}")
-            self.image_dir_path.value = self.latest_image_file
+            self.stream_image.value = str(self.latest_image_file)
             self.consecutives_images = 0
 
         elif incoming_file.parent.name == "images":
-            target_dir = self.image_dir_path.value
-            assert target_dir
-            final_file = self._save_into_input_directory(incoming_file, target_dir)
+            assert self.image_dir_path.value
+            final_file = self._save_into_input_directory(
+                incoming_file, self.image_dir_path.value
+            )
             self.latest_image_file = final_file
             if self.consecutives_images > 0:
-                self.image_dir_path.value = self.latest_image_file
+                self.stream_image.value = str(self.latest_image_file)
             self.consecutives_images += 1
         else:
             logger.warning(f"Unknown incoming file: {incoming_file}")

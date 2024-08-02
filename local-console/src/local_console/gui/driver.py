@@ -16,6 +16,7 @@
 import json
 import logging
 from functools import partial
+from pathlib import Path
 from typing import Any
 from typing import Optional
 
@@ -149,6 +150,8 @@ class Driver:
                     if not self.evp1_mode and self.camera_state.is_ready:
                         self.periodic_reports.tap()
 
+                    self.camera_state.update_connection_status()
+
     def from_sync(self, async_fn: AsyncFunc, *args: Any) -> None:
         self.bridge.enqueue_task(async_fn, *args)
 
@@ -198,9 +201,13 @@ class Driver:
             method,
             StartUploadInferenceData(
                 StorageName=upload_url,
-                StorageSubDirectoryPath=self.camera_state.image_dir_path.value,
+                StorageSubDirectoryPath=Path(
+                    self.camera_state.image_dir_path.value
+                ).name,
                 StorageNameIR=upload_url,
-                StorageSubDirectoryPathIR=self.camera_state.inference_dir_path.value,
+                StorageSubDirectoryPathIR=Path(
+                    self.camera_state.inference_dir_path.value
+                ).name,
                 CropHOffset=h_offset,
                 CropVOffset=v_offset,
                 CropHSize=h_size,
