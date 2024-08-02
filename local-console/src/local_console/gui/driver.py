@@ -54,7 +54,6 @@ from local_console.servers.broker import spawn_broker
 from local_console.servers.webserver import AsyncWebserver
 from local_console.utils.fstools import check_and_create_directory
 from local_console.utils.local_network import get_my_ip_by_routing
-from local_console.utils.local_network import LOCAL_IP
 from local_console.utils.timing import TimeoutBehavior
 
 
@@ -118,7 +117,6 @@ class Driver:
                 self.device_manager = DeviceManager(
                     self.send_channel, nursery, trio.lowlevel.current_trio_token()
                 )
-                assert self.device_manager is not None
                 if self.device_manager.active_device is not None:
                     self.gui.switch_proxy()
 
