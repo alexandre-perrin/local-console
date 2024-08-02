@@ -29,5 +29,5 @@ def test_broker_command():
         patch("trio.sleep_forever"),
     ):
         result = runner.invoke(app, [])
-        mock_spawn.assert_called_once_with(mock_config.return_value, ANY, ANY)
+        mock_spawn.assert_called_once_with(mock_config.return_value.mqtt.port, ANY, ANY)
         assert result.exit_code == 0

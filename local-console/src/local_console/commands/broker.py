@@ -46,7 +46,7 @@ async def broker_task(config: AgentConfiguration, verbose: bool) -> None:
     logger.setLevel(logging.INFO)
     async with (
         trio.open_nursery() as nursery,
-        spawn_broker(config, nursery, verbose),
+        spawn_broker(config.mqtt.port, nursery, verbose),
     ):
         try:
             logger.info(f"MQTT broker listening on port {config.mqtt.port}")
