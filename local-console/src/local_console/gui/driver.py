@@ -36,6 +36,7 @@ from local_console.core.schemas.edge_cloud_if_v1 import Permission
 from local_console.core.schemas.edge_cloud_if_v1 import SetFactoryReset
 from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
 from local_console.core.schemas.schemas import DesiredDeviceConfig
+from local_console.core.schemas.schemas import DeviceListItem
 from local_console.gui.device_manager import DeviceManager
 from local_console.gui.enums import ApplicationConfiguration
 from local_console.gui.utils.sync_async import AsyncFunc
@@ -50,6 +51,9 @@ logger = logging.getLogger(__name__)
 
 
 class Driver:
+    DEFAULT_DEVICE_NAME = "Default"
+    DEFAULT_DEVICE_PORT = 1883
+
     def __init__(self, gui: type[MDApp]) -> None:
         self.gui = gui
         self.config = get_config()
@@ -99,9 +103,11 @@ class Driver:
                 self.device_manager = DeviceManager(
                     self.send_channel, nursery, trio.lowlevel.current_trio_token()
                 )
-                self.device_manager.start_previous_devices(get_device_configs())
+                self.device_manager.init_devices(get_device_configs())
                 if self.device_manager.active_device is not None:
                     self.gui.switch_proxy()
+
+                self._init_devices()
 
                 await self.gui.async_run(async_lib="trio")
             except KeyboardInterrupt:
@@ -109,6 +115,26 @@ class Driver:
             finally:
                 self.bridge.close_task_queue()
                 nursery.cancel_scope.cancel()
+
+    def _init_devices(self) -> None:
+        """
+        Initialize default devices if none exist in the configuration.
+
+        This method checks if there are any devices currently configured in the
+        device manager. If no devices are found, it creates a default device
+        using the predefined default name and port. The default device is then
+        added to the device manager, set as the active device, and the GUI proxy
+        is switched to reflect this change.
+        """
+        assert self.device_manager
+        if self.device_manager.num_devices == 0:
+            # At least 1 device
+            default_device = DeviceListItem(
+                name=self.DEFAULT_DEVICE_NAME, port=str(self.DEFAULT_DEVICE_PORT)
+            )
+            self.device_manager.add_device(default_device)
+            self.device_manager.set_active_device(default_device.name)
+            self.gui.switch_proxy()
 
     async def mqtt_setup(self) -> None:
         async with (

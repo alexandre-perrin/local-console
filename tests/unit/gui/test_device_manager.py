@@ -51,7 +51,7 @@ def mock_persistency_update():
         ),
     ):
         device_manager = DeviceManager(Mock(), Mock(), Mock())
-        device_manager.start_previous_devices([device])
+        device_manager.init_devices([device])
         device_manager.set_active_device(device.name)
         yield mock_persistency, device_manager
 
