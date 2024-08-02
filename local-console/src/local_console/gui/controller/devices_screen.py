@@ -17,7 +17,6 @@ import logging
 import re
 
 from local_console.core.schemas.schemas import DeviceListItem
-from local_console.gui.device_manager import DeviceManager
 from local_console.gui.driver import Driver
 from local_console.gui.model.devices_screen import DevicesScreenModel
 from local_console.gui.view.common.components import DeviceItem
@@ -43,9 +42,9 @@ class DevicesScreenController:
         self.model = model
         self.driver = driver
         self.view = DevicesScreenView(controller=self, model=self.model)
-        self.device_manager: DeviceManager = self.driver.device_manager
+        assert self.driver.device_manager
 
-        self.restore_device_list(self.device_manager.get_device_config())
+        self.restore_device_list(self.driver.device_manager.get_device_config())
 
     def get_view(self) -> DevicesScreenView:
         return self.view
@@ -101,8 +100,14 @@ class DevicesScreenController:
         # Add the device to the view
         self.add_device_to_device_list(DeviceItem(name=name, port=port))
 
+        assert self.driver.device_manager
+
         # Save device list into device configuration
-        self.device_manager.add_device(DeviceListItem(name=name, port=port))
+        self.driver.device_manager.add_device(DeviceListItem(name=name, port=port))
+
+        if self.driver.device_manager.num_devices == 1:
+            self.driver.device_manager.set_active_device(name)
+            self.driver.gui.switch_proxy()
 
     def validate_new_device(self, name: str, port: str, device_list: list) -> bool:
         if not name or not port:
@@ -140,7 +145,12 @@ class DevicesScreenController:
         if not remove_devices:
             self.view.display_error("No device is selected.")
             return
+        assert self.driver.device_manager
 
         for device in remove_devices:
             self.view.ids.box_device_list.remove_widget(device)
-            self.device_manager.remove_device(device.name)
+            self.driver.device_manager.remove_device(device.name)
+
+        if self.driver.device_manager.num_devices == 1:
+            self.driver.device_manager.set_active_device(device_list[0].name)
+            self.driver.gui.switch_proxy()

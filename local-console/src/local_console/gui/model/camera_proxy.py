@@ -23,6 +23,7 @@ from local_console.core.camera.enums import DeploymentType
 from local_console.core.camera.enums import DeployStage
 from local_console.core.camera.enums import OTAUpdateModule
 from local_console.core.camera.enums import StreamStatus
+from local_console.core.camera.state import CameraState
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.gui.model.data_binding import CameraStateProxyBase
 
@@ -75,6 +76,79 @@ class CameraStateProxy(CameraStateProxyBase):
     deploy_status = ObjectProperty(dict(), allownone=True)
     deploy_stage = ObjectProperty(DeployStage, allownone=True)
     deploy_operation = ObjectProperty(DeploymentType, allownone=True)
+
+    def bind_connections(self, camera_state: CameraState) -> None:
+        self.bind_state_to_proxy("local_ip", camera_state)
+        self.bind_state_to_proxy("mqtt_host", camera_state)
+        self.bind_state_to_proxy("mqtt_port", camera_state)
+        self.bind_state_to_proxy("ntp_host", camera_state)
+        self.bind_state_to_proxy("ip_address", camera_state)
+        self.bind_state_to_proxy("subnet_mask", camera_state)
+        self.bind_state_to_proxy("gateway", camera_state)
+        self.bind_state_to_proxy("dns_server", camera_state)
+        self.bind_state_to_proxy("wifi_ssid", camera_state)
+        self.bind_state_to_proxy("wifi_password", camera_state)
+
+        # to propagate initialization in `CameraState`
+        self.bind_state_to_proxy("is_connected", camera_state)
+
+    def bind_core_variables(self, camera_state: CameraState) -> None:
+        self.bind_state_to_proxy("is_ready", camera_state)
+        self.bind_state_to_proxy("is_streaming", camera_state)
+        self.bind_state_to_proxy("device_config", camera_state)
+
+    def bind_stream_variables(self, camera_state: CameraState) -> None:
+        # Proxy->State because we want the user to set this value via the GUI
+        self.bind_proxy_to_state("roi", camera_state)
+
+        # State->Proxy because this is either read from the device camera_state
+        # or from states computed within the GUI code
+        self.bind_state_to_proxy("stream_status", camera_state)
+
+    def bind_ai_model_function(self, camera_state: CameraState) -> None:
+        # Proxy->State because we want the user to set this value via the GUI
+        self.bind_proxy_to_state("ai_model_file", camera_state, Path)
+
+        # State->Proxy because this is computed from the model file
+        self.bind_state_to_proxy("ai_model_file_valid", camera_state)
+
+    def bind_firmware_file_functions(self, camera_state: CameraState) -> None:
+        # Proxy->State because we want the user to set these values via the GUI
+        self.bind_proxy_to_state("firmware_file", camera_state, Path)
+        self.bind_proxy_to_state("firmware_file_version", camera_state)
+        self.bind_proxy_to_state("firmware_file_type", camera_state)
+        # Default value that matches the default widget selection
+        self.firmware_file_type = OTAUpdateModule.APFW
+
+        # State->Proxy because these are computed from the firmware_file
+        self.bind_state_to_proxy("firmware_file_valid", camera_state)
+        self.bind_state_to_proxy("firmware_file_hash", camera_state)
+
+    def bind_input_directories(self, camera_state: CameraState) -> None:
+        self.bind_state_to_proxy("image_dir_path", camera_state, str)
+        self.bind_state_to_proxy("inference_dir_path", camera_state, str)
+
+    def bind_vapp_file_functions(self, camera_state: CameraState) -> None:
+        self.bind_proxy_to_state("vapp_config_file", camera_state)
+        self.bind_proxy_to_state("vapp_labels_file", camera_state)
+        self.bind_proxy_to_state("vapp_type", camera_state)
+
+        # `vapp_schema_file` is not bound because it is important that the chosen
+        # file undergoes thorough validation before being committed.
+
+        # The labels map is computed from the labels file,
+        # so data binding must be state-->proxy.
+        self.bind_state_to_proxy("vapp_labels_map", camera_state, str)
+
+    def bind_app_module_functions(self, camera_state: CameraState) -> None:
+        # State->Proxy because these are either read from the device state
+        # or from states computed within the camera tracking
+        self.bind_state_to_proxy("deploy_status", camera_state)
+        self.bind_state_to_proxy("deploy_stage", camera_state)
+        self.bind_state_to_proxy("deploy_operation", camera_state)
+
+        # Proxy->State because we want the user to set this value via the GUI
+        self.bind_proxy_to_state("module_file", camera_state, Path)
 
 
 # Listing of model properties to move over into this class. It is

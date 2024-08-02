@@ -106,6 +106,22 @@
             adaptive_height: False
             size_hint_x: 2
 
+            DeviceDropDownList:
+                size_hint_x: .5
+                size_hint_y: .1
+                pos_hint:{"center_x": 0.5}
+                halign:"right"
+                on_selected: app.driver.device_manager.set_active_device(args[1]); app.switch_proxy();
+                padding: "20dp", "0dp"
+                _selected_device: app.selected
+                canvas.before:
+                    Color:
+                        rgba: 0, 0, 0, 1
+                    Line:
+                        width: 1.0
+                        rounded_rectangle: self.x, self.y, self.width, self.height, 4
+
+
             MDBoxLayout:
                 size_hint_y: 0.9
                 orientation: "vertical"

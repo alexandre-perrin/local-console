@@ -51,6 +51,7 @@ class ConfigurationScreenController:
         is_custom = app_type == ApplicationType.CUSTOM.value
         self.view.ids.labels_pick.disabled = is_custom
         self.view.ids.schema_pick.disabled = not is_custom
+        assert self.driver.camera_state
 
         if app_type == ApplicationType.CUSTOM.value:
             self.driver.camera_state.vapp_schema_file.value = None
@@ -70,15 +71,21 @@ class ConfigurationScreenController:
         return self.view
 
     def update_image_directory(self, path: str) -> None:
+        assert self.driver.camera_state
         self.driver.camera_state.image_dir_path.value = Path(path)
 
     def update_inferences_directory(self, path: str) -> None:
+        assert self.driver.camera_state
+
         self.driver.camera_state.inference_dir_path.value = Path(path)
 
     def update_total_max_size(self, size: int) -> None:
-        self.driver.total_dir_watcher.set_storage_limit(size)
+        assert self.driver.camera_state
+        self.driver.camera_state.total_dir_watcher.set_storage_limit(size)
 
     def apply_application_configuration(self) -> None:
+        assert self.driver.camera_state
+
         try:
             self.driver.camera_state.vapp_labels_map.value = map_class_id_to_name(
                 self.driver.camera_state.vapp_labels_file.value
@@ -101,10 +108,13 @@ class ConfigurationScreenController:
             self.view.display_error("App configuration unknown error")
 
     def apply_flatbuffers_schema(self) -> None:
+
         schema_file = self.driver.gui.mdl.vapp_schema_file
         if schema_file is not None:
             if schema_file.is_file():
                 try:
+                    assert self.driver.camera_state
+
                     conform_flatbuffer_schema(schema_file)
                     self.driver.camera_state.vapp_schema_file.value = schema_file
                     self.view.display_info("Success!")

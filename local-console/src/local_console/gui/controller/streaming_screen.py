@@ -40,6 +40,8 @@ class StreamingScreenController:
         return self.view
 
     def toggle_stream_status(self) -> None:
+        assert self.driver.camera_state
+
         camera_status = self.driver.camera_state.stream_status.value
         if camera_status == StreamStatus.Active:
             self.driver.from_sync(self.driver.streaming_rpc_stop)
@@ -52,6 +54,8 @@ class StreamingScreenController:
         self.driver.camera_state.stream_status.value = StreamStatus.Transitioning
 
     def post_roi_actions(self, instance: CameraStateProxy, roi: UnitROI) -> None:
+        assert self.driver.camera_state
+
         camera_status = self.driver.camera_state.stream_status.value
         if camera_status == StreamStatus.Transitioning:
             return

@@ -28,17 +28,15 @@ from local_console.clients.agent import Agent
 from local_console.clients.agent import check_attributes_request
 from local_console.core.camera.axis_mapping import pixel_roi_from_normals
 from local_console.core.camera.axis_mapping import UnitROI
-from local_console.core.camera.enums import FirmwareExtension
 from local_console.core.camera.enums import MQTTTopics
-from local_console.core.camera.enums import OTAUpdateModule
-from local_console.core.camera.enums import StreamStatus
 from local_console.core.camera.flatbuffers import add_class_names
 from local_console.core.camera.flatbuffers import flatbuffer_binary_to_json
 from local_console.core.camera.flatbuffers import FlatbufferError
 from local_console.core.camera.flatbuffers import get_output_from_inference_results
 from local_console.core.camera.state import CameraState
-from local_console.core.commands.ota_deploy import get_package_hash
+from local_console.core.camera.state import MessageType
 from local_console.core.config import get_config
+from local_console.core.config import get_device_configs
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.edge_cloud_if_v1 import Permission
 from local_console.core.schemas.edge_cloud_if_v1 import SetFactoryReset
@@ -56,11 +54,9 @@ from local_console.gui.utils.sync_async import SyncAsyncBridge
 from local_console.servers.broker import spawn_broker
 from local_console.servers.webserver import AsyncWebserver
 from local_console.utils.fstools import check_and_create_directory
-from local_console.utils.fstools import DirectoryMonitor
-from local_console.utils.fstools import StorageSizeWatcher
 from local_console.utils.local_network import get_my_ip_by_routing
 from local_console.utils.timing import TimeoutBehavior
-from local_console.utils.validation import validate_imx500_model_file
+
 
 logger = logging.getLogger(__name__)
 
@@ -68,21 +64,20 @@ logger = logging.getLogger(__name__)
 class Driver:
     def __init__(self, gui: type[MDApp]) -> None:
         self.gui = gui
-        self.device_manager = DeviceManager()
-
         self.config = get_config()
         self.mqtt_client = Agent(self.config)
         self.upload_port = 0
         self.temporary_base: Optional[Path] = None
         self.temporary_image_directory: Optional[Path] = None
         self.temporary_inference_directory: Optional[Path] = None
-        self.total_dir_watcher = StorageSizeWatcher()
         self.latest_image_file: Optional[Path] = None
         # Used to identify if output tensors are missing
         self.consecutives_images = 0
+        self.send_channel: trio.MemorySendChannel[MessageType] | None = None
+        self.receive_channel: trio.MemoryReceiveChannel[MessageType] | None = None
 
-        self.camera_state = CameraState()
-        self.camera_state.device_config.subscribe_async(self.process_factory_reset)
+        self.device_manager: Optional[DeviceManager] = None
+        self.camera_state: Optional[CameraState] = None
 
         # This takes care of ensuring the device reports its state
         # with bounded periodicity (expect to receive a message within 6 seconds)
@@ -92,134 +87,12 @@ class Driver:
         # This timeout behavior takes care of updating the connectivity
         # status in case there are no incoming messages from the camera
         # for longer than the threshold
-        self.connection_status = TimeoutBehavior(
-            CameraState.CONNECTION_STATUS_TIMEOUT.seconds,
-            self.connection_status_timeout,
-        )
 
         self.start_flags = {
             "mqtt": trio.Event(),
             "webserver": trio.Event(),
         }
         self.bridge = SyncAsyncBridge()
-        self.dir_monitor = DirectoryMonitor()
-
-        self._init_core_variables()
-        self._init_ai_model_functions()
-        self._init_firmware_file_functions()
-        self._init_input_directories()
-        self._init_stream_variables()
-        self._init_vapp_file_functions()
-        self._init_app_module_functions()
-        self._init_connection()
-        self.camera_state.initialize_connection_variables(self.config)
-
-    def _init_connection(self) -> None:
-        self.gui.mdl.bind_proxy_to_state("local_ip", self.camera_state)
-        self.gui.mdl.bind_proxy_to_state("mqtt_host", self.camera_state)
-        self.gui.mdl.bind_proxy_to_state("mqtt_port", self.camera_state)
-        self.gui.mdl.bind_proxy_to_state("ntp_host", self.camera_state)
-        self.gui.mdl.bind_proxy_to_state("ip_address", self.camera_state)
-        self.gui.mdl.bind_proxy_to_state("subnet_mask", self.camera_state)
-        self.gui.mdl.bind_proxy_to_state("gateway", self.camera_state)
-        self.gui.mdl.bind_proxy_to_state("dns_server", self.camera_state)
-        self.gui.mdl.bind_proxy_to_state("wifi_ssid", self.camera_state)
-        self.gui.mdl.bind_proxy_to_state("wifi_password", self.camera_state)
-
-        # to propagate initialization in `CameraState`
-        self.gui.mdl.bind_state_to_proxy("local_ip", self.camera_state)
-        self.gui.mdl.bind_state_to_proxy("mqtt_host", self.camera_state)
-        self.gui.mdl.bind_state_to_proxy("mqtt_port", self.camera_state)
-        self.gui.mdl.bind_state_to_proxy("ntp_host", self.camera_state)
-
-        self.gui.mdl.bind_state_to_proxy("is_connected", self.camera_state)
-        self.gui.mdl.bind_state_to_proxy("wifi_password_hidden", self.camera_state)
-        self.gui.mdl.bind_state_to_proxy("wifi_icon_eye", self.camera_state)
-
-    def _init_core_variables(self) -> None:
-        self.gui.mdl.bind_state_to_proxy("is_ready", self.camera_state)
-        self.gui.mdl.bind_state_to_proxy("is_streaming", self.camera_state)
-        self.gui.mdl.bind_state_to_proxy("device_config", self.camera_state)
-
-    def _init_stream_variables(self) -> None:
-        # Proxy->State because we want the user to set this value via the GUI
-        self.gui.mdl.bind_proxy_to_state("roi", self.camera_state)
-
-        # State->Proxy because this is either read from the device state
-        # or from states computed within the GUI code
-        self.gui.mdl.bind_state_to_proxy("stream_status", self.camera_state)
-
-    def _init_ai_model_functions(self) -> None:
-        # Proxy->State because we want the user to set this value via the GUI
-        self.gui.mdl.bind_proxy_to_state("ai_model_file", self.camera_state, Path)
-
-        # State->Proxy because this is computed from the model file
-        self.gui.mdl.bind_state_to_proxy("ai_model_file_valid", self.camera_state)
-
-        def validate_file(current: Optional[Path], previous: Optional[Path]) -> None:
-            if current:
-                self.camera_state.ai_model_file_valid.value = (
-                    validate_imx500_model_file(current)
-                )
-
-        self.camera_state.ai_model_file.subscribe(validate_file)
-
-    def _init_firmware_file_functions(self) -> None:
-        # Proxy->State because we want the user to set these values via the GUI
-        self.gui.mdl.bind_proxy_to_state("firmware_file", self.camera_state, Path)
-        self.gui.mdl.bind_proxy_to_state("firmware_file_version", self.camera_state)
-        self.gui.mdl.bind_proxy_to_state("firmware_file_type", self.camera_state)
-        # Default value that matches the default widget selection
-        self.gui.mdl.firmware_file_type = OTAUpdateModule.APFW
-
-        # State->Proxy because these are computed from the firmware_file
-        self.gui.mdl.bind_state_to_proxy("firmware_file_valid", self.camera_state)
-        self.gui.mdl.bind_state_to_proxy("firmware_file_hash", self.camera_state)
-
-        def validate_file(current: Optional[Path], previous: Optional[Path]) -> None:
-            if current:
-                is_valid = True
-                if self.camera_state.firmware_file_type.value == OTAUpdateModule.APFW:
-                    if current.suffix != FirmwareExtension.APPLICATION_FW:
-                        is_valid = False
-                else:
-                    if current.suffix != FirmwareExtension.SENSOR_FW:
-                        is_valid = False
-
-                self.camera_state.firmware_file_hash.value = (
-                    get_package_hash(current) if is_valid else ""
-                )
-                self.camera_state.firmware_file_valid.value = is_valid
-
-        self.camera_state.firmware_file.subscribe(validate_file)
-
-    def _init_input_directories(self) -> None:
-        self.gui.mdl.bind_state_to_proxy("image_dir_path", self.camera_state, str)
-        self.camera_state.image_dir_path.subscribe(self.input_directory_setup)
-        self.gui.mdl.bind_state_to_proxy("inference_dir_path", self.camera_state, str)
-        self.camera_state.inference_dir_path.subscribe(self.input_directory_setup)
-
-    def _init_vapp_file_functions(self) -> None:
-        self.gui.mdl.bind_proxy_to_state("vapp_config_file", self.camera_state)
-        self.gui.mdl.bind_proxy_to_state("vapp_labels_file", self.camera_state)
-        self.gui.mdl.bind_proxy_to_state("vapp_type", self.camera_state)
-
-        # `vapp_schema_file` is not bound because it is important that the chosen
-        # file undergoes thorough validation before being committed.
-
-        # The labels map is computed from the labels file,
-        # so data binding must be state-->proxy.
-        self.gui.mdl.bind_state_to_proxy("vapp_labels_map", self.camera_state, str)
-
-    def _init_app_module_functions(self) -> None:
-        # State->Proxy because these are either read from the device state
-        # or from states computed within the camera tracking
-        self.gui.mdl.bind_state_to_proxy("deploy_status", self.camera_state)
-        self.gui.mdl.bind_state_to_proxy("deploy_stage", self.camera_state)
-        self.gui.mdl.bind_state_to_proxy("deploy_operation", self.camera_state)
-
-        # Proxy->State because we want the user to set this value via the GUI
-        self.gui.mdl.bind_proxy_to_state("module_file", self.camera_state, Path)
 
     @property
     def evp1_mode(self) -> bool:
@@ -232,7 +105,23 @@ class Driver:
                 nursery.start_soon(self.bridge.bridge_listener)
                 nursery.start_soon(self.mqtt_setup)
                 nursery.start_soon(self.blobs_webserver_task)
-                self.camera_state.set_nursery(nursery)
+                self.send_channel, self.receive_channel = trio.open_memory_channel(0)
+                self.camera_state = CameraState(
+                    self.send_channel, nursery, trio.lowlevel.current_trio_token()
+                )
+                assert self.camera_state is not None
+                self.camera_state.device_config.subscribe_async(
+                    self.process_factory_reset
+                )
+                self.camera_state.initialize_connection_variables(self.config)
+
+                self.device_manager = DeviceManager(
+                    self.send_channel, nursery, trio.lowlevel.current_trio_token()
+                )
+                self.device_manager.start_previous_devices(get_device_configs())
+                if self.device_manager.active_device is not None:
+                    self.gui.switch_proxy()
+
                 await self.gui.async_run(async_lib="trio")
             except KeyboardInterrupt:
                 logger.info("Cancelled per user request via keyboard")
@@ -256,9 +145,9 @@ class Driver:
             self.start_flags["mqtt"].set()
 
             assert self.mqtt_client.client  # appease mypy
-            self.connection_status.spawn_in(nursery)
             if not self.evp1_mode:
                 self.periodic_reports.spawn_in(nursery)
+            assert self.camera_state is not None
 
             streaming_stop_required = True
             async with self.mqtt_client.client.messages() as mgen:
@@ -266,6 +155,7 @@ class Driver:
                     if await check_attributes_request(
                         self.mqtt_client, msg.topic, msg.payload.decode()
                     ):
+
                         self.camera_state.attributes_available.value = True
                         # attributes request handshake is performed at (re)connect
                         # when reconnecting, multiple requests might be made
@@ -275,12 +165,9 @@ class Driver:
 
                     payload = json.loads(msg.payload)
                     await self.camera_state.process_incoming(msg.topic, payload)
-                    self.update_camera_status()
 
                     if not self.evp1_mode and self.camera_state.is_ready:
                         self.periodic_reports.tap()
-
-                    self.connection_status.tap()
 
     def from_sync(self, async_fn: AsyncFunc, *args: Any) -> None:
         self.bridge.enqueue_task(async_fn, *args)
@@ -304,13 +191,6 @@ class Driver:
                 ).model_dump_json(),
             )
 
-    @run_on_ui_thread
-    def update_camera_status(self) -> None:
-        self.gui.views[Screen.APPLICATIONS_SCREEN].model.deploy_status = (
-            self.camera_state.deploy_status
-        )
-        self.camera_state.update_connection_status()
-
     async def blobs_webserver_task(self) -> None:
         """
         Spawn a webserver on an arbitrary available port for receiving
@@ -326,6 +206,8 @@ class Driver:
             ) as image_serve,
         ):
             logger.info(f"Uploading data into {tempdir}")
+
+            assert self.camera_state
 
             assert image_serve.port
             self.upload_port = image_serve.port
@@ -344,6 +226,8 @@ class Driver:
             await trio.sleep_forever()
 
     def process_camera_upload(self, incoming_file: Path) -> None:
+        assert self.camera_state
+
         if incoming_file.parent.name == "inferences":
             target_dir = self.camera_state.inference_dir_path.value
             assert target_dir
@@ -386,23 +270,16 @@ class Driver:
         else:
             logger.warning(f"Unknown incoming file: {incoming_file}")
 
-    def input_directory_setup(
-        self, current: Optional[Path], previous: Optional[Path]
-    ) -> None:
-        assert current
-
-        check_and_create_directory(current)
-        if previous:
-            self.total_dir_watcher.unwatch_path(previous)
-        self.total_dir_watcher.set_path(current)
-
-        self.dir_monitor.watch(current, self.notify_directory_deleted)
-        if previous:
-            self.dir_monitor.unwatch(previous)
+    async def show_messages(self) -> None:
+        assert self.receive_channel
+        async for value in self.receive_channel:
+            self.show_message_gui(value)
 
     @run_on_ui_thread
-    def notify_directory_deleted(self, directory: Path) -> None:
-        self.gui.display_error(str(directory), "has been unexpectedly removed", 30)
+    def show_message_gui(self, msg: MessageType) -> None:
+        type_ = msg[0]
+        if type_ == "error":
+            self.gui.display_error(msg[1], 30)
 
     @run_on_ui_thread
     def update_images_display(self, incoming_file: Path) -> None:
@@ -423,6 +300,7 @@ class Driver:
         self, flatbuffer_payload: bytes
     ) -> None | str | dict:
         return_value = None
+        assert self.camera_state
         if self.camera_state.vapp_schema_file.value:
             json_data = flatbuffer_binary_to_json(
                 self.camera_state.vapp_schema_file.value, flatbuffer_payload
@@ -450,8 +328,8 @@ class Driver:
         if incoming_file.parent != target_dir:
             check_and_create_directory(target_dir)
             final = Path(shutil.move(incoming_file, target_dir))
-
-        self.total_dir_watcher.incoming(final)
+        assert self.camera_state
+        self.camera_state.total_dir_watcher.incoming(final)
         return final
 
     async def streaming_rpc_start(self, roi: Optional[UnitROI] = None) -> None:
@@ -498,11 +376,6 @@ class Driver:
             )
         )
 
-    async def connection_status_timeout(self) -> None:
-        logger.debug("Connection status timed out: camera is disconnected")
-        self.camera_state.stream_status.value = StreamStatus.Inactive
-        self.update_camera_status()
-
     async def send_app_config(self, config: str) -> None:
         await self.mqtt_client.configure(
             ApplicationConfiguration.NAME,
@@ -511,5 +384,6 @@ class Driver:
         )
 
     def do_app_deployment(self) -> None:
+        assert self.camera_state
         task = partial(self.camera_state.do_app_deployment, self.mqtt_client)
         self.from_sync(task)

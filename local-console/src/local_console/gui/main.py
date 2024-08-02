@@ -50,6 +50,7 @@ from typing import Optional
 from kivy.base import ExceptionHandler
 from kivy.base import ExceptionManager
 from kivy.properties import ObjectProperty
+from kivy.properties import StringProperty
 from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.screenmanager import MDScreenManager
@@ -59,12 +60,14 @@ from local_console.gui.model.camera_proxy import CameraStateProxy
 from local_console.gui.view.screens import screen_dict
 from local_console.gui.view.screens import start_screen
 
+
 logger = logging.getLogger(__name__)
 
 
 class LocalConsoleGUIAPP(MDApp):
     driver = None
-    mdl = ObjectProperty(CameraStateProxy)
+    mdl = ObjectProperty(CameraStateProxy, rebind=True)
+    selected = StringProperty("")
 
     async def app_main(self) -> None:
         self.driver = Driver(self)
@@ -106,6 +109,15 @@ class LocalConsoleGUIAPP(MDApp):
         self, text: str, support_text: Optional[str] = None, duration: int = 5
     ) -> None:
         self.manager_screens.current_screen.display_error(text, support_text, duration)
+
+    def switch_proxy(self) -> None:
+        assert self.driver
+        assert self.driver.device_manager
+        assert self.driver.device_manager.active_device
+        self.selected = self.driver.device_manager.active_device.name
+        self.driver.camera_state = self.driver.device_manager.get_active_device_state()
+        self.driver.mqtt_client = self.driver.device_manager.get_active_mqtt_client()
+        self.mdl = self.driver.device_manager.get_active_device_proxy()
 
 
 class GUIExceptionHandler(ExceptionHandler):
