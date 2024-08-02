@@ -41,14 +41,18 @@ class DeviceManager:
         self.proxies_factory: dict[str, CameraStateProxy] = {}
         self.state_factory: dict[str, CameraState] = {}
         self.agent_factory: dict[str, Agent] = {}
-        self.num_devices = len(get_device_configs())
+        self.num_devices = 0
         self.send_channel = send_channel
         self.nursery = nursery
         self.trio_token = trio_token
-        for device in get_device_configs():
+
+    def start_previous_devices(self, device_configs: list[DeviceListItem]) -> None:
+        for device in device_configs:
             self.add_device_to_internals(device)
-            if self.num_devices == 1:
-                self.active_device = device
+            self.num_devices += 1
+
+        if self.num_devices == 1:
+            self.active_device = device
 
     def add_device_to_internals(self, device: DeviceListItem) -> None:
         self.proxies_factory[device.name] = CameraStateProxy()

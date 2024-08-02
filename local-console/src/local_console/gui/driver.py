@@ -36,6 +36,7 @@ from local_console.core.camera.flatbuffers import get_output_from_inference_resu
 from local_console.core.camera.state import CameraState
 from local_console.core.camera.state import MessageType
 from local_console.core.config import get_config
+from local_console.core.config import get_device_configs
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.edge_cloud_if_v1 import Permission
 from local_console.core.schemas.edge_cloud_if_v1 import SetFactoryReset
@@ -117,6 +118,7 @@ class Driver:
                 self.device_manager = DeviceManager(
                     self.send_channel, nursery, trio.lowlevel.current_trio_token()
                 )
+                self.device_manager.start_previous_devices(get_device_configs())
                 if self.device_manager.active_device is not None:
                     self.gui.switch_proxy()
 
