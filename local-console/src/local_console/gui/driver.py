@@ -110,7 +110,6 @@ class Driver:
                     self.send_channel, nursery, trio.lowlevel.current_trio_token()
                 )
                 assert self.camera_state is not None
-                assert self.device_manager is not None
                 self.camera_state.device_config.subscribe_async(
                     self.process_factory_reset
                 )
@@ -119,7 +118,7 @@ class Driver:
                 self.device_manager = DeviceManager(
                     self.send_channel, nursery, trio.lowlevel.current_trio_token()
                 )
-
+                assert self.device_manager is not None
                 if self.device_manager.active_device is not None:
                     self.gui.switch_proxy()
 
