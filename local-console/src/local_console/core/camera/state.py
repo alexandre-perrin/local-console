@@ -37,6 +37,7 @@ from local_console.core.camera.flatbuffers import add_class_names
 from local_console.core.camera.flatbuffers import flatbuffer_binary_to_json
 from local_console.core.camera.flatbuffers import FlatbufferError
 from local_console.core.camera.flatbuffers import get_output_from_inference_results
+from local_console.core.camera.streaming import FileGrouping
 from local_console.core.commands.deploy import deploy_status_empty
 from local_console.core.commands.deploy import DeployFSM
 from local_console.core.commands.deploy import single_module_manifest_setup
@@ -180,9 +181,11 @@ class CameraState:
         self.inference_field: TrackingVariable[str] = TrackingVariable("")
         # Webserver
         self.upload_port: int | None = None
-        self.latest_image_file: Optional[Path] = None
-        # Used to identify if output tensors are missing
-        self.consecutives_images = 0
+        self._in_parentdir_image = "images"
+        self._in_parentdir_infer = "inferences"
+        self._grouper = FileGrouping(
+            {self._in_parentdir_image, self._in_parentdir_infer}
+        )
 
         self._init_bindings()
 
@@ -482,13 +485,27 @@ class CameraState:
         return return_value
 
     def _process_camera_upload(self, incoming_file: Path) -> None:
-        if incoming_file.parent.name == "inferences":
+        if incoming_file.parent.name == self._in_parentdir_infer:
             target_dir = self.inference_dir_path.value
             assert target_dir
             final_file = self._save_into_input_directory(incoming_file, target_dir)
-            output_data = get_output_from_inference_results(final_file.read_bytes())
+            self._grouper.register(final_file, final_file)
 
-            payload_render = final_file.read_text()
+        elif incoming_file.parent.name == self._in_parentdir_image:
+            target_dir = self.image_dir_path.value
+            assert target_dir
+            final_file = self._save_into_input_directory(incoming_file, target_dir)
+            self._grouper.register(final_file, final_file)
+        else:
+            logger.warning(f"Unknown incoming file: {incoming_file}")
+
+        # Process matched image-inference file pairs
+        for pair in self._grouper:
+            inference_file = pair[self._in_parentdir_infer]
+            image_file = pair[self._in_parentdir_image]
+
+            payload_render = inference_file.read_text()
+            output_data = get_output_from_inference_results(inference_file.read_bytes())
             if self.vapp_schema_file.value:
                 try:
                     output_tensor = self._get_flatbuffers_inference_data(output_data)
@@ -499,31 +516,14 @@ class CameraState:
                     logger.error("Error decoding inference data:", exc_info=e)
 
             self.inference_field.value = payload_render
-            # assumes input and output tensor received in that order
-            assert self.latest_image_file
             try:
                 {
                     ApplicationType.CLASSIFICATION.value: ClassificationDrawer,
                     ApplicationType.DETECTION.value: DetectionDrawer,
-                }[str(self.vapp_type.value)].process_frame(
-                    self.latest_image_file, output_data
-                )
+                }[str(self.vapp_type.value)].process_frame(image_file, output_data)
             except Exception as e:
                 logger.error(f"Error while performing the drawing: {e}")
-            self.stream_image.value = str(self.latest_image_file)
-            self.consecutives_images = 0
-
-        elif incoming_file.parent.name == "images":
-            assert self.image_dir_path.value
-            final_file = self._save_into_input_directory(
-                incoming_file, self.image_dir_path.value
-            )
-            self.latest_image_file = final_file
-            if self.consecutives_images > 0:
-                self.stream_image.value = str(self.latest_image_file)
-            self.consecutives_images += 1
-        else:
-            logger.warning(f"Unknown incoming file: {incoming_file}")
+            self.stream_image.value = str(image_file)
 
     @run_on_ui_thread
     def __process_camera_upload(self, incoming_file: Path) -> None:

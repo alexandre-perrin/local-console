@@ -475,7 +475,7 @@ async def test_process_camera_upload_image(tmp_path_factory, nursery):
             camera_state, "_save_into_input_directory"
         ) as mock_save_into_input_directory,
     ):
-        file = root / "images/a.png"
+        file = root / "images/a.jpg"
         camera_state._process_camera_upload(file)
         mock_save_into_input_directory.assert_called()
         nursery.cancel_scope.cancel()
@@ -497,7 +497,7 @@ async def test_process_camera_upload_inferences_with_schema(tmp_path_factory, nu
     with (
         patch.object(camera_state, "_save_into_input_directory") as mock_save,
         patch.object(
-            camera_state, "_get_flatbuffers_inference_data"
+            camera_state, "_get_flatbuffers_inference_data", return_value={"a": 3}
         ) as mock_get_flatbuffers_inference_data,
         patch(
             "local_console.core.camera.state.get_output_from_inference_results"
@@ -507,20 +507,28 @@ async def test_process_camera_upload_inferences_with_schema(tmp_path_factory, nu
         patch.object(ClassificationDrawer, "process_frame"),
     ):
         camera_state.vapp_type = TrackingVariable(ApplicationType.CLASSIFICATION.value)
-        camera_state.inference_dir_path.value = inferences_dir
-        camera_state.latest_image_file = root / "inferences/a.png"
         camera_state.vapp_schema_file.value = Path("objectdetection.fbs")
-        file = root / "inferences/a.txt"
-        mock_save.return_value = file
-
-        mock_get_flatbuffers_inference_data.return_value = {"a": 3}
         ClassificationDrawer.process_frame.side_effect = Exception
-        camera_state._process_camera_upload(file)
 
-        mock_save.assert_called_once_with(file, inferences_dir)
+        image_file_in = root / "images/a.jpg"
+        image_file_saved = images_dir / image_file_in.name
+        mock_save.return_value = image_file_saved
+        camera_state._process_camera_upload(image_file_in)
+        mock_save.assert_called_with(image_file_in, images_dir)
+
+        # A pair has not been formed yet
+        ClassificationDrawer.process_frame.assert_not_called()
+
+        inference_file_in = root / "inferences/a.txt"
+        inference_file_saved = inferences_dir / inference_file_in.name
+        mock_save.return_value = inference_file_saved
+        camera_state._process_camera_upload(inference_file_in)
+        mock_save.assert_called_with(inference_file_in, inferences_dir)
+
         mock_get_output_from_inference_results.assert_called_once_with(b"boo")
         ClassificationDrawer.process_frame.assert_called_once_with(
-            camera_state.latest_image_file, {"a": 3}
+            image_file_saved,
+            mock_get_flatbuffers_inference_data.return_value,
         )
 
 
@@ -551,16 +559,24 @@ async def test_process_camera_upload_inferences_missing_schema(
         patch.object(Path, "read_text", return_value=""),
     ):
         camera_state.vapp_type = TrackingVariable(ApplicationType.CLASSIFICATION.value)
-        camera_state.inference_dir_path.value = inferences_dir
-        camera_state.latest_image_file = root / "inferences/a.png"
-        file = root / "inferences/a.txt"
-        mock_save.return_value = file
 
-        camera_state._process_camera_upload(file)
+        inference_file_in = root / "inferences/a.txt"
+        inference_file_saved = inferences_dir / inference_file_in.name
+        mock_save.return_value = inference_file_saved
+        camera_state._process_camera_upload(inference_file_in)
+        mock_save.assert_called_with(inference_file_in, inferences_dir)
 
-        mock_save.assert_called_once_with(file, inferences_dir)
+        # A pair has not been formed yet
+        ClassificationDrawer.process_frame.assert_not_called()
+
+        image_file_in = root / "images/a.jpg"
+        image_file_saved = images_dir / image_file_in.name
+        mock_save.return_value = image_file_saved
+        camera_state._process_camera_upload(image_file_in)
+        mock_save.assert_called_with(image_file_in, images_dir)
+
         mock_get_output_from_inference_results.assert_called_once_with(b"boo")
         ClassificationDrawer.process_frame.assert_called_once_with(
-            camera_state.latest_image_file,
+            image_file_saved,
             mock_get_output_from_inference_results.return_value,
         )
