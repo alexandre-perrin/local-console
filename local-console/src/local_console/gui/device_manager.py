@@ -54,6 +54,9 @@ class DeviceManager:
         if self.num_devices == 1:
             self.active_device = device
 
+    async def _blobs_webserver_task(self, device_name: str) -> None:
+        await self.state_factory[device_name].blobs_webserver_task()
+
     def add_device_to_internals(self, device: DeviceListItem) -> None:
         self.proxies_factory[device.name] = CameraStateProxy()
         self.agent_factory[device.name] = Agent(get_config())
@@ -67,6 +70,7 @@ class DeviceManager:
         config.mqtt.port = int(device.port)
         self.state_factory[device.name].initialize_connection_variables(config)
         self.state_factory[device.name].initialize_persistency(device.name)
+        self.nursery.start_soon(self._blobs_webserver_task, device.name)
 
     def add_device(self, device: DeviceListItem) -> None:
         add_device_to_config(device)
@@ -116,3 +120,4 @@ class DeviceManager:
         proxy.bind_input_directories(camera_state)
         proxy.bind_vapp_file_functions(camera_state)
         proxy.bind_app_module_functions(camera_state)
+        proxy.bind_streaming_and_inference(camera_state)

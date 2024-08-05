@@ -256,6 +256,9 @@ async def test_device_manager(nursery):
             return_value=config_to_schema(get_default_config()),
         ),
         patch(
+            "local_console.gui.device_manager.DeviceManager._blobs_webserver_task",
+        ),
+        patch(
             "local_console.core.camera.state.get_device_persistent_config",
             return_value={},
         ),
@@ -305,6 +308,9 @@ async def test_device_manager_with_config(nursery):
         ),
         patch(
             "local_console.gui.device_manager.get_device_configs",
+        ),
+        patch(
+            "local_console.gui.device_manager.DeviceManager._blobs_webserver_task",
         ),
     ):
         send_channel, _ = trio.open_memory_channel(0)
