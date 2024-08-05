@@ -477,7 +477,6 @@ class CameraState:
 
         return return_value
 
-    @run_on_ui_thread
     def _process_camera_upload(self, incoming_file: Path) -> None:
         if incoming_file.parent.name == "inferences":
             target_dir = self.inference_dir_path.value
@@ -522,6 +521,10 @@ class CameraState:
         else:
             logger.warning(f"Unknown incoming file: {incoming_file}")
 
+    @run_on_ui_thread
+    def __process_camera_upload(self, incoming_file: Path) -> None:
+        self._process_camera_upload(incoming_file)
+
     async def blobs_webserver_task(self) -> None:
         """
         Spawn a webserver on an arbitrary available port for receiving
@@ -533,7 +536,7 @@ class CameraState:
         with (
             TemporaryDirectory(prefix="LocalConsole_") as tempdir,
             AsyncWebserver(
-                Path(tempdir), port=0, on_incoming=self._process_camera_upload
+                Path(tempdir), port=0, on_incoming=self.__process_camera_upload
             ) as image_serve,
         ):
             logger.info(f"Uploading data into {tempdir}")
