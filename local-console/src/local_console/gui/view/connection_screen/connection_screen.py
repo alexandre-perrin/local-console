@@ -56,9 +56,6 @@ class ConnectionScreenView(BaseScreenView):
         self.ids.txt_wifi_password.password = value
 
     def toggle_password_visible(self) -> None:
-        if self.ids.txt_wifi_password.password:
-            self.ids.txt_wifi_password.password = False
-            self.ids.btn_icon_eye.icon = "eye"
-        else:
-            self.ids.txt_wifi_password.password = True
-            self.ids.btn_icon_eye.icon = "eye-off"
+        toggled = not self.ids.txt_wifi_password.password
+        self.ids.txt_wifi_password.password = toggled
+        self.ids.btn_icon_eye.icon = "eye-off" if toggled else "eye"
