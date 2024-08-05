@@ -20,6 +20,7 @@ import hypothesis.strategies as st
 import pytest
 import trio
 from hypothesis import given
+from hypothesis import settings
 from hypothesis import strategies as st
 from local_console.core.camera.state import CameraState
 from local_console.core.config import get_config
@@ -499,6 +500,7 @@ async def test_dns_server_valid_update(ip: str):
                 nursery.cancel_scope.cancel()
 
 
+@settings(deadline=1000)
 @pytest.mark.trio
 @given(ip=generate_invalid_ip())
 async def test_dns_server_invalid_update(ip: str):

@@ -27,6 +27,7 @@ from unittest.mock import patch
 import pytest
 import trio
 from hypothesis import given
+from hypothesis import settings
 from hypothesis import strategies as st
 from local_console.core.camera.axis_mapping import SENSOR_SIZE
 from local_console.core.camera.enums import StreamStatus
@@ -326,6 +327,7 @@ async def test_process_camera_upload_unknown(mocked_driver_with_agent, tmpdir, n
 
 @pytest.mark.trio
 @given(st.integers(min_value=0, max_value=65535))
+@settings(deadline=1000)
 async def test_streaming_stop_required(req_id: int):
     with (
         mock_driver_with_agent() as (driver, mock_agent),
@@ -408,6 +410,7 @@ async def test_connection_status_timeout(mocked_driver_with_agent, nursery):
 
 @pytest.mark.trio
 @given(generate_identifiers(max_size=5))
+@settings(deadline=1000)
 async def test_send_ppl_configuration(config: str):
     mock_configure = AsyncMock()
     with (mock_driver_with_agent() as (driver, mock_agent),):

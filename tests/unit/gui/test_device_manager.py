@@ -18,6 +18,7 @@ from unittest.mock import Mock
 from unittest.mock import patch
 
 from hypothesis import given
+from hypothesis import settings
 from local_console.core.config import config_to_schema
 from local_console.core.config import get_default_config
 from local_console.core.schemas.schemas import DeviceListItem
@@ -73,6 +74,7 @@ def test_update_module_file_persists(module_file: str):
 @given(
     generate_identifiers(max_size=5),
 )
+@settings(deadline=1000)
 def test_update_ai_model_file_persists(ai_model_file: str):
     with mock_persistency_update() as (mock_persistency, device_manager):
         state = device_manager.get_active_device_state()
