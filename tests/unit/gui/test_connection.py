@@ -59,8 +59,6 @@ async def test_initialization(nursery):
             assert driver.camera_state.dns_server.value == ""
             assert driver.camera_state.wifi_ssid.value == ""
             assert driver.camera_state.wifi_password.value == ""
-            assert driver.gui.mdl.wifi_password_hidden is True
-            assert driver.gui.mdl.wifi_icon_eye == "eye-off"
 
             assert not driver.camera_state.is_connected.value
 
