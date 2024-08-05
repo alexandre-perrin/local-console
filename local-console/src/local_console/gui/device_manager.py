@@ -37,22 +37,32 @@ class DeviceManager:
         nursery: trio.Nursery,
         trio_token: trio.lowlevel.TrioToken,
     ) -> None:
+        self.send_channel = send_channel
+        self.nursery = nursery
+        self.trio_token = trio_token
         self.active_device: DeviceListItem | None = None
         self.proxies_factory: dict[str, CameraStateProxy] = {}
         self.state_factory: dict[str, CameraState] = {}
         self.agent_factory: dict[str, Agent] = {}
-        self.num_devices = 0
+        self._num_devices = 0
         self.send_channel = send_channel
         self.nursery = nursery
         self.trio_token = trio_token
 
-    def start_previous_devices(self, device_configs: list[DeviceListItem]) -> None:
-        for device in device_configs:
-            self.add_device_to_internals(device)
-            self.num_devices += 1
+    def init_devices(self, device_configs: list[DeviceListItem]) -> None:
+        """
+        Initializes the devices based on the provided configuration list.
+        """
+        self._num_devices = len(device_configs)
 
-        if self.num_devices == 1:
-            self.active_device = device
+        for device in device_configs:
+            if not self.active_device:
+                self.active_device = device
+            self.add_device_to_internals(device)
+
+    @property
+    def num_devices(self) -> int:
+        return self._num_devices
 
     async def _blobs_webserver_task(self, device_name: str) -> None:
         await self.state_factory[device_name].blobs_webserver_task()
@@ -75,14 +85,14 @@ class DeviceManager:
     def add_device(self, device: DeviceListItem) -> None:
         add_device_to_config(device)
         self.add_device_to_internals(device)
-        self.num_devices += 1
+        self._num_devices += 1
 
     def remove_device(self, name: str) -> None:
         remove_device_config(name)
         del self.proxies_factory[name]
         del self.state_factory[name]
         del self.agent_factory[name]
-        self.num_devices -= 1
+        self._num_devices -= 1
 
     def get_device_config(self) -> list[DeviceListItem]:
         device_configs = get_device_configs()

@@ -133,7 +133,7 @@ class DevicesScreenController:
         This function is called when the "Remove" button is clicked.
         """
         device_list = self.view.ids.box_device_list.children
-        if not len(device_list):
+        if len(device_list) == 0:
             self.view.display_error("No device is created.")
             return
 
@@ -142,10 +142,16 @@ class DevicesScreenController:
             if device.ids.check_box_device.active:
                 remove_devices.append(device)
 
-        if not remove_devices:
+        if len(remove_devices) == 0:
             self.view.display_error("No device is selected.")
             return
         assert self.driver.device_manager
+
+        if len(remove_devices) == len(device_list):
+            self.view.display_error(
+                "At least one device must remain in the list.\nPlease ensure that you do not remove the last device."
+            )
+            return
 
         for device in remove_devices:
             self.view.ids.box_device_list.remove_widget(device)

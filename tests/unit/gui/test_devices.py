@@ -201,7 +201,7 @@ def test_remove_device_no_device_selected(device_list, error_message):
         ctrl.driver.device_manager.remove_device.assert_not_called()
 
 
-def test_remove_device():
+def test_remove_device_with_1_device():
     model, mock_driver = DevicesScreenModel(), MagicMock()
     with patch("local_console.gui.controller.devices_screen.DevicesScreenView"):
         ctrl = DevicesScreenController(model, mock_driver)
@@ -214,7 +214,26 @@ def test_remove_device():
 
         ctrl.driver.device_manager.remove_device = MagicMock()
         ctrl.remove_device()
-        ctrl.driver.device_manager.remove_device.assert_called_once_with(device1.name)
+        ctrl.driver.device_manager.remove_device.assert_not_called()
+
+
+def test_remove_device():
+    model, mock_driver = DevicesScreenModel(), MagicMock()
+    with patch("local_console.gui.controller.devices_screen.DevicesScreenView"):
+        ctrl = DevicesScreenController(model, mock_driver)
+
+        device1 = MagicMock()
+        device1.ids.check_box_device.active = False
+        device1.name = "test_device_01"
+        device2 = MagicMock()
+        device2.ids.check_box_device.active = True
+        device2.name = "test_device_02"
+        device_list = [device1, device2]
+        ctrl.view.ids.box_device_list.children = device_list
+
+        ctrl.driver.device_manager.remove_device = MagicMock()
+        ctrl.remove_device()
+        ctrl.driver.device_manager.remove_device.assert_called_once_with(device2.name)
 
 
 def test_devices_screen():
