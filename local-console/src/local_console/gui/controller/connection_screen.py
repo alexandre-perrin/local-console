@@ -118,16 +118,6 @@ class ConnectionScreenController:
             self.driver.camera_state.wifi_password.value
         )
 
-    def toggle_password_visible(self) -> None:
-        assert self.driver.camera_state
-
-        if self.driver.camera_state.wifi_password_hidden.value:
-            self.driver.camera_state.wifi_password_hidden.value = False
-            self.driver.camera_state.wifi_icon_eye.value = "eye"
-        else:
-            self.driver.camera_state.wifi_password_hidden.value = True
-            self.driver.camera_state.wifi_icon_eye.value = "eye-off"
-
     def validate_all_settings(self) -> bool:
         assert self.driver.camera_state
 

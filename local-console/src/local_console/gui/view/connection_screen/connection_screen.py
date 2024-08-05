@@ -42,7 +42,6 @@ class ConnectionScreenView(BaseScreenView):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.app.mdl.bind(is_connected=self.on_device_connection_update)
-        self.app.mdl.bind(wifi_password_hidden=self.on_password_hide_update)
 
     def on_device_connection_update(
         self, proxy: CameraStateProxy, value: Optional[bool]
@@ -55,3 +54,11 @@ class ConnectionScreenView(BaseScreenView):
         self, proxy: CameraStateProxy, value: Optional[bool]
     ) -> None:
         self.ids.txt_wifi_password.password = value
+
+    def toggle_password_visible(self) -> None:
+        if self.ids.txt_wifi_password.password:
+            self.ids.txt_wifi_password.password = False
+            self.ids.btn_icon_eye.icon = "eye"
+        else:
+            self.ids.txt_wifi_password.password = True
+            self.ids.btn_icon_eye.icon = "eye-off"

@@ -215,12 +215,12 @@
                             mode: "on_focus"
                     MDIconButton:
                         id: btn_icon_eye
-                        icon: app.mdl.wifi_icon_eye
+                        icon: "eye-off"
                         width: "27dp"
                         style: "tonal"
                         max_height: root.INPUTBOX_HEIGHT
                         height: root.INPUTBOX_HEIGHT
-                        on_release: root.controller.toggle_password_visible()
+                        on_release: root.toggle_password_visible()
                         radius: 5, 5, 5, 5
                         canvas.before:
                             Color:
