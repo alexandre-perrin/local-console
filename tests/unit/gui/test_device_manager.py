@@ -68,3 +68,18 @@ def test_update_module_file_persists(module_file: str):
         mock_persistency.assert_called_with(
             device_manager.active_device.name, config.model_dump()
         )
+
+
+@given(
+    generate_identifiers(max_size=5),
+)
+def test_update_ai_model_file_persists(ai_model_file: str):
+    with mock_persistency_update() as (mock_persistency, device_manager):
+        state = device_manager.get_active_device_state()
+        state.ai_model_file.value = ai_model_file
+
+        config = state._create_persister()
+        config.ai_model_file = ai_model_file
+        mock_persistency.assert_called_with(
+            device_manager.active_device.name, config.model_dump()
+        )
