@@ -65,15 +65,6 @@ class Driver:
         self.device_manager: Optional[DeviceManager] = None
         self.camera_state: Optional[CameraState] = None
 
-        # This takes care of ensuring the device reports its state
-        # with bounded periodicity (expect to receive a message within 6 seconds)
-        if not self.evp1_mode:
-            self.periodic_reports = TimeoutBehavior(6, self.set_periodic_reports)
-
-        # This timeout behavior takes care of updating the connectivity
-        # status in case there are no incoming messages from the camera
-        # for longer than the threshold
-
         self.start_flags = {
             "mqtt": trio.Event(),
             "webserver": trio.Event(),
@@ -245,20 +236,6 @@ class Driver:
         instance_id = "backdoor-EA_Main"
         method = "StopUploadInferenceData"
         await self.mqtt_client.rpc(instance_id, method, "{}")
-
-    async def set_periodic_reports(self) -> None:
-        assert not self.evp1_mode
-        # Configure the device to emit status reports twice
-        # as often as the timeout expiration, to avoid that
-        # random deviations in reporting periodicity make the timer
-        # to expire unnecessarily.
-        timeout = int(0.5 * self.periodic_reports.timeout_secs)
-        await self.mqtt_client.device_configure(
-            DesiredDeviceConfig(
-                reportStatusIntervalMax=timeout,
-                reportStatusIntervalMin=min(timeout, 1),
-            )
-        )
 
     async def send_app_config(self, config: str) -> None:
         await self.mqtt_client.configure(
