@@ -140,17 +140,22 @@ async def test_streaming_rpc_stop(mocked_driver_with_agent):
 
 
 @pytest.mark.trio
-async def test_streaming_rpc_start(mocked_driver_with_agent):
+async def test_streaming_rpc_start(mocked_driver_with_agent, nursery):
     driver, mock_agent = mocked_driver_with_agent
 
     mock_agent.return_value.publish = AsyncMock()
     mock_rpc = AsyncMock()
     mock_agent.return_value.rpc = mock_rpc
 
-    driver = Driver(MagicMock())
-    driver.temporary_image_directory = Path("my_image_path")
-    driver.temporary_inference_directory = Path("my_inference_path")
-    upload_url = f"http://{LOCAL_IP}:{driver.upload_port}"
+    send_channel, _ = trio.open_memory_channel(0)
+    driver.camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
+
+    driver.camera_state.image_dir_path.value = Path("my_image_path")
+    driver.camera_state.inference_dir_path.value = Path("my_inference_path")
+    driver.camera_state.upload_port = 1234
+    upload_url = f"http://{LOCAL_IP}:1234"
     h_size, v_size = SENSOR_SIZE
 
     await driver.streaming_rpc_start()
@@ -159,9 +164,9 @@ async def test_streaming_rpc_start(mocked_driver_with_agent):
         "StartUploadInferenceData",
         StartUploadInferenceData(
             StorageName=upload_url,
-            StorageSubDirectoryPath=driver.temporary_image_directory.name,
+            StorageSubDirectoryPath=str(driver.camera_state.image_dir_path.value),
             StorageNameIR=upload_url,
-            StorageSubDirectoryPathIR=driver.temporary_inference_directory.name,
+            StorageSubDirectoryPathIR=str(driver.camera_state.inference_dir_path.value),
             CropHOffset=0,
             CropVOffset=0,
             CropHSize=h_size,
