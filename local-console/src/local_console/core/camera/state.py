@@ -139,8 +139,6 @@ class CameraState:
         self.dns_server: TrackingVariable[str] = TrackingVariable("")
         self.wifi_ssid: TrackingVariable[str] = TrackingVariable("")
         self.wifi_password: TrackingVariable[str] = TrackingVariable("")
-        self.wifi_password_hidden: TrackingVariable[bool] = TrackingVariable(True)
-        self.wifi_icon_eye: TrackingVariable[str] = TrackingVariable("")
 
         self.module_file: TrackingVariable[Path] = TrackingVariable()
         self.deploy_status: TrackingVariable[dict[str, str]] = TrackingVariable()
@@ -333,7 +331,6 @@ class CameraState:
         self.mqtt_host.value = config.mqtt.host.ip_value
         self.mqtt_port.value = str(config.mqtt.port)
         self.ntp_host.value = "pool.ntp.org"
-        self.wifi_icon_eye.value = "eye-off"
 
     def _check_connection_status(self) -> bool:
         if self._last_reception is None:
