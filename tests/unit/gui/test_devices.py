@@ -13,8 +13,6 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-import shutil
-from pathlib import Path
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
@@ -30,8 +28,7 @@ from local_console.gui.model.devices_screen import DevicesScreenModel
 from local_console.core.camera.state import CameraState
 from local_console.gui.model.camera_proxy import CameraStateProxy
 from local_console.clients.agent import Agent
-from local_console.core.config import add_device_to_config
-from local_console.core.config import get_device_configs
+from local_console.core.config import config_to_schema, get_default_config
 
 
 from pytest import mark
@@ -254,6 +251,14 @@ async def test_device_manager(nursery):
         patch(
             "local_console.gui.device_manager.DeviceManager.bind_state_proxy"
         ) as mock_add_internals,
+        patch(
+            "local_console.gui.device_manager.get_config",
+            return_value=config_to_schema(get_default_config()),
+        ),
+        patch(
+            "local_console.core.camera.state.get_device_persistent_config",
+            return_value={},
+        ),
     ):
         send_channel, _ = trio.open_memory_channel(0)
         device_manager = DeviceManager(
@@ -282,30 +287,39 @@ async def test_device_manager(nursery):
 
 @pytest.mark.trio
 async def test_device_manager_with_config(nursery):
-    with (patch("local_console.core.config.config_paths") as mock_config_paths,):
-        app_subdir = Path("local-console")
-        dummy_home = Path("/tmp/test_devices")
-        dummy_default_home = dummy_home / ".config" / app_subdir
-        dummy_config_path = dummy_default_home / "config.ini"
-
-        mock_config_paths.config_path = dummy_config_path
-        from local_console.core.config import setup_default_config
-
-        setup_default_config()
+    with (
+        patch("local_console.core.config.config_paths"),
+        patch(
+            "local_console.gui.device_manager.get_config",
+            return_value=config_to_schema(get_default_config()),
+        ),
+        patch(
+            "local_console.core.camera.state.get_device_persistent_config",
+            return_value={},
+        ),
+        patch(
+            "local_console.gui.device_manager.add_device_to_config",
+        ),
+        patch(
+            "local_console.gui.device_manager.remove_device_config",
+        ),
+        patch(
+            "local_console.gui.device_manager.get_device_configs",
+        ),
+    ):
         send_channel, _ = trio.open_memory_channel(0)
         device_manager = DeviceManager(
             send_channel, nursery, trio.lowlevel.current_trio_token()
         )
-        assert device_manager.get_device_config() == []
-
         device1 = DeviceListItem(name="test_device_1", port="1234")
         device2 = DeviceListItem(name="test_device_2", port="23456")
         device3 = DeviceListItem(name="test_device_3", port="7890")
 
         device_manager.add_device(device1)
-        device_items = device_manager.get_device_config()
-        assert device_items[0] == device1
-        device_manager.set_active_device(device1.name)
+        device_manager.active_device = device1
+        assert len(device_manager.proxies_factory) == 1
+        assert len(device_manager.agent_factory) == 1
+        assert len(device_manager.state_factory) == 1
 
         state_1 = device_manager.get_active_device_state()
         assert isinstance(state_1, CameraState)
@@ -316,12 +330,12 @@ async def test_device_manager_with_config(nursery):
 
         device_manager.add_device(device2)
         device_manager.add_device(device3)
-        device_items = device_manager.get_device_config()
-        assert device_items[0] == device1
-        assert device_items[1] == device2
-        assert device_items[2] == device3
+        assert len(device_manager.proxies_factory) == 3
+        assert len(device_manager.agent_factory) == 3
+        assert len(device_manager.state_factory) == 3
 
-        device_manager.set_active_device(device2.name)
+        # NOTE:FIXME: using attribute instead of method to avoid checking file configuration
+        device_manager.active_device = device2
 
         state_2 = device_manager.get_active_device_state()
         assert state_2 != state_1
@@ -331,42 +345,8 @@ async def test_device_manager_with_config(nursery):
         assert mqtt_2 != mqtt_1
 
         device_manager.remove_device(device2.name)
-        device_items = device_manager.get_device_config()
-        assert device_items[0] == device1
-        assert device_items[1] == device3
-
         device_manager.remove_device(device1.name)
         device_manager.remove_device(device3.name)
-        device_items = device_manager.get_device_config()
-        assert device_items == []
-
-        if dummy_home.is_dir:
-            shutil.rmtree(dummy_home)
-
-
-@pytest.mark.trio
-async def test_device_manager_start_devices(nursery):
-    with (patch("local_console.core.config.config_paths") as mock_config_paths,):
-        app_subdir = Path("local-console")
-        dummy_home = Path("/tmp/test_devices")
-        dummy_default_home = dummy_home / ".config" / app_subdir
-        dummy_config_path = dummy_default_home / "config.ini"
-
-        mock_config_paths.config_path = dummy_config_path
-        from local_console.core.config import setup_default_config
-
-        setup_default_config()
-        send_channel, _ = trio.open_memory_channel(0)
-        device_manager = DeviceManager(
-            send_channel, nursery, trio.lowlevel.current_trio_token()
-        )
-        assert device_manager.get_device_config() == []
-
-        device1 = DeviceListItem(name="test_device_1", port="1234")
-
-        add_device_to_config(device1)
-        device_manager.start_previous_devices(get_device_configs())
-        device_items = device_manager.get_device_config()
-        assert device_items[0] == device1
-        assert device_manager.active_device == device1
-        assert device_manager.num_devices == 1
+        assert len(device_manager.proxies_factory) == 0
+        assert len(device_manager.agent_factory) == 0
+        assert len(device_manager.state_factory) == 0

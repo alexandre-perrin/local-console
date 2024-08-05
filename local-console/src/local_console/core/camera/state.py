@@ -36,6 +36,8 @@ from local_console.core.commands.deploy import DeployFSM
 from local_console.core.commands.deploy import single_module_manifest_setup
 from local_console.core.commands.deploy import verify_report
 from local_console.core.commands.ota_deploy import get_package_hash
+from local_console.core.config import get_device_persistent_config
+from local_console.core.config import update_device_persistent_config
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.core.schemas.schemas import OnWireProtocol
@@ -47,11 +49,21 @@ from local_console.utils.local_network import get_my_ip_by_routing
 from local_console.utils.timing import TimeoutBehavior
 from local_console.utils.tracking import TrackingVariable
 from local_console.utils.validation import validate_imx500_model_file
+from pydantic import BaseModel
 from pydantic import ValidationError
 
 logger = logging.getLogger(__name__)
 
 MessageType = tuple[str, str]
+
+
+class CameraStatePersister(BaseModel):
+    """
+    Class that represents the schema used for persisting the configuration
+    from `CameraState`
+    """
+
+    module_file: str | None = None
 
 
 class CameraState:
@@ -232,6 +244,33 @@ class CameraState:
             ("error", str(dir_path) + " does not exist."),
             trio_token=self.trio_token,
         )
+
+    def _create_persister(self) -> CameraStatePersister:
+        return CameraStatePersister(
+            module_file=str(self.module_file.value),
+        )
+
+    def _register_persistency(self, device_name: str) -> None:
+        def save_configuration(current: Any, previous: Any) -> None:
+            update_device_persistent_config(
+                device_name, self._create_persister().model_dump()
+            )
+
+        # List of attributes that trigger persistency
+        self.module_file.subscribe(save_configuration)
+
+    def _update_from_persistency(self, device_name: str) -> None:
+        # TODO: handle error
+        config = CameraStatePersister.model_validate(
+            get_device_persistent_config(device_name)
+        )
+        # Update attributes from persistent configuration
+        if config.module_file:
+            self.module_file.value = Path(config.module_file)
+
+    def initialize_persistency(self, device_name: str) -> None:
+        self._update_from_persistency(device_name)
+        self._register_persistency(device_name)
 
     async def _on_deploy_status(
         self, current: Optional[dict[str, Any]], previous: Optional[dict[str, Any]]
