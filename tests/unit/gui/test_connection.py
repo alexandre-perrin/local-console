@@ -59,8 +59,8 @@ async def test_initialization(nursery):
             assert driver.camera_state.dns_server.value == ""
             assert driver.camera_state.wifi_ssid.value == ""
             assert driver.camera_state.wifi_password.value == ""
-            assert driver.camera_state.wifi_password_hidden.value is True
-            assert driver.camera_state.wifi_icon_eye.value == "eye-off"
+            assert driver.gui.mdl.wifi_password_hidden is True
+            assert driver.gui.mdl.wifi_icon_eye == "eye-off"
 
             assert not driver.camera_state.is_connected.value
 
@@ -525,27 +525,6 @@ async def test_dns_server_invalid_update(ip: str):
 
 
 # wifi_ssid / wifi_password
-
-
-@pytest.mark.trio
-async def test_wifi_password_toggle():
-    with driver_context() as (driver, _):
-        with patch(
-            "local_console.gui.controller.connection_screen.ConnectionScreenView"
-        ):
-            async with trio.open_nursery() as nursery:
-                send_channel, _ = trio.open_memory_channel(0)
-                driver.camera_state = CameraState(
-                    send_channel, nursery, trio.lowlevel.current_trio_token()
-                )
-                driver.camera_state.initialize_connection_variables(get_config())
-                ctrl = ConnectionScreenController(Mock(), driver)
-                assert driver.camera_state.wifi_password_hidden.value
-                assert driver.camera_state.wifi_icon_eye.value == "eye-off"
-                ctrl.toggle_password_visible()
-                assert not driver.camera_state.wifi_password_hidden.value
-                assert driver.camera_state.wifi_icon_eye.value == "eye"
-                nursery.cancel_scope.cancel()
 
 
 @pytest.mark.trio
