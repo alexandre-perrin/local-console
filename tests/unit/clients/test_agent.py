@@ -15,6 +15,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import base64
 import json
+from unittest.mock import ANY
 from unittest.mock import AsyncMock
 from unittest.mock import patch
 
@@ -57,7 +58,7 @@ async def test_configure_instance(
         patch("local_console.clients.agent.AsyncClient"),
         patch("local_console.clients.agent.Agent.publish"),
     ):
-        agent = Agent()
+        agent = Agent(ANY, ANY, ANY)
         async with agent.mqtt_scope([]):
             await agent.configure(instance_id, topic, config)
 
@@ -89,7 +90,7 @@ async def test_rpc(
     ):
         method = "$agent/set"
         params = '{"log_enable": true}'
-        agent = Agent()
+        agent = Agent(ANY, ANY, ANY)
         async with agent.mqtt_scope([]):
             agent.client.publish_and_wait = AsyncMock(
                 return_value=(MQTT_ERR_SUCCESS, None)
@@ -115,7 +116,7 @@ async def test_rpc_error(
     ):
         method = "$agent/set"
         params = '{"log_enable": true}'
-        agent = Agent()
+        agent = Agent(ANY, ANY, ANY)
         async with agent.mqtt_scope([]):
             agent.client.publish_and_wait = AsyncMock(
                 return_value=(MQTT_ERR_ERRNO, None)

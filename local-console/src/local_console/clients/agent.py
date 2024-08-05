@@ -29,8 +29,6 @@ import trio
 from exceptiongroup import catch
 from local_console.clients.trio_paho_mqtt import AsyncClient
 from local_console.core.camera.enums import MQTTTopics
-from local_console.core.config import get_config
-from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.core.schemas.schemas import DeploymentManifest
 from local_console.core.schemas.schemas import DesiredDeviceConfig
 from local_console.core.schemas.schemas import OnWireProtocol
@@ -40,15 +38,13 @@ logger = logging.getLogger(__name__)
 
 
 class Agent:
-    def __init__(self, config: Optional[AgentConfiguration] = None) -> None:
+    def __init__(self, host: str, port: int, onwire_schema: OnWireProtocol) -> None:
+        self._host = host
+        self._port = port
+        self.onwire_schema = onwire_schema
+
         self.client: Optional[AsyncClient] = None
         self.nursery: Optional[trio.Nursery] = None
-
-        config_parse: AgentConfiguration = config if config else get_config()
-        self._host = config_parse.mqtt.host.ip_value
-        self._port = config_parse.mqtt.port
-        # For initializing the camera, capturing the on-wire protocol
-        self.onwire_schema = OnWireProtocol.from_iot_spec(config_parse.evp.iot_platform)
 
         client_id = f"cli-client-{random.randint(0, 10**7)}"
         self.mqttc = paho.Client(clean_session=True, client_id=client_id)

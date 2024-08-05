@@ -265,7 +265,7 @@ async def test_attributes_request_handling(
     ):
         request_topic = MQTTTopics.ATTRIBUTES_REQ.value.replace("+", str(mqtt_req_id))
 
-        agent = Agent()
+        agent = Agent(ANY, ANY, ANY)
         agent.publish = AsyncMock()
         async with agent.mqtt_scope([MQTTTopics.ATTRIBUTES_REQ.value]):
             check = await check_attributes_request(agent, request_topic, "{}")

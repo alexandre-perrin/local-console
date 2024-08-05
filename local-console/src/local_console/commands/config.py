@@ -153,7 +153,9 @@ def config_instance(
 
 
 async def configure_task(instance_id: str, topic: str, config: str) -> None:
-    agent = Agent()  # type: ignore
+    cfg = get_config()
+    schema = OnWireProtocol.from_iot_spec(cfg.evp.iot_platform)
+    agent = Agent(cfg.mqtt.host.ip_value, cfg.mqtt.port, schema)
     await agent.initialize_handshake()
     async with agent.mqtt_scope([]):
         await agent.configure(instance_id, topic, config)
@@ -187,15 +189,15 @@ def config_device(
 
 async def config_device_task(desired_device_config: DesiredDeviceConfig) -> int:
     retcode = 1
-    agent = Agent()  # type: ignore
-    if agent.onwire_schema == OnWireProtocol.EVP2:
+    cfg = get_config()
+    schema = OnWireProtocol.from_iot_spec(cfg.evp.iot_platform)
+    agent = Agent(cfg.mqtt.host.ip_value, cfg.mqtt.port, schema)
+    if schema == OnWireProtocol.EVP2:
         async with agent.mqtt_scope([]):
             await agent.device_configure(desired_device_config)
         retcode = 0
     else:
-        logger.warning(
-            f"Unsupported on-wire schema {agent.onwire_schema} for this command."
-        )
+        logger.warning(f"Unsupported on-wire schema {schema} for this command.")
     return retcode
 
 

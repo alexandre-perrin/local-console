@@ -36,7 +36,6 @@ from local_console.core.config import get_deployment_schema
 from local_console.core.enums import config_paths
 from local_console.core.enums import ModuleExtension
 from local_console.core.enums import Target
-from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.core.schemas.schemas import DeploymentManifest
 from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.plugin import PluginBase
@@ -93,8 +92,9 @@ def deploy(
         ),
     ] = False,
 ) -> None:
-    agent = Agent()
-    config: AgentConfiguration = get_config()
+    config = get_config()
+    schema = OnWireProtocol.from_iot_spec(config.evp.iot_platform)
+    agent = Agent(config.mqtt.host.ip_value, config.mqtt.port, schema)
     local_ip = get_my_ip_by_routing()
 
     port = 0
@@ -109,7 +109,7 @@ def deploy(
         port = config.webserver.port
 
     deploy_fsm = DeployFSM.instantiate(
-        agent.onwire_schema,
+        schema,
         agent.deploy,
         None,
         deploy_webserver,
