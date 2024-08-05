@@ -54,20 +54,23 @@
                 MDLabel:
                     id: stream_flag
                     text: "Disabled"
-            EntryLabel:
-                text: "Device:"
-                halign: "right"
-                bold: True
-            MDLabel:
-                text: app.selected
-                size_hint_x: 1
-                padding: "20dp", "0dp"
-                canvas.before:
-                    Color:
-                        rgba: 0, 0, 0, 1
-                    Line:
-                        width: 1.1
-                        rounded_rectangle: self.x, self.y, self.width, self.height, 5, 5, 5, 5
+            MDGridLayout:
+                cols: 2
+                EntryLabel:
+                    text: "Device:"
+                    halign: "right"
+                    bold: True
+
+                MDLabel:
+                    text: app.selected
+                    padding: "10dp", "5dp"
+                    halign:"right"
+                    canvas.before:
+                        Color:
+                            rgba: 0, 0, 0, 1
+                        Line:
+                            width: 1.1
+                            rounded_rectangle: self.x , self.y +15, self.width, self.height/2, 5, 5, 5, 5
 
 
         GridLayout:

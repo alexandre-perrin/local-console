@@ -120,14 +120,14 @@
                     size_hint_y: .05
                     halign:"right"
                     on_selected: app.driver.device_manager.set_active_device(args[1]); app.switch_proxy();
-                    padding: "20dp", "5dp"
+                    padding: "20dp", "35dp"
                     _selected_device: app.selected
                     canvas.before:
                         Color:
                             rgba: 0, 0, 0, 1
                         Line:
                             width: 1.0
-                            rounded_rectangle: self.x, self.y+25, self.width, self.height/2, 4
+                            rounded_rectangle: self.x, self.y+35, self.width, self.height/3, 4
 
 
             MDBoxLayout:
