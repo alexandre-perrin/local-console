@@ -350,8 +350,6 @@ async def test_device_manager_with_config(nursery):
         assert isinstance(state_1, CameraState)
         proxy_1 = device_manager.get_active_device_proxy()
         assert isinstance(proxy_1, CameraStateProxy)
-        mqtt_1 = device_manager.get_active_mqtt_client()
-        assert isinstance(mqtt_1, Agent)
 
         device_manager.add_device(device2)
         device_manager.add_device(device3)
@@ -366,8 +364,6 @@ async def test_device_manager_with_config(nursery):
         assert state_2 != state_1
         proxy_2 = device_manager.get_active_device_proxy()
         assert proxy_2 != proxy_1
-        mqtt_2 = device_manager.get_active_mqtt_client()
-        assert mqtt_2 != mqtt_1
 
         device_manager.remove_device(device2.name)
         device_manager.remove_device(device1.name)

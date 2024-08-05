@@ -43,7 +43,6 @@ class DeviceManager:
         self.active_device: DeviceListItem | None = None
         self.proxies_factory: dict[str, CameraStateProxy] = {}
         self.state_factory: dict[str, CameraState] = {}
-        self.agent_factory: dict[str, Agent] = {}
         self._num_devices = 0
         self.send_channel = send_channel
         self.nursery = nursery
@@ -69,7 +68,6 @@ class DeviceManager:
 
     def add_device_to_internals(self, device: DeviceListItem) -> None:
         self.proxies_factory[device.name] = CameraStateProxy()
-        self.agent_factory[device.name] = Agent(get_config())
         self.state_factory[device.name] = CameraState(
             self.send_channel.clone(), self.nursery, self.trio_token
         )
@@ -105,10 +103,6 @@ class DeviceManager:
     def get_active_device_state(self) -> CameraState:
         assert self.active_device
         return self.state_factory[self.active_device.name]
-
-    def get_active_mqtt_client(self) -> Agent:
-        assert self.active_device
-        return self.agent_factory[self.active_device.name]
 
     def set_active_device(self, name: str) -> None:
         """

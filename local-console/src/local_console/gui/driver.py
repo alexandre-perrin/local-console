@@ -57,8 +57,6 @@ class Driver:
     def __init__(self, gui: type[MDApp]) -> None:
         self.gui = gui
         self.config = get_config()
-        self.mqtt_client = Agent(self.config)
-
         self.send_channel: trio.MemorySendChannel[MessageType] | None = None
         self.receive_channel: trio.MemoryReceiveChannel[MessageType] | None = None
 
