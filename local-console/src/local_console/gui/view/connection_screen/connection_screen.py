@@ -43,6 +43,15 @@ class ConnectionScreenView(BaseScreenView):
         super().__init__(**kwargs)
         self.app.mdl.bind(is_connected=self.on_device_connection_update)
 
+    def on_enter(self) -> None:
+        ip = get_my_ip_by_routing()
+        self.ids.lbl_local_ip.text = ip
+        if ip == "":
+            # In case of no connectivity
+            self.view.display_info(
+                "Warning, No Local IP Address.\nPlease check connectivity."
+            )
+
     def on_device_connection_update(
         self, proxy: CameraStateProxy, value: Optional[bool]
     ) -> None:

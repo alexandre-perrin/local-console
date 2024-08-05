@@ -60,7 +60,6 @@ class CameraStateProxy(CameraStateProxyBase):
     firmware_file_type = ObjectProperty(OTAUpdateModule, allownone=True)
     firmware_file_hash = StringProperty("", allownone=True)
 
-    local_ip = StringProperty("")
     mqtt_host = StringProperty("")
     mqtt_port = StringProperty("")
     ntp_host = StringProperty("")
@@ -85,7 +84,6 @@ class CameraStateProxy(CameraStateProxyBase):
     unit = StringProperty("MB")
 
     def bind_connections(self, camera_state: CameraState) -> None:
-        self.bind_state_to_proxy("local_ip", camera_state)
         self.bind_state_to_proxy("mqtt_host", camera_state)
         self.bind_state_to_proxy("mqtt_port", camera_state)
         self.bind_state_to_proxy("ntp_host", camera_state)

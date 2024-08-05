@@ -145,7 +145,6 @@ class CameraState:
         self.image_dir_path: TrackingVariable[Path] = TrackingVariable()
         self.inference_dir_path: TrackingVariable[Path] = TrackingVariable()
 
-        self.local_ip: TrackingVariable[str] = TrackingVariable("")
         self.mqtt_host: TrackingVariable[str] = TrackingVariable("")
         self.mqtt_port: TrackingVariable[str] = TrackingVariable("")
         self.ntp_host: TrackingVariable[str] = TrackingVariable("")
@@ -363,7 +362,6 @@ class CameraState:
         self._check_connection_status()
 
     def initialize_connection_variables(self, config: AgentConfiguration) -> None:
-        self.local_ip.value = get_my_ip_by_routing()
         self.mqtt_host.value = config.mqtt.host.ip_value
         self.mqtt_port.value = str(config.mqtt.port)
         self.ntp_host.value = "pool.ntp.org"

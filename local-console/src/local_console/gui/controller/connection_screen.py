@@ -185,22 +185,8 @@ class ConnectionScreenController(BaseController):
 
         return warning_message == ""
 
-    def refresh_local_ip(self) -> None:
-        ip = get_my_ip_by_routing()
-        if ip == "":
-            # In case of no connectivity
-            self.view.display_info(
-                "Warning, No Local IP Address.\nPlease check connectivity."
-            )
-        assert self.driver.camera_state
-
-        if self.driver.camera_state.local_ip.value != ip:
-            self.view.display_info("Warning, Local IP Address is updated.")
-            self.driver.camera_state.local_ip.value = ip
-
     def qr_generate(self) -> None:
         # Get the local IP since it might be updated.
-        self.refresh_local_ip()
         if not self.validate_all_settings():
             return
         assert self.driver.camera_state

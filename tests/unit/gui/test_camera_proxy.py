@@ -97,7 +97,6 @@ async def test_bind_connections(nursery):
     camera_state.initialize_connection_variables(get_config())
 
     # The value must have been set in the camera state's variable
-    assert camera_proxy.local_ip == get_my_ip_by_routing()
     assert camera_proxy.mqtt_host == "localhost"
     assert camera_proxy.mqtt_port == "1883"
     assert camera_proxy.ntp_host == "pool.ntp.org"

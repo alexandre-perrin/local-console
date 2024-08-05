@@ -50,7 +50,6 @@ async def test_initialization(nursery):
             ConnectionScreenController(Mock(), driver)
 
             config = get_default_config_as_schema()
-            assert driver.camera_state.local_ip.value == get_my_ip_by_routing()
             assert driver.camera_state.mqtt_host.value == str(config.mqtt.host)
             assert driver.camera_state.mqtt_port.value == str(config.mqtt.port)
             assert driver.camera_state.ntp_host.value == "pool.ntp.org"
@@ -64,119 +63,6 @@ async def test_initialization(nursery):
             assert driver.gui.mdl.wifi_icon_eye == "eye-off"
 
             assert not driver.camera_state.is_connected.value
-
-
-# local_ip
-
-
-@pytest.mark.trio
-@given(ip=st.ip_addresses(v=4))
-async def test_local_ip_valid_update(ip: str):
-    with driver_context() as (driver, _):
-        with (
-            patch(
-                "local_console.gui.controller.connection_screen.ConnectionScreenView"
-            ),
-            patch(
-                "local_console.gui.controller.connection_screen.get_my_ip_by_routing",
-                return_value="192.168.1.12",
-            ),
-            patch(
-                "local_console.core.camera.state.get_my_ip_by_routing",
-                return_value="192.168.1.13",
-            ),
-        ):
-            async with trio.open_nursery() as nursery:
-                send_channel, _ = trio.open_memory_channel(0)
-                driver.camera_state = CameraState(
-                    send_channel, nursery, trio.lowlevel.current_trio_token()
-                )
-                driver.camera_state.initialize_connection_variables(get_config())
-                ctrl = ConnectionScreenController(Mock(), driver)
-                # validate ip
-                assert ctrl.validate_all_settings()
-                # check warning raised if changed
-                ctrl.view.display_info.assert_not_called()
-                ctrl.refresh_local_ip()
-                ctrl.view.display_info.assert_called_once_with(
-                    "Warning, Local IP Address is updated."
-                )
-                nursery.cancel_scope.cancel()
-
-
-@pytest.mark.trio
-@given(ip=generate_invalid_ip())
-async def test_local_ip_invalid_update(ip: str):
-    with driver_context() as (driver, _):
-        with patch(
-            "local_console.gui.controller.connection_screen.ConnectionScreenView"
-        ):
-            async with trio.open_nursery() as nursery:
-                send_channel, _ = trio.open_memory_channel(0)
-                driver.camera_state = CameraState(
-                    send_channel, nursery, trio.lowlevel.current_trio_token()
-                )
-                driver.camera_state.initialize_connection_variables(get_config())
-                ctrl = ConnectionScreenController(Mock(), driver)
-                # reset ip
-                driver.camera_state.local_ip.value = ""
-                ctrl.set_ip_address(str(ip))
-                # validate ip
-                assert not ctrl.validate_all_settings()
-                nursery.cancel_scope.cancel()
-
-
-# List of addresses to check
-addresses_to_check = [
-    "1.2.3.4.5",  # DTSS-25
-    "1A.2B.3C.4D.5C",  # DTSS-26
-    "123.345.567.789",  # DTSS-44
-    "!@#$%^^",  # DTSS-45
-    "AB1.CD2.ED3.GH4",  # DTSS-47
-]
-
-
-@mark.parametrize("ip", addresses_to_check)
-def test_local_ip_invalid_update_from_list(ip: str):
-    with driver_context() as (driver, _):
-        with (
-            patch(
-                "local_console.gui.controller.connection_screen.ConnectionScreenView"
-            ),
-            patch(
-                "local_console.gui.controller.connection_screen.get_my_ip_by_routing",
-                return_value="",
-            ),
-        ):
-            ConnectionScreenController(Mock(), driver)
-            assert not validate_ip_address(ip)
-
-
-@pytest.mark.trio
-async def test_local_ip_empty(nursery):
-    with driver_context() as (driver, _):
-        with (
-            patch(
-                "local_console.gui.controller.connection_screen.ConnectionScreenView"
-            ),
-            patch(
-                "local_console.gui.controller.connection_screen.get_my_ip_by_routing",
-                return_value="",
-            ),
-        ):
-            send_channel, _ = trio.open_memory_channel(0)
-            driver.camera_state = CameraState(
-                send_channel, nursery, trio.lowlevel.current_trio_token()
-            )
-            driver.camera_state.initialize_connection_variables(get_config())
-            ctrl = ConnectionScreenController(Mock(), driver)
-            driver.camera_state.local_ip.value = ""
-            # validate ip
-            assert ctrl.validate_all_settings()
-            ctrl.refresh_local_ip()
-            ctrl.view.display_info.assert_called_once_with(
-                "Warning, No Local IP Address.\nPlease check connectivity."
-            )
 
 
 # mqtt_host
