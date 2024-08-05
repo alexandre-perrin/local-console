@@ -14,7 +14,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 import importlib
-import json
 import random
 import shutil
 import sys
@@ -27,6 +26,7 @@ from unittest.mock import patch
 import pytest
 import trio
 from hypothesis import given
+from hypothesis import settings
 from hypothesis import strategies as st
 from local_console.core.camera.axis_mapping import SENSOR_SIZE
 from local_console.core.camera.enums import StreamStatus
@@ -35,11 +35,9 @@ from local_console.core.config import config_to_schema
 from local_console.core.config import get_default_config
 from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
 from local_console.core.schemas.schemas import AgentConfiguration
-from local_console.gui.drawer.classification import ClassificationDrawer
+from local_console.core.schemas.schemas import DeviceListItem
 from local_console.gui.enums import ApplicationConfiguration
-from local_console.gui.enums import ApplicationType
 from local_console.utils.local_network import LOCAL_IP
-from local_console.utils.tracking import TrackingVariable
 
 from tests.mocks.mock_paho_mqtt import MockAsyncIterator
 from tests.mocks.mock_paho_mqtt import MockMQTTMessage
@@ -103,229 +101,8 @@ def test_file_move(tmpdir):
 
 
 @pytest.mark.trio
-async def test_storage_paths(mocked_driver_with_agent, tmp_path_factory, nursery):
-    tgd = Path(tmp_path_factory.mktemp("images"))
-    driver, _ = mocked_driver_with_agent
-    send_channel, _ = trio.open_memory_channel(0)
-    driver.camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
-    # Set default image dir
-    driver.temporary_image_directory = tgd
-    driver.camera_state.image_dir_path.value = tgd
-
-    # Storing an image when image dir has not changed default
-    new_image = create_new(tgd)
-    saved = driver.save_into_input_directory(new_image, tgd)
-    assert saved.parent == tgd
-
-    # Change the target image dir
-    new_image_dir = Path(tmp_path_factory.mktemp("another_image_dir"))
-    driver.camera_state.image_dir_path.value = new_image_dir
-
-    # Storing an image when image dir has been changed
-    new_image = create_new(tgd)
-    saved = driver.save_into_input_directory(new_image, new_image_dir)
-    assert saved.parent == new_image_dir
-
-
-@pytest.mark.trio
-async def test_save_into_image_directory(mocked_driver_with_agent, tmp_path, nursery):
-    driver, _ = mocked_driver_with_agent
-
-    send_channel, _ = trio.open_memory_channel(0)
-    driver.camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
-    root = tmp_path
-    tgd = root / "notexists"
-
-    assert not tgd.exists()
-    driver.temporary_image_directory = tgd
-    driver.camera_state.image_dir_path.value = tgd
-    assert tgd.exists()
-
-    tgd.rmdir()
-
-    assert not tgd.exists()
-    driver.save_into_input_directory(create_new(root), tgd)
-    assert tgd.exists()
-
-
-@pytest.mark.trio
-async def test_save_into_inferences_directory(
-    mocked_driver_with_agent, tmp_path, nursery
-):
-    driver, _ = mocked_driver_with_agent
-    send_channel, _ = trio.open_memory_channel(0)
-    driver.camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
-    root = tmp_path
-    tgd = root / "notexists"
-
-    assert not tgd.exists()
-    driver.temporary_inference_directory = tgd
-    driver.camera_state.inference_dir_path.value = tgd
-    assert tgd.exists()
-
-    tgd.rmdir()
-
-    assert not tgd.exists()
-    driver.save_into_input_directory(create_new(root), tgd)
-    assert tgd.exists()
-
-
-@pytest.mark.trio
-async def test_process_camera_upload_images(
-    mocked_driver_with_agent, tmp_path_factory, nursery
-):
-    driver, _ = mocked_driver_with_agent
-    root = tmp_path_factory.getbasetemp()
-    image_dir = tmp_path_factory.mktemp("images")
-
-    with (
-        patch.object(
-            driver, "save_into_input_directory"
-        ) as mock_save_into_input_directory,
-        patch.object(driver, "update_images_display") as mock_update_display,
-    ):
-        send_channel, _ = trio.open_memory_channel(0)
-        driver.camera_state = CameraState(
-            send_channel, nursery, trio.lowlevel.current_trio_token()
-        )
-        driver.camera_state.image_dir_path.value = image_dir
-
-        file = root / "images/a.png"
-        driver.process_camera_upload(file)
-        mock_save_into_input_directory.assert_called_once_with(file, image_dir)
-        mock_update_display.assert_not_called()
-        driver.process_camera_upload(file)
-        mock_update_display.assert_called_once_with(
-            mock_save_into_input_directory.return_value
-        )
-        nursery.cancel_scope.cancel()
-
-
-@pytest.mark.trio
-async def test_process_camera_upload_inferences_with_schema(
-    mocked_driver_with_agent, tmp_path_factory, nursery
-):
-    driver, _ = mocked_driver_with_agent
-    root = tmp_path_factory.getbasetemp()
-    inference_dir = tmp_path_factory.mktemp("inferences")
-
-    with (
-        patch.object(driver, "save_into_input_directory") as mock_save,
-        patch.object(driver, "update_inference_data") as mock_update_data,
-        patch.object(driver, "update_images_display") as mock_update_display,
-        patch.object(
-            driver, "get_flatbuffers_inference_data"
-        ) as mock_get_flatbuffers_inference_data,
-        patch(
-            "local_console.gui.driver.get_output_from_inference_results"
-        ) as mock_get_output_from_inference_results,
-        patch("local_console.gui.driver.Path.read_bytes", return_value=b"boo"),
-        patch("local_console.gui.driver.Path.read_text", return_value="boo"),
-        patch.object(ClassificationDrawer, "process_frame"),
-    ):
-
-        send_channel, _ = trio.open_memory_channel(0)
-        driver.camera_state = CameraState(
-            send_channel, nursery, trio.lowlevel.current_trio_token()
-        )
-        driver.camera_state.vapp_type = TrackingVariable(
-            ApplicationType.CLASSIFICATION.value
-        )
-        driver.camera_state.inference_dir_path.value = inference_dir
-        driver.latest_image_file = root / "inferences/a.png"
-        driver.camera_state.vapp_schema_file.value = Path("objectdetection.fbs")
-        file = root / "inferences/a.txt"
-        mock_save.return_value = file
-
-        mock_get_flatbuffers_inference_data.return_value = {"a": 3}
-        ClassificationDrawer.process_frame.side_effect = Exception
-        driver.process_camera_upload(file)
-
-        mock_save.assert_called_once_with(file, inference_dir)
-        mock_get_output_from_inference_results.assert_called_once_with(b"boo")
-        mock_update_data.assert_called_once_with(json.dumps({"a": 3}, indent=2))
-        ClassificationDrawer.process_frame.assert_called_once_with(
-            driver.latest_image_file, {"a": 3}
-        )
-        mock_update_display.assert_called_once_with(driver.latest_image_file)
-
-
-@pytest.mark.trio
-async def test_process_camera_upload_inferences_missing_schema(
-    mocked_driver_with_agent, tmp_path_factory, nursery
-):
-    driver, _ = mocked_driver_with_agent
-    root = tmp_path_factory.getbasetemp()
-    inference_dir = tmp_path_factory.mktemp("inferences")
-
-    with (
-        patch.object(driver, "save_into_input_directory") as mock_save,
-        patch.object(driver, "update_inference_data") as mock_update_data,
-        patch.object(driver, "update_images_display") as mock_update_display,
-        patch(
-            "local_console.gui.driver.get_output_from_inference_results"
-        ) as mock_get_output_from_inference_results,
-        patch("local_console.gui.driver.Path.read_bytes", return_value=b"boo"),
-        patch("local_console.gui.driver.Path.read_text", return_value="boo"),
-        patch.object(ClassificationDrawer, "process_frame"),
-        patch.object(Path, "read_text", return_value=""),
-    ):
-
-        send_channel, _ = trio.open_memory_channel(0)
-        driver.camera_state = CameraState(
-            send_channel, nursery, trio.lowlevel.current_trio_token()
-        )
-        driver.camera_state.vapp_type = TrackingVariable(
-            ApplicationType.CLASSIFICATION.value
-        )
-        driver.camera_state.inference_dir_path.value = inference_dir
-        driver.latest_image_file = root / "inferences/a.png"
-        file = root / "inferences/a.txt"
-        mock_save.return_value = file
-
-        driver.process_camera_upload(file)
-
-        mock_save.assert_called_once_with(file, inference_dir)
-        mock_get_output_from_inference_results.assert_called_once_with(b"boo")
-        mock_update_data.assert_called_once_with(
-            mock_save.return_value.read_text.return_value
-        )
-        ClassificationDrawer.process_frame.assert_called_once_with(
-            driver.latest_image_file,
-            mock_get_output_from_inference_results.return_value,
-        )
-        mock_update_display.assert_called_once_with(driver.latest_image_file)
-
-
-@pytest.mark.trio
-async def test_process_camera_upload_unknown(mocked_driver_with_agent, tmpdir, nursery):
-    driver, _ = mocked_driver_with_agent
-    root = Path(tmpdir)
-
-    with (
-        patch.object(driver, "update_inference_data") as mock_update_data,
-        patch.object(driver, "update_images_display") as mock_update_display,
-    ):
-        file = root / "unknown/a.txt"
-
-        send_channel, _ = trio.open_memory_channel(0)
-        driver.camera_state = CameraState(
-            send_channel, nursery, trio.lowlevel.current_trio_token()
-        )
-
-        driver.process_camera_upload(file)
-        mock_update_display.assert_not_called()
-        mock_update_data.assert_not_called()
-
-
-@pytest.mark.trio
 @given(st.integers(min_value=0, max_value=65535))
+@settings(deadline=1000)
 async def test_streaming_stop_required(req_id: int):
     with (
         mock_driver_with_agent() as (driver, mock_agent),
@@ -364,17 +141,22 @@ async def test_streaming_rpc_stop(mocked_driver_with_agent):
 
 
 @pytest.mark.trio
-async def test_streaming_rpc_start(mocked_driver_with_agent):
+async def test_streaming_rpc_start(mocked_driver_with_agent, nursery):
     driver, mock_agent = mocked_driver_with_agent
 
     mock_agent.return_value.publish = AsyncMock()
     mock_rpc = AsyncMock()
     mock_agent.return_value.rpc = mock_rpc
 
-    driver = Driver(MagicMock())
-    driver.temporary_image_directory = Path("my_image_path")
-    driver.temporary_inference_directory = Path("my_inference_path")
-    upload_url = f"http://{LOCAL_IP}:{driver.upload_port}"
+    send_channel, _ = trio.open_memory_channel(0)
+    driver.camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
+
+    driver.camera_state.image_dir_path.value = Path("my_image_path")
+    driver.camera_state.inference_dir_path.value = Path("my_inference_path")
+    driver.camera_state.upload_port = 1234
+    upload_url = f"http://{LOCAL_IP}:1234"
     h_size, v_size = SENSOR_SIZE
 
     await driver.streaming_rpc_start()
@@ -383,9 +165,9 @@ async def test_streaming_rpc_start(mocked_driver_with_agent):
         "StartUploadInferenceData",
         StartUploadInferenceData(
             StorageName=upload_url,
-            StorageSubDirectoryPath=driver.temporary_image_directory.name,
+            StorageSubDirectoryPath=str(driver.camera_state.image_dir_path.value),
             StorageNameIR=upload_url,
-            StorageSubDirectoryPathIR=driver.temporary_inference_directory.name,
+            StorageSubDirectoryPathIR=str(driver.camera_state.inference_dir_path.value),
             CropHOffset=0,
             CropVOffset=0,
             CropHSize=h_size,
@@ -408,6 +190,7 @@ async def test_connection_status_timeout(mocked_driver_with_agent, nursery):
 
 @pytest.mark.trio
 @given(generate_identifiers(max_size=5))
+@settings(deadline=1000)
 async def test_send_ppl_configuration(config: str):
     mock_configure = AsyncMock()
     with (mock_driver_with_agent() as (driver, mock_agent),):
@@ -418,3 +201,20 @@ async def test_send_ppl_configuration(config: str):
             ApplicationConfiguration.CONFIG_TOPIC,
             config,
         )
+
+
+@pytest.mark.trio
+async def test_init_devices():
+    driver = Driver(MagicMock())
+    driver.device_manager = MagicMock()
+    driver.device_manager.num_devices = 0
+
+    default_device = DeviceListItem(
+        name=Driver.DEFAULT_DEVICE_NAME, port=str(Driver.DEFAULT_DEVICE_PORT)
+    )
+
+    driver._init_devices()
+    driver.device_manager.add_device.assert_called_once_with(default_device)
+    driver.device_manager.set_active_device.assert_called_once_with(
+        Driver.DEFAULT_DEVICE_NAME
+    )

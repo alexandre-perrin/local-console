@@ -289,9 +289,6 @@ class ImageWithROI(Image, HoverBehavior):
                     width=self.dead_zone_px / 2,
                 )
 
-    def update_image_data(self, incoming_file: Path) -> None:
-        self.source = str(incoming_file)
-
     def prime_for_roi(self, _texture: Texture) -> None:
         if self.state == ROIState.Disabled:
             self.state = ROIState.Enabled

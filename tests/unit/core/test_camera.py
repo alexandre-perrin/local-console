@@ -15,6 +15,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import json
 from base64 import b64encode
+from pathlib import Path
 from unittest.mock import AsyncMock
 from unittest.mock import Mock
 from unittest.mock import patch
@@ -32,6 +33,9 @@ from local_console.core.camera.qr import qr_string
 from local_console.core.camera.state import CameraState
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.schemas import OnWireProtocol
+from local_console.gui.drawer.classification import ClassificationDrawer
+from local_console.gui.enums import ApplicationType
+from local_console.utils.tracking import TrackingVariable
 
 from tests.strategies.configs import generate_invalid_ip
 from tests.strategies.configs import generate_invalid_port_number
@@ -40,6 +44,7 @@ from tests.strategies.configs import generate_valid_device_configuration
 from tests.strategies.configs import generate_valid_ip
 from tests.strategies.configs import generate_valid_port_number
 from tests.unit.core.test_deploy import template_deploy_status_for_manifest
+from tests.unit.gui.test_driver import create_new
 
 
 @given(
@@ -385,3 +390,177 @@ async def test_process_deploy_fsm_evp1_error(nursery, tmp_path) -> None:
         await camera._process_deploy_status_topic(wrap_dep_sta(dep_sta_tpl))
         assert camera.deploy_stage.value == DeployStage.Error
         assert camera.deploy_operation.value is None
+
+
+@pytest.mark.trio
+async def test_storage_paths(tmp_path_factory, nursery):
+    tgd = Path(tmp_path_factory.mktemp("images"))
+    send_channel, _ = trio.open_memory_channel(0)
+    camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
+    # Set default image dir
+    camera_state.image_dir_path.value = tgd
+
+    # Storing an image when image dir has not changed default
+    new_image = create_new(tgd)
+    saved = camera_state._save_into_input_directory(new_image, tgd)
+    assert saved.parent == tgd
+
+    # Change the target image dir
+    new_image_dir = Path(tmp_path_factory.mktemp("another_image_dir"))
+    camera_state.image_dir_path.value = new_image_dir
+
+    # Storing an image when image dir has been changed
+    new_image = create_new(tgd)
+    saved = camera_state._save_into_input_directory(new_image, new_image_dir)
+    assert saved.parent == new_image_dir
+
+
+@pytest.mark.trio
+async def test_save_into_image_directory(tmp_path, nursery):
+    send_channel, _ = trio.open_memory_channel(0)
+    camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
+    root = tmp_path
+    tgd = root / "notexists"
+
+    assert not tgd.exists()
+    camera_state.image_dir_path.value = tgd
+    assert tgd.exists()
+
+    tgd.rmdir()
+
+    assert not tgd.exists()
+    camera_state._save_into_input_directory(create_new(root), tgd)
+    assert tgd.exists()
+
+
+@pytest.mark.trio
+async def test_save_into_inferences_directory(tmp_path, nursery):
+    send_channel, _ = trio.open_memory_channel(0)
+    camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
+    root = tmp_path
+    tgd = root / "notexists"
+
+    assert not tgd.exists()
+    camera_state.inference_dir_path.value = tgd
+    assert tgd.exists()
+
+    tgd.rmdir()
+
+    assert not tgd.exists()
+    camera_state._save_into_input_directory(create_new(root), tgd)
+    assert tgd.exists()
+
+
+@pytest.mark.trio
+async def test_process_camera_upload_image(tmp_path_factory, nursery):
+    root = tmp_path_factory.getbasetemp()
+    inferences_dir = tmp_path_factory.mktemp("inferences")
+    images_dir = tmp_path_factory.mktemp("images")
+
+    send_channel, _ = trio.open_memory_channel(0)
+    camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
+    camera_state.inference_dir_path.value = inferences_dir
+    camera_state.image_dir_path.value = images_dir
+
+    with (
+        patch.object(
+            camera_state, "_save_into_input_directory"
+        ) as mock_save_into_input_directory,
+    ):
+        file = root / "images/a.png"
+        camera_state._process_camera_upload(file)
+        mock_save_into_input_directory.assert_called()
+        nursery.cancel_scope.cancel()
+
+
+@pytest.mark.trio
+async def test_process_camera_upload_inferences_with_schema(tmp_path_factory, nursery):
+    root = tmp_path_factory.getbasetemp()
+    inferences_dir = tmp_path_factory.mktemp("inferences")
+    images_dir = tmp_path_factory.mktemp("images")
+
+    send_channel, _ = trio.open_memory_channel(0)
+    camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
+    camera_state.inference_dir_path.value = inferences_dir
+    camera_state.image_dir_path.value = images_dir
+
+    with (
+        patch.object(camera_state, "_save_into_input_directory") as mock_save,
+        patch.object(
+            camera_state, "_get_flatbuffers_inference_data"
+        ) as mock_get_flatbuffers_inference_data,
+        patch(
+            "local_console.core.camera.state.get_output_from_inference_results"
+        ) as mock_get_output_from_inference_results,
+        patch("local_console.gui.driver.Path.read_bytes", return_value=b"boo"),
+        patch("local_console.gui.driver.Path.read_text", return_value="boo"),
+        patch.object(ClassificationDrawer, "process_frame"),
+    ):
+        camera_state.vapp_type = TrackingVariable(ApplicationType.CLASSIFICATION.value)
+        camera_state.inference_dir_path.value = inferences_dir
+        camera_state.latest_image_file = root / "inferences/a.png"
+        camera_state.vapp_schema_file.value = Path("objectdetection.fbs")
+        file = root / "inferences/a.txt"
+        mock_save.return_value = file
+
+        mock_get_flatbuffers_inference_data.return_value = {"a": 3}
+        ClassificationDrawer.process_frame.side_effect = Exception
+        camera_state._process_camera_upload(file)
+
+        mock_save.assert_called_once_with(file, inferences_dir)
+        mock_get_output_from_inference_results.assert_called_once_with(b"boo")
+        ClassificationDrawer.process_frame.assert_called_once_with(
+            camera_state.latest_image_file, {"a": 3}
+        )
+
+
+@pytest.mark.trio
+async def test_process_camera_upload_inferences_missing_schema(
+    tmp_path_factory, nursery
+):
+    root = tmp_path_factory.getbasetemp()
+    inferences_dir = tmp_path_factory.mktemp("inferences")
+    images_dir = tmp_path_factory.mktemp("images")
+
+    send_channel, _ = trio.open_memory_channel(0)
+    camera_state = CameraState(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
+    camera_state.inference_dir_path.value = inferences_dir
+    camera_state.image_dir_path.value = images_dir
+
+    with (
+        patch.object(camera_state, "_save_into_input_directory") as mock_save,
+        patch.object(camera_state, "_get_flatbuffers_inference_data"),
+        patch(
+            "local_console.core.camera.state.get_output_from_inference_results"
+        ) as mock_get_output_from_inference_results,
+        patch("local_console.gui.driver.Path.read_bytes", return_value=b"boo"),
+        patch("local_console.gui.driver.Path.read_text", return_value="boo"),
+        patch.object(ClassificationDrawer, "process_frame"),
+        patch.object(Path, "read_text", return_value=""),
+    ):
+        camera_state.vapp_type = TrackingVariable(ApplicationType.CLASSIFICATION.value)
+        camera_state.inference_dir_path.value = inferences_dir
+        camera_state.latest_image_file = root / "inferences/a.png"
+        file = root / "inferences/a.txt"
+        mock_save.return_value = file
+
+        camera_state._process_camera_upload(file)
+
+        mock_save.assert_called_once_with(file, inferences_dir)
+        mock_get_output_from_inference_results.assert_called_once_with(b"boo")
+        ClassificationDrawer.process_frame.assert_called_once_with(
+            camera_state.latest_image_file,
+            mock_get_output_from_inference_results.return_value,
+        )

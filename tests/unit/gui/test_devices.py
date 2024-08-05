@@ -201,7 +201,7 @@ def test_remove_device_no_device_selected(device_list, error_message):
         ctrl.driver.device_manager.remove_device.assert_not_called()
 
 
-def test_remove_device():
+def test_remove_device_with_1_device():
     model, mock_driver = DevicesScreenModel(), MagicMock()
     with patch("local_console.gui.controller.devices_screen.DevicesScreenView"):
         ctrl = DevicesScreenController(model, mock_driver)
@@ -214,7 +214,26 @@ def test_remove_device():
 
         ctrl.driver.device_manager.remove_device = MagicMock()
         ctrl.remove_device()
-        ctrl.driver.device_manager.remove_device.assert_called_once_with(device1.name)
+        ctrl.driver.device_manager.remove_device.assert_not_called()
+
+
+def test_remove_device():
+    model, mock_driver = DevicesScreenModel(), MagicMock()
+    with patch("local_console.gui.controller.devices_screen.DevicesScreenView"):
+        ctrl = DevicesScreenController(model, mock_driver)
+
+        device1 = MagicMock()
+        device1.ids.check_box_device.active = False
+        device1.name = "test_device_01"
+        device2 = MagicMock()
+        device2.ids.check_box_device.active = True
+        device2.name = "test_device_02"
+        device_list = [device1, device2]
+        ctrl.view.ids.box_device_list.children = device_list
+
+        ctrl.driver.device_manager.remove_device = MagicMock()
+        ctrl.remove_device()
+        ctrl.driver.device_manager.remove_device.assert_called_once_with(device2.name)
 
 
 def test_devices_screen():
@@ -254,6 +273,9 @@ async def test_device_manager(nursery):
         patch(
             "local_console.gui.device_manager.get_config",
             return_value=config_to_schema(get_default_config()),
+        ),
+        patch(
+            "local_console.gui.device_manager.DeviceManager._blobs_webserver_task",
         ),
         patch(
             "local_console.core.camera.state.get_device_persistent_config",
@@ -305,6 +327,9 @@ async def test_device_manager_with_config(nursery):
         ),
         patch(
             "local_console.gui.device_manager.get_device_configs",
+        ),
+        patch(
+            "local_console.gui.device_manager.DeviceManager._blobs_webserver_task",
         ),
     ):
         send_channel, _ = trio.open_memory_channel(0)
