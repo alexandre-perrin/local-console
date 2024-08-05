@@ -19,6 +19,20 @@
 
                 MDWidget:
                     size_hint_x: 3
+                EntryLabel:
+                    text: "Device:"
+                    halign: "right"
+                    bold: True
+                MDLabel:
+                    text: app.selected
+                    padding: "50dp", "0dp"
+                    halign:"right"
+                    canvas.before:
+                        Color:
+                            rgba: 0, 0, 0, 1
+                        Line:
+                            width: 1.1
+                            rounded_rectangle: self.x, self.y, self.width, self.height, 5, 5, 5, 5
 
         MDBoxLayout:
         # Firmware update controls
