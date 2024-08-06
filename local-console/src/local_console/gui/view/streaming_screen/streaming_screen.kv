@@ -10,8 +10,10 @@
     MDBoxLayout:
         orientation: "vertical"
 
+
         MDBoxLayout:
         # Top bar
+
             orientation: "horizontal"
             size_hint_y: 0.1
             padding: "5dp"
@@ -20,7 +22,7 @@
             MDBoxLayout:
             # Controls half
                 orientation: "horizontal"
-                size_hint_x: 3
+                size_hint_x: 0.3
                 padding: "10dp"
                 spacing: "10dp"
 
@@ -57,22 +59,47 @@
 
                 MDWidget:
 
+            MDWidget:
+                size_hint_x: 0.4
+
             MDBoxLayout:
             # Status readout half
-                orientation: "horizontal"
-                size_hint_x: 1.5
-                padding: "5dp"
                 spacing: "5dp"
+                size_hint_x: 0.3
 
-                MDIcon:
-                    icon: "video-outline"
-                    pos_hint: {'center_y': .5}
+                EntryLabel:
+                    text: "Device:"
+                    size_hint_x: 0.3
+                    bold: True
 
                 MDLabel:
-                    text: 'Streaming:'
-                MDLabel:
-                    id: stream_flag
-                    text: "Disabled"
+                    text: app.selected
+                    size_hint_x: 0.7
+                    shorten: True
+                    max_lines: 1
+                    padding: "20dp", "5dp"
+                    halign:"left"
+                    canvas.before:
+                        Color:
+                            rgba: 0, 0, 0, 1
+                        Line:
+                            width: 1.1
+                            rounded_rectangle: self.x, self.y +15, self.width, self.height/2, 5, 5, 5, 5
+
+        MDBoxLayout:
+            orientation: "horizontal"
+            size_hint_y: 0.05
+
+            MDIcon:
+                icon: "video-outline"
+                pos_hint: {'center_y': .5}
+                padding: "600dp", "0dp", "0dp", "0dp"
+            MDLabel:
+                text: 'Streaming:'
+            MDLabel:
+                id: stream_flag
+                text: "Disabled"
+
 
         MDBoxLayout:
         # Image view half

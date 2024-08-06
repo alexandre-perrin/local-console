@@ -7,7 +7,8 @@
 
     MDBoxLayout:
         orientation: "vertical"
-
+        padding: "10dp"
+        spacing: "10dp"
         MDBoxLayout:
         # Top bar
             orientation: "horizontal"
@@ -16,13 +17,39 @@
             MDBoxLayout:
             # Controls half
                 orientation: "horizontal"
-                spacing: "10dp"
+                padding: "15dp"
+                size_hint_x: 0.3
                 padding: "10dp"
 
                 GoHomeButton:
 
                 MDWidget:
-                    size_hint_x: 3
+
+            MDWidget:
+                size_hint_x: 0.4
+
+            MDBoxLayout:
+                size_hint_x: 0.3
+                spacing: "5dp"
+
+                EntryLabel:
+                    text: "Device:"
+                    size_hint_x: 0.3
+                    bold: True
+
+                MDLabel:
+                    text: app.selected
+                    shorten: True
+                    max_lines: 1
+                    size_hint_x: 0.7
+                    padding: "20dp", "5dp"
+                    halign:"left"
+                    canvas.before:
+                        Color:
+                            rgba: 0, 0, 0, 1
+                        Line:
+                            width: 1.1
+                            rounded_rectangle: self.x, self.y+15, self.width, self.height/2, 5, 5, 5, 5
 
         MDBoxLayout:
         # Top bar
