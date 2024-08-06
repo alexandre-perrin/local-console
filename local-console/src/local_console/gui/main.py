@@ -119,6 +119,9 @@ class LocalConsoleGUIAPP(MDApp):
         self.driver.mqtt_client = self.driver.device_manager.get_active_mqtt_client()
         self.mdl = self.driver.device_manager.get_active_device_proxy()
 
+        for view in self.driver.gui.views.values():
+            view.controller.refresh()
+
 
 class GUIExceptionHandler(ExceptionHandler):
     def handle_exception(self, inst: BaseException) -> Any:
