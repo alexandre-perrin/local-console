@@ -42,6 +42,10 @@ class ConnectionScreenController(BaseController):
         self.driver = driver
         self.view = ConnectionScreenView(controller=self, model=self.model)
 
+    def refresh(self) -> None:
+        # Delete previous QR code
+        self.view.ids.img_qr_display.texture = None
+
     def get_view(self) -> ConnectionScreenView:
         return self.view
 
