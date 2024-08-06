@@ -73,8 +73,18 @@ async def test_initialization(nursery):
 @given(ip=st.ip_addresses(v=4))
 async def test_local_ip_valid_update(ip: str):
     with driver_context() as (driver, _):
-        with patch(
-            "local_console.gui.controller.connection_screen.ConnectionScreenView"
+        with (
+            patch(
+                "local_console.gui.controller.connection_screen.ConnectionScreenView"
+            ),
+            patch(
+                "local_console.gui.controller.connection_screen.get_my_ip_by_routing",
+                return_value="192.168.1.12",
+            ),
+            patch(
+                "local_console.core.camera.state.get_my_ip_by_routing",
+                return_value="192.168.1.13",
+            ),
         ):
             async with trio.open_nursery() as nursery:
                 send_channel, _ = trio.open_memory_channel(0)
@@ -83,9 +93,6 @@ async def test_local_ip_valid_update(ip: str):
                 )
                 driver.camera_state.initialize_connection_variables(get_config())
                 ctrl = ConnectionScreenController(Mock(), driver)
-                # reset ip
-                driver.camera_state.local_ip.value = ""
-                ctrl.set_ip_address(str(ip))
                 # validate ip
                 assert ctrl.validate_all_settings()
                 # check warning raised if changed
