@@ -28,9 +28,8 @@
             MDBoxLayout:
             # Controls half
                 orientation: "horizontal"
-                size_hint_x: 1
+                size_hint_x: 0.3
                 padding: "10dp"
-                spacing: "10dp"
 
                 GoHomeButton:
 
@@ -39,29 +38,32 @@
             MDBoxLayout:
             # Status readout half
                 orientation: "horizontal"
-                size_hint_x: 1
+                size_hint_x: 0.4
                 padding: "5dp"
                 spacing: "5dp"
 
                 MDLabel:
                     text: "Connection Status:"
-                    size_hint_x: 1
+                    bold: True
                 MDLabel:
                     id: lbl_conn_status
                     text: "Disconnected"
                     size_hint_x: 1
+            MDBoxLayout:
+                size_hint_x: 0.3
+                spacing: "5dp"
 
-            MDGridLayout:
-                cols: 2
                 EntryLabel:
                     text: "Device:"
-                    halign: "right"
+                    size_hint_x: 0.3
                     bold: True
 
                 MDLabel:
                     text: app.selected
+                    shorten: True
+                    max_lines: 1
                     padding: "20dp", "5dp"
-                    halign:"right"
+                    halign:"left"
                     canvas.before:
                         Color:
                             rgba: 0, 0, 0, 1

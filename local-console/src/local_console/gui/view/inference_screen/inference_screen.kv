@@ -20,7 +20,7 @@
             MDBoxLayout:
             # Controls half
                 orientation: "horizontal"
-                size_hint_x: 3
+                size_hint_x: 0.4
                 padding: "10dp"
                 spacing: "10dp"
 
@@ -40,7 +40,7 @@
             MDBoxLayout:
             # Status readout half
                 orientation: "horizontal"
-                size_hint_x: 1.5
+                size_hint_x: 0.3
                 padding: "5dp"
                 spacing: "5dp"
 
@@ -54,24 +54,28 @@
                 MDLabel:
                     id: stream_flag
                     text: "Disabled"
-            MDGridLayout:
-                cols: 2
+            MDBoxLayout:
+                size_hint_x: 0.3
+                spacing: "5dp"
+
                 EntryLabel:
                     text: "Device:"
-                    halign: "right"
+                    size_hint_x: 0.3
                     bold: True
 
                 MDLabel:
                     text: app.selected
-                    padding: "10dp", "5dp"
-                    halign:"right"
+                    size_hint_x: 0.7
+                    shorten: True
+                    max_lines: 1
+                    padding: "20dp", "5dp"
+                    halign:"left"
                     canvas.before:
                         Color:
                             rgba: 0, 0, 0, 1
                         Line:
                             width: 1.1
-                            rounded_rectangle: self.x , self.y +15, self.width, self.height/2, 5, 5, 5, 5
-
+                            rounded_rectangle: self.x, self.y +15, self.width, self.height/2, 5, 5, 5, 5
 
         GridLayout:
         # File path
