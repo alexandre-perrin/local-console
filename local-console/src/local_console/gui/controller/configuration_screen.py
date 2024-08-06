@@ -97,7 +97,7 @@ class ConfigurationScreenController(BaseController):
         assert self.driver.camera_state
 
         if app_type == ApplicationType.CUSTOM.value:
-            self.driver.camera_state.vapp_schema_file.value = None
+            self.driver.camera_state.vapp_schema_file.value = ""
             self.view.ids.schema_pick.select_path("")
 
         elif app_type == ApplicationType.CLASSIFICATION.value:
@@ -152,8 +152,8 @@ class ConfigurationScreenController(BaseController):
 
     def apply_flatbuffers_schema(self) -> None:
         schema_file = self.driver.gui.mdl.vapp_schema_file
-        if schema_file is not None:
-            if schema_file.is_file():
+        if schema_file is not None and schema_file != "":
+            if Path(schema_file).is_file():
                 try:
                     assert self.driver.camera_state
 

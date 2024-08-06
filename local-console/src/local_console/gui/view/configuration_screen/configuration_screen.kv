@@ -70,7 +70,7 @@
                 selector: "file"
                 ext: [".fbs"]
                 path: str(app.mdl.vapp_schema_file)
-                on_selected: app.mdl.vapp_schema_file = Path(self.accept_path(args[1]))
+                on_selected: app.mdl.vapp_schema_file = self.accept_path(args[1])
 
             PathSelectorCombo:
                 id: app_configuration_pick
