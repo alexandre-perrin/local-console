@@ -14,6 +14,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 from local_console.core.camera.qr import get_qr_object
+from local_console.gui.controller.base_controller import BaseController
 from local_console.gui.driver import Driver
 from local_console.gui.model.connection_screen import ConnectionScreenModel
 from local_console.gui.utils.qr import Color
@@ -28,7 +29,7 @@ from local_console.utils.local_network import get_my_ip_by_routing
 from local_console.utils.local_network import replace_local_address
 
 
-class ConnectionScreenController:
+class ConnectionScreenController(BaseController):
     """
     The `ConnectionScreenController` class represents a controller implementation.
     Coordinates work of the view with the model.

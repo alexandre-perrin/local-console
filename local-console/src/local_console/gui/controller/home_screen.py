@@ -13,12 +13,13 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+from local_console.gui.controller.base_controller import BaseController
 from local_console.gui.driver import Driver
 from local_console.gui.model.base_model import BaseScreenModel
 from local_console.gui.view.home_screen.home_screen import HomeScreenView
 
 
-class HomeScreenController:
+class HomeScreenController(BaseController):
     """
     The `HomeScreenController` class represents a controller implementation.
     Coordinates work of the view with the model.

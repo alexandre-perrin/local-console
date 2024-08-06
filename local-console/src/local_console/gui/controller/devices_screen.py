@@ -17,6 +17,7 @@ import logging
 import re
 
 from local_console.core.schemas.schemas import DeviceListItem
+from local_console.gui.controller.base_controller import BaseController
 from local_console.gui.driver import Driver
 from local_console.gui.model.devices_screen import DevicesScreenModel
 from local_console.gui.view.common.components import DeviceItem
@@ -25,7 +26,7 @@ from local_console.gui.view.devices_screen.devices_screen import DevicesScreenVi
 logger = logging.getLogger(__name__)
 
 
-class DevicesScreenController:
+class DevicesScreenController(BaseController):
     """
     The `DevicesScreenController` class represents a controller implementation.
     Coordinates work of the view with the model.

@@ -17,6 +17,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from local_console.core.camera.ai_model import deployment_task
+from local_console.gui.controller.base_controller import BaseController
 from local_console.gui.driver import Driver
 from local_console.gui.model.ai_model_screen import AIModelScreenModel
 
@@ -26,7 +27,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class AIModelScreenController:
+class AIModelScreenController(BaseController):
     """
     The `AIModelScreenController` class represents a controller implementation.
     Coordinates work of the view with the model.

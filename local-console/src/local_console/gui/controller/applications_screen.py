@@ -15,6 +15,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import logging
 
+from local_console.gui.controller.base_controller import BaseController
 from local_console.gui.driver import Driver
 from local_console.gui.model.applications_screen import ApplicationsScreenModel
 from local_console.gui.view.applications_screen.applications_screen import (
@@ -25,7 +26,7 @@ from local_console.gui.view.applications_screen.applications_screen import (
 logger = logging.getLogger(__name__)
 
 
-class ApplicationsScreenController:
+class ApplicationsScreenController(BaseController):
     """
     The `ApplicationsScreenController` class represents a controller implementation.
     Coordinates work of the view with the model.
