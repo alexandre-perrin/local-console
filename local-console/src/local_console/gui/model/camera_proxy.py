@@ -25,6 +25,7 @@ from local_console.core.camera.enums import OTAUpdateModule
 from local_console.core.camera.enums import StreamStatus
 from local_console.core.camera.state import CameraState
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
+from local_console.gui.enums import ApplicationType
 from local_console.gui.model.data_binding import CameraStateProxyBase
 
 
@@ -51,7 +52,7 @@ class CameraStateProxy(CameraStateProxyBase):
     vapp_config_file = ObjectProperty(Path(), allownone=True)
     vapp_labels_file = ObjectProperty(Path(), allownone=True)
     vapp_labels_map = ObjectProperty({}, allownone=True)
-    vapp_type = StringProperty("")
+    vapp_type = StringProperty(ApplicationType.CUSTOM.value)
 
     firmware_file = StringProperty("", allownone=True)
     firmware_file_valid = BooleanProperty(False, force_dispatch=True)
@@ -79,6 +80,9 @@ class CameraStateProxy(CameraStateProxyBase):
 
     stream_image = StringProperty("")
     inference_field = StringProperty("")
+
+    size = StringProperty("10")
+    unit = StringProperty("MB")
 
     def bind_connections(self, camera_state: CameraState) -> None:
         self.bind_state_to_proxy("local_ip", camera_state)
