@@ -115,10 +115,14 @@ async def test_apply_application_configuration(driver_set, tmp_path):
             send_channel, nursery, trio.lowlevel.current_trio_token()
         )
         model = driver.camera_state
+        model.vapp_type.value = ApplicationType.CUSTOM.value
         mock_gui.mdl.bind_vapp_file_functions(model)
         with (
             patch(
                 "local_console.gui.controller.configuration_screen.ConfigurationScreenView"
+            ),
+            patch(
+                "local_console.gui.controller.configuration_screen.map_class_id_to_name"
             ),
         ):
             ctrl = ConfigurationScreenController(Mock, driver)
@@ -195,6 +199,7 @@ async def test_update_application_type(driver_set):
             send_channel, nursery, trio.lowlevel.current_trio_token()
         )
         model = driver.camera_state
+        model.vapp_type.value = ApplicationType.CUSTOM.value
         mock_gui.mdl.bind_vapp_file_functions(model)
         with (
             patch(
@@ -206,7 +211,7 @@ async def test_update_application_type(driver_set):
             mock_gui.mdl.vapp_type = ApplicationType.CUSTOM.value
             assert model.vapp_type.value == ApplicationType.CUSTOM
             assert ctrl.view.ids.labels_pick.disabled
-            assert not ctrl.view.ids.schema_pick.disabled
+            assert ctrl.view.ids.schema_pick.disabled
 
             mock_gui.mdl.vapp_type = ApplicationType.CLASSIFICATION
             assert model.vapp_type.value == ApplicationType.CLASSIFICATION
