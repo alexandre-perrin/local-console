@@ -72,7 +72,7 @@ async def test_apply_flatbuffers_schema(driver_set, tmp_path):
         ):
             ctrl = ConfigurationScreenController(Mock, driver)
 
-            mock_gui.mdl.vapp_schema_file = None
+            mock_gui.mdl.vapp_schema_file = ""
             ctrl.apply_flatbuffers_schema()
             ctrl.view.display_error.assert_called_with("Please select a schema file.")
 
@@ -283,3 +283,21 @@ def test_get_view():
     ):
         ctrl = ConfigurationScreenController(MagicMock(), MagicMock())
         assert ctrl.view == ctrl.get_view()
+
+
+def test_refresh():
+    with (
+        patch(
+            "local_console.gui.controller.configuration_screen.ConfigurationScreenController.on_vapp_type"
+        ) as mock_vapp_type,
+        patch(
+            "local_console.gui.controller.configuration_screen.ConfigurationScreenView"
+        ),
+    ):
+        driver = MagicMock()
+        ctrl = ConfigurationScreenController(MagicMock(), driver)
+        ctrl.refresh()
+        mock_vapp_type.assert_called_once_with(
+            driver.device_manager.get_active_device_proxy(),
+            driver.device_manager.get_active_device_state().vapp_type.value,
+        )
