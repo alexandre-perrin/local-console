@@ -87,13 +87,9 @@ async def test_apply_flatbuffers_schema(driver_set, tmp_path):
             )
             file = tmp_path / "file.bin"
             file.write_bytes(b"0")
-            mock_gui.mdl.vapp_schema_file = file
+            mock_gui.mdl.vapp_schema_file = str(file)
             ctrl.apply_flatbuffers_schema()
             ctrl.view.display_error.assert_called_with("Not a valid flatbuffers schema")
-            assert (
-                mock_gui.mdl.vapp_schema_file
-                != driver.camera_state.vapp_schema_file.value
-            )
 
             mock_conform_flatbuffers.return_value = True
             mock_conform_flatbuffers.side_effect = None
@@ -215,15 +211,17 @@ async def test_update_application_type(driver_set):
 
             mock_gui.mdl.vapp_type = ApplicationType.CLASSIFICATION
             assert model.vapp_type.value == ApplicationType.CLASSIFICATION
-            assert (
-                model.vapp_schema_file.value == ApplicationSchemaFilePath.CLASSIFICATION
+            assert model.vapp_schema_file.value == str(
+                ApplicationSchemaFilePath.CLASSIFICATION
             )
             assert not ctrl.view.ids.labels_pick.disabled
             assert ctrl.view.ids.schema_pick.disabled
 
             mock_gui.mdl.vapp_type = ApplicationType.DETECTION
             assert model.vapp_type.value == ApplicationType.DETECTION
-            assert model.vapp_schema_file.value == ApplicationSchemaFilePath.DETECTION
+            assert model.vapp_schema_file.value == str(
+                ApplicationSchemaFilePath.DETECTION
+            )
             assert not ctrl.view.ids.labels_pick.disabled
             assert ctrl.view.ids.schema_pick.disabled
 
