@@ -209,7 +209,7 @@
 
 <DeviceDropDownList>:
     MDDropDownItem:
-        on_release: root.open_menu(app.driver.device_manager.get_device_config(), *args)
+        on_release: root.open_menu(app.driver.device_manager.get_device_configs(), *args)
         MDDropDownItemText:
             text: root._selected_device
             font_style: "Body"

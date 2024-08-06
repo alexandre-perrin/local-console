@@ -15,6 +15,7 @@
 # SPDX-License-Identifier: Apache-2.0
 from typing import Any
 
+from kivy.properties import BooleanProperty
 from local_console.core.camera.axis_mapping import DEFAULT_ROI
 from local_console.core.camera.axis_mapping import UnitROI
 from local_console.core.camera.enums import StreamStatus
@@ -28,9 +29,10 @@ from local_console.gui.view.common.components import ROIState
 
 class StreamingScreenView(BaseScreenView):
 
+    can_stream = BooleanProperty(False)
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.app.mdl.bind(stream_status=self.on_stream_status)
         self.ids.stream_image.bind(state=self.on_roi_state)
         self.ids.stream_image.bind(roi=self.on_roi_change)
 
@@ -50,13 +52,17 @@ class StreamingScreenView(BaseScreenView):
             "elevated" if value != StreamStatus.Active else "filled"
         )
 
+    def on_connected(self, instance: CameraStateProxy, value: bool) -> None:
+        self.can_stream = value
+
+    def on_is_streaming(self, instance: CameraStateProxy, value: bool) -> None:
+        self.ids.btn_stream_text.text = ("Stop" if value else "Start") + " Streaming"
+
     def control_roi(self) -> None:
         roi_state: ROIState = self.ids.stream_image.state
-        if roi_state == ROIState.Disabled:
-            self.inform_roi_is_disabled()
-        elif roi_state in (ROIState.Enabled, ROIState.Viewing):
+        if roi_state in (ROIState.Enabled, ROIState.Viewing):
             self.ids.stream_image.start_roi_draw()
-        else:
+        elif roi_state in (ROIState.PickingEndPoint, ROIState.PickingStartPoint):
             self.ids.stream_image.cancel_roi_draw()
 
     def reset_roi(self) -> None:

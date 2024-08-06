@@ -45,7 +45,7 @@ class DevicesScreenController(BaseController):
         self.view = DevicesScreenView(controller=self, model=self.model)
         assert self.driver.device_manager
 
-        self.restore_device_list(self.driver.device_manager.get_device_config())
+        self.restore_device_list(self.driver.device_manager.get_device_configs())
 
     def get_view(self) -> DevicesScreenView:
         return self.view

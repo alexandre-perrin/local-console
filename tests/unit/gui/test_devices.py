@@ -27,7 +27,6 @@ from local_console.gui.controller.devices_screen import DevicesScreenController
 from local_console.gui.model.devices_screen import DevicesScreenModel
 from local_console.core.camera.state import CameraState
 from local_console.gui.model.camera_proxy import CameraStateProxy
-from local_console.clients.agent import Agent
 from local_console.core.config import config_to_schema, get_default_config
 
 
@@ -303,7 +302,7 @@ async def test_device_manager(nursery):
         assert len(device_manager.state_factory) == device_manager.num_devices
         assert len(device_manager.agent_factory) == device_manager.num_devices
 
-        device_manager.get_device_config()
+        device_manager.get_device_configs()
         assert mock_get_dev.call_count == 1
 
 

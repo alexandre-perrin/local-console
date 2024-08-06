@@ -35,7 +35,6 @@ from local_console.core.config import config_to_schema
 from local_console.core.config import get_default_config
 from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
 from local_console.core.schemas.schemas import AgentConfiguration
-from local_console.core.schemas.schemas import DeviceListItem
 from local_console.gui.enums import ApplicationConfiguration
 from local_console.utils.local_network import LOCAL_IP
 
@@ -129,18 +128,6 @@ async def test_streaming_stop_required(req_id: int):
 
 
 @pytest.mark.trio
-async def test_streaming_rpc_stop(mocked_driver_with_agent):
-    driver, mock_agent = mocked_driver_with_agent
-
-    mock_agent.return_value.publish = AsyncMock()
-    mock_rpc = AsyncMock()
-    mock_agent.return_value.rpc = mock_rpc
-
-    await driver.streaming_rpc_stop()
-    mock_rpc.assert_awaited_with("backdoor-EA_Main", "StopUploadInferenceData", "{}")
-
-
-@pytest.mark.trio
 async def test_streaming_rpc_start(mocked_driver_with_agent, nursery):
     driver, mock_agent = mocked_driver_with_agent
 
@@ -201,20 +188,3 @@ async def test_send_ppl_configuration(config: str):
             ApplicationConfiguration.CONFIG_TOPIC,
             config,
         )
-
-
-@pytest.mark.trio
-async def test_init_devices():
-    driver = Driver(MagicMock())
-    driver.device_manager = MagicMock()
-    driver.device_manager.num_devices = 0
-
-    default_device = DeviceListItem(
-        name=Driver.DEFAULT_DEVICE_NAME, port=str(Driver.DEFAULT_DEVICE_PORT)
-    )
-
-    driver._init_devices()
-    driver.device_manager.add_device.assert_called_once_with(default_device)
-    driver.device_manager.set_active_device.assert_called_once_with(
-        Driver.DEFAULT_DEVICE_NAME
-    )

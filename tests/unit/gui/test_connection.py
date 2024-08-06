@@ -25,9 +25,6 @@ from hypothesis import strategies as st
 from local_console.core.camera.state import CameraState
 from local_console.core.config import get_config
 from local_console.gui.controller.connection_screen import ConnectionScreenController
-from local_console.gui.utils.validators import validate_ip_address
-from local_console.utils.local_network import get_my_ip_by_routing
-from pytest import mark
 
 from tests.fixtures.gui import driver_context
 from tests.fixtures.gui import get_default_config_as_schema

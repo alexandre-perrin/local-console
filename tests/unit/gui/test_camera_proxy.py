@@ -25,7 +25,6 @@ from local_console.core.camera.enums import StreamStatus
 from local_console.core.camera.state import CameraState
 from local_console.core.config import get_config
 from local_console.gui.model.camera_proxy import CameraStateProxy
-from local_console.utils.local_network import get_my_ip_by_routing
 
 from tests.strategies.configs import generate_valid_device_configuration
 

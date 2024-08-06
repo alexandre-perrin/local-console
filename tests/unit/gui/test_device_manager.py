@@ -85,3 +85,19 @@ def test_update_ai_model_file_persists(ai_model_file: str):
         mock_persistency.assert_called_with(
             device_manager.active_device.name, config.model_dump()
         )
+
+
+def test_init_devices_with_empty_list():
+
+    device_manager = DeviceManager(Mock(), Mock(), Mock())
+    device_manager.init_devices([])
+
+    default_device = DeviceListItem(
+        name=DeviceManager.DEFAULT_DEVICE_NAME,
+        port=str(DeviceManager.DEFAULT_DEVICE_PORT),
+    )
+
+    device_manager.add_device.assert_called_once_with(default_device)
+    device_manager.set_active_device.assert_called_once_with(
+        DeviceManager.DEFAULT_DEVICE_NAME
+    )

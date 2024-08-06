@@ -83,7 +83,7 @@ class CameraStateProxy(CameraStateProxyBase):
 
     def bind_connections(self, camera_state: CameraState) -> None:
         self.bind_state_to_proxy("mqtt_host", camera_state)
-        self.bind_state_to_proxy("mqtt_port", camera_state)
+        self.bind_state_to_proxy("mqtt_port", camera_state, str)
         self.bind_state_to_proxy("ntp_host", camera_state)
         self.bind_state_to_proxy("ip_address", camera_state)
         self.bind_state_to_proxy("subnet_mask", camera_state)

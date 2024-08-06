@@ -25,7 +25,6 @@ from local_console.gui.utils.validators import validate_port
 from local_console.gui.view.connection_screen.connection_screen import (
     ConnectionScreenView,
 )
-from local_console.utils.local_network import get_my_ip_by_routing
 from local_console.utils.local_network import replace_local_address
 
 
@@ -43,8 +42,21 @@ class ConnectionScreenController(BaseController):
         self.view = ConnectionScreenView(controller=self, model=self.model)
 
     def refresh(self) -> None:
+        assert self.driver.device_manager
         # Delete previous QR code
         self.view.ids.img_qr_display.texture = None
+
+        # Trigger for connection status
+        proxy = self.driver.device_manager.get_active_device_proxy()
+        state = self.driver.device_manager.get_active_device_state()
+        assert state.is_connected.value is not None
+        self.view.on_device_connection_update(proxy, state.is_connected.value)
+
+    def unbind(self) -> None:
+        self.driver.gui.mdl.unbind(is_connected=self.view.on_device_connection_update)
+
+    def bind(self) -> None:
+        self.driver.gui.mdl.bind(is_connected=self.view.on_device_connection_update)
 
     def get_view(self) -> ConnectionScreenView:
         return self.view

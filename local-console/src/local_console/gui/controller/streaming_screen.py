@@ -35,10 +35,35 @@ class StreamingScreenController(BaseController):
         self.driver = driver
         self.view = StreamingScreenView(controller=self, model=self.model)
 
-        self.driver.gui.mdl.bind(roi=self.post_roi_actions)
-
     def get_view(self) -> StreamingScreenView:
         return self.view
+
+    def refresh(self) -> None:
+        assert self.driver.device_manager
+        # Trigger for connection status
+        proxy = self.driver.device_manager.get_active_device_proxy()
+        state = self.driver.device_manager.get_active_device_state()
+
+        if state.is_streaming.value is not None:
+            self.view.on_is_streaming(proxy, state.is_streaming.value)
+        if state.stream_status.value is not None:
+            self.view.on_stream_status(proxy, state.stream_status.value)
+        if state.roi.value is not None:
+            self.post_roi_actions(proxy, state.roi.value)
+        if state.is_connected.value is not None:
+            self.view.on_connected(proxy, state.is_connected.value)
+
+    def unbind(self) -> None:
+        self.driver.gui.mdl.unbind(is_connected=self.view.on_connected)
+        self.driver.gui.mdl.unbind(roi=self.post_roi_actions)
+        self.driver.gui.mdl.unbind(stream_status=self.view.on_stream_status)
+        self.driver.gui.mdl.unbind(is_streaming=self.view.on_is_streaming)
+
+    def bind(self) -> None:
+        self.driver.gui.mdl.bind(is_connected=self.view.on_connected)
+        self.driver.gui.mdl.bind(roi=self.post_roi_actions)
+        self.driver.gui.mdl.bind(stream_status=self.view.on_stream_status)
+        self.driver.gui.mdl.bind(is_streaming=self.view.on_is_streaming)
 
     def toggle_stream_status(self) -> None:
         assert self.driver.camera_state

@@ -30,6 +30,7 @@ from local_console.core.camera.state import CameraState
 from local_console.core.commands.ota_deploy import configuration_spec
 from local_console.core.config import get_config
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
+from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.servers.webserver import AsyncWebserver
 from local_console.utils.local_network import get_my_ip_by_routing
 
@@ -143,7 +144,8 @@ async def update_firmware_task(
         return
 
     config = get_config()
-    ephemeral_agent = Agent(config)
+    schema = OnWireProtocol.from_iot_spec(config.evp.iot_platform)
+    ephemeral_agent = Agent(config.mqtt.host.ip_value, config.mqtt.port, schema)
     webserver_port = config.webserver.port
     ip_addr = get_my_ip_by_routing()
 

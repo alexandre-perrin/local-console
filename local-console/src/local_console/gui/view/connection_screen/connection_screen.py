@@ -14,7 +14,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 import logging
-from typing import Any
 from typing import Optional
 
 from local_console.gui.model.camera_proxy import CameraStateProxy
@@ -37,11 +36,8 @@ class LocalIPInput(GUITooltip, FocusText):
 
 
 class ConnectionScreenView(BaseScreenView):
-    INPUTBOX_HEIGHT = "32dp"
 
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        self.app.mdl.bind(is_connected=self.on_device_connection_update)
+    INPUTBOX_HEIGHT = "32dp"
 
     def on_enter(self) -> None:
         ip = get_my_ip_by_routing()

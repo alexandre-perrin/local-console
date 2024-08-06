@@ -28,6 +28,9 @@ from local_console.core.camera.enums import DeploymentType
 from local_console.core.camera.enums import DeployStage
 from local_console.core.camera.enums import MQTTTopics
 from local_console.core.camera.enums import StreamStatus
+from local_console.core.camera.mixin_mqtt import DEPLOY_STATUS_TOPIC
+from local_console.core.camera.mixin_mqtt import EA_STATE_TOPIC
+from local_console.core.camera.mixin_mqtt import SYSINFO_TOPIC
 from local_console.core.camera.qr import get_qr_object
 from local_console.core.camera.qr import qr_string
 from local_console.core.camera.state import CameraState
@@ -293,9 +296,9 @@ async def test_process_incoming_telemetry(nursery) -> None:
 @pytest.mark.parametrize(
     "topic, function",
     [
-        (CameraState.EA_STATE_TOPIC, "_process_state_topic"),
-        (CameraState.SYSINFO_TOPIC, "_process_sysinfo_topic"),
-        (CameraState.DEPLOY_STATUS_TOPIC, "_process_deploy_status_topic"),
+        (EA_STATE_TOPIC, "_process_state_topic"),
+        (SYSINFO_TOPIC, "_process_sysinfo_topic"),
+        (DEPLOY_STATUS_TOPIC, "_process_deploy_status_topic"),
     ],
 )
 async def test_process_incoming(topic, function, nursery) -> None:

@@ -33,16 +33,18 @@
 
                 MDButton:
                     id: btn_stream_control
-                    on_release: root.controller.toggle_stream_status()
+                    on_release: if not self.disabled: root.controller.toggle_stream_status()
                     style: "elevated"
+                    disabled: not root.can_stream
                     pos_hint: {"center_y": 0.5}
                     MDButtonText:
-                        text: ("Stop" if app.mdl.is_streaming else "Start") + " Streaming"
+                        id: btn_stream_text
+                        text: "Start Streaming"
 
                 MDButton:
                     id: btn_roi_control
                     on_release: if not self.disabled: root.control_roi()
-                    disabled: stream_image.state == ROIState.Disabled
+                    disabled: stream_image.state == ROIState.Disabled or not root.can_stream
                     style: "elevated"
                     pos_hint: {"center_y": 0.5}
                     MDButtonText:
@@ -51,7 +53,7 @@
                 MDButton:
                     id: btn_roi_reset
                     on_release: if not self.disabled: root.reset_roi()
-                    disabled: stream_image.state == ROIState.Disabled
+                    disabled: stream_image.state == ROIState.Disabled or not root.can_stream
                     style: "elevated"
                     pos_hint: {"center_y": 0.5}
                     MDButtonText:
