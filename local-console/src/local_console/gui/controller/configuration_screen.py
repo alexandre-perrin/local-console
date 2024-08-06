@@ -63,13 +63,15 @@ class ConfigurationScreenController(BaseController):
             logger.info(f"Initialize total max size: {size}")
             self.update_total_max_size(size)
 
-    def bind(self) -> None:
-        self.view.ids.lbl_file_selector.ids.lbl_number.bind(text=self.on_size)
-        self.view.ids.lbl_file_selector.ids.lbl_unit.bind(text=self.on_unit)
-        self.driver.gui.mdl.bind(vapp_type=self.on_vapp_type)
-
     def unbind(self) -> None:
         self.driver.gui.mdl.unbind(vapp_type=self.on_vapp_type)
+        self.view.ids.lbl_file_selector.ids.lbl_number.unbind(text=self.on_size)
+        self.view.ids.lbl_file_selector.ids.lbl_unit.unbind(text=self.on_unit)
+
+    def bind(self) -> None:
+        self.driver.gui.mdl.bind(vapp_type=self.on_vapp_type)
+        self.view.ids.lbl_file_selector.ids.lbl_number.bind(text=self.on_size)
+        self.view.ids.lbl_file_selector.ids.lbl_unit.bind(text=self.on_unit)
 
     def refresh(self) -> None:
         assert self.driver.device_manager
@@ -90,24 +92,23 @@ class ConfigurationScreenController(BaseController):
     def on_vapp_type(
         self, instance: CameraStateProxy, app_type: ApplicationType
     ) -> None:
-
         is_custom = app_type == ApplicationType.CUSTOM.value
         self.view.ids.labels_pick.disabled = is_custom
         self.view.ids.schema_pick.disabled = not is_custom
         assert self.driver.camera_state
 
         if app_type == ApplicationType.CUSTOM.value:
-            self.driver.camera_state.vapp_schema_file.value = ""
+            self.driver.gui.mdl.vapp_schema_file = ""
             self.view.ids.schema_pick.select_path("")
 
         elif app_type == ApplicationType.CLASSIFICATION.value:
             path = ApplicationSchemaFilePath.CLASSIFICATION
-            self.driver.camera_state.vapp_schema_file.value = path
+            self.driver.gui.mdl.vapp_schema_file = str(path)
             self.view.ids.schema_pick.select_path(str(path))
 
         elif app_type == ApplicationType.DETECTION.value:
             path = ApplicationSchemaFilePath.DETECTION
-            self.driver.camera_state.vapp_schema_file.value = path
+            self.driver.gui.mdl.vapp_schema_file = str(path)
             self.view.ids.schema_pick.select_path(str(path))
 
     def get_view(self) -> ConfigurationScreenView:

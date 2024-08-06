@@ -136,12 +136,10 @@ class CameraStateProxy(CameraStateProxyBase):
         self.bind_state_to_proxy("inference_dir_path", camera_state, str)
 
     def bind_vapp_file_functions(self, camera_state: CameraState) -> None:
+        self.bind_proxy_to_state("vapp_schema_file", camera_state)
         self.bind_proxy_to_state("vapp_config_file", camera_state)
         self.bind_proxy_to_state("vapp_labels_file", camera_state)
         self.bind_proxy_to_state("vapp_type", camera_state)
-
-        # `vapp_schema_file` is not bound because it is important that the chosen
-        # file undergoes thorough validation before being committed.
 
         # The labels map is computed from the labels file,
         # so data binding must be state-->proxy.
