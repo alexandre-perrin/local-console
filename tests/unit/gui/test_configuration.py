@@ -72,7 +72,7 @@ async def test_apply_flatbuffers_schema(driver_set, tmp_path):
         ):
             ctrl = ConfigurationScreenController(Mock, driver)
 
-            mock_gui.mdl.vapp_schema_file = None
+            mock_gui.mdl.vapp_schema_file = ""
             ctrl.apply_flatbuffers_schema()
             ctrl.view.display_error.assert_called_with("Please select a schema file.")
 
@@ -87,13 +87,9 @@ async def test_apply_flatbuffers_schema(driver_set, tmp_path):
             )
             file = tmp_path / "file.bin"
             file.write_bytes(b"0")
-            mock_gui.mdl.vapp_schema_file = file
+            mock_gui.mdl.vapp_schema_file = str(file)
             ctrl.apply_flatbuffers_schema()
             ctrl.view.display_error.assert_called_with("Not a valid flatbuffers schema")
-            assert (
-                mock_gui.mdl.vapp_schema_file
-                != driver.camera_state.vapp_schema_file.value
-            )
 
             mock_conform_flatbuffers.return_value = True
             mock_conform_flatbuffers.side_effect = None
@@ -115,10 +111,14 @@ async def test_apply_application_configuration(driver_set, tmp_path):
             send_channel, nursery, trio.lowlevel.current_trio_token()
         )
         model = driver.camera_state
+        model.vapp_type.value = ApplicationType.CUSTOM.value
         mock_gui.mdl.bind_vapp_file_functions(model)
         with (
             patch(
                 "local_console.gui.controller.configuration_screen.ConfigurationScreenView"
+            ),
+            patch(
+                "local_console.gui.controller.configuration_screen.map_class_id_to_name"
             ),
         ):
             ctrl = ConfigurationScreenController(Mock, driver)
@@ -195,6 +195,7 @@ async def test_update_application_type(driver_set):
             send_channel, nursery, trio.lowlevel.current_trio_token()
         )
         model = driver.camera_state
+        model.vapp_type.value = ApplicationType.CUSTOM.value
         mock_gui.mdl.bind_vapp_file_functions(model)
         with (
             patch(
@@ -206,19 +207,21 @@ async def test_update_application_type(driver_set):
             mock_gui.mdl.vapp_type = ApplicationType.CUSTOM.value
             assert model.vapp_type.value == ApplicationType.CUSTOM
             assert ctrl.view.ids.labels_pick.disabled
-            assert not ctrl.view.ids.schema_pick.disabled
+            assert ctrl.view.ids.schema_pick.disabled
 
             mock_gui.mdl.vapp_type = ApplicationType.CLASSIFICATION
             assert model.vapp_type.value == ApplicationType.CLASSIFICATION
-            assert (
-                model.vapp_schema_file.value == ApplicationSchemaFilePath.CLASSIFICATION
+            assert model.vapp_schema_file.value == str(
+                ApplicationSchemaFilePath.CLASSIFICATION
             )
             assert not ctrl.view.ids.labels_pick.disabled
             assert ctrl.view.ids.schema_pick.disabled
 
             mock_gui.mdl.vapp_type = ApplicationType.DETECTION
             assert model.vapp_type.value == ApplicationType.DETECTION
-            assert model.vapp_schema_file.value == ApplicationSchemaFilePath.DETECTION
+            assert model.vapp_schema_file.value == str(
+                ApplicationSchemaFilePath.DETECTION
+            )
             assert not ctrl.view.ids.labels_pick.disabled
             assert ctrl.view.ids.schema_pick.disabled
 
@@ -278,3 +281,21 @@ def test_get_view():
     ):
         ctrl = ConfigurationScreenController(MagicMock(), MagicMock())
         assert ctrl.view == ctrl.get_view()
+
+
+def test_refresh():
+    with (
+        patch(
+            "local_console.gui.controller.configuration_screen.ConfigurationScreenController.on_vapp_type"
+        ) as mock_vapp_type,
+        patch(
+            "local_console.gui.controller.configuration_screen.ConfigurationScreenView"
+        ),
+    ):
+        driver = MagicMock()
+        ctrl = ConfigurationScreenController(MagicMock(), driver)
+        ctrl.refresh()
+        mock_vapp_type.assert_called_once_with(
+            driver.device_manager.get_active_device_proxy(),
+            driver.device_manager.get_active_device_state().vapp_type.value,
+        )

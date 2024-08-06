@@ -15,13 +15,14 @@
 # SPDX-License-Identifier: Apache-2.0
 from local_console.core.camera.axis_mapping import UnitROI
 from local_console.core.camera.enums import StreamStatus
+from local_console.gui.controller.base_controller import BaseController
 from local_console.gui.driver import Driver
 from local_console.gui.model.camera_proxy import CameraStateProxy
 from local_console.gui.model.streaming_screen import StreamingScreenModel
 from local_console.gui.view.streaming_screen.streaming_screen import StreamingScreenView
 
 
-class StreamingScreenController:
+class StreamingScreenController(BaseController):
     """
     The `StreamingScreenController` class represents a controller implementation.
     Coordinates work of the view with the model.

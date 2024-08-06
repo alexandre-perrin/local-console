@@ -16,6 +16,7 @@
 import logging
 
 from local_console.core.camera.firmware import update_firmware_task
+from local_console.gui.controller.base_controller import BaseController
 from local_console.gui.driver import Driver
 from local_console.gui.model.firmware_screen import FirmwareScreenModel
 from local_console.gui.view.firmware_screen.firmware_screen import FirmwareScreenView
@@ -23,7 +24,7 @@ from local_console.gui.view.firmware_screen.firmware_screen import FirmwareScree
 logger = logging.getLogger(__name__)
 
 
-class FirmwareScreenController:
+class FirmwareScreenController(BaseController):
     """
     The `FirmwareScreenController` class represents a controller implementation.
     Coordinates work of the view with the model.

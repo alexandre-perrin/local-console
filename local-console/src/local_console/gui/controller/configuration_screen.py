@@ -14,11 +14,13 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 import json
+import logging
 from pathlib import Path
 
 from local_console.core.camera.flatbuffers import conform_flatbuffer_schema
 from local_console.core.camera.flatbuffers import FlatbufferError
 from local_console.core.camera.flatbuffers import map_class_id_to_name
+from local_console.gui.controller.base_controller import BaseController
 from local_console.gui.driver import Driver
 from local_console.gui.enums import ApplicationSchemaFilePath
 from local_console.gui.enums import ApplicationType
@@ -29,7 +31,10 @@ from local_console.gui.view.configuration_screen.configuration_screen import (
 )
 
 
-class ConfigurationScreenController:
+logger = logging.getLogger(__file__)
+
+
+class ConfigurationScreenController(BaseController):
     """
     The `ConfigurationScreenController` class represents a controller implementation.
     Coordinates work of the view with the model.
@@ -42,29 +47,68 @@ class ConfigurationScreenController:
         self.driver = driver
         self.view = ConfigurationScreenView(controller=self, model=self.model)
 
+        self.bind()
+        self._init_values()
+
+    def _init_values(self) -> None:
+        assert self.driver.camera_state
+        assert self.driver.camera_state.size.value
+        if isinstance(self.driver.camera_state.unit.value, str):
+            size = (
+                int(self.driver.camera_state.size.value)
+                * {"KB": 2**10, "MB": 2**20, "GB": 2**30}[
+                    self.driver.camera_state.unit.value
+                ]
+            )
+            logger.info(f"Initialize total max size: {size}")
+            self.update_total_max_size(size)
+
+    def unbind(self) -> None:
+        self.driver.gui.mdl.unbind(vapp_type=self.on_vapp_type)
+        self.view.ids.lbl_file_selector.ids.lbl_number.unbind(text=self.on_size)
+        self.view.ids.lbl_file_selector.ids.lbl_unit.unbind(text=self.on_unit)
+
+    def bind(self) -> None:
         self.driver.gui.mdl.bind(vapp_type=self.on_vapp_type)
+        self.view.ids.lbl_file_selector.ids.lbl_number.bind(text=self.on_size)
+        self.view.ids.lbl_file_selector.ids.lbl_unit.bind(text=self.on_unit)
+
+    def refresh(self) -> None:
+        assert self.driver.device_manager
+        proxy = self.driver.device_manager.get_active_device_proxy()
+        state = self.driver.device_manager.get_active_device_state()
+        assert state.vapp_type.value
+        self.on_vapp_type(
+            proxy,
+            state.vapp_type.value,
+        )
+
+    def on_size(self, instance: CameraStateProxy, value: str) -> None:
+        self.driver.gui.mdl.size = value
+
+    def on_unit(self, instance: CameraStateProxy, value: str) -> None:
+        self.driver.gui.mdl.unit = value
 
     def on_vapp_type(
         self, instance: CameraStateProxy, app_type: ApplicationType
     ) -> None:
-
         is_custom = app_type == ApplicationType.CUSTOM.value
         self.view.ids.labels_pick.disabled = is_custom
         self.view.ids.schema_pick.disabled = not is_custom
         assert self.driver.camera_state
 
         if app_type == ApplicationType.CUSTOM.value:
-            self.driver.camera_state.vapp_schema_file.value = None
+            self.driver.gui.mdl.vapp_schema_file = ""
             self.view.ids.schema_pick.select_path("")
 
         elif app_type == ApplicationType.CLASSIFICATION.value:
             path = ApplicationSchemaFilePath.CLASSIFICATION
-            self.driver.camera_state.vapp_schema_file.value = path
+            self.driver.gui.mdl.vapp_schema_file = str(path)
             self.view.ids.schema_pick.select_path(str(path))
 
         elif app_type == ApplicationType.DETECTION.value:
             path = ApplicationSchemaFilePath.DETECTION
-            self.driver.camera_state.vapp_schema_file.value = path
+            self.driver.gui.mdl.vapp_schema_file = str(path)
             self.view.ids.schema_pick.select_path(str(path))
 
     def get_view(self) -> ConfigurationScreenView:
@@ -108,10 +152,9 @@ class ConfigurationScreenController:
             self.view.display_error("App configuration unknown error")
 
     def apply_flatbuffers_schema(self) -> None:
-
         schema_file = self.driver.gui.mdl.vapp_schema_file
-        if schema_file is not None:
-            if schema_file.is_file():
+        if schema_file is not None and schema_file != "":
+            if Path(schema_file).is_file():
                 try:
                     assert self.driver.camera_state
 

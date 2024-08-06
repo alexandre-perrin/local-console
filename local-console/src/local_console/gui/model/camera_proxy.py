@@ -25,6 +25,7 @@ from local_console.core.camera.enums import OTAUpdateModule
 from local_console.core.camera.enums import StreamStatus
 from local_console.core.camera.state import CameraState
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
+from local_console.gui.enums import ApplicationType
 from local_console.gui.model.data_binding import CameraStateProxyBase
 
 
@@ -47,11 +48,11 @@ class CameraStateProxy(CameraStateProxyBase):
     # test_camera_proxy.py::test_difference_of_property_with_force_dispatch
     ai_model_file_valid = BooleanProperty(False, force_dispatch=True)
 
-    vapp_schema_file = ObjectProperty(Path(), allownone=True)
-    vapp_config_file = ObjectProperty(Path(), allownone=True)
-    vapp_labels_file = ObjectProperty(Path(), allownone=True)
+    vapp_schema_file = ObjectProperty("")
+    vapp_config_file = ObjectProperty("")
+    vapp_labels_file = ObjectProperty("")
     vapp_labels_map = ObjectProperty({}, allownone=True)
-    vapp_type = StringProperty("")
+    vapp_type = StringProperty(ApplicationType.CUSTOM.value)
 
     firmware_file = StringProperty("", allownone=True)
     firmware_file_valid = BooleanProperty(False, force_dispatch=True)
@@ -79,6 +80,9 @@ class CameraStateProxy(CameraStateProxyBase):
 
     stream_image = StringProperty("")
     inference_field = StringProperty("")
+
+    size = StringProperty("10")
+    unit = StringProperty("MB")
 
     def bind_connections(self, camera_state: CameraState) -> None:
         self.bind_state_to_proxy("local_ip", camera_state)
@@ -132,12 +136,10 @@ class CameraStateProxy(CameraStateProxyBase):
         self.bind_state_to_proxy("inference_dir_path", camera_state, str)
 
     def bind_vapp_file_functions(self, camera_state: CameraState) -> None:
+        self.bind_proxy_to_state("vapp_schema_file", camera_state)
         self.bind_proxy_to_state("vapp_config_file", camera_state)
         self.bind_proxy_to_state("vapp_labels_file", camera_state)
         self.bind_proxy_to_state("vapp_type", camera_state)
-
-        # `vapp_schema_file` is not bound because it is important that the chosen
-        # file undergoes thorough validation before being committed.
 
         # The labels map is computed from the labels file,
         # so data binding must be state-->proxy.

@@ -112,6 +112,7 @@
         adaptive_width: True
 
     NumberInputField:
+        id: lbl_number
         text: root._spec
         on_text: root.set_spec(*args)
         pos_hint: {"center_y": 0.5}
@@ -123,6 +124,7 @@
         on_release: root.open_menu(*args)
 
         MDDropDownItemText:
+            id: lbl_unit
             text: root._selected_unit
             font_style: "Body"
             role: "large"

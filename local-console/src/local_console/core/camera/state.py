@@ -127,10 +127,12 @@ class CameraState:
 
         self.ai_model_file: TrackingVariable[Path] = TrackingVariable()
         self.ai_model_file_valid: TrackingVariable[bool] = TrackingVariable(False)
-        self.vapp_schema_file: TrackingVariable[Path] = TrackingVariable()
-        self.vapp_config_file: TrackingVariable[Path] = TrackingVariable()
-        self.vapp_labels_file: TrackingVariable[Path] = TrackingVariable()
-        self.vapp_type: TrackingVariable[str] = TrackingVariable()
+        self.vapp_schema_file: TrackingVariable[str] = TrackingVariable("")
+        self.vapp_config_file: TrackingVariable[str] = TrackingVariable("")
+        self.vapp_labels_file: TrackingVariable[str] = TrackingVariable("")
+        self.vapp_type: TrackingVariable[str] = TrackingVariable(
+            ApplicationType.CUSTOM.value
+        )
         self.vapp_labels_map: TrackingVariable[dict[int, str]] = TrackingVariable()
 
         self.firmware_file: TrackingVariable[Path] = TrackingVariable()
@@ -159,6 +161,8 @@ class CameraState:
         self.deploy_operation: TrackingVariable[DeploymentType] = TrackingVariable()
         self._deploy_fsm: Optional[DeployFSM] = None
 
+        self.size: TrackingVariable[str] = TrackingVariable("10")
+        self.unit: TrackingVariable[str] = TrackingVariable("MB")
         self.total_dir_watcher = StorageSizeWatcher()
         self.dir_monitor = DirectoryMonitor()
 
