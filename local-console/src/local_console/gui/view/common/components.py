@@ -627,7 +627,7 @@ class AppTypeCombo(MDBoxLayout):
         ApplicationType.CLASSIFICATION.value,
         ApplicationType.DETECTION.value,
     ]
-    _selected_unit = StringProperty(ApplicationType.CUSTOM.value)
+    _selected_unit = StringProperty("")
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
