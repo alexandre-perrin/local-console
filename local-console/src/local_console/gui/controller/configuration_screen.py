@@ -57,15 +57,15 @@ class ConfigurationScreenController(BaseController):
     def _init_values(self) -> None:
         assert self.driver.camera_state
         assert self.driver.camera_state.size.value
-        assert self.driver.camera_state.unit.value
-        size = (
-            int(self.driver.camera_state.size.value)
-            * {"KB": 2**10, "MB": 2**20, "GB": 2**30}[
-                self.driver.camera_state.unit.value
-            ]
-        )
-        logger.info(f"Initialize total max size: {size}")
-        self.update_total_max_size(size)
+        if isinstance(self.driver.camera_state.unit.value, str):
+            size = (
+                int(self.driver.camera_state.size.value)
+                * {"KB": 2**10, "MB": 2**20, "GB": 2**30}[
+                    self.driver.camera_state.unit.value
+                ]
+            )
+            logger.info(f"Initialize total max size: {size}")
+            self.update_total_max_size(size)
 
     def refresh(self) -> None:
         assert self.driver.device_manager
