@@ -209,11 +209,7 @@
 
 <DeviceDropDownList>:
     MDDropDownItem:
-        pos_hint: {"center_y": .4}
         on_release: root.open_menu(app.driver.device_manager.get_device_config(), *args)
-        halign: "left"
-        valign: "top"
-
         MDDropDownItemText:
             text: root._selected_device
             font_style: "Body"

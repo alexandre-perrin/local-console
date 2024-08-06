@@ -737,8 +737,7 @@ class DeviceDropDownList(MDBoxLayout):
             for device in devices_items
         ]
 
-        self.menu = MDDropdownMenu(items=menu_items)
-
+        self.menu = MDDropdownMenu(items=menu_items, position="bottom")
         self.menu.caller = widget
         self.menu.open()
 

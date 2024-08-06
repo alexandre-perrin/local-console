@@ -110,6 +110,7 @@
                 cols: 2
                 adaptive_height: True
                 spacing: "10dp"
+                pos_hint: {"right":0.7}
 
                 EntryLabel:
                     text: "Device:"
@@ -118,7 +119,6 @@
                 DeviceDropDownList:
                     size_hint_x: .5
                     size_hint_y: .05
-                    halign:"right"
                     on_selected: app.driver.device_manager.set_active_device(args[1]); app.switch_proxy();
                     padding: "20dp", "35dp"
                     _selected_device: app.selected
