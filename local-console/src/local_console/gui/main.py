@@ -117,9 +117,14 @@ class LocalConsoleGUIAPP(MDApp):
         self.selected = self.driver.device_manager.active_device.name
         self.driver.camera_state = self.driver.device_manager.get_active_device_state()
         self.driver.mqtt_client = self.driver.device_manager.get_active_mqtt_client()
+
+        for view in self.driver.gui.views.values():
+            view.controller.unbind()
+
         self.mdl = self.driver.device_manager.get_active_device_proxy()
 
         for view in self.driver.gui.views.values():
+            view.controller.bind()
             view.controller.refresh()
 
 

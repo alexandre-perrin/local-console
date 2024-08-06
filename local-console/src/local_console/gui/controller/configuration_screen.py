@@ -47,11 +47,7 @@ class ConfigurationScreenController(BaseController):
         self.driver = driver
         self.view = ConfigurationScreenView(controller=self, model=self.model)
 
-        self.view.ids.lbl_file_selector.ids.lbl_number.bind(text=self.on_size)
-        self.view.ids.lbl_file_selector.ids.lbl_unit.bind(text=self.on_unit)
-
-        self.driver.gui.mdl.bind(vapp_type=self.on_vapp_type)
-
+        self.bind()
         self._init_values()
 
     def _init_values(self) -> None:
@@ -66,6 +62,14 @@ class ConfigurationScreenController(BaseController):
             )
             logger.info(f"Initialize total max size: {size}")
             self.update_total_max_size(size)
+
+    def bind(self) -> None:
+        self.view.ids.lbl_file_selector.ids.lbl_number.bind(text=self.on_size)
+        self.view.ids.lbl_file_selector.ids.lbl_unit.bind(text=self.on_unit)
+        self.driver.gui.mdl.bind(vapp_type=self.on_vapp_type)
+
+    def unbind(self) -> None:
+        self.driver.gui.mdl.unbind(vapp_type=self.on_vapp_type)
 
     def refresh(self) -> None:
         assert self.driver.device_manager
