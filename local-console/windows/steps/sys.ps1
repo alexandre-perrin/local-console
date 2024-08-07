@@ -7,6 +7,10 @@ $rootPath = Split-Path -parent $MyInvocation.MyCommand.Path | Split-Path -parent
 $utils = Join-Path $rootPath "utils.ps1"
 . $utils
 
+$vcredistDir = Split-Path -parent $MyInvocation.MyCommand.Path | Join-Path -ChildPath "vcredist"
+. (Join-Path $vcredistDir "Get-InstalledSoftware.ps1")
+. (Join-Path $vcredistDir "Get-InstalledVcRedist.ps1")
+
 # Current limitations:
 # - This script assumes a 64-bit windows installation
 
@@ -14,6 +18,7 @@ $utils = Join-Path $rootPath "utils.ps1"
 $DepURLMosquitto = 'https://mosquitto.org/files/binary/win64/mosquitto-2.0.9-install-windows-x64.exe'
 $DepURLPython = 'https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe'
 $DepURLGit = 'https://github.com/git-for-windows/git/releases/download/v2.44.0.windows.1/Git-2.44.0-64-bit.exe'
+$DepURLVcredist = 'https://aka.ms/vs/17/release/vc_redist.x64.exe'
 
 function Main
 {
@@ -27,6 +32,7 @@ function Main
     }
     Display-Privilege
 
+    Get-CompatibleVCRedist
     Get-Mosquitto
     Initialize-Mosquitto
     Set-MosquittoPath
@@ -193,6 +199,64 @@ function Get-Git
     Remove-Item -Path $downloadPath -Force
 
     Write-LogMessage "Git installation complete."
+}
+
+function Get-CompatibleVCRedist
+{
+    # Check if the Visual C++ Redistributable for Visual Studio 2012+ is installed
+    if (Find-RequiredVCredist) {
+        Write-LogMessage "Visual C++ Redistributable for Visual Studio 2012+ is already installed"
+        return
+    }
+
+    # Download the installer
+    Write-LogMessage "Downloading Visual C++ Redistributable for Visual Studio 2022..."
+
+    # Temporary target
+    $downloadPath = Join-Path $env:TEMP "vcredist.exe"
+    Invoke-WebRequest -Uri $DepURLVcredist -OutFile $downloadPath
+
+    Write-LogMessage "Installing Visual C++ Redistributable for Visual Studio 2022"
+    try {
+        # Create parameters with -ArgumentList set based on Install/SilentInstall properties in the manifest
+        $params = @{
+            FilePath     = $downloadPath
+            ArgumentList = "/install /passive /norestart"
+            PassThru     = $true
+            Wait         = $true
+            NoNewWindow  = $true
+            Verbose      = $VerbosePreference
+            ErrorAction  = "Continue"
+        }
+        Start-Process @params
+    }
+    catch {
+        throw $_
+    }
+
+    # Check for actual success. Reference:
+    # https://github.com/aaronparker/vcredist/blob/42581ac57/VcRedist/VisualCRedistributables.json#L83C28-L83C68
+    $ProductCode = '{5af95fd8-a22e-458f-acee-c61bd787178e}'
+    $Installed = Get-InstalledVcRedist | Where-Object { $_.ProductCode -eq $ProductCode }
+    if ($Installed) {
+        Write-LogMessage "Finished installing Visual C++ Redistributable for Visual Studio 2022"
+    }
+}
+
+function Find-RequiredVCredist
+{
+    $found = $false
+
+    $installed = Get-InstalledVcRedist
+    foreach ($entry in $installed) {
+        if ( `
+            ([System.Version]($entry.Version) -gt [System.Version]"12.0") `
+            -and ($entry.Architecture -eq "x64") `
+           ) {
+            $found = $true
+        } }
+
+    $found
 }
 
 Main
