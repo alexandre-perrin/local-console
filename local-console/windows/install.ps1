@@ -41,7 +41,7 @@ function Main
         return 1
     }
 
-    Write-LogMessage "Done installing system dependencies"
+    Write-LogMessage "Done ensuring system dependencies"
 
     if ([string]::IsNullOrWhiteSpace($AppInstallPath)) {
         $AppInstallPath = $DefaultInstallPath

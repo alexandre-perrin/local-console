@@ -93,14 +93,14 @@ function Add-EnvPath {
 
         $persistedPaths = [Environment]::GetEnvironmentVariable('Path', $containerType) -split ';'
         if ($persistedPaths -notcontains $Path) {
-            $persistedPaths = $persistedPaths + $Path | where { $_ }
+            $persistedPaths = $persistedPaths + $Path | Where-Object { $_ }
             [Environment]::SetEnvironmentVariable('Path', $persistedPaths -join ';', $containerType)
         }
     }
 
     $envPaths = $env:Path -split ';'
     if ($envPaths -notcontains $Path) {
-        $envPaths = $envPaths + $Path | where { $_ }
+        $envPaths = $envPaths + $Path | Where-Object { $_ }
         $env:Path = $envPaths -join ';'
     }
 }
@@ -111,7 +111,7 @@ function Initialize-Mosquitto
     $service = Get-Service -DisplayName "*mosquitto*" -ErrorAction SilentlyContinue
 
     # Check if the service was found
-    if ($service -ne $null) {
+    if ($null -ne $service) {
         Write-LogMessage "Found Windows Service for Mosquitto. Preparing to remove..."
         Write-LogMessage "DisplayName: $($service.DisplayName)"
         Write-LogMessage "Status: $($service.Status)"
@@ -171,7 +171,6 @@ function Get-Python311
 
 function Get-Git
 {
-
     $GitExecPath = "$(Get-ProgramFilesPath)\Git\bin\git.exe"
     if (Test-ExecutablePath -Path $GitExecPath)
     {
