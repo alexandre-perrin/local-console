@@ -34,3 +34,16 @@ class HomeScreenController(BaseController):
 
     def get_view(self) -> HomeScreenView:
         return self.view
+
+    def refresh(self) -> None:
+        assert self.driver.device_manager
+        # Trigger for device configuration report
+        proxy = self.driver.device_manager.get_active_device_proxy()
+        state = self.driver.device_manager.get_active_device_state()
+        self.view.versions_refresh(proxy, state.device_config.value)
+
+    def unbind(self) -> None:
+        self.driver.gui.mdl.unbind(device_config=self.view.versions_refresh)
+
+    def bind(self) -> None:
+        self.driver.gui.mdl.bind(device_config=self.view.versions_refresh)
