@@ -28,7 +28,7 @@ from local_console.core.camera.enums import OTAUpdateModule
 from local_console.core.camera.enums import OTAUpdateStatus
 from local_console.core.camera.state import CameraState
 from local_console.core.commands.ota_deploy import configuration_spec
-from local_console.core.config import get_config
+from local_console.core.config import config_obj
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.servers.webserver import AsyncWebserver
@@ -143,10 +143,11 @@ async def update_firmware_task(
     if not valid:
         return
 
-    config = get_config()
+    config = config_obj.get_config()
+    config_device = config_obj.get_active_device_config()
     schema = OnWireProtocol.from_iot_spec(config.evp.iot_platform)
-    ephemeral_agent = Agent(config.mqtt.host.ip_value, config.mqtt.port, schema)
-    webserver_port = config.webserver.port
+    ephemeral_agent = Agent(config_device.mqtt.host, config_device.mqtt.port, schema)
+    webserver_port = config_device.webserver.port
     ip_addr = get_my_ip_by_routing()
 
     with TemporaryDirectory(prefix="lc_update_") as temporary_dir:

@@ -21,7 +21,7 @@ from typing import Optional
 
 import typer
 from local_console.core.camera.qr import get_qr_object
-from local_console.core.config import get_config
+from local_console.core.config import config_obj
 from local_console.plugin import PluginBase
 from local_console.utils.local_network import get_my_ip_by_routing
 from local_console.utils.local_network import is_localhost
@@ -60,9 +60,9 @@ def qr(
     ] = None,
 ) -> None:
     # Take default values from the configured settings
-    config = get_config()
-    host = config.mqtt.host.ip_value if not host else host
-    port = config.mqtt.port if port is None else port
+    device_config = config_obj.get_active_device_config()
+    host = device_config.mqtt.host if not host else host
+    port = device_config.mqtt.port if port is None else port
     tls_enabled = enable_tls
 
     local_ip = get_my_ip_by_routing()

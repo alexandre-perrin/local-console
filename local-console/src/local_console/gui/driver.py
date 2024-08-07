@@ -22,8 +22,7 @@ from kivymd.app import MDApp
 from local_console.core.camera.axis_mapping import UnitROI
 from local_console.core.camera.state import CameraState
 from local_console.core.camera.state import MessageType
-from local_console.core.config import get_config
-from local_console.core.config import get_device_configs
+from local_console.core.config import config_obj
 from local_console.gui.device_manager import DeviceManager
 from local_console.gui.utils.sync_async import AsyncFunc
 from local_console.gui.utils.sync_async import run_on_ui_thread
@@ -39,7 +38,6 @@ class Driver:
 
     def __init__(self, gui: type[MDApp]) -> None:
         self.gui = gui
-        self.config = get_config()
         self.send_channel: trio.MemorySendChannel[MessageType] | None = None
         self.receive_channel: trio.MemoryReceiveChannel[MessageType] | None = None
 
