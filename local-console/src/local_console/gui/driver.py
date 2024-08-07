@@ -60,7 +60,7 @@ class Driver:
                     self.device_manager = DeviceManager(
                         self.send_channel, nursery, trio.lowlevel.current_trio_token()
                     )
-                    self.device_manager.init_devices(get_device_configs())
+                    self.device_manager.init_devices(config_obj.get_device_configs())
 
                     await self.gui.async_run(async_lib="trio")
 
