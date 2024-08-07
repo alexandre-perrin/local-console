@@ -17,7 +17,7 @@
                 size_hint_x: .7
                 fab_state: "expand"
                 valign: "center"
-                on_press: root.manager.current = 'connection screen'
+                on_press: app.switch_proxy(); root.manager.current = 'connection screen';
                 MDExtendedFabButtonIcon:
                     icon: "access-point-network"
                 MDExtendedFabButtonText:
@@ -27,7 +27,7 @@
                 size_hint_x: .7
                 fab_state: "expand"
                 valign: "center"
-                on_press: root.manager.current = 'configuration screen'
+                on_press: app.switch_proxy(); root.manager.current = 'configuration screen';
                 MDExtendedFabButtonIcon:
                     icon: "folder-cog-outline"
                 MDExtendedFabButtonText:
@@ -37,7 +37,7 @@
                 size_hint_x: .7
                 fab_state: "expand"
                 valign: "center"
-                on_press: root.manager.current = 'streaming screen'
+                on_press: app.switch_proxy(); root.manager.current = 'streaming screen';
                 MDExtendedFabButtonIcon:
                     icon: "animation-play"
                 MDExtendedFabButtonText:
@@ -47,7 +47,7 @@
                 size_hint_x: .7
                 fab_state: "expand"
                 valign: "center"
-                on_press: root.manager.current = 'inference screen'
+                on_press: app.switch_proxy(); root.manager.current = 'inference screen';
                 MDExtendedFabButtonIcon:
                     icon: "lightbulb-on-outline"
                 MDExtendedFabButtonText:
@@ -57,7 +57,7 @@
                 size_hint_x: .7
                 fab_state: "expand"
                 valign: "center"
-                on_press: root.manager.current = 'applications screen'
+                on_press: app.switch_proxy(); root.manager.current = 'applications screen';
                 MDExtendedFabButtonIcon:
                     icon: "application-cog"
                 MDExtendedFabButtonText:
@@ -67,7 +67,7 @@
                 size_hint_x: .7
                 fab_state: "expand"
                 valign: "center"
-                on_press: root.manager.current = 'ai model screen'
+                on_press: app.switch_proxy(); root.manager.current = 'ai model screen';
                 MDExtendedFabButtonIcon:
                     icon: "dice-multiple"
                 MDExtendedFabButtonText:
@@ -77,7 +77,7 @@
                 size_hint_x: .7
                 fab_state: "expand"
                 valign: "center"
-                on_press: root.manager.current = 'firmware screen'
+                on_press: app.switch_proxy(); root.manager.current = 'firmware screen';
                 MDExtendedFabButtonIcon:
                     icon: "cog-clockwise"
                 MDExtendedFabButtonText:
@@ -87,7 +87,7 @@
                 size_hint_x: .7
                 fab_state: "expand"
                 valign: "center"
-                on_press: root.manager.current = 'devices screen'
+                on_press: app.switch_proxy(); root.manager.current = 'devices screen';
                 MDExtendedFabButtonIcon:
                     icon: "camera"
                 MDExtendedFabButtonText:
