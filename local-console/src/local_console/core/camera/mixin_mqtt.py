@@ -131,15 +131,12 @@ class MQTTMixin(HoldsDeployStatus, CanStopStreaming):
         """
 
         def compute_is_ready(current: Optional[bool], previous: Optional[bool]) -> None:
+            # Attributes report interval cannot be controlled in EVP1
             assert self._onwire_schema
             _is_ready = (
                 False
                 if current is None
-                else (
-                    # Attributes report interval cannot be controlled in EVP1
-                    current
-                    and (self._onwire_schema == OnWireProtocol.EVP2)
-                )
+                else (current and (self._onwire_schema is not None))
             )
             self.is_ready.value = _is_ready
 
