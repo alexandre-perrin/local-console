@@ -25,8 +25,8 @@ def test_file_grouping():
     Test how image and inference file data is assembled into groups,
     as the files come from the camera over the web server.
     """
-    expected_parents = {"inferences", "images"}
-    fg = FileGrouping(expected_parents)
+    expected_extensions = {"jpg", "txt"}
+    fg = FileGrouping(expected_extensions)
 
     # Start assembling a group
     fg.register(Path("inferences/0.txt"), 1)
@@ -37,7 +37,7 @@ def test_file_grouping():
 
     fg.register(Path("images/0.jpg"), 1)
     # Group is complete, retrieve it
-    assert next(fg) == {"images": 1, "inferences": 1}
+    assert next(fg) == {"jpg": 1, "txt": 1}
 
     # There are no new groups
     with pytest.raises(StopIteration):
@@ -47,16 +47,16 @@ def test_file_grouping():
     # It should behave as a FIFO.
     n_elems = 5
     for index in range(n_elems):
-        for p_dir in expected_parents:
-            fg.register(Path(f"{p_dir}/{index}.ext"), index)
+        for ext in expected_extensions:
+            fg.register(Path(f"{index}.{ext}"), index)
 
-    gather = [g["images"] for g in fg]
+    gather = [g["txt"] for g in fg]
     assert gather == list(range(n_elems))
 
 
 def test_file_grouping_unknown_parent():
-    expected_parents = {"inferences", "images"}
-    fg = FileGrouping(expected_parents)
+    expected_extensions = {"jpg", "txt"}
+    fg = FileGrouping(expected_extensions)
 
     with pytest.raises(FileGroupingError):
         fg.register(Path("videos/somename.mkv"), None)

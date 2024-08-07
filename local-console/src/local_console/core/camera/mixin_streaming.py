@@ -79,11 +79,9 @@ class StreamingMixin(HasMQTTset, IsAsyncReady):
 
         # Ancillary variables
         self.upload_port: int | None = None
-        self._in_parentdir_image = "images"
-        self._in_parentdir_infer = "inferences"
-        self._grouper = FileGrouping(
-            {self._in_parentdir_image, self._in_parentdir_infer}
-        )
+        self._extension_images = "jpg"
+        self._extension_infers = "txt"
+        self._grouper = FileGrouping({self._extension_images, self._extension_infers})
         self.total_dir_watcher = StorageSizeWatcher()
         self.dir_monitor = DirectoryMonitor()
 
@@ -180,14 +178,14 @@ class StreamingMixin(HasMQTTset, IsAsyncReady):
 
     @run_on_ui_thread
     def _process_camera_upload(self, incoming_file: Path) -> None:
-        if incoming_file.parent.name == self._in_parentdir_infer:
-            target_dir = self.inference_dir_path.value
+        if incoming_file.suffix.lstrip(".") == self._extension_infers:
+            target_dir = Path(self.inference_dir_path.value)
             assert target_dir
             final_file = self._save_into_input_directory(incoming_file, target_dir)
             self._grouper.register(final_file, final_file)
 
-        elif incoming_file.parent.name == self._in_parentdir_image:
-            target_dir = self.image_dir_path.value
+        elif incoming_file.suffix.lstrip(".") == self._extension_images:
+            target_dir = Path(self.image_dir_path.value)
             assert target_dir
             final_file = self._save_into_input_directory(incoming_file, target_dir)
             self._grouper.register(final_file, final_file)
@@ -196,8 +194,8 @@ class StreamingMixin(HasMQTTset, IsAsyncReady):
 
         # Process matched image-inference file pairs
         for pair in self._grouper:
-            inference_file = pair[self._in_parentdir_infer]
-            image_file = pair[self._in_parentdir_image]
+            inference_file = pair[self._extension_infers]
+            image_file = pair[self._extension_images]
 
             payload_render = inference_file.read_text()
             output_data = get_output_from_inference_results(inference_file.read_bytes())

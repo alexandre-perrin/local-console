@@ -33,15 +33,14 @@ class FileGroupingError(Exception):
 class FileGrouping:
     """
     This class assembles groups of files that have the same
-    name stem, and different parent directory. For instance,
-    the files "images/1001.jpg" and "infer/1001.txt" form
-    the "1001" file group, and their data is accessible via
-    a dictionary whose keys are the parent directory names
-    of the corresponding data:
+    name stem, and different extensions. For instance, the
+    files "1001.jpg" and "1001.txt" form the "1001" file group,
+    and their data is accessible via a dictionary whose keys
+    are the parent directory names of the corresponding data:
     {
         "1001": {
-            "images": [...],
-            "inferences": [...],
+            "jpg": [...],
+            "txt": [...],
         }
     }
 
@@ -50,8 +49,8 @@ class FileGrouping:
     so that its data gets consumed elsewhere.
     """
 
-    def __init__(self, parents: set[str]) -> None:
-        self.parents = parents
+    def __init__(self, expected_extensions: set[str]) -> None:
+        self.extensions = expected_extensions
         self._groups: dict[str, FileGroup] = defaultdict(dict)
         self._queue: Queue[FileGroup] = Queue()
 
@@ -64,15 +63,13 @@ class FileGrouping:
             file_name (PurePath): the file name object
             file_data (Any): data associated to the file
         """
-        parent_dirs = file_name.parts[:-1]
-        assert len(parent_dirs) > 0, f"File to register {file_name} has no parent dir"
-        parent = parent_dirs[-1]
-        if parent not in self.parents:
+        extension = file_name.suffix.lstrip(".")
+        if extension not in self.extensions:
             raise FileGroupingError(f"File {file_name} has unexpected parent")
 
         stem = file_name.stem
-        self._groups[stem][parent] = file_data
-        if set(self._groups[stem]) == self.parents:
+        self._groups[stem][extension] = file_data
+        if set(self._groups[stem]) == self.extensions:
             self._queue.put(self._groups.pop(stem))
 
     def __next__(self) -> FileGroup:
