@@ -34,7 +34,8 @@ from tests.fixtures.gui import driver_set
 from tests.strategies.configs import generate_text
 
 
-def test_apply_configuration():
+@pytest.mark.trio
+async def test_apply_configuration(driver_set, nursery):
     with (
         patch(
             "local_console.gui.controller.configuration_screen.ConfigurationScreenView"
@@ -46,7 +47,12 @@ def test_apply_configuration():
             ConfigurationScreenController, "apply_application_configuration"
         ) as mock_apply_app_cfg,
     ):
-        ctrl = ConfigurationScreenController(Mock(), MagicMock())
+        driver, mock_gui = driver_set
+        send_channel, _ = trio.open_memory_channel(0)
+        driver.camera_state = CameraState(
+            send_channel, nursery, trio.lowlevel.current_trio_token()
+        )
+        ctrl = ConfigurationScreenController(Mock(), driver)
         ctrl.apply_configuration()
         mock_apply_fb.assert_any_call()
         mock_apply_app_cfg.assert_any_call()

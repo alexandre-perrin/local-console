@@ -23,8 +23,6 @@ from local_console.core.camera.ai_model import deploy_step
 from local_console.core.camera.ai_model import undeploy_step
 from local_console.core.camera.state import CameraState
 from local_console.core.commands.ota_deploy import get_package_hash
-from local_console.core.config import config_to_schema
-from local_console.core.config import get_default_config
 from local_console.utils.local_network import get_my_ip_by_routing
 
 
@@ -36,19 +34,6 @@ def update_status(request):
 @pytest.fixture(params=["000001"])
 def network_id(request):
     return request.param
-
-
-def mock_get_config():
-    return config_to_schema(get_default_config())
-
-
-@pytest.fixture(autouse=True)
-def fixture_get_config():
-    with patch(
-        "local_console.core.camera.ai_model.get_config",
-        mock_get_config,
-    ) as _fixture:
-        yield _fixture
 
 
 @pytest.mark.trio

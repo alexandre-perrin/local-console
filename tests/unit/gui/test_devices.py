@@ -18,6 +18,7 @@ from unittest.mock import patch
 
 import pytest
 import trio
+from local_console.clients.agent import Agent
 
 patch("local_console.gui.view.common.components.DeviceItem").start()
 
@@ -26,8 +27,8 @@ from local_console.gui.device_manager import DeviceManager
 from local_console.gui.controller.devices_screen import DevicesScreenController
 from local_console.gui.model.devices_screen import DevicesScreenModel
 from local_console.core.camera.state import CameraState
+from local_console.core.config import config_obj
 from local_console.gui.model.camera_proxy import CameraStateProxy
-from local_console.core.config import config_to_schema, get_default_config
 
 
 from pytest import mark
@@ -270,10 +271,6 @@ async def test_device_manager(nursery):
             "local_console.gui.device_manager.DeviceManager.bind_state_proxy"
         ) as mock_add_internals,
         patch(
-            "local_console.gui.device_manager.get_config",
-            return_value=config_to_schema(get_default_config()),
-        ),
-        patch(
             "local_console.gui.device_manager.DeviceManager._blobs_webserver_task",
         ),
         patch(
@@ -311,50 +308,43 @@ async def test_device_manager_with_config(nursery):
     with (
         patch("local_console.core.config.config_paths"),
         patch(
-            "local_console.gui.device_manager.get_config",
-            return_value=config_to_schema(get_default_config()),
-        ),
-        patch(
-            "local_console.core.camera.state.get_device_persistent_config",
-            return_value={},
-        ),
-        patch(
-            "local_console.gui.device_manager.add_device_to_config",
-        ),
-        patch(
-            "local_console.gui.device_manager.remove_device_config",
-        ),
-        patch(
-            "local_console.gui.device_manager.get_device_configs",
-        ),
-        patch(
             "local_console.gui.device_manager.DeviceManager._blobs_webserver_task",
+        ),
+        patch.object(
+            config_obj,
+            "save_config",
         ),
     ):
         send_channel, _ = trio.open_memory_channel(0)
         device_manager = DeviceManager(
             send_channel, nursery, trio.lowlevel.current_trio_token()
         )
+
+        device_manager.set_active_device(config_obj.get_active_device_config().name)
+        device_manager.init_devices(config_obj.get_device_configs())
+
         device1 = DeviceListItem(name="test_device_1", port="1234")
         device2 = DeviceListItem(name="test_device_2", port="23456")
         device3 = DeviceListItem(name="test_device_3", port="7890")
 
         device_manager.add_device(device1)
         device_manager.active_device = device1
-        assert len(device_manager.proxies_factory) == 1
-        assert len(device_manager.agent_factory) == 1
-        assert len(device_manager.state_factory) == 1
+        assert len(device_manager.proxies_factory) == 2
+        assert len(device_manager.agent_factory) == 2
+        assert len(device_manager.state_factory) == 2
 
         state_1 = device_manager.get_active_device_state()
         assert isinstance(state_1, CameraState)
         proxy_1 = device_manager.get_active_device_proxy()
         assert isinstance(proxy_1, CameraStateProxy)
+        mqtt_1 = device_manager.get_active_mqtt_client()
+        assert isinstance(mqtt_1, Agent)
 
         device_manager.add_device(device2)
         device_manager.add_device(device3)
-        assert len(device_manager.proxies_factory) == 3
-        assert len(device_manager.agent_factory) == 3
-        assert len(device_manager.state_factory) == 3
+        assert len(device_manager.proxies_factory) == 4
+        assert len(device_manager.agent_factory) == 4
+        assert len(device_manager.state_factory) == 4
 
         # NOTE:FIXME: using attribute instead of method to avoid checking file configuration
         device_manager.active_device = device2
@@ -363,10 +353,12 @@ async def test_device_manager_with_config(nursery):
         assert state_2 != state_1
         proxy_2 = device_manager.get_active_device_proxy()
         assert proxy_2 != proxy_1
+        mqtt_2 = device_manager.get_active_mqtt_client()
+        assert mqtt_2 != mqtt_1
 
         device_manager.remove_device(device2.name)
         device_manager.remove_device(device1.name)
         device_manager.remove_device(device3.name)
-        assert len(device_manager.proxies_factory) == 0
-        assert len(device_manager.agent_factory) == 0
-        assert len(device_manager.state_factory) == 0
+        assert len(device_manager.proxies_factory) == 1
+        assert len(device_manager.agent_factory) == 1
+        assert len(device_manager.state_factory) == 1

@@ -24,9 +24,9 @@ from local_console.core.schemas.edge_cloud_if_v1 import OTA
 from local_console.core.schemas.edge_cloud_if_v1 import Permission
 from local_console.core.schemas.edge_cloud_if_v1 import Status
 from local_console.core.schemas.edge_cloud_if_v1 import Version
-from local_console.core.schemas.schemas import AgentConfiguration
+from local_console.core.schemas.schemas import DeviceConnection
 from local_console.core.schemas.schemas import EVPParams
-from local_console.core.schemas.schemas import IPAddress
+from local_console.core.schemas.schemas import GlobalConfiguration
 from local_console.core.schemas.schemas import MQTTParams
 from local_console.core.schemas.schemas import WebserverParams
 
@@ -143,19 +143,12 @@ def generate_invalid_port_number(draw: st.DrawFn) -> int:
 
 
 @st.composite
-def generate_agent_config(draw: st.DrawFn) -> AgentConfiguration:
+def generate_agent_config(draw: st.DrawFn) -> DeviceConnection:
     return draw(
         st.just(
-            AgentConfiguration(
-                evp=EVPParams(
-                    iot_platform=draw(
-                        generate_identifiers(
-                            max_size=10, categories_first_char=("Ll", "Lu")
-                        )
-                    ),
-                ),
+            DeviceConnection(
                 mqtt=MQTTParams(
-                    host=IPAddress(ip_value=draw(generate_valid_ip())),
+                    host=draw(generate_valid_ip()),
                     port=draw(generate_valid_port_number()),
                     device_id=draw(
                         generate_identifiers(
@@ -167,11 +160,21 @@ def generate_agent_config(draw: st.DrawFn) -> AgentConfiguration:
                     ),
                 ),
                 webserver=WebserverParams(
-                    host=IPAddress(ip_value=draw(generate_valid_ip())),
+                    host=draw(generate_valid_ip()),
                     port=draw(generate_valid_port_number()),
                 ),
+                name="Default",
             )
         )
+    )
+
+
+@st.composite
+def generate_global_config(draw: st.DrawFn) -> GlobalConfiguration:
+    return GlobalConfiguration(
+        evp=EVPParams(iot_platform="EVP1"),
+        active_device="Default",
+        devices=[draw(generate_agent_config())],
     )
 
 

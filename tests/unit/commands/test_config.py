@@ -13,209 +13,70 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-from configparser import ConfigParser
+import json
 from unittest.mock import AsyncMock
 from unittest.mock import patch
 
 from hypothesis import given
 from hypothesis import strategies as st
 from local_console.commands.config import app
-from local_console.core.enums import config_paths
+from local_console.core.config import config_obj
 from local_console.core.enums import GetCommands
-from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.core.schemas.schemas import DesiredDeviceConfig
+from local_console.core.schemas.schemas import DeviceConnection
+from local_console.core.schemas.schemas import EVPParams
+from local_console.core.schemas.schemas import GlobalConfiguration
 from local_console.core.schemas.schemas import OnWireProtocol
 from typer.testing import CliRunner
 
-from tests.strategies.configs import generate_agent_config
 from tests.strategies.configs import generate_identifiers
-from tests.strategies.configs import generate_text
-from tests.strategies.configs import generate_valid_ip
+
 
 runner = CliRunner()
 
 
-@given(generate_text(), generate_agent_config())
-def test_config_get_command(parser_return: str, agent_config: AgentConfiguration):
-    with (
-        patch(
-            "local_console.commands.config.get_config", return_value=agent_config
-        ) as mock_get_config,
-        patch(
-            "local_console.commands.config.parse_section_to_ini",
-            return_value=parser_return,
-        ) as mock_parse_to_ini,
-        patch(
-            "local_console.commands.config.check_section_and_params"
-        ) as mock_checks_section_and_params,
-    ):
-        for section_name in agent_config.model_fields.keys():
-            section_value = getattr(agent_config, section_name)
-            for parameter in section_value.model_fields.keys():
-                result = runner.invoke(
-                    app, [GetCommands.GET.value, section_name, parameter]
-                )
-                mock_parse_to_ini.assert_called_with(
-                    section_value, section_name, parameter
-                )
-                mock_get_config.assert_called()
-                mock_checks_section_and_params.assert_called_with(
-                    agent_config, section_name, parameter
-                )
-                assert result.exit_code == 0
+def test_config_setget_command():
+    result = runner.invoke(app, [GetCommands.GET.value])
+    assert GlobalConfiguration(**json.loads(result.stdout)) == config_obj.get_config()
 
 
-@given(generate_text(), generate_agent_config())
-def test_config_get_command_section_none(
-    parser_return: str, agent_config: AgentConfiguration
-):
-    with (
-        patch(
-            "local_console.commands.config.get_config", return_value=agent_config
-        ) as mock_get_config,
-        patch(
-            "local_console.commands.config.parse_section_to_ini",
-            return_value=parser_return,
-        ) as mock_parse_to_ini,
-    ):
-        result = runner.invoke(app, [GetCommands.GET.value])
-
-        for section_name in agent_config.model_fields.keys():
-            section_value = getattr(agent_config, section_name)
-            mock_parse_to_ini.assert_any_call(section_value, section_name)
-            mock_get_config.assert_called()
-            assert result.exit_code == 0
+def test_config_setget_command_evp():
+    result = runner.invoke(app, [GetCommands.GET.value, "evp"])
+    assert EVPParams(**json.loads(result.stdout)) == config_obj.get_config().evp
+    with patch.object(config_obj, "save_config"):
+        runner.invoke(app, [GetCommands.SET.value, "evp.iot_platform", "tb"])
+        result = runner.invoke(app, [GetCommands.GET.value, "evp"])
+        assert "tb" == config_obj.get_config().evp.iot_platform
 
 
-@given(generate_agent_config())
-def test_config_get_command_value_error(agent_config: AgentConfiguration):
-    with (
-        patch(
-            "local_console.commands.config.get_config", return_value=agent_config
-        ) as mock_get_config,
-        patch(
-            "local_console.commands.config.check_section_and_params",
-            side_effect=ValueError,
-        ) as mock_checks_section_and_params,
-    ):
-        for section_name in agent_config.model_fields.keys():
-            section_value = getattr(agent_config, section_name)
-            for parameter in section_value.model_fields.keys():
-                result = runner.invoke(
-                    app, [GetCommands.GET.value, section_name, parameter]
-                )
-                mock_get_config.assert_called()
-                mock_checks_section_and_params.assert_called()
-                assert result.exit_code == 1
+def test_config_get_command_active_device():
+    result = runner.invoke(app, [GetCommands.GET.value, "active_device"])
+
+    assert json.loads(result.stdout) == config_obj.get_config().active_device
 
 
-@given(generate_valid_ip(), generate_agent_config())
-def test_config_set_command(new_value: str, agent_config: AgentConfiguration):
-    with (
-        patch(
-            "local_console.commands.config.get_config", return_value=agent_config
-        ) as mock_get_config,
-        patch(
-            "local_console.commands.config.schema_to_parser"
-        ) as mock_schema_to_parser,
-        patch(
-            "local_console.commands.config.check_section_and_params"
-        ) as mock_checks_section_and_params,
-        patch("builtins.open") as mock_open,
-    ):
-        for section_name in agent_config.model_fields.keys():
-            section_value = getattr(agent_config, section_name)
-            if "host" in section_value.model_fields.keys():
-                config_dict = agent_config.model_dump()
-                config_dict[section_name]["host"] = new_value
+def test_config_setget_command_devices():
+    result = runner.invoke(app, [GetCommands.GET.value, "devices"])
+    assert (
+        DeviceConnection(**json.loads(result.stdout)[0])
+        == config_obj.get_config().devices[0]
+    )
 
-                config_parser = ConfigParser()
-                for section_names, values in config_dict.items():
-                    if "host" in values.keys():
-                        if isinstance(values["host"], dict):
-                            values["host"] = values["host"]["ip_value"]
-                    # Replace null values with empty strings, for the config_parser
-                    values = {key: val if val else "" for key, val in values.items()}
-                    config_parser[section_names] = values
-                mock_schema_to_parser.return_value = config_parser
-
-                result = runner.invoke(
-                    app, [GetCommands.SET.value, section_name, "host", new_value]
-                )
-                mock_get_config.assert_called()
-                mock_schema_to_parser.assert_called_with(
-                    agent_config, section_name, "host", new_value
-                )
-                mock_open.assert_called_with(config_paths.config_path, "w")
-                mock_checks_section_and_params.assert_called()
-                assert result.exit_code == 0
-
-
-@given(
-    generate_text(),
-    generate_text(),
-    generate_agent_config(),
-)
-def test_config_set_command_value_error(
-    section_miss: str, new_value: str, agent_config: AgentConfiguration
-):
-    with (
-        patch(
-            "local_console.commands.config.get_config", return_value=agent_config
-        ) as mock_get_config,
-        patch(
-            "local_console.commands.config.check_section_and_params",
-            side_effect=ValueError,
-        ) as mock_checks_section_and_params,
-    ):
-        for section_name in agent_config.model_fields.keys():
-            section_value = getattr(agent_config, section_name)
-            for parameter in section_value.model_fields.keys():
-                result = runner.invoke(
-                    app, [GetCommands.SET.value, section_miss, parameter, new_value]
-                )
-                mock_get_config.assert_called()
-                mock_checks_section_and_params.assert_called()
-                assert result.exit_code == 1
-
-
-@given(
-    generate_agent_config(),
-)
-def test_config_unset_nullable_parameter(agent_config: AgentConfiguration):
-    with (
-        patch(
-            "local_console.commands.config.get_config", return_value=agent_config
-        ) as mock_get_config,
-        patch("pathlib.Path.open") as mock_open,
-    ):
-        result = runner.invoke(app, [GetCommands.UNSET.value, "mqtt", "device_id"])
-        assert result.exit_code == 0
-        mock_get_config.assert_called()
-        mock_open.assert_called_with("w")
-
-
-@given(
-    generate_agent_config(),
-)
-def test_config_unset_not_nullable_error(agent_config: AgentConfiguration):
-    with (
-        patch(
-            "local_console.commands.config.get_config", return_value=agent_config
-        ) as mock_get_config,
-    ):
-        result = runner.invoke(
+    with patch.object(config_obj, "save_config"):
+        runner.invoke(
             app,
-            [
-                GetCommands.UNSET.value,
-                "mqtt",
-                "host",
-            ],  # "mqtt.host" is not a nullable parameter
+            [GetCommands.SET.value, "--device", "Default", "mqtt.host", "192.168.1.1"],
         )
-        assert result.exit_code == 1
-        assert type(result.exception) is SystemExit
-        assert result.exception.args[0].startswith("Error unsetting config param")
-        mock_get_config.assert_called()
+        result = runner.invoke(app, [GetCommands.GET.value, "devices"])
+        assert (
+            DeviceConnection(**json.loads(result.stdout)[0])
+            == config_obj.get_config().devices[0]
+        )
+        assert config_obj.get_config().devices[0].mqtt.host == "192.168.1.1"
+        runner.invoke(
+            app,
+            [GetCommands.SET.value, "--device", "Default", "mqtt.host", "localhost"],
+        )
 
 
 @given(

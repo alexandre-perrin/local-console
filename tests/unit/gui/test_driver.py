@@ -31,10 +31,7 @@ from hypothesis import strategies as st
 from local_console.core.camera.axis_mapping import SENSOR_SIZE
 from local_console.core.camera.enums import StreamStatus
 from local_console.core.camera.state import CameraState
-from local_console.core.config import config_to_schema
-from local_console.core.config import get_default_config
 from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
-from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.gui.enums import ApplicationConfiguration
 from local_console.utils.local_network import LOCAL_IP
 
@@ -56,10 +53,6 @@ except Exception as e:
 from local_console.gui.driver import Driver  # noqa
 
 
-def get_default_config_as_schema() -> AgentConfiguration:
-    return config_to_schema(get_default_config())
-
-
 def create_new(root: Path) -> Path:
     new_file = root / f"{random.randint(1, int(1e6))}"
     new_file.write_bytes(b"0")
@@ -70,8 +63,6 @@ def create_new(root: Path) -> Path:
 def mock_driver_with_agent():
     with (
         patch("local_console.gui.driver.TimeoutBehavior"),
-        patch("local_console.gui.driver.get_config", get_default_config_as_schema),
-        patch("local_console.clients.agent.get_config", get_default_config_as_schema),
         patch("local_console.gui.driver.SyncAsyncBridge"),
         patch("local_console.gui.driver.Agent") as mock_agent,
         patch("local_console.gui.driver.spawn_broker"),

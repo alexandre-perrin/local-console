@@ -24,12 +24,10 @@ from hypothesis import given
 from hypothesis import strategies as st
 from local_console.clients.agent import Agent
 from local_console.core.camera.enums import MQTTTopics
-from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.core.schemas.schemas import OnWireProtocol
 from paho.mqtt.client import MQTT_ERR_ERRNO
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 
-from tests.strategies.configs import generate_agent_config
 from tests.strategies.configs import generate_text
 
 
@@ -37,7 +35,6 @@ from tests.strategies.configs import generate_text
     generate_text(),
     generate_text(),
     generate_text(),
-    generate_agent_config(),
     st.sampled_from(OnWireProtocol),
 )
 @pytest.mark.trio
@@ -45,11 +42,9 @@ async def test_configure_instance(
     instance_id: str,
     topic: str,
     config: str,
-    agent_config: AgentConfiguration,
     onwire_schema: OnWireProtocol,
 ):
     with (
-        patch("local_console.clients.agent.get_config", return_value=agent_config),
         patch(
             "local_console.clients.agent.OnWireProtocol.from_iot_spec",
             return_value=onwire_schema,
@@ -74,13 +69,10 @@ async def test_configure_instance(
         )
 
 
-@given(generate_text(), generate_agent_config(), st.sampled_from(OnWireProtocol))
+@given(generate_text(), st.sampled_from(OnWireProtocol))
 @pytest.mark.trio
-async def test_rpc(
-    instance_id: str, agent_config: AgentConfiguration, onwire_schema: OnWireProtocol
-):
+async def test_rpc(instance_id: str, onwire_schema: OnWireProtocol):
     with (
-        patch("local_console.clients.agent.get_config", return_value=agent_config),
         patch(
             "local_console.clients.agent.OnWireProtocol.from_iot_spec",
             return_value=onwire_schema,
@@ -100,13 +92,10 @@ async def test_rpc(
         agent.client.publish_and_wait.assert_called_once()
 
 
-@given(generate_text(), generate_agent_config(), st.sampled_from(OnWireProtocol))
+@given(generate_text(), st.sampled_from(OnWireProtocol))
 @pytest.mark.trio
-async def test_rpc_error(
-    instance_id: str, agent_config: AgentConfiguration, onwire_schema: OnWireProtocol
-):
+async def test_rpc_error(instance_id: str, onwire_schema: OnWireProtocol):
     with (
-        patch("local_console.clients.agent.get_config", return_value=agent_config),
         patch(
             "local_console.clients.agent.OnWireProtocol.from_iot_spec",
             return_value=onwire_schema,

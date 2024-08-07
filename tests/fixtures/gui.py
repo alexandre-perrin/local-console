@@ -18,15 +18,7 @@ from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
-from local_console.core.config import config_to_schema
-from local_console.core.config import get_default_config
-from local_console.core.config import setup_default_config
-from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.gui.model.camera_proxy import CameraStateProxy
-
-
-def get_default_config_as_schema() -> AgentConfiguration:
-    return config_to_schema(get_default_config())
 
 
 @contextmanager
@@ -38,7 +30,6 @@ def driver_context():
     with (
         patch("local_console.gui.utils.sync_async.run_on_ui_thread", lambda fn: fn),
         patch("local_console.gui.utils.sync_async.SyncAsyncBridge"),
-        patch("local_console.gui.driver.get_config", get_default_config_as_schema),
         patch("local_console.gui.driver.Driver.from_sync"),
     ):
         from local_console.gui.driver import Driver
@@ -55,7 +46,5 @@ def driver_set():
     Enables testing the Driver business logic with the GUI
     objects mocked, leveraging the CameraStateProxy interface.
     """
-    # Generate default config file if missing
-    setup_default_config()
     with driver_context() as (driver, mock_gui):
         yield driver, mock_gui

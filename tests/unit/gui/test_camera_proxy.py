@@ -23,7 +23,7 @@ from local_console.core.camera.enums import DeployStage
 from local_console.core.camera.enums import OTAUpdateModule
 from local_console.core.camera.enums import StreamStatus
 from local_console.core.camera.state import CameraState
-from local_console.core.config import get_config
+from local_console.core.config import config_obj
 from local_console.gui.model.camera_proxy import CameraStateProxy
 
 from tests.strategies.configs import generate_valid_device_configuration
@@ -93,7 +93,7 @@ async def test_bind_connections(nursery):
     )
 
     camera_proxy.bind_connections(camera_state)
-    camera_state.initialize_connection_variables(get_config())
+    camera_state.initialize_connection_variables(config_obj.get_active_device_config())
 
     # The value must have been set in the camera state's variable
     assert camera_proxy.mqtt_host == "localhost"
@@ -152,10 +152,10 @@ async def test_bind_ai_model_function(nursery):
 
     camera_proxy.bind_ai_model_function(camera_state)
 
-    camera_proxy.ai_model_file = str(Path("testing_path"))
+    camera_proxy.ai_model_file = "testing_path"
     camera_state.ai_model_file_valid = True
 
-    assert camera_state.ai_model_file.value == Path("testing_path")
+    assert camera_state.ai_model_file.value == "testing_path"
     assert not camera_proxy.ai_model_file_valid
 
 
