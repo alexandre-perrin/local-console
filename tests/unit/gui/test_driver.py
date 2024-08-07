@@ -34,7 +34,6 @@ from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
 from local_console.core.schemas.schemas import DeviceConnection
 from local_console.core.schemas.schemas import MQTTParams
 from local_console.core.schemas.schemas import WebserverParams
-from local_console.utils.local_network import LOCAL_IP
 
 from tests.fixtures.driver import mock_driver_with_agent
 from tests.fixtures.driver import mocked_driver_with_agent  # noqa
@@ -121,7 +120,7 @@ async def test_streaming_rpc_start(mocked_driver_with_agent, nursery):
     driver.camera_state.image_dir_path.value = Path("my_image_path")
     driver.camera_state.inference_dir_path.value = Path("my_inference_path")
     driver.camera_state.upload_port = 1234
-    upload_url = f"http://{LOCAL_IP}:1234"
+    upload_url = "http://localhost:1234"
     h_size, v_size = SENSOR_SIZE
 
     await driver.camera_state.streaming_rpc_start()

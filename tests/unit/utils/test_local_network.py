@@ -18,9 +18,9 @@ import re
 from unittest.mock import patch
 
 from hypothesis import given
-from local_console.utils.local_network import get_my_ip_by_routing
-from local_console.utils.local_network import get_network_ifaces
-from local_console.utils.local_network import is_localhost
+from local_console.utils._local_network import _get_my_ip_by_routing
+from local_console.utils._local_network import _get_network_ifaces
+from local_console.utils._local_network import _is_localhost
 
 # For some reason, pycln removes this import, but obviously
 # pytest fails when running the tests!
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 def test_detect_interfaces(debug_log):
-    interfaces = get_network_ifaces()
+    interfaces = _get_network_ifaces()
 
     assert "lo" not in interfaces
     assert all("docker" not in iface for iface in interfaces)
@@ -40,24 +40,25 @@ def test_detect_interfaces(debug_log):
 
 def test_get_my_ip_by_routing():
     # Ensure we get an IPv4 address
-    local_ip = get_my_ip_by_routing()
+    local_ip = _get_my_ip_by_routing()
     assert re.match(r"\d+\.\d+\.\d+\.\d+", local_ip)
 
 
 def test_is_localhost():
-    assert is_localhost("localhost")
-    assert is_localhost("127.0.0.1")
+    assert _is_localhost("localhost")
+    assert _is_localhost("127.0.0.1")
 
 
 @given(
     generate_text(),
 )
 def test_is_localhost_fail(hostname: str):
-    assert not is_localhost("192.168.1.1.1")
-    assert not is_localhost("192.168.1.1")
-    assert not is_localhost(f"{hostname}.")
-    assert not is_localhost("".join(map(str, range(10000))))
+    assert not _is_localhost("192.168.1.1.1")
+    assert not _is_localhost("192.168.1.1")
+    assert not _is_localhost(f"{hostname}.")
+    assert not _is_localhost("".join(map(str, range(10000))))
     with patch(
-        "local_console.utils.local_network.socket.gethostbyname", side_effects=Exception
+        "local_console.utils._local_network.socket.gethostbyname",
+        side_effects=Exception,
     ):
-        assert not is_localhost(hostname)
+        assert not _is_localhost(hostname)

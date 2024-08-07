@@ -314,6 +314,10 @@ def test_deploy_forced_webserver_port_override() -> None:
 
     with (
         patch("local_console.commands.deploy.is_localhost", return_value=False),
+        patch(
+            "local_console.commands.deploy.get_my_ip_by_routing",
+            return_value="192.168.1.13",
+        ),
         patch("local_console.commands.deploy.Agent") as mock_agent_client,
         patch(
             "local_console.core.config.Config.get_active_device_config",

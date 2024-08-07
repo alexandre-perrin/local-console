@@ -33,15 +33,16 @@ def reset_global_config():
 def skip_local_network():
     with (
         patch(
-            "local_console.utils.local_network.get_network_ifaces",
+            "local_console.utils.local_network._get_network_ifaces",
             return_value=["enp5s0"],
         ),
         patch(
-            "local_console.utils.local_network.get_my_ip_by_routing",
+            "local_console.utils.local_network._get_my_ip_by_routing",
             return_value="localhost",
         ),
-        patch("local_console.utils.local_network.is_localhost", return_value=False),
-        patch("local_console.utils.local_network.is_valid_host", return_value=False),
+        patch("local_console.utils.local_network._is_localhost", return_value=True),
+        patch("local_console.utils.local_network._is_valid_host", return_value=True),
+        patch("local_console.utils.local_network.LOCAL_IP", "localhost"),
     ):
         yield
 
@@ -50,7 +51,10 @@ def skip_local_network():
 def skip_broker():
     with (
         patch(
-            "local_console.servers.broker.spawn_broker",
+            "local_console.commands.broker.spawn_broker",
+        ),
+        patch(
+            "local_console.core.camera.mixin_mqtt.spawn_broker",
         ),
     ):
         yield
