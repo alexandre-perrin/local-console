@@ -157,7 +157,7 @@ async def test_bind_ai_model_function(nursery):
     camera_proxy.ai_model_file = "testing_path"
     camera_state.ai_model_file_valid = True
 
-    assert camera_state.ai_model_file.value == "testing_path"
+    assert camera_state.ai_model_file.value == Path("testing_path")
     assert not camera_proxy.ai_model_file_valid
 
 
