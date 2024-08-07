@@ -137,6 +137,14 @@ class Persist(BaseModel):
     module_file: str | None = None
     ai_model_file: str | None = None
     ai_model_file_valid: bool | None = None
+    image_dir_path: str | None = None
+    inference_dir_path: str | None = None
+    size: str | None = None
+    unit: str | None = None
+    vapp_type: str | None = None
+    vapp_schema_file: str | None = None
+    vapp_config_file: str | None = None
+    vapp_labels_file: str | None = None
 
 
 class DeviceConnection(BaseModel):

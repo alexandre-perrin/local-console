@@ -32,6 +32,20 @@ class DeviceManager:
 
     DEFAULT_DEVICE_NAME = "Default"
     DEFAULT_DEVICE_PORT = 1883
+    _STATE_TO_PROXY = [
+        "module_file",
+        "ai_model_file",
+        "size",
+        "unit",
+        "vapp_type",
+        "vapp_schema_file",
+        "vapp_config_file",
+        "vapp_labels_file",
+    ]
+    _PROXY_TO_STATE = [
+        "image_dir_path",
+        "inference_dir_path",
+    ]
 
     def __init__(
         self,
@@ -67,7 +81,6 @@ class DeviceManager:
         for device in device_configs:
             self.add_device_to_internals(device)
             self.initialize_persistency(device.name)
-
             self.set_active_device(config_obj.get_active_device_config().name)
 
     @property
@@ -94,6 +107,7 @@ class DeviceManager:
         device_connection = config_obj.add_device(device)
         config_obj.save_config()
         self.add_device_to_internals(device_connection)
+        self.initialize_persistency(device.name)
 
     def remove_device(self, name: str) -> None:
         config_obj.remove_device(name)
@@ -140,38 +154,52 @@ class DeviceManager:
         proxy.bind_streaming_and_inference(camera_state)
 
     def _register_persistency(self, device_name: str) -> None:
+        """
+        Registers persistency for state attributes of a device. When the state
+        attributes change, their new values are saved to the persistent configuration.
+        """
+
         def save_configuration(attribute: str, current: Any, previous: Any) -> None:
             persist = config_obj.get_device_config(device_name).persist
-            if attribute == "module_file":
-                persist.module_file = current
+            for item in self._STATE_TO_PROXY + self._PROXY_TO_STATE:
+                if attribute == item:
+                    setattr(persist, item, str(current))
+
+            # Additional parameter
             if attribute == "ai_model_file":
-                persist.ai_model_file = current
                 persist.ai_model_file_valid = self.proxies_factory[
                     device_name
                 ].ai_model_file_valid
+
+            # Save to disk
             config_obj.save_config()
 
-        # List of attributes that trigger persistency
-        # TODO: remove str and rely in variable or enum
-        self.state_factory[device_name].module_file.subscribe(
-            partial(save_configuration, "module_file")
-        )
-        self.state_factory[device_name].ai_model_file.subscribe(
-            partial(save_configuration, "ai_model_file")
-        )
-
-    def _update_from_persistency(self, device_name: str) -> None:
-        # Update attributes from persistent configuration
-        persist = config_obj.get_device_config(device_name).persist
-        assert persist
-        if persist.module_file:
-            self.proxies_factory[device_name].module_file = persist.module_file
-        if persist.ai_model_file:
-            self.proxies_factory[device_name].ai_model_file = persist.ai_model_file
-            self.proxies_factory[device_name].ai_model_file_valid = (
-                persist.ai_model_file_valid
+        # Save configuration for any modification of relevant variables
+        for item in self._STATE_TO_PROXY + self._PROXY_TO_STATE:
+            getattr(self.state_factory[device_name], item).subscribe(
+                partial(save_configuration, item)
             )
 
+    def _update_from_persistency(self, device_name: str) -> None:
+        """
+        Update attributes of the device's state and proxies from persistent configuration.
+        """
+        persist = config_obj.get_device_config(device_name).persist
+        assert persist
+
+        # Attributes with `bind_state_to_proxy` requires to update using `.value` to trigger the binding
+        for item in self._PROXY_TO_STATE:
+            if getattr(persist, item):
+                setattr(
+                    getattr(self.state_factory[device_name], item),
+                    "value",
+                    getattr(persist, item),
+                )
+        # Update using proxy to propagate to state
+        for item in self._STATE_TO_PROXY:
+            if getattr(persist, item):
+                setattr(self.proxies_factory[device_name], item, getattr(persist, item))
+
     def initialize_persistency(self, device_name: str) -> None:
-        self._update_from_persistency(device_name)
         self._register_persistency(device_name)
+        self._update_from_persistency(device_name)

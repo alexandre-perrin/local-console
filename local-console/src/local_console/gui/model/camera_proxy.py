@@ -99,6 +99,8 @@ class CameraStateProxy(CameraStateProxyBase):
         self.bind_state_to_proxy("is_ready", camera_state)
         self.bind_state_to_proxy("is_streaming", camera_state)
         self.bind_state_to_proxy("device_config", camera_state)
+        self.bind_proxy_to_state("unit", camera_state)
+        self.bind_proxy_to_state("size", camera_state)
 
     def bind_stream_variables(self, camera_state: CameraState) -> None:
         # Proxy->State because we want the user to set this value via the GUI

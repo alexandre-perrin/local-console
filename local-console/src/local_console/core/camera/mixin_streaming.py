@@ -171,8 +171,10 @@ class StreamingMixin(HasMQTTset, IsAsyncReady):
                 tmp_image_directory.mkdir(exist_ok=True)
                 tmp_inference_directory.mkdir(exist_ok=True)
 
-                self.image_dir_path.value = tmp_image_directory
-                self.inference_dir_path.value = tmp_inference_directory
+                if not self.image_dir_path.value:
+                    self.image_dir_path.value = tmp_image_directory
+                if not self.inference_dir_path.value:
+                    self.inference_dir_path.value = tmp_inference_directory
 
                 await trio.sleep_forever()
 
@@ -219,18 +221,20 @@ class StreamingMixin(HasMQTTset, IsAsyncReady):
             self.stream_image.value = str(image_file)
 
     def input_directory_setup(
-        self, current: Optional[Path], previous: Optional[Path]
+        self, current: Optional[str], previous: Optional[str]
     ) -> None:
-        assert current
+        cur_path = Path(current) if isinstance(current, str) else current
+        pre_path = Path(previous) if isinstance(previous, str) else previous
 
-        check_and_create_directory(current)
-        if previous:
-            self.total_dir_watcher.unwatch_path(previous)
-        self.total_dir_watcher.set_path(current)
+        if pre_path:
+            self.total_dir_watcher.unwatch_path(pre_path)
+        if cur_path:
+            check_and_create_directory(cur_path)
+            self.total_dir_watcher.set_path(cur_path)
+            self.dir_monitor.watch(cur_path, self.notify_directory_deleted)
 
-        self.dir_monitor.watch(current, self.notify_directory_deleted)
-        if previous:
-            self.dir_monitor.unwatch(previous)
+        if pre_path:
+            self.dir_monitor.unwatch(pre_path)
 
     def notify_directory_deleted(self, dir_path: Path) -> None:
         try:
