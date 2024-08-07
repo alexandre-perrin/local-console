@@ -22,7 +22,7 @@ from typing import Annotated
 from typing import Optional
 
 import typer
-from local_console.core.config import setup_default_config
+from local_console.core.config import config_obj
 from local_console.core.enums import config_paths
 from local_console.plugin import populate_commands
 from local_console.utils.logger import configure_logger
@@ -76,7 +76,8 @@ def main(
 
     config_paths.home = config_dir
     configure_logger(silent, verbose)
-    setup_default_config()
+    if not config_obj.read_config():
+        config_obj.save_config()
 
     if version:
         try:

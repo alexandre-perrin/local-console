@@ -22,48 +22,17 @@ from local_console.utils.enums import StrEnum
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import field_validator
-from pydantic import model_serializer
 
 logger = logging.getLogger(__name__)
 
 
-class IPAddress(BaseModel):
-    ip_value: str = Field(pattern=r"^[\w\d_][\w.-]*$")
-
-    @model_serializer
-    def set_model(self) -> str:
-        return self.ip_value
-
-    def __str__(self) -> str:
-        return self.ip_value
-
+IPAddress = Field(pattern=r"^[\w\d_][\w.-]*$")
 
 IPPortNumber = Field(ge=0, le=65535)
 
 
 class Libraries(BaseModel):
     libraries: list[Optional[str]]
-
-
-class EVPParams(BaseModel):
-    iot_platform: str = Field(pattern=r"^[a-zA-Z][\w]*$")
-
-
-class MQTTParams(BaseModel, validate_assignment=True):
-    host: IPAddress
-    port: int = IPPortNumber
-    device_id: Optional[Annotated[str, Field(pattern=r"^[_a-zA-Z][\w_.-]*$")]]
-
-
-class WebserverParams(BaseModel):
-    host: IPAddress
-    port: int = IPPortNumber
-
-
-class AgentConfiguration(BaseModel):
-    evp: EVPParams
-    mqtt: MQTTParams
-    webserver: WebserverParams
 
 
 class InstanceSpec(BaseModel):
@@ -141,16 +110,6 @@ class OnWireProtocol(StrEnum):
         raise ValueError(f"On-wire schema version unavailable for spec '{value}'")
 
 
-class DeviceParams(BaseModel):
-    name: str = Field(pattern=r"^[A-Za-z0-9\-_.]+$", min_length=1, max_length=15)
-
-
-class DeviceConnection(BaseModel):
-    mqtt: MQTTParams
-    webserver: WebserverParams
-    device: DeviceParams
-
-
 class DeviceListItem(BaseModel):
     name: str
     port: str
@@ -158,3 +117,40 @@ class DeviceListItem(BaseModel):
     @field_validator("port", mode="before")
     def convert_int_to_str(cls, value: int) -> str:
         return str(value)
+
+
+class MQTTParams(BaseModel, validate_assignment=True):
+    host: str = IPAddress
+    port: int = IPPortNumber
+    device_id: Optional[Annotated[str, Field(pattern=r"^[_a-zA-Z][\w_.-]*$")]]
+
+
+class WebserverParams(BaseModel):
+    host: str = IPAddress
+    port: int = IPPortNumber
+
+
+DeviceName = Field(pattern=r"^[A-Za-z0-9\-_.]+$", min_length=1, max_length=15)
+
+
+class Persist(BaseModel):
+    module_file: str | None = None
+    ai_model_file: str | None = None
+    ai_model_file_valid: bool | None = None
+
+
+class DeviceConnection(BaseModel):
+    mqtt: MQTTParams
+    webserver: WebserverParams
+    name: str = DeviceName
+    persist: Persist = Persist()
+
+
+class EVPParams(BaseModel):
+    iot_platform: str = Field(pattern=r"^[a-zA-Z][\w]*$")
+
+
+class GlobalConfiguration(BaseModel):
+    evp: EVPParams
+    devices: list[DeviceConnection]
+    active_device: str = DeviceName
