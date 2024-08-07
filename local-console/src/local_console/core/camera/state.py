@@ -30,28 +30,14 @@ from local_console.core.commands.deploy import DeployFSM
 from local_console.core.commands.deploy import single_module_manifest_setup
 from local_console.core.commands.deploy import verify_report
 from local_console.core.commands.ota_deploy import get_package_hash
-from local_console.core.config import get_device_persistent_config
-from local_console.core.config import update_device_persistent_config
 from local_console.gui.enums import ApplicationConfiguration
 from local_console.utils.tracking import TrackingVariable
 from local_console.utils.validation import validate_imx500_model_file
-from pydantic import BaseModel
 from trio import MemorySendChannel
 from trio import Nursery
 from trio.lowlevel import TrioToken
 
 logger = logging.getLogger(__name__)
-
-
-class CameraStatePersister(BaseModel):
-    """
-    Class that represents the schema used for persisting the configuration
-    from `CameraState`
-    """
-
-    module_file: str | None = None
-    ai_model_file: str | None = None
-    ai_model_file_valid: bool = False
 
 
 class CameraState(MQTTMixin, StreamingMixin):
@@ -86,7 +72,7 @@ class CameraState(MQTTMixin, StreamingMixin):
         StreamingMixin.__init__(self)
 
         # State variables not provided by mixin classes
-        self.ai_model_file: TrackingVariable[Path] = TrackingVariable()
+        self.ai_model_file: TrackingVariable[str] = TrackingVariable()
         self.ai_model_file_valid: TrackingVariable[bool] = TrackingVariable(False)
 
         self.firmware_file: TrackingVariable[Path] = TrackingVariable()
@@ -133,45 +119,14 @@ class CameraState(MQTTMixin, StreamingMixin):
         self.firmware_file.subscribe(validate_fw_file)
 
         def validate_ai_model_file(
-            current: Optional[Path], previous: Optional[Path]
+            current: Optional[str], previous: Optional[str]
         ) -> None:
             if current:
-                self.ai_model_file_valid.value = validate_imx500_model_file(current)
+                self.ai_model_file_valid.value = validate_imx500_model_file(
+                    Path(current)
+                )
 
         self.ai_model_file.subscribe(validate_ai_model_file)
-
-    def _create_persister(self) -> CameraStatePersister:
-        return CameraStatePersister(
-            module_file=str(self.module_file.value),
-            ai_model_file=str(self.ai_model_file.value),
-            ai_model_file_valid=bool(self.ai_model_file_valid.value),
-        )
-
-    def _register_persistency(self, device_name: str) -> None:
-        def save_configuration(current: Any, previous: Any) -> None:
-            update_device_persistent_config(
-                device_name, self._create_persister().model_dump()
-            )
-
-        # List of attributes that trigger persistency
-        self.module_file.subscribe(save_configuration)
-        self.ai_model_file.subscribe(save_configuration)
-
-    def _update_from_persistency(self, device_name: str) -> None:
-        # TODO: handle error
-        config = CameraStatePersister.model_validate(
-            get_device_persistent_config(device_name)
-        )
-        # Update attributes from persistent configuration
-        if config.module_file:
-            self.module_file.value = Path(config.module_file)
-        if config.ai_model_file:
-            self.ai_model_file.value = Path(config.ai_model_file)
-            self.ai_model_file_valid.value = config.ai_model_file_valid
-
-    def initialize_persistency(self, device_name: str) -> None:
-        self._update_from_persistency(device_name)
-        self._register_persistency(device_name)
 
     async def _on_deploy_status(
         self, current: Optional[dict[str, Any]], previous: Optional[dict[str, Any]]

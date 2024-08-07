@@ -15,8 +15,8 @@
 # SPDX-License-Identifier: Apache-2.0
 import logging
 
-from local_console.core.schemas.schemas import IPAddress
 from local_console.core.schemas.schemas import MQTTParams
+from local_console.core.schemas.schemas import WebserverParams
 from local_console.utils.local_network import is_valid_host
 from pydantic import ValidationError
 from pydantic.networks import IPvAnyAddress
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 def validate_hostname(host: str) -> bool:
     try:
-        IPAddress(ip_value=host),
+        WebserverParams(host=host, port=1883)
     except ValidationError as e:
         logger.warning(f"Validation error of hostname: {e}")
         return False
@@ -48,7 +48,7 @@ def validate_ip_address(ip: str) -> bool:
 def validate_port(port: str) -> bool:
     try:
         MQTTParams(
-            host=IPAddress(ip_value="localhost"),
+            host="localhost",
             port=int(port),
             device_id=None,
         )

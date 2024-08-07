@@ -30,7 +30,7 @@ from local_console.core.camera.enums import StreamStatus
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.edge_cloud_if_v1 import Permission
 from local_console.core.schemas.edge_cloud_if_v1 import SetFactoryReset
-from local_console.core.schemas.schemas import AgentConfiguration
+from local_console.core.schemas.schemas import DeviceConnection
 from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.servers.broker import spawn_broker
 from local_console.utils.timing import TimeoutBehavior
@@ -166,10 +166,12 @@ class MQTTMixin(HoldsDeployStatus, CanStopStreaming):
 
         self.device_config.subscribe_async(self.process_factory_reset)
 
-    def initialize_connection_variables(self, config: AgentConfiguration) -> None:
-        self.mqtt_host.value = config.mqtt.host.ip_value
+    def initialize_connection_variables(
+        self, iot_platform: str, config: DeviceConnection
+    ) -> None:
+        self.mqtt_host.value = config.mqtt.host
         self.mqtt_port.value = int(config.mqtt.port)
-        self._onwire_schema = OnWireProtocol.from_iot_spec(config.evp.iot_platform)
+        self._onwire_schema = OnWireProtocol.from_iot_spec(iot_platform)
         self.ntp_host.value = "pool.ntp.org"
 
     async def mqtt_setup(self) -> None:

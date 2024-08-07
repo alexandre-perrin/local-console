@@ -16,6 +16,7 @@
 import logging
 import re
 
+from local_console.core.config import config_obj
 from local_console.core.schemas.schemas import DeviceListItem
 from local_console.gui.controller.base_controller import BaseController
 from local_console.gui.driver import Driver
@@ -45,7 +46,7 @@ class DevicesScreenController(BaseController):
         self.view = DevicesScreenView(controller=self, model=self.model)
         assert self.driver.device_manager
 
-        self.restore_device_list(self.driver.device_manager.get_device_configs())
+        self.restore_device_list(config_obj.get_device_list_items())
 
     def get_view(self) -> DevicesScreenView:
         return self.view

@@ -14,14 +14,14 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 import logging
+from functools import partial
+from typing import Any
 
 import trio
 from local_console.core.camera.state import CameraState
 from local_console.core.camera.state import MessageType
-from local_console.core.config import add_device_to_config
-from local_console.core.config import get_config
-from local_console.core.config import get_device_configs
-from local_console.core.config import remove_device_config
+from local_console.core.config import config_obj
+from local_console.core.schemas.schemas import DeviceConnection
 from local_console.core.schemas.schemas import DeviceListItem
 from local_console.gui.model.camera_proxy import CameraStateProxy
 
@@ -47,7 +47,7 @@ class DeviceManager:
         self.proxies_factory: dict[str, CameraStateProxy] = {}
         self.state_factory: dict[str, CameraState] = {}
 
-    def init_devices(self, device_configs: list[DeviceListItem]) -> None:
+    def init_devices(self, device_configs: list[DeviceConnection]) -> None:
         """
         Initializes the devices based on the provided configuration list.
         If no devices are found, it creates a default device
@@ -62,11 +62,13 @@ class DeviceManager:
             )
             self.add_device(default_device)
             self.set_active_device(default_device.name)
+            return
 
         for device in device_configs:
-            if not self.active_device:
-                self.active_device = device
             self.add_device_to_internals(device)
+            self.initialize_persistency(device.name)
+
+            self.set_active_device(config_obj.get_active_device_config().name)
 
     @property
     def num_devices(self) -> int:
@@ -74,31 +76,30 @@ class DeviceManager:
         assert n == len(self.proxies_factory)
         return n
 
-    def add_device_to_internals(self, device: DeviceListItem) -> None:
+    def add_device_to_internals(self, device: DeviceConnection) -> None:
         proxy = CameraStateProxy()
         state = CameraState(self.send_channel.clone(), self.nursery, self.trio_token)
-        self.bind_state_proxy(proxy, state)
-
-        config = get_config()
-        config.mqtt.port = int(device.port)
-        state.initialize_connection_variables(config)
-        state.initialize_persistency(device.name)
-        state.finish_setup()
-
         self.proxies_factory[device.name] = proxy
         self.state_factory[device.name] = state
 
+        self.bind_state_proxy(proxy, state)
+
+        config = config_obj.get_config()
+        device.mqtt.port = int(device.mqtt.port)
+        state.initialize_connection_variables(config.evp.iot_platform, device)
+        self.initialize_persistency(device.name)
+        state.finish_setup()
+
     def add_device(self, device: DeviceListItem) -> None:
-        add_device_to_config(device)
-        self.add_device_to_internals(device)
+        device_connection = config_obj.add_device(device)
+        config_obj.save_config()
+        self.add_device_to_internals(device_connection)
 
     def remove_device(self, name: str) -> None:
-        remove_device_config(name)
+        config_obj.remove_device(name)
+        config_obj.save_config()
         del self.proxies_factory[name]
         del self.state_factory[name]
-
-    def get_device_configs(self) -> list[DeviceListItem]:
-        return get_device_configs()
 
     def get_active_device_proxy(self) -> CameraStateProxy:
         assert self.active_device
@@ -108,10 +109,22 @@ class DeviceManager:
         assert self.active_device
         return self.state_factory[self.active_device.name]
 
+    def get_device_configs(self) -> list[DeviceConnection]:
+        return config_obj.get_device_configs()
+
     def set_active_device(self, name: str) -> None:
-        self.active_device = next(
-            filter(lambda device: device.name == name, get_device_configs())
-        )
+        """
+        This is the function to set active device.
+        To be implemented for handling multiple devices.
+        """
+        config_obj.config.active_device = name
+        for device in config_obj.config.devices:
+            if device.name == name:
+                self.active_device = DeviceListItem(
+                    name=name, port=str(device.mqtt.port)
+                )
+                return
+        raise Exception("Device not found")
 
     def bind_state_proxy(
         self, proxy: CameraStateProxy, camera_state: CameraState
@@ -125,3 +138,40 @@ class DeviceManager:
         proxy.bind_vapp_file_functions(camera_state)
         proxy.bind_app_module_functions(camera_state)
         proxy.bind_streaming_and_inference(camera_state)
+
+    def _register_persistency(self, device_name: str) -> None:
+        def save_configuration(attribute: str, current: Any, previous: Any) -> None:
+            persist = config_obj.get_device_config(device_name).persist
+            if attribute == "module_file":
+                persist.module_file = current
+            if attribute == "ai_model_file":
+                persist.ai_model_file = current
+                persist.ai_model_file_valid = self.proxies_factory[
+                    device_name
+                ].ai_model_file_valid
+            config_obj.save_config()
+
+        # List of attributes that trigger persistency
+        # TODO: remove str and rely in variable or enum
+        self.state_factory[device_name].module_file.subscribe(
+            partial(save_configuration, "module_file")
+        )
+        self.state_factory[device_name].ai_model_file.subscribe(
+            partial(save_configuration, "ai_model_file")
+        )
+
+    def _update_from_persistency(self, device_name: str) -> None:
+        # Update attributes from persistent configuration
+        persist = config_obj.get_device_config(device_name).persist
+        assert persist
+        if persist.module_file:
+            self.proxies_factory[device_name].module_file = persist.module_file
+        if persist.ai_model_file:
+            self.proxies_factory[device_name].ai_model_file = persist.ai_model_file
+            self.proxies_factory[device_name].ai_model_file_valid = (
+                persist.ai_model_file_valid
+            )
+
+    def initialize_persistency(self, device_name: str) -> None:
+        self._update_from_persistency(device_name)
+        self._register_persistency(device_name)

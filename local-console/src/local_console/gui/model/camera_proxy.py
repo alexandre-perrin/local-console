@@ -110,7 +110,7 @@ class CameraStateProxy(CameraStateProxyBase):
 
     def bind_ai_model_function(self, camera_state: CameraState) -> None:
         # Proxy->State because we want the user to set this value via the GUI
-        self.bind_proxy_to_state("ai_model_file", camera_state, Path)
+        self.bind_proxy_to_state("ai_model_file", camera_state, str)
 
         # State->Proxy because this is computed from the model file
         self.bind_state_to_proxy("ai_model_file_valid", camera_state)
