@@ -40,6 +40,10 @@ class ApplicationsScreenController(BaseController):
         self.driver = driver
         self.view = ApplicationsScreenView(controller=self, model=self.model)
 
+    def refresh(self) -> None:
+        assert self.driver.camera_state
+        self.view.select_path(str(self.driver.camera_state.module_file.value))
+
     def get_view(self) -> ApplicationsScreenView:
         return self.view
 
