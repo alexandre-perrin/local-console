@@ -14,6 +14,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 import logging
+from pathlib import Path
 
 from local_console.gui.controller.base_controller import BaseController
 from local_console.gui.driver import Driver
@@ -21,6 +22,7 @@ from local_console.gui.model.applications_screen import ApplicationsScreenModel
 from local_console.gui.view.applications_screen.applications_screen import (
     ApplicationsScreenView,
 )
+from local_console.utils.validation import validate_app_file
 
 
 logger = logging.getLogger(__name__)
@@ -42,7 +44,10 @@ class ApplicationsScreenController(BaseController):
 
     def refresh(self) -> None:
         assert self.driver.camera_state
-        self.view.select_path(str(self.driver.camera_state.module_file.value))
+        if self.driver.camera_state.module_file.value is not None:
+            self.view.app_file_valid = validate_app_file(
+                Path(self.driver.camera_state.module_file.value)
+            )
 
     def get_view(self) -> ApplicationsScreenView:
         return self.view
