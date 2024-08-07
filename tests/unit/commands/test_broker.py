@@ -30,6 +30,6 @@ def test_broker_command():
     ):
         result = runner.invoke(app, [])
         mock_spawn.assert_called_once_with(
-            config_obj.get_active_device_config(), ANY, False
+            config_obj.get_active_device_config().mqtt.port, ANY, False
         )
         assert result.exit_code == 0

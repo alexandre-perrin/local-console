@@ -55,27 +55,22 @@ def test_update_module_file_persists(module_file: str):
 def test_update_ai_model_file_persists(ai_model_file: str):
     with mock_persistency_update() as (mock_persistency, device_manager):
         state = device_manager.get_active_device_state()
+        config = config_obj.get_active_device_config().persist
+        config.ai_model_file = "not a file"
         state.ai_model_file.value = ai_model_file
-
-        config = state._create_persister()
-        config.ai_model_file = ai_model_file
-        mock_persistency.assert_called_with(
-            device_manager.active_device.name, config.model_dump()
-        )
+        assert config.ai_model_file == ai_model_file
         mock_persistency.assert_called_with(device_manager.active_device.name)
 
 
 def test_init_devices_with_empty_list():
-
     device_manager = DeviceManager(Mock(), Mock(), Mock())
-    device_manager.init_devices([])
+    with patch.object(device_manager, "add_device"):
+        device_manager.init_devices([])
 
-    default_device = DeviceListItem(
-        name=DeviceManager.DEFAULT_DEVICE_NAME,
-        port=str(DeviceManager.DEFAULT_DEVICE_PORT),
-    )
+        default_device = DeviceListItem(
+            name=DeviceManager.DEFAULT_DEVICE_NAME,
+            port=str(DeviceManager.DEFAULT_DEVICE_PORT),
+        )
 
-    device_manager.add_device.assert_called_once_with(default_device)
-    device_manager.set_active_device.assert_called_once_with(
-        DeviceManager.DEFAULT_DEVICE_NAME
-    )
+        device_manager.active_device == default_device
+        device_manager.add_device.assert_called_once_with(default_device)

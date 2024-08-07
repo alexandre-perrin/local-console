@@ -36,6 +36,7 @@ from local_console.commands.deploy import project_binary_lookup
 from local_console.commands.deploy import stimulus_proc
 from local_console.core.camera.enums import MQTTTopics
 from local_console.core.commands.deploy import get_empty_deployment
+from local_console.core.config import config_obj
 from local_console.core.enums import Target
 from local_console.core.schemas.schemas import DeploymentManifest
 from local_console.core.schemas.schemas import DeviceConnection
@@ -182,7 +183,7 @@ def test_deploy_command_timeout(
         mock_check_dir.assert_called_once()
 
         mock_gen_deploy_fsm.instantiate.assert_called_once_with(
-            mock_agent_client.return_value.onwire_schema,
+            OnWireProtocol.from_iot_spec(config_obj.get_config().evp.iot_platform),
             mock_agent_client.return_value.deploy,
             None,
             ANY,
@@ -220,12 +221,13 @@ def test_deploy_manifest_no_bin(
     with (
         patch("local_console.commands.deploy.is_localhost", return_value=True),
         patch("local_console.commands.deploy.Agent") as mock_agent_client,
+        patch("local_console.commands.deploy.DeployFSM"),
         patch(
             "local_console.commands.deploy.Path.is_dir", return_value=False
         ) as mock_is_dir,
     ):
         result = runner.invoke(
-            app, ["-t", timeout, *(["-s"] if signed else []), target.value]
+            app, ["-t", 5, *(["-s"] if signed else []), target.value]
         )
         assert result.exit_code != 0
         mock_agent_client.assert_called_once()
@@ -277,7 +279,7 @@ def test_deploy_forced_webserver(deployment_manifest: DeploymentManifest) -> Non
         mock_check_dir.assert_called_once()
 
         mock_gen_deploy_fsm.instantiate.assert_called_once_with(
-            mock_agent_client.return_value.onwire_schema,
+            OnWireProtocol.from_iot_spec(config_obj.get_config().evp.iot_platform),
             mock_agent_client.return_value.deploy,
             None,
             True,

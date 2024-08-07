@@ -20,6 +20,9 @@ from unittest.mock import patch
 import pytest
 import trio
 from local_console.core.camera.state import CameraState
+from local_console.gui.device_manager import DeviceManager
+
+from tests.fixtures.driver import mock_driver_with_agent
 
 
 @pytest.fixture
@@ -33,7 +36,7 @@ async def cs_init(nursery):
 
 @pytest.mark.trio
 async def test_process_incoming_telemetry(cs_init) -> None:
-    with patch("local_console.core.camera.state.datetime") as mock_time:
+    with patch("local_console.core.camera.mixin_mqtt.datetime") as mock_time:
         camera, _, _ = cs_init
 
         mock_now = Mock()
@@ -46,12 +49,19 @@ async def test_process_incoming_telemetry(cs_init) -> None:
 
 
 @pytest.mark.trio
-async def test_streaming_rpc_stop(mocked_driver_with_agent):
-    driver, mock_agent = mocked_driver_with_agent
+async def test_streaming_rpc_stop():
+    with (mock_driver_with_agent() as (driver, mock_agent),):
 
-    mock_agent.return_value.publish = AsyncMock()
-    mock_rpc = AsyncMock()
-    mock_agent.return_value.rpc = mock_rpc
+        mock_agent.publish = AsyncMock()
+        mock_rpc = AsyncMock()
+        mock_agent.rpc = mock_rpc
 
-    await driver.streaming_rpc_stop()
-    mock_rpc.assert_awaited_with("backdoor-EA_Main", "StopUploadInferenceData", "{}")
+        driver.camera_state = CameraState(Mock(), Mock(), Mock())
+        driver.device_manager = DeviceManager(Mock(), Mock(), Mock())
+        driver.device_manager.init_devices([])
+        driver.device_manager.get_active_device_state().mqtt_client = mock_agent
+
+        await driver.streaming_rpc_stop()
+        mock_rpc.assert_awaited_with(
+            "backdoor-EA_Main", "StopUploadInferenceData", "{}"
+        )

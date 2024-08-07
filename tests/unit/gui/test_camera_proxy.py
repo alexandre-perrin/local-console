@@ -93,7 +93,9 @@ async def test_bind_connections(nursery):
     )
 
     camera_proxy.bind_connections(camera_state)
-    camera_state.initialize_connection_variables(config_obj.get_active_device_config())
+    camera_state.initialize_connection_variables(
+        "tb", config_obj.get_active_device_config()
+    )
 
     # The value must have been set in the camera state's variable
     assert camera_proxy.mqtt_host == "localhost"
