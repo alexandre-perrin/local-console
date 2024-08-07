@@ -43,3 +43,6 @@ class HomeScreenView(BaseScreenView):
         self.ids.txt_app_loader_ver.text = (
             value.Version.ApLoaderVersion if value else ""
         )
+
+    def on_enter(self, *args) -> None:
+        self.app.switch_proxy()

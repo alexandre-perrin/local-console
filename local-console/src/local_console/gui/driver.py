@@ -63,7 +63,7 @@ class Driver:
                         self.send_channel, nursery, trio.lowlevel.current_trio_token()
                     )
                     self.device_manager.init_devices(get_device_configs())
-                    self.gui.switch_proxy()
+
                     await self.gui.async_run(async_lib="trio")
 
             except KeyboardInterrupt:
