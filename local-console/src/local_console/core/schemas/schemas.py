@@ -136,7 +136,6 @@ DeviceName = Field(pattern=r"^[A-Za-z0-9\-_.]+$", min_length=1, max_length=15)
 class Persist(BaseModel):
     module_file: str | None = None
     ai_model_file: str | None = None
-    ai_model_file_valid: bool | None = None
     image_dir_path: str | None = None
     inference_dir_path: str | None = None
     size: str | None = None

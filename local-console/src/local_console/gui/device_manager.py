@@ -165,12 +165,6 @@ class DeviceManager:
                 if attribute == item:
                     setattr(persist, item, str(current))
 
-            # Additional parameter
-            if attribute == "ai_model_file":
-                persist.ai_model_file_valid = self.proxies_factory[
-                    device_name
-                ].ai_model_file_valid
-
             # Save to disk
             config_obj.save_config()
 
