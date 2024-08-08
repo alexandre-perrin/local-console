@@ -94,22 +94,23 @@ async def undeploy_step(
 
 
 async def deploy_step(
-    state: CameraState, network_id: str, package_file: Path, timeout_notify: Callable
+    state: CameraState,
+    network_id: str,
+    package_file: Path,
+    timeout_notify: Callable,
+    use_configured_port: bool = False,
 ) -> None:
     config = config_obj.get_config()
     config_device = config_obj.get_active_device_config()
     schema = OnWireProtocol.from_iot_spec(config.evp.iot_platform)
     ephemeral_agent = Agent(config_device.mqtt.host, config_device.mqtt.port, schema)
-    webserver_port = config_device.webserver.port
+    webserver_port = config_device.webserver.port if use_configured_port else 0
 
     with TemporaryDirectory(prefix="lc_deploy_") as temporary_dir:
         tmp_dir = Path(temporary_dir)
         tmp_module = tmp_dir / package_file.name
         shutil.copy(package_file, tmp_module)
         ip_addr = get_my_ip_by_routing()
-        spec = configuration_spec(
-            tmp_module, tmp_dir, webserver_port, ip_addr
-        ).model_dump_json()
 
         # In my tests, the "Updating" phase may take this long:
         timeout_secs = 90
@@ -119,9 +120,12 @@ async def deploy_step(
                 ephemeral_agent.mqtt_scope(
                     [MQTTTopics.ATTRIBUTES_REQ.value, MQTTTopics.ATTRIBUTES.value]
                 ),
-                AsyncWebserver(tmp_dir, webserver_port, None, True),
+                AsyncWebserver(tmp_dir, webserver_port, None, True) as server,
             ):
                 assert ephemeral_agent.nursery  # make mypy happy
+                spec = configuration_spec(
+                    tmp_module, tmp_dir, server.port, ip_addr
+                ).model_dump_json()
                 await ephemeral_agent.configure("backdoor-EA_Main", "placeholder", spec)
                 while True:
                     if state.device_config.value:

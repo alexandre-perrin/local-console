@@ -15,7 +15,6 @@
 # SPDX-License-Identifier: Apache-2.0
 import logging
 from pathlib import Path
-from typing import Any
 from typing import Optional
 
 from kivy.properties import BooleanProperty
@@ -38,12 +37,6 @@ class AIModelScreenView(BaseScreenView):
 
     update_status_finished = BooleanProperty(False)
 
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        self.app.mdl.bind(ai_model_file=self.on_ai_model_file)
-        self.app.mdl.bind(device_config=self.on_device_config)
-        self.app.mdl.bind(ai_model_file_valid=self.on_ai_model_file_valid)
-
     def on_ai_model_file(self, proxy: CameraStateProxy, value: Optional[str]) -> None:
         if value and Path(value).is_file():
             self.ids.model_pick.accept_path(value)
@@ -55,7 +48,11 @@ class AIModelScreenView(BaseScreenView):
     def on_device_config(
         self, proxy: CameraStateProxy, value: Optional[DeviceConfiguration]
     ) -> None:
+        # Restore default values
         self.update_status_finished = False
+        self.ids.txt_ota_data.text = ""
+        self.ids.lbl_ota_status.text = ""
+
         if value:
             self.ids.txt_ota_data.text = OtaData(**value.model_dump()).model_dump_json(
                 indent=4
