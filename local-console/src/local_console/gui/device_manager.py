@@ -145,6 +145,7 @@ class DeviceManager:
         To be implemented for handling multiple devices.
         """
         config_obj.config.active_device = name
+        config_obj.save_config()
         for device in config_obj.config.devices:
             if device.name == name:
                 self.active_device = DeviceListItem(
