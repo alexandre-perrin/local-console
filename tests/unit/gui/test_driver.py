@@ -13,10 +13,8 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-import importlib
 import random
 import shutil
-import sys
 from pathlib import Path
 from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
@@ -34,24 +32,12 @@ from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
 from local_console.core.schemas.schemas import DeviceConnection
 from local_console.core.schemas.schemas import MQTTParams
 from local_console.core.schemas.schemas import WebserverParams
+from local_console.gui.driver import Driver  # noqa
 
 from tests.fixtures.driver import mock_driver_with_agent
 from tests.fixtures.driver import mocked_driver_with_agent  # noqa
 from tests.mocks.mock_paho_mqtt import MockAsyncIterator
 from tests.mocks.mock_paho_mqtt import MockMQTTMessage
-
-# The following lines need to be in this order, in order to
-# be able to mock the run_on_ui_thread decorator with
-# an identity function
-patch(
-    "local_console.gui.utils.sync_async.run_on_ui_thread", lambda fn: fn
-).start()  # noqa
-# TODO: simplify patching
-try:
-    importlib.reload(sys.modules["local_console.gui.driver"])
-except Exception as e:
-    print(f"Error while reloading: {e}")
-from local_console.gui.driver import Driver  # noqa
 
 
 def create_new(root: Path) -> Path:

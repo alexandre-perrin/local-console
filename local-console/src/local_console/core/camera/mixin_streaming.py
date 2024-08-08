@@ -156,7 +156,7 @@ class StreamingMixin(HasMQTTset, IsAsyncReady):
         """
         with (TemporaryDirectory(prefix="LocalConsole_") as tempdir,):
             async with AsyncWebserver(
-                Path(tempdir), port=0, on_incoming=self.__process_camera_upload
+                Path(tempdir), port=0, on_incoming=self._process_camera_upload
             ) as image_serve:
 
                 logger.info(f"Uploading data into {tempdir}")
@@ -177,9 +177,6 @@ class StreamingMixin(HasMQTTset, IsAsyncReady):
                 await trio.sleep_forever()
 
     @run_on_ui_thread
-    def __process_camera_upload(self, incoming_file: Path) -> None:
-        self._process_camera_upload(incoming_file)
-
     def _process_camera_upload(self, incoming_file: Path) -> None:
         if incoming_file.suffix.lstrip(".") == self._extension_infers:
             assert self.inference_dir_path.value

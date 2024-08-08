@@ -28,7 +28,6 @@ def driver_context():
     objects mocked, leveraging the CameraStateProxy interface.
     """
     with (
-        patch("local_console.gui.utils.sync_async.run_on_ui_thread", lambda fn: fn),
         patch("local_console.gui.utils.sync_async.SyncAsyncBridge"),
         patch("local_console.gui.driver.Driver.from_sync"),
     ):

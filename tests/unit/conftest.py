@@ -68,3 +68,16 @@ def skip_connection():
         ),
     ):
         yield
+
+
+@pytest.fixture(autouse=True)
+def mock_schedule_once():
+    with patch(
+        "local_console.gui.utils.sync_async.Clock.schedule_once"
+    ) as mock_schedule:
+
+        def immediate_callback(callback, *args, **kwargs):
+            callback(0)
+
+        mock_schedule.side_effect = immediate_callback
+        yield
