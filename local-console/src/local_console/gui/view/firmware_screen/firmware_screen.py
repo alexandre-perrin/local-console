@@ -65,6 +65,12 @@ class FirmwareScreenView(BaseScreenView):
             "update_status", self.ids.lbl_ota_status, "text"
         )
 
+    def map_ota_type(self, ota_type: OTAUpdateModule) -> FirmwareType:
+        return {
+            OTAUpdateModule.APFW: FirmwareType.APPLICATION_FW,
+            OTAUpdateModule.SENSORFW: FirmwareType.SENSOR_FW,
+        }[ota_type]
+
     def on_firmware_file(self, proxy: CameraStateProxy, value: Optional[str]) -> None:
         if value and Path(value).is_file():
             self.ids.firmware_pick.accept_path(value)
