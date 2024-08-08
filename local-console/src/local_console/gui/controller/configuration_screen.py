@@ -131,16 +131,19 @@ class ConfigurationScreenController(BaseController):
         assert self.driver.camera_state
 
         try:
-            self.driver.camera_state.vapp_labels_map.value = map_class_id_to_name(
-                self.driver.camera_state.vapp_labels_file.value
-            )
+            if self.driver.camera_state.vapp_labels_file.value:
+                self.driver.camera_state.vapp_labels_map.value = map_class_id_to_name(
+                    self.driver.camera_state.vapp_labels_file.value
+                )
         except FlatbufferError as e:
             self.view.display_error(str(e))
 
-        if self.driver.camera_state.vapp_config_file.value is None:
+        if not self.driver.camera_state.vapp_config_file.value:
             return
         try:
-            config = json.load(self.driver.camera_state.vapp_config_file.value.open())
+            config = json.load(
+                Path(self.driver.camera_state.vapp_config_file.value).open()
+            )
             self.driver.from_sync(self.driver.send_app_config, json.dumps(config))
         except FileNotFoundError:
             self.view.display_error("App configuration does not exist")
