@@ -21,6 +21,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 from local_console.commands.config import app
 from local_console.core.config import config_obj
+from local_console.core.config import ConfigError
 from local_console.core.enums import GetCommands
 from local_console.core.schemas.schemas import DesiredDeviceConfig
 from local_console.core.schemas.schemas import DeviceConnection
@@ -136,3 +137,14 @@ def test_config_device_command_invalid_range(interval_max: int, interval_min: in
         result = runner.invoke(app, ["device", interval_max, interval_min])
         mock_configure.assert_not_awaited()
         assert result.exit_code == 1
+
+
+def test_config_unknown_device(caplog):
+
+    with patch.object(config_obj, "get_device_config_by_name", side_effect=ConfigError):
+        result = runner.invoke(
+            app,
+            [GetCommands.GET.value, "--device", "Unknown"],
+        )
+        assert result.exit_code == 1
+        assert "Configuration error" in caplog.text

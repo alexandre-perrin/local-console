@@ -21,7 +21,6 @@ from typing import Optional
 from local_console.utils.enums import StrEnum
 from pydantic import BaseModel
 from pydantic import Field
-from pydantic import field_validator
 
 logger = logging.getLogger(__name__)
 
@@ -112,11 +111,7 @@ class OnWireProtocol(StrEnum):
 
 class DeviceListItem(BaseModel):
     name: str
-    port: str
-
-    @field_validator("port", mode="before")
-    def convert_int_to_str(cls, value: int) -> str:
-        return str(value)
+    port: Annotated[int, IPPortNumber]
 
 
 class MQTTParams(BaseModel, validate_assignment=True):
@@ -160,4 +155,4 @@ class EVPParams(BaseModel):
 class GlobalConfiguration(BaseModel):
     evp: EVPParams
     devices: list[DeviceConnection]
-    active_device: str = DeviceName
+    active_device: int = IPPortNumber

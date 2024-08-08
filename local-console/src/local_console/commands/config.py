@@ -22,6 +22,7 @@ import trio
 import typer
 from local_console.clients.agent import Agent
 from local_console.core.config import config_obj
+from local_console.core.config import ConfigError
 from local_console.core.schemas.schemas import DesiredDeviceConfig
 from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.plugin import PluginBase
@@ -55,23 +56,32 @@ def config_get(
         ),
     ] = None,
 ) -> None:
-    config = (
-        config_obj.get_config() if not device else config_obj.get_device_config(device)
-    )
+    try:
+        config = (
+            config_obj.get_config()
+            if not device
+            else config_obj.get_device_config_by_name(device)
+        )
 
-    selected_config = config
+        selected_config = config
 
-    if section:
-        sections_split = section.split(".")
-        for parameter in sections_split:
-            selected_config = getattr(selected_config, parameter)
+        if section:
+            sections_split = section.split(".")
+            for parameter in sections_split:
+                selected_config = getattr(selected_config, parameter)
 
-    print(json.dumps(selected_config, indent=2, default=pydantic_encoder))
+        print(json.dumps(selected_config, indent=2, default=pydantic_encoder))
+
+    except ConfigError as e:
+        logger.error(f"Configuration error: {e}")
+        raise typer.Exit(1)
 
 
 def _set(section: str, new: str | None, device: str | None) -> None:
     config = (
-        config_obj.get_config() if not device else config_obj.get_device_config(device)
+        config_obj.get_config()
+        if not device
+        else config_obj.get_device_config_by_name(device)
     )
     selected_config = config
 

@@ -290,13 +290,15 @@ async def test_device_manager_with_config(nursery):
         assert len(device_manager.proxies_factory) == 0
         assert len(device_manager.state_factory) == 0
 
-        device_manager.set_active_device(config_obj.get_active_device_config().name)
+        device_manager.set_active_device(
+            config_obj.get_active_device_config().mqtt.port
+        )
         device_manager.init_devices(config_obj.get_device_configs())
 
         assert len(device_manager.proxies_factory) == 1
         assert len(device_manager.state_factory) == 1
 
-        device = DeviceListItem(name="test_device", port="1234")
+        device = DeviceListItem(name="test_device", port=1234)
         device_manager.add_device(device)
         assert len(device_manager.proxies_factory) == 2
         assert len(device_manager.state_factory) == 2

@@ -93,7 +93,7 @@ class DevicesScreenController(BaseController):
         This function is called when user inputs name.
         """
         name = self.view.ids.txt_new_device_name.text
-        port = self.view.ids.txt_new_device_port.text
+        port = int(self.view.ids.txt_new_device_port.text)
         device_list = self.view.ids.box_device_list.children
 
         if not self.validate_new_device(name, port, device_list):
@@ -108,10 +108,10 @@ class DevicesScreenController(BaseController):
         self.driver.device_manager.add_device(DeviceListItem(name=name, port=port))
 
         if self.driver.device_manager.num_devices == 1:
-            self.driver.device_manager.set_active_device(name)
+            self.driver.device_manager.set_active_device(port)
             self.driver.gui.switch_proxy()
 
-    def validate_new_device(self, name: str, port: str, device_list: list) -> bool:
+    def validate_new_device(self, name: str, port: int, device_list: list) -> bool:
         if not name or not port:
             self.view.display_error("Please input name and port for new device.")
             return False
@@ -124,7 +124,7 @@ class DevicesScreenController(BaseController):
             if device.ids.txt_device_name.text == name:
                 self.view.display_error("Please input a unique device name.")
                 return False
-            if device.ids.txt_device_port.text == port:
+            if device.ids.txt_device_port.text == str(port):
                 self.view.display_error("Please input a unique port.")
                 return False
 
@@ -157,6 +157,8 @@ class DevicesScreenController(BaseController):
 
         for device in remove_devices:
             self.view.ids.box_device_list.remove_widget(device)
-            self.driver.device_manager.remove_device(device.name)
+            self.driver.device_manager.remove_device(device.port)
 
-        self.driver.gui.switch_proxy()
+        if self.driver.device_manager.num_devices == 1:
+            self.driver.device_manager.set_active_device(device_list[0].port)
+            self.driver.gui.switch_proxy()

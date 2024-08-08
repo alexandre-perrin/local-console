@@ -55,11 +55,9 @@ class Config:
         return GlobalConfiguration(
             evp=EVPParams(iot_platform="EVP1"),
             devices=[
-                Config._create_device_config(
-                    DeviceListItem(name="Default", port="1883")
-                )
+                Config._create_device_config(DeviceListItem(name="Default", port=1883))
             ],
-            active_device="Default",
+            active_device=1883,
         )
 
     def read_config(self) -> bool:
@@ -94,17 +92,23 @@ class Config:
     def get_config(self) -> GlobalConfiguration:
         return self._config
 
-    def get_device_config(self, device_name: str) -> DeviceConnection:
+    def get_device_config(self, device_port: int) -> DeviceConnection:
         for device_config in self._config.devices:
-            if device_config.name == device_name:
+            if device_config.mqtt.port == device_port:
                 return device_config
-        raise SystemExit("Device not found")
+        raise ConfigError(f"Device for port {device_port} not found")
+
+    def get_device_config_by_name(self, name: str) -> DeviceConnection:
+        for device_config in self._config.devices:
+            if device_config.name == name:
+                return device_config
+        raise ConfigError(f"Device named '{name}' not found")
 
     def get_active_device_config(self) -> DeviceConnection:
         active_device = [
             device
             for device in self._config.devices
-            if device.name == self._config.active_device
+            if device.mqtt.port == self._config.active_device
         ]
         assert len(active_device) == 1
         return active_device[0]
@@ -128,11 +132,11 @@ class Config:
         self._config.devices.append(self._create_device_config(device))
         return device_connection
 
-    def remove_device(self, device_name: str) -> None:
+    def remove_device(self, device_port: int) -> None:
         self._config.devices = [
             connection
             for connection in self._config.devices
-            if connection.name != device_name
+            if connection.mqtt.port != device_port
         ]
 
     def get_device_configs(self) -> list[DeviceConnection]:
@@ -140,7 +144,7 @@ class Config:
 
     def get_device_list_items(self) -> list[DeviceListItem]:
         return [
-            DeviceListItem(name=device.name, port=str(device.mqtt.port))
+            DeviceListItem(name=device.name, port=device.mqtt.port)
             for device in self._config.devices
         ]
 
@@ -149,7 +153,7 @@ class Config:
         return DeviceConnection(
             mqtt=MQTTParams(
                 host="localhost",
-                port=int(device.port),
+                port=device.port,
                 device_id=None,
             ),
             webserver=WebserverParams(
