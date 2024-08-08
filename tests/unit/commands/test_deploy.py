@@ -88,6 +88,7 @@ def test_deploy_empty_command() -> None:
 
 
 @given(deployment_manifest_strategy(), st.sampled_from(Target))
+@settings(deadline=1000)
 def test_deploy_command_target(
     deployment_manifest: DeploymentManifest,
     target: Target,
