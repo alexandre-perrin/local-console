@@ -22,6 +22,8 @@ import trio
 import typer
 from local_console.clients.agent import Agent
 from local_console.core.camera.enums import MQTTTopics
+from local_console.core.config import config_obj
+from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.plugin import PluginBase
 
 logger = logging.getLogger(__name__)
@@ -33,7 +35,10 @@ app = typer.Typer(
 
 @app.command(help="Get the status of deployment")
 def deployment() -> None:
-    agent = Agent()
+    config = config_obj.get_config()
+    device_config = config_obj.get_active_device_config()
+    schema = OnWireProtocol.from_iot_spec(config.evp.iot_platform)
+    agent = Agent(device_config.mqtt.host, device_config.mqtt.port, schema)
     agent.read_only_loop(
         subs_topics=[MQTTTopics.ATTRIBUTES.value],
         message_task=on_message_print_payload,
@@ -53,7 +58,10 @@ async def on_message_print_payload(cs: trio.CancelScope, agent: Agent) -> None:
 
 @app.command(help="Get telemetries being sent from the application")
 def telemetry() -> None:
-    agent = Agent()
+    config = config_obj.get_config()
+    device_config = config_obj.get_active_device_config()
+    schema = OnWireProtocol.from_iot_spec(config.evp.iot_platform)
+    agent = Agent(device_config.mqtt.host, device_config.mqtt.port, schema)
     agent.read_only_loop(
         subs_topics=[MQTTTopics.TELEMETRY.value],
         message_task=on_message_telemetry,
@@ -79,7 +87,10 @@ def instance(
         typer.Argument(help="Target instance of the RPC"),
     ]
 ) -> None:
-    agent = Agent()
+    config = config_obj.get_config()
+    device_config = config_obj.get_active_device_config()
+    schema = OnWireProtocol.from_iot_spec(config.evp.iot_platform)
+    agent = Agent(device_config.mqtt.host, device_config.mqtt.port, schema)
     agent.read_only_loop(
         subs_topics=[MQTTTopics.ATTRIBUTES.value],
         message_task=on_message_instance(instance_id),

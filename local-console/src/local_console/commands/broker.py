@@ -18,8 +18,8 @@ from typing import Annotated
 
 import trio
 import typer
-from local_console.core.config import get_config
-from local_console.core.schemas.schemas import AgentConfiguration
+from local_console.core.config import config_obj
+from local_console.core.schemas.schemas import DeviceConnection
 from local_console.plugin import PluginBase
 from local_console.servers.broker import spawn_broker
 
@@ -38,15 +38,15 @@ def broker(
     ] = False,
 ) -> None:
     logger.setLevel(logging.DEBUG if verbose else logging.INFO)
-    config = get_config()
-    trio.run(broker_task, config, verbose)
+    device_config = config_obj.get_active_device_config()
+    trio.run(broker_task, device_config, verbose)
 
 
-async def broker_task(config: AgentConfiguration, verbose: bool) -> None:
+async def broker_task(config: DeviceConnection, verbose: bool) -> None:
     logger.setLevel(logging.INFO)
     async with (
         trio.open_nursery() as nursery,
-        spawn_broker(config, nursery, verbose),
+        spawn_broker(config.mqtt.port, nursery, verbose),
     ):
         try:
             logger.info(f"MQTT broker listening on port {config.mqtt.port}")

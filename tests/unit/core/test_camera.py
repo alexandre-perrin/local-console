@@ -25,15 +25,18 @@ import pytest
 import trio
 from hypothesis import given
 from local_console.core.camera.enums import DeploymentType
-from local_console.core.camera.enums import DeployStage
 from local_console.core.camera.enums import MQTTTopics
 from local_console.core.camera.enums import StreamStatus
+from local_console.core.camera.mixin_mqtt import DEPLOY_STATUS_TOPIC
+from local_console.core.camera.mixin_mqtt import EA_STATE_TOPIC
+from local_console.core.camera.mixin_mqtt import SYSINFO_TOPIC
 from local_console.core.camera.qr import get_qr_object
 from local_console.core.camera.qr import qr_string
 from local_console.core.camera.state import CameraState
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.gui.drawer.classification import ClassificationDrawer
+from local_console.gui.enums import ApplicationConfiguration
 from local_console.gui.enums import ApplicationType
 from local_console.utils.tracking import TrackingVariable
 
@@ -43,7 +46,6 @@ from tests.strategies.configs import generate_random_characters
 from tests.strategies.configs import generate_valid_device_configuration
 from tests.strategies.configs import generate_valid_ip
 from tests.strategies.configs import generate_valid_port_number
-from tests.unit.core.test_deploy import template_deploy_status_for_manifest
 from tests.unit.gui.test_driver import create_new
 
 
@@ -202,6 +204,7 @@ async def test_process_state_topic_correct(device_config: DeviceConfiguration) -
         observer = AsyncMock()
         send_channel, _ = trio.open_memory_channel(0)
         camera = CameraState(send_channel, nursery, trio.lowlevel.current_trio_token())
+        camera.mqtt_client = AsyncMock()
         camera.device_config.subscribe_async(observer)
         observer.assert_not_awaited()
 
@@ -277,7 +280,7 @@ async def test_process_deploy_status_evp2(nursery) -> None:
 
 @pytest.mark.trio
 async def test_process_incoming_telemetry(nursery) -> None:
-    with patch("local_console.core.camera.state.datetime") as mock_time:
+    with patch("local_console.core.camera.mixin_mqtt.datetime") as mock_time:
         mock_now = Mock()
         mock_time.now.return_value = mock_now
 
@@ -293,9 +296,9 @@ async def test_process_incoming_telemetry(nursery) -> None:
 @pytest.mark.parametrize(
     "topic, function",
     [
-        (CameraState.EA_STATE_TOPIC, "_process_state_topic"),
-        (CameraState.SYSINFO_TOPIC, "_process_sysinfo_topic"),
-        (CameraState.DEPLOY_STATUS_TOPIC, "_process_deploy_status_topic"),
+        (EA_STATE_TOPIC, "_process_state_topic"),
+        (SYSINFO_TOPIC, "_process_sysinfo_topic"),
+        (DEPLOY_STATUS_TOPIC, "_process_deploy_status_topic"),
     ],
 )
 async def test_process_incoming(topic, function, nursery) -> None:
@@ -308,13 +311,13 @@ async def test_process_incoming(topic, function, nursery) -> None:
 
 
 @pytest.mark.trio
-async def test_process_deploy_fsm_evp2_happy(nursery, tmp_path) -> None:
+async def test_process_deploy_fsm_(nursery, tmp_path) -> None:
     send_channel, _ = trio.open_memory_channel(0)
     camera = CameraState(send_channel, nursery, trio.lowlevel.current_trio_token())
+    camera.mqtt_client = AsyncMock()
 
     # setup for parsing deployment status messages
-    camera._onwire_schema = OnWireProtocol.EVP2
-    wrap_dep_sta = lambda dep_sta: {"deploymentStatus": dep_sta}
+    camera.mqtt_client.onwire_schema = OnWireProtocol.EVP2
 
     # Dummy module to deploy
     module = tmp_path / "module"
@@ -323,73 +326,34 @@ async def test_process_deploy_fsm_evp2_happy(nursery, tmp_path) -> None:
     # async setup
     with (
         patch("local_console.core.commands.deploy.SyncWebserver"),
-        patch("local_console.core.camera.state.Agent") as mock_agent,
+        patch("local_console.core.camera.mixin_mqtt.Agent") as mock_agent,
+        patch(
+            "local_console.core.camera.state.DeployFSM.instantiate"
+        ) as mock_instantiate,
+        patch(
+            "local_console.core.camera.state.single_module_manifest_setup"
+        ) as mock_single_module,
+        patch.object(camera, "deploy_operation", AsyncMock()) as mock_deploy,
     ):
-        mock_agent.onwire_schema = camera._onwire_schema
         mock_agent.deploy = AsyncMock()
-
-        # initial state
-        assert camera.deploy_operation.value is None
-        assert camera.deploy_stage.value is None
 
         # trigger deployment
         camera.module_file.value = module
-        await camera.do_app_deployment(mock_agent)
-        assert camera.deploy_operation.value == DeploymentType.Application
-        assert camera.deploy_stage.value == DeployStage.WaitFirstStatus
-        dep_sta_tpl = template_deploy_status_for_manifest(camera._deploy_fsm._to_deploy)
-
-        dep_sta_tpl["reconcileStatus"] = "applying"
-        await camera._process_deploy_status_topic(wrap_dep_sta(dep_sta_tpl))
-        assert camera.deploy_stage.value == DeployStage.WaitAppliedConfirmation
-
-        dep_sta_tpl["reconcileStatus"] = "ok"
-        await camera._process_deploy_status_topic(wrap_dep_sta(dep_sta_tpl))
-        assert camera.deploy_stage.value == DeployStage.Done
-        assert camera.deploy_operation.value is None
-
-
-@pytest.mark.trio
-async def test_process_deploy_fsm_evp1_error(nursery, tmp_path) -> None:
-    send_channel, _ = trio.open_memory_channel(0)
-    camera = CameraState(send_channel, nursery, trio.lowlevel.current_trio_token())
-
-    # setup for parsing deployment status messages
-    camera._onwire_schema = OnWireProtocol.EVP1
-    wrap_dep_sta = lambda dep_sta: {"deploymentStatus": json.dumps(dep_sta)}
-
-    # Dummy module to deploy
-    module = tmp_path / "module"
-    module.touch()
-
-    # async setup
-    with (
-        patch("local_console.core.commands.deploy.SyncWebserver"),
-        patch("local_console.core.camera.state.Agent") as mock_agent,
-    ):
-        mock_agent.onwire_schema = camera._onwire_schema
-        mock_agent.deploy = AsyncMock()
-
-        # initial state
-        assert camera.deploy_operation.value is None
-        assert camera.deploy_stage.value is None
-
-        # trigger deployment
-        camera.module_file.value = module
-        await camera.do_app_deployment(mock_agent)
-        assert camera.deploy_operation.value == DeploymentType.Application
-        assert camera.deploy_stage.value == DeployStage.WaitAppliedConfirmation
-        dep_sta_tpl = template_deploy_status_for_manifest(camera._deploy_fsm._to_deploy)
-
-        dep_sta_tpl["reconcileStatus"] = "applying"
-        await camera._process_deploy_status_topic(wrap_dep_sta(dep_sta_tpl))
-        assert camera.deploy_stage.value == DeployStage.WaitAppliedConfirmation
-
-        module_id = next(iter(dep_sta_tpl["modules"].keys()))
-        dep_sta_tpl["modules"][module_id]["status"] = "error"
-        await camera._process_deploy_status_topic(wrap_dep_sta(dep_sta_tpl))
-        assert camera.deploy_stage.value == DeployStage.Error
-        assert camera.deploy_operation.value is None
+        await camera.do_app_deployment()
+        mock_instantiate.assert_called_once_with(
+            camera.mqtt_client.onwire_schema,
+            camera.mqtt_client.deploy,
+            camera.deploy_stage.aset,
+        )
+        mock_single_module.assert_called_once_with(
+            ApplicationConfiguration.NAME,
+            module,
+            mock_instantiate.return_value.webserver,
+        )
+        mock_instantiate.return_value.set_manifest.assert_called_once_with(
+            mock_single_module.return_value
+        )
+        mock_deploy.aset.assert_awaited_once_with(DeploymentType.Application)
 
 
 @pytest.mark.trio
@@ -472,12 +436,12 @@ async def test_process_camera_upload_image(tmp_path_factory, nursery):
 
     with (
         patch.object(
-            camera_state, "_save_into_input_directory"
-        ) as mock_save_into_input_directory,
+            camera_state, "_save_into_input_directory", return_value=Path("/tmp/a.jpg")
+        ) as mock_save,
     ):
-        file = root / "images/a.png"
+        file = root / "images/a.jpg"
         camera_state._process_camera_upload(file)
-        mock_save_into_input_directory.assert_called()
+        mock_save.assert_called()
         nursery.cancel_scope.cancel()
 
 
@@ -495,32 +459,48 @@ async def test_process_camera_upload_inferences_with_schema(tmp_path_factory, nu
     camera_state.image_dir_path.value = images_dir
 
     with (
-        patch.object(camera_state, "_save_into_input_directory") as mock_save,
         patch.object(
-            camera_state, "_get_flatbuffers_inference_data"
+            camera_state, "_save_into_input_directory", return_value=Path("/tmp/a.jpg")
+        ) as mock_save,
+        patch.object(
+            camera_state, "_get_flatbuffers_inference_data", return_value={"a": 3}
         ) as mock_get_flatbuffers_inference_data,
         patch(
-            "local_console.core.camera.state.get_output_from_inference_results"
+            "local_console.core.camera.mixin_streaming.get_output_from_inference_results"
         ) as mock_get_output_from_inference_results,
-        patch("local_console.gui.driver.Path.read_bytes", return_value=b"boo"),
-        patch("local_console.gui.driver.Path.read_text", return_value="boo"),
+        patch(
+            "local_console.core.camera.mixin_streaming.Path.read_bytes",
+            return_value=b"boo",
+        ),
+        patch(
+            "local_console.core.camera.mixin_streaming.Path.read_text",
+            return_value="boo",
+        ),
         patch.object(ClassificationDrawer, "process_frame"),
     ):
         camera_state.vapp_type = TrackingVariable(ApplicationType.CLASSIFICATION.value)
-        camera_state.inference_dir_path.value = inferences_dir
-        camera_state.latest_image_file = root / "inferences/a.png"
         camera_state.vapp_schema_file.value = Path("objectdetection.fbs")
-        file = root / "inferences/a.txt"
-        mock_save.return_value = file
-
-        mock_get_flatbuffers_inference_data.return_value = {"a": 3}
         ClassificationDrawer.process_frame.side_effect = Exception
-        camera_state._process_camera_upload(file)
 
-        mock_save.assert_called_once_with(file, inferences_dir)
+        image_file_in = root / "images/a.jpg"
+        image_file_saved = images_dir / image_file_in.name
+        mock_save.return_value = image_file_saved
+        camera_state._process_camera_upload(image_file_in)
+        mock_save.assert_called_with(image_file_in, images_dir)
+
+        # A pair has not been formed yet
+        ClassificationDrawer.process_frame.assert_not_called()
+
+        inference_file_in = root / "inferences/a.txt"
+        inference_file_saved = inferences_dir / inference_file_in.name
+        mock_save.return_value = inference_file_saved
+        camera_state._process_camera_upload(inference_file_in)
+        mock_save.assert_called_with(inference_file_in, inferences_dir)
+
         mock_get_output_from_inference_results.assert_called_once_with(b"boo")
         ClassificationDrawer.process_frame.assert_called_once_with(
-            camera_state.latest_image_file, {"a": 3}
+            image_file_saved,
+            mock_get_flatbuffers_inference_data.return_value,
         )
 
 
@@ -543,24 +523,38 @@ async def test_process_camera_upload_inferences_missing_schema(
         patch.object(camera_state, "_save_into_input_directory") as mock_save,
         patch.object(camera_state, "_get_flatbuffers_inference_data"),
         patch(
-            "local_console.core.camera.state.get_output_from_inference_results"
+            "local_console.core.camera.mixin_streaming.get_output_from_inference_results"
         ) as mock_get_output_from_inference_results,
-        patch("local_console.gui.driver.Path.read_bytes", return_value=b"boo"),
-        patch("local_console.gui.driver.Path.read_text", return_value="boo"),
+        patch(
+            "local_console.core.camera.mixin_streaming.Path.read_bytes",
+            return_value=b"boo",
+        ),
+        patch(
+            "local_console.core.camera.mixin_streaming.Path.read_text",
+            return_value="boo",
+        ),
         patch.object(ClassificationDrawer, "process_frame"),
         patch.object(Path, "read_text", return_value=""),
     ):
         camera_state.vapp_type = TrackingVariable(ApplicationType.CLASSIFICATION.value)
-        camera_state.inference_dir_path.value = inferences_dir
-        camera_state.latest_image_file = root / "inferences/a.png"
-        file = root / "inferences/a.txt"
-        mock_save.return_value = file
 
-        camera_state._process_camera_upload(file)
+        inference_file_in = root / "inferences/a.txt"
+        inference_file_saved = inferences_dir / inference_file_in.name
+        mock_save.return_value = inference_file_saved
+        camera_state._process_camera_upload(inference_file_in)
+        mock_save.assert_called_with(inference_file_in, inferences_dir)
 
-        mock_save.assert_called_once_with(file, inferences_dir)
+        # A pair has not been formed yet
+        ClassificationDrawer.process_frame.assert_not_called()
+
+        image_file_in = root / "images/a.jpg"
+        image_file_saved = images_dir / image_file_in.name
+        mock_save.return_value = image_file_saved
+        camera_state._process_camera_upload(image_file_in)
+        mock_save.assert_called_with(image_file_in, images_dir)
+
         mock_get_output_from_inference_results.assert_called_once_with(b"boo")
         ClassificationDrawer.process_frame.assert_called_once_with(
-            camera_state.latest_image_file,
+            image_file_saved,
             mock_get_output_from_inference_results.return_value,
         )

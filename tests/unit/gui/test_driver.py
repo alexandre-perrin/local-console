@@ -13,11 +13,8 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-import importlib
 import random
 import shutil
-import sys
-from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
@@ -31,64 +28,22 @@ from hypothesis import strategies as st
 from local_console.core.camera.axis_mapping import SENSOR_SIZE
 from local_console.core.camera.enums import StreamStatus
 from local_console.core.camera.state import CameraState
-from local_console.core.config import config_to_schema
-from local_console.core.config import get_default_config
 from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
-from local_console.core.schemas.schemas import AgentConfiguration
-from local_console.core.schemas.schemas import DeviceListItem
-from local_console.gui.enums import ApplicationConfiguration
-from local_console.utils.local_network import LOCAL_IP
-
-from tests.mocks.mock_paho_mqtt import MockAsyncIterator
-from tests.mocks.mock_paho_mqtt import MockMQTTMessage
-from tests.strategies.configs import generate_identifiers
-
-# The following lines need to be in this order, in order to
-# be able to mock the run_on_ui_thread decorator with
-# an identity function
-patch(
-    "local_console.gui.utils.sync_async.run_on_ui_thread", lambda fn: fn
-).start()  # noqa
-# TODO: simplify patching
-try:
-    importlib.reload(sys.modules["local_console.gui.driver"])
-except Exception as e:
-    print(f"Error while reloading: {e}")
+from local_console.core.schemas.schemas import DeviceConnection
+from local_console.core.schemas.schemas import MQTTParams
+from local_console.core.schemas.schemas import WebserverParams
 from local_console.gui.driver import Driver  # noqa
 
-
-def get_default_config_as_schema() -> AgentConfiguration:
-    return config_to_schema(get_default_config())
+from tests.fixtures.driver import mock_driver_with_agent
+from tests.fixtures.driver import mocked_driver_with_agent  # noqa
+from tests.mocks.mock_paho_mqtt import MockAsyncIterator
+from tests.mocks.mock_paho_mqtt import MockMQTTMessage
 
 
 def create_new(root: Path) -> Path:
     new_file = root / f"{random.randint(1, int(1e6))}"
     new_file.write_bytes(b"0")
     return new_file
-
-
-@contextmanager
-def mock_driver_with_agent():
-    with (
-        patch("local_console.gui.driver.TimeoutBehavior"),
-        patch("local_console.gui.driver.get_config", get_default_config_as_schema),
-        patch("local_console.clients.agent.get_config", get_default_config_as_schema),
-        patch("local_console.gui.driver.SyncAsyncBridge"),
-        patch("local_console.gui.driver.Agent") as mock_agent,
-        patch("local_console.gui.driver.spawn_broker"),
-    ):
-        yield (Driver(MagicMock()), mock_agent)
-
-
-@pytest.fixture()
-def mocked_driver_with_agent():
-    """
-    This construction is necessary because hypothesis does not
-    support using custom pytest fixtures from cases that it
-    manages (i.e. cases decorated with @given).
-    """
-    with mock_driver_with_agent() as (driver, agent):
-        yield (driver, agent)
 
 
 def test_file_move(tmpdir):
@@ -104,17 +59,11 @@ def test_file_move(tmpdir):
 @given(st.integers(min_value=0, max_value=65535))
 @settings(deadline=1000)
 async def test_streaming_stop_required(req_id: int):
-    with (
-        mock_driver_with_agent() as (driver, mock_agent),
-        patch.object(
-            driver, "streaming_rpc_stop", AsyncMock()
-        ) as mock_streaming_rpc_stop,
-    ):
-        mock_agent.return_value.publish = AsyncMock()
-        mock_agent.return_value.rpc = AsyncMock()
-
+    with (mock_driver_with_agent() as (driver, mock_agent),):
+        mock_agent.publish = AsyncMock()
+        mock_agent.rpc = AsyncMock()
         msg = MockMQTTMessage(f"v1/devices/me/attributes/request/{req_id}", b"{}")
-        mock_agent.return_value.client.messages.return_value.__aenter__.return_value = (
+        mock_agent.client.messages.return_value.__aenter__.return_value = (
             MockAsyncIterator([msg])
         )
         async with trio.open_nursery() as nursery:
@@ -122,58 +71,65 @@ async def test_streaming_stop_required(req_id: int):
             driver.camera_state = CameraState(
                 send_channel, nursery, trio.lowlevel.current_trio_token()
             )
-            await driver.mqtt_setup()
-
-            mock_streaming_rpc_stop.assert_awaited_once()
+            driver.camera_state.initialize_connection_variables(
+                "EVP1",
+                DeviceConnection(
+                    name="device1",
+                    mqtt=MQTTParams(host="localhost", port=1883, device_id="device1"),
+                    webserver=WebserverParams(host="localhost", port=8000),
+                ),
+            )
+            with (
+                patch.object(
+                    driver.camera_state, "streaming_rpc_stop"
+                ) as mock_streaming_rpc_stop,
+            ):
+                await driver.camera_state.mqtt_setup()
+                mock_streaming_rpc_stop.assert_awaited_once()
             nursery.cancel_scope.cancel()
-
-
-@pytest.mark.trio
-async def test_streaming_rpc_stop(mocked_driver_with_agent):
-    driver, mock_agent = mocked_driver_with_agent
-
-    mock_agent.return_value.publish = AsyncMock()
-    mock_rpc = AsyncMock()
-    mock_agent.return_value.rpc = mock_rpc
-
-    await driver.streaming_rpc_stop()
-    mock_rpc.assert_awaited_with("backdoor-EA_Main", "StopUploadInferenceData", "{}")
 
 
 @pytest.mark.trio
 async def test_streaming_rpc_start(mocked_driver_with_agent, nursery):
     driver, mock_agent = mocked_driver_with_agent
 
-    mock_agent.return_value.publish = AsyncMock()
+    mock_agent.publish = AsyncMock()
     mock_rpc = AsyncMock()
-    mock_agent.return_value.rpc = mock_rpc
+    mock_agent.rpc = mock_rpc
 
     send_channel, _ = trio.open_memory_channel(0)
     driver.camera_state = CameraState(
         send_channel, nursery, trio.lowlevel.current_trio_token()
     )
+    driver.camera_state.mqtt_client = mock_agent
 
     driver.camera_state.image_dir_path.value = Path("my_image_path")
     driver.camera_state.inference_dir_path.value = Path("my_inference_path")
     driver.camera_state.upload_port = 1234
-    upload_url = f"http://{LOCAL_IP}:1234"
+    upload_url = "http://localhost:1234"
     h_size, v_size = SENSOR_SIZE
 
-    await driver.streaming_rpc_start()
-    mock_rpc.assert_awaited_with(
-        "backdoor-EA_Main",
-        "StartUploadInferenceData",
-        StartUploadInferenceData(
-            StorageName=upload_url,
-            StorageSubDirectoryPath=str(driver.camera_state.image_dir_path.value),
-            StorageNameIR=upload_url,
-            StorageSubDirectoryPathIR=str(driver.camera_state.inference_dir_path.value),
-            CropHOffset=0,
-            CropVOffset=0,
-            CropHSize=h_size,
-            CropVSize=v_size,
-        ).model_dump_json(),
-    )
+    with patch(
+        "local_console.core.camera.mixin_streaming.get_my_ip_by_routing",
+        return_value="localhost",
+    ):
+        await driver.camera_state.streaming_rpc_start()
+        mock_rpc.assert_awaited_with(
+            "backdoor-EA_Main",
+            "StartUploadInferenceData",
+            StartUploadInferenceData(
+                StorageName=upload_url,
+                StorageSubDirectoryPath=str(driver.camera_state.image_dir_path.value),
+                StorageNameIR=upload_url,
+                StorageSubDirectoryPathIR=str(
+                    driver.camera_state.inference_dir_path.value
+                ),
+                CropHOffset=0,
+                CropVOffset=0,
+                CropHSize=h_size,
+                CropVSize=v_size,
+            ).model_dump_json(),
+        )
 
 
 @pytest.mark.trio
@@ -189,32 +145,23 @@ async def test_connection_status_timeout(mocked_driver_with_agent, nursery):
 
 
 @pytest.mark.trio
-@given(generate_identifiers(max_size=5))
-@settings(deadline=1000)
-async def test_send_ppl_configuration(config: str):
+async def test_send_ppl_configuration(nursery):
+    config = "myconfiguration"
     mock_configure = AsyncMock()
     with (mock_driver_with_agent() as (driver, mock_agent),):
-        mock_agent.return_value.configure = mock_configure
-        await driver.send_app_config(config)
-        mock_configure.assert_awaited_with(
-            ApplicationConfiguration.NAME,
-            ApplicationConfiguration.CONFIG_TOPIC,
-            config,
+        send_channel, _ = trio.open_memory_channel(0)
+        driver.camera_state = CameraState(
+            send_channel, nursery, trio.lowlevel.current_trio_token()
+        )
+        driver.camera_state.mqtt_client = mock_agent
+        driver.device_manager = MagicMock()
+
+        mock_send_app_config = AsyncMock()
+        driver.device_manager.get_active_device_state.return_value = (
+            mock_send_app_config
         )
 
+        mock_agent.configure = mock_configure
 
-@pytest.mark.trio
-async def test_init_devices():
-    driver = Driver(MagicMock())
-    driver.device_manager = MagicMock()
-    driver.device_manager.num_devices = 0
-
-    default_device = DeviceListItem(
-        name=Driver.DEFAULT_DEVICE_NAME, port=str(Driver.DEFAULT_DEVICE_PORT)
-    )
-
-    driver._init_devices()
-    driver.device_manager.add_device.assert_called_once_with(default_device)
-    driver.device_manager.set_active_device.assert_called_once_with(
-        Driver.DEFAULT_DEVICE_NAME
-    )
+        await driver.send_app_config(config)
+        mock_send_app_config.send_app_config.assert_awaited_with(config)

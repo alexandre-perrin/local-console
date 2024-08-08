@@ -26,7 +26,6 @@ from string import Template
 from tempfile import TemporaryDirectory
 
 import trio
-from local_console.core.schemas.schemas import AgentConfiguration
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +34,7 @@ broker_assets = Path(__file__).parents[1] / "assets" / "broker"
 
 @asynccontextmanager
 async def spawn_broker(
-    config: AgentConfiguration, nursery: trio.Nursery, verbose: bool
+    port: int, nursery: trio.Nursery, verbose: bool
 ) -> AsyncIterator[trio.Process]:
 
     broker_bin = which("mosquitto")
@@ -46,7 +45,7 @@ async def spawn_broker(
 
     with TemporaryDirectory() as tmp_dir:
         config_file = Path(tmp_dir) / "broker.toml"
-        populate_broker_conf(config, config_file)
+        populate_broker_conf(port, config_file)
 
         cmd = [broker_bin, "-v", "-c", str(config_file)]
         invocation = partial(
@@ -77,8 +76,8 @@ async def spawn_broker(
         broker_proc.kill()
 
 
-def populate_broker_conf(config: AgentConfiguration, config_file: Path) -> None:
-    data = {"mqtt_port": str(config.mqtt.port)}
+def populate_broker_conf(port: int, config_file: Path) -> None:
+    data = {"mqtt_port": str(port)}
     variant = "no-tls"
     logger.info(f"MQTT broker in {variant} mode")
     template_file = broker_assets / f"config.{variant}.toml.tpl"

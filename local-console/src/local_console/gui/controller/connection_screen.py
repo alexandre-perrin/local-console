@@ -25,7 +25,6 @@ from local_console.gui.utils.validators import validate_port
 from local_console.gui.view.connection_screen.connection_screen import (
     ConnectionScreenView,
 )
-from local_console.utils.local_network import get_my_ip_by_routing
 from local_console.utils.local_network import replace_local_address
 
 
@@ -43,8 +42,21 @@ class ConnectionScreenController(BaseController):
         self.view = ConnectionScreenView(controller=self, model=self.model)
 
     def refresh(self) -> None:
+        assert self.driver.device_manager
         # Delete previous QR code
         self.view.ids.img_qr_display.texture = None
+
+        # Trigger for connection status
+        proxy = self.driver.device_manager.get_active_device_proxy()
+        state = self.driver.device_manager.get_active_device_state()
+        assert state.is_connected.value is not None
+        self.view.on_device_connection_update(proxy, state.is_connected.value)
+
+    def unbind(self) -> None:
+        self.driver.gui.mdl.unbind(is_connected=self.view.on_device_connection_update)
+
+    def bind(self) -> None:
+        self.driver.gui.mdl.bind(is_connected=self.view.on_device_connection_update)
 
     def get_view(self) -> ConnectionScreenView:
         return self.view
@@ -185,22 +197,8 @@ class ConnectionScreenController(BaseController):
 
         return warning_message == ""
 
-    def refresh_local_ip(self) -> None:
-        ip = get_my_ip_by_routing()
-        if ip == "":
-            # In case of no connectivity
-            self.view.display_info(
-                "Warning, No Local IP Address.\nPlease check connectivity."
-            )
-        assert self.driver.camera_state
-
-        if self.driver.camera_state.local_ip.value != ip:
-            self.view.display_info("Warning, Local IP Address is updated.")
-            self.driver.camera_state.local_ip.value = ip
-
     def qr_generate(self) -> None:
         # Get the local IP since it might be updated.
-        self.refresh_local_ip()
         if not self.validate_all_settings():
             return
         assert self.driver.camera_state

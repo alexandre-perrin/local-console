@@ -14,7 +14,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 import logging
-from typing import Any
 from typing import Optional
 
 from local_console.gui.model.camera_proxy import CameraStateProxy
@@ -37,11 +36,17 @@ class LocalIPInput(GUITooltip, FocusText):
 
 
 class ConnectionScreenView(BaseScreenView):
+
     INPUTBOX_HEIGHT = "32dp"
 
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        self.app.mdl.bind(is_connected=self.on_device_connection_update)
+    def on_enter(self) -> None:
+        ip = get_my_ip_by_routing()
+        self.ids.lbl_local_ip.text = ip
+        if ip == "":
+            # In case of no connectivity
+            self.view.display_info(
+                "Warning, No Local IP Address.\nPlease check connectivity."
+            )
 
     def on_device_connection_update(
         self, proxy: CameraStateProxy, value: Optional[bool]

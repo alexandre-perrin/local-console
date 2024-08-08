@@ -25,10 +25,6 @@ from local_console.gui.view.base_screen import BaseScreenView
 class HomeScreenView(BaseScreenView):
     version_number = f"Version: {version_info('local-console')}"
 
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        self.app.mdl.bind(device_config=self.versions_refresh)
-
     def versions_refresh(
         self, proxy: CameraStateProxy, value: Optional[DeviceConfiguration]
     ) -> None:
@@ -43,3 +39,6 @@ class HomeScreenView(BaseScreenView):
         self.ids.txt_app_loader_ver.text = (
             value.Version.ApLoaderVersion if value else ""
         )
+
+    def on_enter(self, *args: Any) -> None:
+        self.app.switch_proxy()

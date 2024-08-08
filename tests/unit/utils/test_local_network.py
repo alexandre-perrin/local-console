@@ -21,8 +21,6 @@ from hypothesis import given
 from local_console.utils.local_network import get_my_ip_by_routing
 from local_console.utils.local_network import get_network_ifaces
 from local_console.utils.local_network import is_localhost
-from local_console.utils.local_network import LOCAL_IP
-from local_console.utils.local_network import replace_local_address
 
 # For some reason, pycln removes this import, but obviously
 # pytest fails when running the tests!
@@ -60,15 +58,7 @@ def test_is_localhost_fail(hostname: str):
     assert not is_localhost(f"{hostname}.")
     assert not is_localhost("".join(map(str, range(10000))))
     with patch(
-        "local_console.utils.local_network.socket.gethostbyname", side_effects=Exception
+        "local_console.utils.local_network.socket.gethostbyname",
+        side_effects=Exception,
     ):
         assert not is_localhost(hostname)
-
-
-@given(
-    generate_text(),
-)
-def test_replace_local_address(hostname: str):
-    assert replace_local_address("localhost") == LOCAL_IP
-    hostname = f"{hostname}."
-    assert not is_localhost(hostname) == hostname

@@ -26,9 +26,10 @@ from local_console.core.camera.state import CameraState
 from local_console.core.commands.ota_deploy import configuration_spec
 from local_console.core.commands.ota_deploy import get_network_id
 from local_console.core.commands.ota_deploy import get_network_ids
-from local_console.core.config import get_config
+from local_console.core.config import config_obj
 from local_console.core.schemas.edge_cloud_if_v1 import DnnDelete
 from local_console.core.schemas.edge_cloud_if_v1 import DnnDeleteBody
+from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.servers.webserver import AsyncWebserver
 from local_console.utils.local_network import get_my_ip_by_routing
 
@@ -48,7 +49,10 @@ async def deployment_task(
 async def undeploy_step(
     state: CameraState, network_id: str, timeout_notify: Callable
 ) -> None:
-    ephemeral_agent = Agent()
+    config = config_obj.get_config()
+    config_device = config_obj.get_active_device_config()
+    schema = OnWireProtocol.from_iot_spec(config.evp.iot_platform)
+    ephemeral_agent = Agent(config_device.mqtt.host, config_device.mqtt.port, schema)
 
     timeout_secs = 30
     model_is_deployed = True
@@ -92,9 +96,11 @@ async def undeploy_step(
 async def deploy_step(
     state: CameraState, network_id: str, package_file: Path, timeout_notify: Callable
 ) -> None:
-    config = get_config()
-    ephemeral_agent = Agent(config)
-    webserver_port = config.webserver.port
+    config = config_obj.get_config()
+    config_device = config_obj.get_active_device_config()
+    schema = OnWireProtocol.from_iot_spec(config.evp.iot_platform)
+    ephemeral_agent = Agent(config_device.mqtt.host, config_device.mqtt.port, schema)
+    webserver_port = config_device.webserver.port
 
     with TemporaryDirectory(prefix="lc_deploy_") as temporary_dir:
         tmp_dir = Path(temporary_dir)

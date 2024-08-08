@@ -23,7 +23,6 @@ from typing import Optional
 import trio
 from kivy.clock import Clock
 
-
 AsyncFunc = Callable[..., Awaitable[Any]]
 WorkItem = tuple[AsyncFunc, tuple[Any]]
 

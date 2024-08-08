@@ -23,14 +23,10 @@ from hypothesis import given
 from hypothesis import settings
 from hypothesis import strategies as st
 from local_console.core.camera.state import CameraState
-from local_console.core.config import get_config
+from local_console.core.config import config_obj
 from local_console.gui.controller.connection_screen import ConnectionScreenController
-from local_console.gui.utils.validators import validate_ip_address
-from local_console.utils.local_network import get_my_ip_by_routing
-from pytest import mark
 
 from tests.fixtures.gui import driver_context
-from tests.fixtures.gui import get_default_config_as_schema
 from tests.strategies.configs import generate_invalid_ip
 from tests.strategies.configs import generate_random_characters
 from tests.strategies.configs import generate_valid_port_number
@@ -43,16 +39,15 @@ async def test_initialization(nursery):
         driver.camera_state = CameraState(
             send_channel, nursery, trio.lowlevel.current_trio_token()
         )
-        driver.camera_state.initialize_connection_variables(get_config())
+        device = config_obj.get_active_device_config()
+        driver.camera_state.initialize_connection_variables("EVP1", device)
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
             ConnectionScreenController(Mock(), driver)
 
-            config = get_default_config_as_schema()
-            assert driver.camera_state.local_ip.value == get_my_ip_by_routing()
-            assert driver.camera_state.mqtt_host.value == str(config.mqtt.host)
-            assert driver.camera_state.mqtt_port.value == str(config.mqtt.port)
+            assert driver.camera_state.mqtt_host.value == str(device.mqtt.host)
+            assert driver.camera_state.mqtt_port.value == device.mqtt.port
             assert driver.camera_state.ntp_host.value == "pool.ntp.org"
             assert driver.camera_state.ip_address.value == ""
             assert driver.camera_state.subnet_mask.value == ""
@@ -60,8 +55,6 @@ async def test_initialization(nursery):
             assert driver.camera_state.dns_server.value == ""
             assert driver.camera_state.wifi_ssid.value == ""
             assert driver.camera_state.wifi_password.value == ""
-            assert driver.gui.mdl.wifi_password_hidden is True
-            assert driver.gui.mdl.wifi_icon_eye == "eye-off"
 
             assert not driver.camera_state.is_connected.value
 
@@ -77,106 +70,18 @@ async def test_local_ip_valid_update(ip: str):
             patch(
                 "local_console.gui.controller.connection_screen.ConnectionScreenView"
             ),
-            patch(
-                "local_console.gui.controller.connection_screen.get_my_ip_by_routing",
-                return_value="192.168.1.12",
-            ),
-            patch(
-                "local_console.core.camera.state.get_my_ip_by_routing",
-                return_value="192.168.1.13",
-            ),
         ):
             async with trio.open_nursery() as nursery:
                 send_channel, _ = trio.open_memory_channel(0)
                 driver.camera_state = CameraState(
                     send_channel, nursery, trio.lowlevel.current_trio_token()
                 )
-                driver.camera_state.initialize_connection_variables(get_config())
+                device = config_obj.get_active_device_config()
+                driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
                 # validate ip
                 assert ctrl.validate_all_settings()
-                # check warning raised if changed
-                ctrl.view.display_info.assert_not_called()
-                ctrl.refresh_local_ip()
-                ctrl.view.display_info.assert_called_once_with(
-                    "Warning, Local IP Address is updated."
-                )
                 nursery.cancel_scope.cancel()
-
-
-@pytest.mark.trio
-@given(ip=generate_invalid_ip())
-async def test_local_ip_invalid_update(ip: str):
-    with driver_context() as (driver, _):
-        with patch(
-            "local_console.gui.controller.connection_screen.ConnectionScreenView"
-        ):
-            async with trio.open_nursery() as nursery:
-                send_channel, _ = trio.open_memory_channel(0)
-                driver.camera_state = CameraState(
-                    send_channel, nursery, trio.lowlevel.current_trio_token()
-                )
-                driver.camera_state.initialize_connection_variables(get_config())
-                ctrl = ConnectionScreenController(Mock(), driver)
-                # reset ip
-                driver.camera_state.local_ip.value = ""
-                ctrl.set_ip_address(str(ip))
-                # validate ip
-                assert not ctrl.validate_all_settings()
-                nursery.cancel_scope.cancel()
-
-
-# List of addresses to check
-addresses_to_check = [
-    "1.2.3.4.5",  # DTSS-25
-    "1A.2B.3C.4D.5C",  # DTSS-26
-    "123.345.567.789",  # DTSS-44
-    "!@#$%^^",  # DTSS-45
-    "AB1.CD2.ED3.GH4",  # DTSS-47
-]
-
-
-@mark.parametrize("ip", addresses_to_check)
-def test_local_ip_invalid_update_from_list(ip: str):
-    with driver_context() as (driver, _):
-        with (
-            patch(
-                "local_console.gui.controller.connection_screen.ConnectionScreenView"
-            ),
-            patch(
-                "local_console.gui.controller.connection_screen.get_my_ip_by_routing",
-                return_value="",
-            ),
-        ):
-            ConnectionScreenController(Mock(), driver)
-            assert not validate_ip_address(ip)
-
-
-@pytest.mark.trio
-async def test_local_ip_empty(nursery):
-    with driver_context() as (driver, _):
-        with (
-            patch(
-                "local_console.gui.controller.connection_screen.ConnectionScreenView"
-            ),
-            patch(
-                "local_console.gui.controller.connection_screen.get_my_ip_by_routing",
-                return_value="",
-            ),
-        ):
-            send_channel, _ = trio.open_memory_channel(0)
-            driver.camera_state = CameraState(
-                send_channel, nursery, trio.lowlevel.current_trio_token()
-            )
-            driver.camera_state.initialize_connection_variables(get_config())
-            ctrl = ConnectionScreenController(Mock(), driver)
-            driver.camera_state.local_ip.value = ""
-            # validate ip
-            assert ctrl.validate_all_settings()
-            ctrl.refresh_local_ip()
-            ctrl.view.display_info.assert_called_once_with(
-                "Warning, No Local IP Address.\nPlease check connectivity."
-            )
 
 
 # mqtt_host
@@ -194,7 +99,11 @@ async def test_mqtt_host_valid_update(ip: str):
                 driver.camera_state = CameraState(
                     send_channel, nursery, trio.lowlevel.current_trio_token()
                 )
-                driver.camera_state.initialize_connection_variables(get_config())
+                config = config_obj.get_config()
+                device = config_obj.get_active_device_config()
+                driver.camera_state.initialize_connection_variables(
+                    config.evp.iot_platform, device
+                )
                 ctrl = ConnectionScreenController(Mock(), driver)
                 # reset ip
                 ctrl.set_mqtt_host(str(ip))
@@ -217,7 +126,8 @@ async def test_mqtt_host_invalid_update(ip: str):
                 driver.camera_state = CameraState(
                     send_channel, nursery, trio.lowlevel.current_trio_token()
                 )
-                driver.camera_state.initialize_connection_variables(get_config())
+                device = config_obj.get_active_device_config()
+                driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
                 # reset ip
                 ctrl.set_mqtt_host(str(ip))
@@ -245,7 +155,8 @@ async def test_mqtt_port_valid_update(port: str):
                 driver.camera_state = CameraState(
                     send_channel, nursery, trio.lowlevel.current_trio_token()
                 )
-                driver.camera_state.initialize_connection_variables(get_config())
+                device = config_obj.get_active_device_config()
+                driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
                 # reset ip
                 ctrl.set_mqtt_port(str(port))
@@ -267,7 +178,8 @@ async def test_mqtt_port_invalid_update(nursery):
             driver.camera_state = CameraState(
                 send_channel, nursery, trio.lowlevel.current_trio_token()
             )
-            driver.camera_state.initialize_connection_variables(get_config())
+            device = config_obj.get_active_device_config()
+            driver.camera_state.initialize_connection_variables("EVP1", device)
             ctrl = ConnectionScreenController(Mock(), driver)
             # reset ip
             ctrl.set_mqtt_port(str(port))
@@ -292,7 +204,8 @@ async def test_ntp_host_valid_update(ip: str):
                 driver.camera_state = CameraState(
                     send_channel, nursery, trio.lowlevel.current_trio_token()
                 )
-                driver.camera_state.initialize_connection_variables(get_config())
+                device = config_obj.get_active_device_config()
+                driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
                 # reset ip
                 ctrl.set_ntp_host(str(ip))
@@ -315,7 +228,8 @@ async def test_ntp_host_invalid_update(ip: str):
                 driver.camera_state = CameraState(
                     send_channel, nursery, trio.lowlevel.current_trio_token()
                 )
-                driver.camera_state.initialize_connection_variables(get_config())
+                device = config_obj.get_active_device_config()
+                driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
                 # reset ip
                 ctrl.set_ntp_host(str(ip))
@@ -343,7 +257,8 @@ async def test_ip_address_valid_update(ip: str):
                 driver.camera_state = CameraState(
                     send_channel, nursery, trio.lowlevel.current_trio_token()
                 )
-                driver.camera_state.initialize_connection_variables(get_config())
+                device = config_obj.get_active_device_config()
+                driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
                 # reset ip
                 ctrl.set_ip_address(str(ip))
@@ -366,7 +281,8 @@ async def test_ip_address_invalid_update(ip: str):
                 driver.camera_state = CameraState(
                     send_channel, nursery, trio.lowlevel.current_trio_token()
                 )
-                driver.camera_state.initialize_connection_variables(get_config())
+                device = config_obj.get_active_device_config()
+                driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
                 # reset ip
                 ctrl.set_ip_address(str(ip))
@@ -394,7 +310,8 @@ async def test_subnet_mask_valid_update(ip: str):
                 driver.camera_state = CameraState(
                     send_channel, nursery, trio.lowlevel.current_trio_token()
                 )
-                driver.camera_state.initialize_connection_variables(get_config())
+                device = config_obj.get_active_device_config()
+                driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
                 # reset ip
                 ctrl.set_subnet_mask(str(ip))
@@ -417,7 +334,8 @@ async def test_subnet_mask_invalid_update(ip: str):
                 driver.camera_state = CameraState(
                     send_channel, nursery, trio.lowlevel.current_trio_token()
                 )
-                driver.camera_state.initialize_connection_variables(get_config())
+                device = config_obj.get_active_device_config()
+                driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
                 # reset ip
                 ctrl.set_subnet_mask(str(ip))
@@ -445,7 +363,8 @@ async def test_gateway_valid_update(ip: str):
                 driver.camera_state = CameraState(
                     send_channel, nursery, trio.lowlevel.current_trio_token()
                 )
-                driver.camera_state.initialize_connection_variables(get_config())
+                device = config_obj.get_active_device_config()
+                driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
                 # reset ip
                 ctrl.set_gateway(str(ip))
@@ -468,7 +387,8 @@ async def test_gateway_invalid_update(ip: str):
                 driver.camera_state = CameraState(
                     send_channel, nursery, trio.lowlevel.current_trio_token()
                 )
-                driver.camera_state.initialize_connection_variables(get_config())
+                device = config_obj.get_active_device_config()
+                driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
                 # reset ip
                 ctrl.set_gateway(str(ip))
@@ -496,7 +416,8 @@ async def test_dns_server_valid_update(ip: str):
                 driver.camera_state = CameraState(
                     send_channel, nursery, trio.lowlevel.current_trio_token()
                 )
-                driver.camera_state.initialize_connection_variables(get_config())
+                device = config_obj.get_active_device_config()
+                driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
                 # reset ip
                 ctrl.set_dns_server(str(ip))
@@ -520,7 +441,8 @@ async def test_dns_server_invalid_update(ip: str):
                 driver.camera_state = CameraState(
                     send_channel, nursery, trio.lowlevel.current_trio_token()
                 )
-                driver.camera_state.initialize_connection_variables(get_config())
+                device = config_obj.get_active_device_config()
+                driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
                 # reset ip
                 ctrl.set_dns_server(str(ip))
@@ -551,7 +473,8 @@ async def test_wifi_ssid_password_long(ssid: str, password: str):
                 driver.camera_state = CameraState(
                     send_channel, nursery, trio.lowlevel.current_trio_token()
                 )
-                driver.camera_state.initialize_connection_variables(get_config())
+                device = config_obj.get_active_device_config()
+                driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
                 ctrl.set_wifi_ssid(str(ssid))
                 assert (

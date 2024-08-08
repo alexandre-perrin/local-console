@@ -71,9 +71,6 @@ def get_my_ip_by_routing() -> str:
     return chosen.address
 
 
-LOCAL_IP: str = get_my_ip_by_routing()
-
-
 def is_localhost(hostname: str) -> bool:
     try:
         resolved_ip = socket.gethostbyname(hostname)
@@ -86,10 +83,6 @@ def is_localhost(hostname: str) -> bool:
     except Exception as e:
         logger.warning(f"Unknown error while getting host by name: {e}")
     return False
-
-
-def replace_local_address(hostname: str) -> str:
-    return LOCAL_IP if is_localhost(hostname) else hostname
 
 
 def is_valid_host(hostname: str) -> bool:
@@ -107,3 +100,10 @@ def is_valid_host(hostname: str) -> bool:
         logger.warning(f"An unexpected error occurred - {hostname}: {e}")
         return False
     return True
+
+
+LOCAL_IP: str = get_my_ip_by_routing()
+
+
+def replace_local_address(hostname: str) -> str:
+    return LOCAL_IP if is_localhost(hostname) else hostname

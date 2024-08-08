@@ -25,16 +25,13 @@ class BaseController(ABC):
 
         For instance, if a widget needs to be disabled based on a specific state property.
         """
-        pass
 
     def bind(self) -> None:
         """
         Bind view properties with state
         """
-        pass
 
     def unbind(self) -> None:
         """
         Unbind view properties with state
         """
-        pass

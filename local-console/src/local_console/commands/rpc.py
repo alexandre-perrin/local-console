@@ -19,6 +19,8 @@ from typing import Annotated
 import trio
 import typer
 from local_console.clients.agent import Agent
+from local_console.core.config import config_obj
+from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.plugin import PluginBase
 
 app = typer.Typer()
@@ -48,7 +50,10 @@ def rpc(
 
 
 async def rpc_task(instance_id: str, method: str, params: str) -> None:
-    agent = Agent()  # type: ignore
+    config = config_obj.get_config()
+    config_device = config_obj.get_active_device_config()
+    schema = OnWireProtocol.from_iot_spec(config.evp.iot_platform)
+    agent = Agent(config_device.mqtt.host, config_device.mqtt.port, schema)
     await agent.initialize_handshake()
     async with agent.mqtt_scope([]):
         await agent.rpc(instance_id, method, params)

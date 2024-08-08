@@ -23,6 +23,8 @@ import trio
 import typer
 from local_console.clients.agent import Agent
 from local_console.core.camera.enums import MQTTTopics
+from local_console.core.config import config_obj
+from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.plugin import PluginBase
 
 logger = logging.getLogger(__name__)
@@ -45,7 +47,10 @@ def logs(
         ),
     ] = 10,
 ) -> None:
-    agent = Agent()  # type: ignore
+    config = config_obj.get_config()
+    config_device = config_obj.get_active_device_config()
+    schema = OnWireProtocol.from_iot_spec(config.evp.iot_platform)
+    agent = Agent(config_device.mqtt.host, config_device.mqtt.port, schema)
     try:
         trio.run(agent.request_instance_logs, instance_id)
         agent.read_only_loop(

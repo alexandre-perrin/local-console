@@ -14,36 +14,31 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 from contextlib import contextmanager
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import pytest
-from local_console.gui.model.camera_proxy import CameraStateProxy
+from local_console.gui.driver import Driver
 
 
 @contextmanager
-def driver_context():
-    """
-    Enables testing the Driver business logic with the GUI
-    objects mocked, leveraging the CameraStateProxy interface.
-    """
+def mock_driver_with_agent():
+    agent = MagicMock()
     with (
-        patch("local_console.gui.utils.sync_async.SyncAsyncBridge"),
-        patch("local_console.gui.driver.Driver.from_sync"),
+        patch("local_console.core.camera.mixin_mqtt.TimeoutBehavior"),
+        patch("local_console.core.camera.mixin_mqtt.Agent", return_value=agent),
+        patch("local_console.core.camera.mixin_mqtt.spawn_broker"),
+        patch("local_console.gui.driver.SyncAsyncBridge"),
     ):
-        from local_console.gui.driver import Driver
-
-        mock_gui = Mock()
-        mock_gui.mdl = CameraStateProxy()
-        driver = Driver(mock_gui)
-        yield driver, mock_gui
+        yield (Driver(MagicMock()), agent)
 
 
 @pytest.fixture()
-def driver_set():
+def mocked_driver_with_agent():
     """
-    Enables testing the Driver business logic with the GUI
-    objects mocked, leveraging the CameraStateProxy interface.
+    This construction is necessary because hypothesis does not
+    support using custom pytest fixtures from cases that it
+    manages (i.e. cases decorated with @given).
     """
-    with driver_context() as (driver, mock_gui):
-        yield driver, mock_gui
+    with mock_driver_with_agent() as (driver, agent):
+        yield (driver, agent)

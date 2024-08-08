@@ -32,7 +32,6 @@ from local_console.core.schemas.edge_cloud_if_v1 import Status
 from local_console.core.schemas.edge_cloud_if_v1 import Version
 
 from tests.fixtures.gui import driver_set
-from tests.fixtures.gui import get_default_config_as_schema
 
 
 @pytest.fixture(params=["Application Firmware", "Sensor Firmware"])
@@ -304,10 +303,6 @@ async def test_update_firmware_task_valid(tmp_path, nursery):
     with (
         patch.object(camera_state, "ota_event") as mock_ota_event,
         patch("local_console.core.camera.firmware.Agent", return_value=mock_agent),
-        patch(
-            "local_console.core.camera.firmware.get_config",
-            return_value=get_default_config_as_schema(),
-        ),
         patch("local_console.core.camera.firmware.AsyncWebserver"),
         patch(
             "local_console.core.camera.firmware.get_my_ip_by_routing",

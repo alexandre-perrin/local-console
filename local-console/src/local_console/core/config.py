@@ -13,28 +13,20 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-import ast
-import configparser
 import json
 import logging
-import shutil
 from pathlib import Path
-from typing import Any
-from typing import get_args
-from typing import get_type_hints
 from typing import Optional
 
 from local_console.core.enums import config_paths
-from local_console.core.schemas.schemas import AgentConfiguration
 from local_console.core.schemas.schemas import DeploymentManifest
 from local_console.core.schemas.schemas import DeviceConnection
 from local_console.core.schemas.schemas import DeviceListItem
-from local_console.core.schemas.schemas import DeviceParams
 from local_console.core.schemas.schemas import EVPParams
-from local_console.core.schemas.schemas import IPAddress
+from local_console.core.schemas.schemas import GlobalConfiguration
 from local_console.core.schemas.schemas import MQTTParams
+from local_console.core.schemas.schemas import Persist
 from local_console.core.schemas.schemas import WebserverParams
-from pydantic import BaseModel
 from pydantic import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -46,303 +38,128 @@ class ConfigError(Exception):
     """
 
 
-def get_default_config() -> configparser.ConfigParser:
-    config = configparser.ConfigParser()
-    config["evp"] = {
-        "iot_platform": "EVP1",
-    }
-    config["mqtt"] = {"host": "localhost", "port": "1883"}
-    config["webserver"] = {"host": "localhost", "port": "8000"}
-    config["devices"] = {"device_folders": "[]"}
-    return config
-
-
-def setup_default_config() -> None:
-    config_file = config_paths.config_path
-    if not config_file.is_file():
-        logger.info("Generating default config_paths")
-        try:
-            config_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(config_paths.config_path, "w") as f:
-                get_default_config().write(f)
-        except OSError as e:
-            raise ConfigError(
-                f"Error while generating folder {config_file.parent}: {e}"
-            )
-
-
-def parse_ini(config_parser: configparser.ConfigParser) -> str:
-    parsed_config = ["\n"]
-    for section in config_parser.sections():
-        parsed_config.append(f"[{section}]")
-        for key, value in config_parser.items(section):
-            parsed_config.append(f"{key} = {value}")
-    return "\n".join(parsed_config)
-
-
-def config_to_schema(config: configparser.ConfigParser) -> AgentConfiguration:
-    try:
-        return AgentConfiguration(
-            evp=EVPParams(
-                iot_platform=config["evp"]["iot_platform"],
-            ),
-            mqtt=MQTTParams(
-                host=IPAddress(ip_value=config["mqtt"]["host"]),
-                port=int(config["mqtt"]["port"]),
-                device_id=config["mqtt"].get("device_id", None),
-            ),
-            webserver=WebserverParams(
-                host=IPAddress(ip_value=config["webserver"]["host"]),
-                port=int(config["webserver"]["port"]),
-            ),
-        )
-    except KeyError as e:
-        raise ConfigError(
-            f"Config file not correct. Section or parameter missing is {e}. \n The file should have the following sections and parameters {parse_ini(get_default_config())}"
-        )
-
-
 def optional_path(path: Optional[str]) -> Optional[Path]:
     return Path(path) if path else None
 
 
-def get_config(config_file: Optional[Path] = None) -> AgentConfiguration:
-    config_parser: configparser.ConfigParser = configparser.ConfigParser()
-    try:
-        config_parser.read(config_paths.config_path if not config_file else config_file)
-    except FileNotFoundError:
-        raise ConfigError("Config file not found")
-    except configparser.MissingSectionHeaderError:
-        raise ConfigError("No header found in the specified file")
-    return config_to_schema(config_parser)
+class Config:
+    def __init__(self) -> None:
+        self._config = self.get_default_config()
 
+    @property
+    def config(self) -> GlobalConfiguration:
+        return self._config
 
-def get_deployment_schema() -> DeploymentManifest:
-    try:
-        with open(config_paths.deployment_json) as f:
-            deployment_data = json.load(f)
-    except Exception:
-        raise ConfigError("deployment.json does not exist or is not well formed")
-    try:
-        return DeploymentManifest(**deployment_data)
-    except ValidationError as e:
-        missing_field = list(e.errors()[0]["loc"])[1:]
-        raise ConfigError(f"Missing field in the deployment manifest: {missing_field}")
-
-
-def check_section_and_params(
-    agent_config: AgentConfiguration, section: str, parameter: Optional[str] = None
-) -> None:
-    if section not in agent_config.model_fields:
-        raise ConfigError(
-            f"Invalid section. Valid ones are: {agent_config.__dict__.keys()}"
+    @staticmethod
+    def get_default_config() -> GlobalConfiguration:
+        return GlobalConfiguration(
+            evp=EVPParams(iot_platform="EVP1"),
+            devices=[
+                Config._create_device_config(
+                    DeviceListItem(name="Default", port="1883")
+                )
+            ],
+            active_device="Default",
         )
 
-    section_from_agent_spec = AgentConfiguration.model_fields[section]
-    section_model = unwrap_class(section_from_agent_spec.annotation)
-    if parameter and parameter not in section_model.model_fields:
-        raise ConfigError(
-            f"Invalid parameter of the {section} section. Valid ones are: {list(section_model.model_fields.keys())}"
-        )
+    def read_config(self) -> bool:
+        """
+        Reads the configuration from disk.
 
+        If the file is not found, it returns False.
+        """
+        if not config_paths.config_path.is_file():
+            logger.warning("Config file not found")
+            return False
 
-def parse_section_to_ini(
-    section_model: BaseModel, section_name: str, parameter: Optional[str] = None
-) -> str:
-    ini_lines = [f"[{section_name}]"]
-    if parameter:
-        ini_lines.append(parameter_render(parameter, section_model))
-    else:
-        for parameter in section_model.model_fields.keys():
-            ini_lines.append(parameter_render(parameter, section_model))
+        try:
+            with open(config_paths.config_path) as f:
+                self._config = GlobalConfiguration(**json.load(f))
+            return True
+        except Exception as e:
+            raise ConfigError(f"Config file not well formed: {e}")
 
-    return "\n".join(ini_lines)
+    def save_config(self) -> None:
+        logger.info("Storing configuration")
+        config_path = config_paths.config_path
+        try:
+            config_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(config_path, "w") as f:
+                f.write(self._config.model_dump_json(indent=2))
+        except Exception as e:
+            raise ConfigError(
+                f"Error while generating folder {config_path.parent} or storing configuration: {e}"
+            )
 
+    def get_config(self) -> GlobalConfiguration:
+        return self._config
 
-def parameter_render(parameter: str, section_model: BaseModel) -> str:
-    param_value = getattr(section_model, parameter)
-    return f"{parameter} = {param_value}"
+    def get_device_config(self, device_name: str) -> DeviceConnection:
+        for device_config in self._config.devices:
+            if device_config.name == device_name:
+                return device_config
+        raise SystemExit("Device not found")
 
+    def get_active_device_config(self) -> DeviceConnection:
+        active_device = [
+            device
+            for device in self._config.devices
+            if device.name == self._config.active_device
+        ]
+        assert len(active_device) == 1
+        return active_device[0]
 
-def unwrap_class(cls: Any) -> Any:
-    """
-    This function will strip the Optional in an Optional[T]
-    type annotation, if the provided class object has been
-    annotated that way.
-    """
-    args = get_args(cls)
-    if args:
-        return args[0]
-    else:
-        return cls
+    def get_deployment(self) -> DeploymentManifest:
+        try:
+            with open(config_paths.deployment_json) as f:
+                deployment_data = json.load(f)
+        except Exception:
+            raise ConfigError("deployment.json does not exist or is not well formed")
+        try:
+            return DeploymentManifest(**deployment_data)
+        except ValidationError as e:
+            missing_field = list(e.errors()[0]["loc"])[1:]
+            raise ConfigError(
+                f"Missing field in the deployment manifest: {missing_field}"
+            )
 
+    def add_device(self, device: DeviceListItem) -> DeviceConnection:
+        device_connection = self._create_device_config(device)
+        self._config.devices.append(self._create_device_config(device))
+        return device_connection
 
-def cast_rawvalue_as_field(raw_value: Optional[str], field_class: Any) -> Any:
-    """
-    This function will cast a raw value (e.g. just read from a config file)
-    into a target field type.
-    """
-    if raw_value is None:
-        return None
-    if not issubclass(field_class, BaseModel):
-        value = field_class(raw_value)
-    else:
-        fields = field_class.model_fields
-        if len(fields) == 1:
-            field = next(iter(fields.keys()))
-            value = field_class(**{field: raw_value})
-        else:
-            raise ValueError
-    return value
+    def remove_device(self, device_name: str) -> None:
+        self._config.devices = [
+            connection
+            for connection in self._config.devices
+            if connection.name != device_name
+        ]
 
+    def get_device_configs(self) -> list[DeviceConnection]:
+        return self._config.devices
 
-def schema_to_parser(
-    agent_config: AgentConfiguration, section: str, parameter: str, new: Optional[str]
-) -> configparser.ConfigParser:
-    try:
-        sec_obj = getattr(agent_config, section)
-        field_types = get_type_hints(sec_obj, include_extras=False)
-        field_class = unwrap_class(field_types[parameter])
-        value = cast_rawvalue_as_field(new, field_class)
-        setattr(sec_obj, parameter, value)
-    except ValidationError as e:
-        err = e.errors()[0]
-        if new is None:
-            # This happens when unsetting a value
-            msg = f"Parameter '{parameter}' in section '{section}' cannot be unset"
-        else:
-            # The most usual case: the input cannot be cast into the expected data type
-            msg = f"Setting parameter '{parameter}' in section '{section}': {err['msg']} (was '{new}')"
-        logger.error(msg)
-        raise e
-    except ValueError as e:
-        raise ValueError(f"Unable to validate value for '{section}.{parameter}'") from e
+    def get_device_list_items(self) -> list[DeviceListItem]:
+        return [
+            DeviceListItem(name=device.name, port=str(device.mqtt.port))
+            for device in self._config.devices
+        ]
 
-    config_dict = agent_config.model_dump(exclude_none=True)
-    config_parser = configparser.ConfigParser()
-    for section_names, values in config_dict.items():
-        config_parser[section_names] = values
-    return config_parser
-
-
-def add_device_to_config(device: DeviceListItem) -> None:
-    """
-    This function makes a folder for the given device, and save a device config
-    in the folder. Then the folder name is saved in the global config.
-    """
-    # Make a device folder and save a device config
-    mkdir_with_device_config(device)
-
-    # Add the device folder into the global config
-    config_parser = get_global_config()
-    device_folders: list = ast.literal_eval(config_parser["devices"]["device_folders"])
-    device_folders.append(device.name)
-    config_parser["devices"]["device_folders"] = str(device_folders)
-    config_file = config_paths.config_path
-    try:
-        with open(config_file, "w") as f:
-            config_parser.write(f)
-    except OSError as e:
-        raise ConfigError(f"Error: {e}")
-
-
-def mkdir_with_device_config(device: DeviceListItem) -> None:
-    config_file = config_paths.config_path
-    device_dir_path = config_file.parent / device.name
-    try:
-        device_dir_path.mkdir(parents=True, exist_ok=True)
-        device_config = create_device_config(device)
-        with open(device_dir_path / "config.json", "w") as f:
-            json.dump(device_config.model_dump(), f, indent=2)
-    except OSError as e:
-        raise ConfigError(f"Error while generating folder {device_dir_path}: {e}")
-
-
-def get_global_config() -> configparser.ConfigParser:
-    config_parser: configparser.ConfigParser = configparser.ConfigParser()
-    try:
-        config_parser.read(config_paths.config_path)
-    except FileNotFoundError:
-        raise ConfigError("Config file not found")
-    except configparser.MissingSectionHeaderError:
-        raise ConfigError("No header found in the specified file")
-    return config_parser
-
-
-def create_device_config(device: DeviceListItem) -> DeviceConnection:
-    try:
-        device_config = DeviceConnection(
+    @staticmethod
+    def _create_device_config(device: DeviceListItem) -> DeviceConnection:
+        return DeviceConnection(
             mqtt=MQTTParams(
-                host=IPAddress(ip_value="localhost"),
+                host="localhost",
                 port=int(device.port),
                 device_id=None,
             ),
             webserver=WebserverParams(
-                host=IPAddress(ip_value="localhost"),
+                host="localhost",
                 port=8000,
             ),
-            device=DeviceParams(name=device.name),
+            name=device.name,
+            persist=Persist(),
         )
-        return device_config
-    except ValidationError as e:
-        raise ConfigError(f"ValidationError: {e}")
 
 
-def get_device_configs() -> list[DeviceListItem]:
-    """
-    This function returns the list of device folders in the global config.
-    """
-    config_parser = get_global_config()
-    device_folders: list = ast.literal_eval(config_parser["devices"]["device_folders"])
-
-    device_items = []
-    for device in device_folders:
-        with open(config_paths.config_path.parent / device / "config.json") as f:
-            device_config = json.load(f)
-            name = device_config["device"]["name"]
-            port = device_config["mqtt"]["port"]
-            assert name == device
-            device_items.append(DeviceListItem(name=name, port=port))
-    return device_items
-
-
-def update_device_persistent_config(device_name: str, config: dict) -> None:
-    config_fp = config_paths.config_path.parent / device_name / "config.json"
-    with open(config_fp) as f:
-        device_config = json.load(f)
-
-    device_config["persistency"] = config
-
-    with open(config_fp, "w") as f:
-        json.dump(device_config, f, indent=2)
-
-
-def get_device_persistent_config(device_name: str) -> dict:
-    config_fp = config_paths.config_path.parent / device_name / "config.json"
-    with open(config_fp) as f:
-        config: dict = json.load(f)
-        return config.get("persistency", {})  # type: ignore
-
-
-def remove_device_config(device_name: str) -> None:
-    """
-    This function removes the given device from the global config
-    and removes the device folder with the device config.
-    """
-    config_parser = get_global_config()
-
-    # Remove the device from the device folders
-    device_folders: list = ast.literal_eval(config_parser["devices"]["device_folders"])
-    device_folders.remove(device_name)
-    config_parser["devices"]["device_folders"] = str(device_folders)
-    config_file = config_paths.config_path
-    try:
-        with open(config_file, "w") as f:
-            config_parser.write(f)
-    except OSError as e:
-        raise ConfigError(f"Error: {e}")
-
-    # Remove the device folder
-    folder_to_remove = config_paths.config_path.parent / device_name
-    if folder_to_remove.is_dir():
-        shutil.rmtree(folder_to_remove)
+# TODO:FIXME: do not use global variable
+config_obj = Config()

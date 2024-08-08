@@ -13,10 +13,12 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+import pytest
 from kivy.clock import Clock
 from local_console.gui.view.common.components import CodeInputCustom
 
 
+@pytest.mark.disable_mock_schedule_once
 def test_code_input_custom():
     code_input = CodeInputCustom()
 

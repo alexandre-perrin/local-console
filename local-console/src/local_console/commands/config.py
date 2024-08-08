@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+import json
 import logging
 from typing import Annotated
 from typing import Optional
@@ -20,15 +21,12 @@ from typing import Optional
 import trio
 import typer
 from local_console.clients.agent import Agent
-from local_console.core.config import check_section_and_params
-from local_console.core.config import get_config
-from local_console.core.config import parse_section_to_ini
-from local_console.core.config import schema_to_parser
-from local_console.core.enums import config_paths
-from local_console.core.schemas.schemas import AgentConfiguration
+from local_console.core.config import config_obj
 from local_console.core.schemas.schemas import DesiredDeviceConfig
 from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.plugin import PluginBase
+from pydantic import ValidationError
+from pydantic.json import pydantic_encoder
 
 logger = logging.getLogger(__name__)
 app = typer.Typer(
@@ -43,43 +41,58 @@ def config_get(
     section: Annotated[
         Optional[str],
         typer.Argument(
-            help="Section to be retrieved. If none specified, returns the whole config"
+            help="Section to be retrieved. If none specified, returns the whole config. Hierarchy is expressed with separation of a dot. E.g., evp.iot_platform"
         ),
     ] = None,
-    parameter: Annotated[
+    device: Annotated[
         Optional[str],
-        typer.Argument(
-            help="Parameter from a specific section to be retrieved. If none specified, returns the whole section"
+        typer.Option(
+            "--device",
+            "-d",
+            help="Device from which values are modified",
         ),
     ] = None,
 ) -> None:
-    agent_config: AgentConfiguration = get_config()  # type: ignore
-    if section is None:
-        for section_name, section_value in agent_config.__dict__.items():
-            parsed_section = parse_section_to_ini(section_value, section_name)
-            print(parsed_section, "\n")
-    else:
-        try:
-            check_section_and_params(agent_config, section, parameter)
-        except ValueError:
-            raise SystemExit(
-                f"Error getting config param '{parameter}' at section {section}"
-            )
-        parsed_section = parse_section_to_ini(
-            agent_config.__dict__[f"{section}"], section, parameter
-        )
-        print(parsed_section)
+    config = (
+        config_obj.get_config() if not device else config_obj.get_device_config(device)
+    )
+
+    selected_config = config
+
+    if section:
+        sections_split = section.split(".")
+        for parameter in sections_split:
+            selected_config = getattr(selected_config, parameter)
+
+    print(json.dumps(selected_config, indent=2, default=pydantic_encoder))
+
+
+def _set(section: str, new: str | None, device: str | None) -> None:
+    config = (
+        config_obj.get_config() if not device else config_obj.get_device_config(device)
+    )
+    selected_config = config
+
+    sections_split = section.split(".")
+    for parameter in sections_split[:-1]:
+        selected_config = getattr(selected_config, parameter)
+
+    try:
+        setattr(selected_config.model_copy(deep=True), sections_split[-1], new)
+        config.model_copy(deep=True).__class__(**json.loads(config.model_dump_json()))
+    except ValidationError as e:
+        raise SystemExit(f"Error setting '{section}'. {e.errors()[0]['msg']}.")
+    setattr(selected_config, sections_split[-1], new)
+    config_obj.save_config()
 
 
 @app.command("set", help="Sets the config key values to the specified value")
 def config_set(
     section: Annotated[
         str,
-        typer.Argument(help="Section of the configuration to be set"),
-    ],
-    parameter: Annotated[
-        str,
-        typer.Argument(help="Parameter of the section of the configuration to be set"),
+        typer.Argument(
+            help="Section of the configuration to be set. Hierarchy is expressed with separation of a dot. E.g., evp.iot_platform"
+        ),
     ],
     new: Annotated[
         str,
@@ -87,46 +100,36 @@ def config_set(
             help="New value to be used in the specified parameter of the section"
         ),
     ],
+    device: Annotated[
+        Optional[str],
+        typer.Option(
+            "--device",
+            "-d",
+            help="Device from which values are modified",
+        ),
+    ] = None,
 ) -> None:
-    agent_config: AgentConfiguration = get_config()  # type:ignore
-
-    try:
-        check_section_and_params(agent_config, section, parameter)
-        config_parser = schema_to_parser(agent_config, section, parameter, new)
-    except ValueError:
-        raise SystemExit(
-            f"Error setting config param '{parameter}' at section '{section}'"
-        )
-
-    with open(
-        config_paths.config_path, "w"  # type:ignore
-    ) as f:
-        config_parser.write(f)
+    _set(section, new, device)
 
 
 @app.command("unset", help="Removes the value of a nullable configuration key")
 def config_unset(
     section: Annotated[
         str,
-        typer.Argument(help="Section of the configuration to be set"),
+        typer.Argument(
+            help="Section of the configuration to be set. Hierarchy is expressed with separation of a dot."
+        ),
     ],
-    parameter: Annotated[
-        str,
-        typer.Argument(help="Parameter of the section of the configuration to be set"),
-    ],
+    device: Annotated[
+        Optional[str],
+        typer.Option(
+            "--device",
+            "-d",
+            help="Device from which values are modified",
+        ),
+    ] = None,
 ) -> None:
-    agent_config: AgentConfiguration = get_config()  # type:ignore
-
-    try:
-        check_section_and_params(agent_config, section, parameter)
-        config_parser = schema_to_parser(agent_config, section, parameter, None)
-    except ValueError as e:
-        raise SystemExit(
-            f"Error unsetting config param '{parameter}' at section '{section}'. It is probably not a nullable parameter."
-        ) from e
-
-    with config_paths.config_path.open("w") as f:
-        config_parser.write(f)
+    _set(section, None, device)
 
 
 @app.command("instance", help="Configure an application module instance")
@@ -152,11 +155,14 @@ def config_instance(
         )
 
 
-async def configure_task(instance_id: str, topic: str, config: str) -> None:
-    agent = Agent()  # type: ignore
+async def configure_task(instance_id: str, topic: str, cfg: str) -> None:
+    config = config_obj.get_config()
+    config_device = config_obj.get_active_device_config()
+    schema = OnWireProtocol.from_iot_spec(config.evp.iot_platform)
+    agent = Agent(config_device.mqtt.host, config_device.mqtt.port, schema)
     await agent.initialize_handshake()
     async with agent.mqtt_scope([]):
-        await agent.configure(instance_id, topic, config)
+        await agent.configure(instance_id, topic, cfg)
 
 
 @app.command("device", help="Configure the device")
@@ -187,15 +193,16 @@ def config_device(
 
 async def config_device_task(desired_device_config: DesiredDeviceConfig) -> int:
     retcode = 1
-    agent = Agent()  # type: ignore
-    if agent.onwire_schema == OnWireProtocol.EVP2:
+    config = config_obj.get_config()
+    config_device = config_obj.get_active_device_config()
+    schema = OnWireProtocol.from_iot_spec(config.evp.iot_platform)
+    agent = Agent(config_device.mqtt.host, config_device.mqtt.port, schema)
+    if schema == OnWireProtocol.EVP2:
         async with agent.mqtt_scope([]):
             await agent.device_configure(desired_device_config)
         retcode = 0
     else:
-        logger.warning(
-            f"Unsupported on-wire schema {agent.onwire_schema} for this command."
-        )
+        logger.warning(f"Unsupported on-wire schema {schema} for this command.")
     return retcode
 
 

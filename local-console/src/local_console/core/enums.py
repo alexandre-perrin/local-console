@@ -23,7 +23,7 @@ from local_console.utils.enums import StrEnum
 class Config:
     def __init__(self) -> None:
         self.home = get_default_home()
-        self._config_file = "config.ini"
+        self._config_file = "config.json"
         self.deployment_json = "deployment.json"
         self.bin = "bin"
 
