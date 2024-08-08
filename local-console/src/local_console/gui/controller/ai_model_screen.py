@@ -43,6 +43,22 @@ class AIModelScreenController(BaseController):
         self.driver = driver
         self.view = view(controller=self, model=self.model)
 
+    def bind(self) -> None:
+        self.driver.gui.mdl.bind(ai_model_file=self.view.on_ai_model_file)
+        self.driver.gui.mdl.bind(ai_model_file_valid=self.view.on_ai_model_file_valid)
+        self.driver.gui.mdl.bind(device_config=self.view.on_device_config)
+
+    def unbind(self) -> None:
+        self.driver.gui.mdl.unbind(ai_model_file=self.view.on_ai_model_file)
+        self.driver.gui.mdl.unbind(ai_model_file_valid=self.view.on_ai_model_file_valid)
+        self.driver.gui.mdl.unbind(device_config=self.view.on_device_config)
+
+    def refresh(self) -> None:
+        assert self.driver.camera_state
+        self.view.on_device_config(
+            self.driver.gui.mdl, self.driver.camera_state.device_config.value
+        )
+
     def get_view(self) -> "BaseScreenView":
         return self.view
 
