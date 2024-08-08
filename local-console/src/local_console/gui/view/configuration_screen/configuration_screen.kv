@@ -111,7 +111,7 @@
                 selector: "file"
                 ext: [".json"]
                 path: str(app.mdl.vapp_config_file)
-                on_selected: app.mdl.vapp_config_file = Path(self.accept_path(args[1]))
+                on_selected: app.mdl.vapp_config_file = self.accept_path(args[1])
 
             PathSelectorCombo:
                 id: labels_pick
@@ -120,7 +120,7 @@
                 selector: "file"
                 ext: [".txt"]
                 path: str(app.mdl.vapp_labels_file)
-                on_selected: app.mdl.vapp_labels_file = Path(self.accept_path(args[1]))
+                on_selected: app.mdl.vapp_labels_file = self.accept_path(args[1])
                 disabled: True
 
             MDBoxLayout:
