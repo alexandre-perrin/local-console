@@ -120,7 +120,10 @@ def progress_update_checkpoint(
 
 
 async def update_firmware_task(
-    state: CameraState, indicator: type[TransientStatus], error_notify: Callable
+    state: CameraState,
+    indicator: type[TransientStatus],
+    error_notify: Callable,
+    use_configured_port: bool = False,
 ) -> None:
     assert state.firmware_file.value
     assert state.firmware_file_type.value
@@ -147,17 +150,13 @@ async def update_firmware_task(
     config_device = config_obj.get_active_device_config()
     schema = OnWireProtocol.from_iot_spec(config.evp.iot_platform)
     ephemeral_agent = Agent(config_device.mqtt.host, config_device.mqtt.port, schema)
-    webserver_port = config_device.webserver.port
+    webserver_port = config_device.webserver.port if use_configured_port else 0
     ip_addr = get_my_ip_by_routing()
 
     with TemporaryDirectory(prefix="lc_update_") as temporary_dir:
         tmp_dir = Path(temporary_dir)
         tmp_firmware = tmp_dir / state.firmware_file.value.name
         shutil.copy(state.firmware_file.value, tmp_firmware)
-
-        update_spec = configuration_spec(tmp_firmware, tmp_dir, webserver_port, ip_addr)
-        update_spec.OTA.UpdateModule = state.firmware_file_type.value
-        update_spec.OTA.DesiredVersion = state.firmware_file_version.value
 
         logger.debug("Firmware update operation will start.")
         timeout_secs = 60 * 4
@@ -166,8 +165,13 @@ async def update_firmware_task(
                 ephemeral_agent.mqtt_scope(
                     [MQTTTopics.ATTRIBUTES_REQ.value, MQTTTopics.ATTRIBUTES.value]
                 ),
-                AsyncWebserver(tmp_dir, webserver_port, None, True),
+                AsyncWebserver(tmp_dir, webserver_port, None, True) as serve,
             ):
+                update_spec = configuration_spec(
+                    tmp_firmware, tmp_dir, serve.port, ip_addr
+                )
+                update_spec.OTA.UpdateModule = state.firmware_file_type.value
+                update_spec.OTA.DesiredVersion = state.firmware_file_version.value
                 payload = update_spec.model_dump_json()
                 logger.debug(f"Update spec is: {payload}")
 

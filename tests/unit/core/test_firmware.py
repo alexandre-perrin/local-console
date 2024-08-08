@@ -300,10 +300,17 @@ async def test_update_firmware_task_valid(tmp_path, nursery):
     mock_agent = MagicMock()
     mock_agent.mqtt_scope.return_value = AsyncMock()
     mock_agent.configure = AsyncMock()
+
+    mock_server = AsyncMock()
+    mock_server.__aenter__.return_value.port = 8000
+
     with (
         patch.object(camera_state, "ota_event") as mock_ota_event,
         patch("local_console.core.camera.firmware.Agent", return_value=mock_agent),
-        patch("local_console.core.camera.firmware.AsyncWebserver"),
+        patch(
+            "local_console.core.camera.firmware.AsyncWebserver",
+            return_value=mock_server,
+        ),
         patch(
             "local_console.core.camera.firmware.get_my_ip_by_routing",
             return_value="1.1.1.1",
