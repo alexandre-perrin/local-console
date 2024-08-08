@@ -15,7 +15,6 @@
 # SPDX-License-Identifier: Apache-2.0
 import logging
 from pathlib import Path
-from typing import Any
 from typing import Optional
 
 from kivy.properties import BooleanProperty
@@ -36,10 +35,6 @@ logger = logging.getLogger(__name__)
 class ApplicationsScreenView(BaseScreenView):
 
     app_file_valid = BooleanProperty(False)
-
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        self.app.mdl.bind(deploy_stage=self.on_deploy_stage)
 
     def select_path(self, path: str) -> None:
         """

@@ -42,6 +42,12 @@ class ApplicationsScreenController(BaseController):
         self.driver = driver
         self.view = ApplicationsScreenView(controller=self, model=self.model)
 
+    def bind(self) -> None:
+        self.driver.gui.mdl.bind(deploy_stage=self.view.on_deploy_stage)
+
+    def unbind(self) -> None:
+        self.driver.gui.mdl.unbind(deploy_stage=self.view.on_deploy_stage)
+
     def refresh(self) -> None:
         assert self.driver.camera_state
         if self.driver.camera_state.module_file.value is not None:
