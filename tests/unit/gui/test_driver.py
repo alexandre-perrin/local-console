@@ -109,21 +109,27 @@ async def test_streaming_rpc_start(mocked_driver_with_agent, nursery):
     upload_url = "http://localhost:1234"
     h_size, v_size = SENSOR_SIZE
 
-    await driver.camera_state.streaming_rpc_start()
-    mock_rpc.assert_awaited_with(
-        "backdoor-EA_Main",
-        "StartUploadInferenceData",
-        StartUploadInferenceData(
-            StorageName=upload_url,
-            StorageSubDirectoryPath=str(driver.camera_state.image_dir_path.value),
-            StorageNameIR=upload_url,
-            StorageSubDirectoryPathIR=str(driver.camera_state.inference_dir_path.value),
-            CropHOffset=0,
-            CropVOffset=0,
-            CropHSize=h_size,
-            CropVSize=v_size,
-        ).model_dump_json(),
-    )
+    with patch(
+        "local_console.core.camera.mixin_streaming.get_my_ip_by_routing",
+        return_value="localhost",
+    ):
+        await driver.camera_state.streaming_rpc_start()
+        mock_rpc.assert_awaited_with(
+            "backdoor-EA_Main",
+            "StartUploadInferenceData",
+            StartUploadInferenceData(
+                StorageName=upload_url,
+                StorageSubDirectoryPath=str(driver.camera_state.image_dir_path.value),
+                StorageNameIR=upload_url,
+                StorageSubDirectoryPathIR=str(
+                    driver.camera_state.inference_dir_path.value
+                ),
+                CropHOffset=0,
+                CropVOffset=0,
+                CropHSize=h_size,
+                CropVSize=v_size,
+            ).model_dump_json(),
+        )
 
 
 @pytest.mark.trio

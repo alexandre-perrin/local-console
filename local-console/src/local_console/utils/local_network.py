@@ -13,33 +13,97 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+import ipaddress
 import logging
+import platform
+import socket
 
-from local_console.utils._local_network import _get_my_ip_by_routing
-from local_console.utils._local_network import _get_network_ifaces
-from local_console.utils._local_network import _is_localhost
-from local_console.utils._local_network import _is_valid_host
-from local_console.utils._local_network import _replace_local_address
-from local_console.utils._local_network import LOCAL_IP  # noqa
+import psutil
 
 logger = logging.getLogger(__file__)
 
 
 def get_network_ifaces() -> list[str]:
-    return _get_network_ifaces()
+    """
+    Gets network interfaces over which a local server could be
+    reached in the local network.
+
+    Returns:
+        list[str]: List of network interface names
+    """
+    stats = psutil.net_if_stats()
+    logger.debug(stats)
+    os_name = platform.system()
+    if os_name == "Windows":
+        chosen = list(
+            k
+            for k, v in stats.items()
+            if v.isup and "loopback" not in k.lower() and "vethernet" not in k.lower()
+        )
+    else:
+        chosen = list(
+            k
+            for k, v in stats.items()
+            if v.isup
+            and "docker" not in k.lower()
+            and "running" in v.flags
+            and "loopback" not in v.flags
+            and "pointopoint" not in v.flags
+        )
+    return chosen
 
 
 def get_my_ip_by_routing() -> str:
-    return _get_my_ip_by_routing()
+    """
+    This gets the machine's IP by checking assigned IPv4
+    addresses to network interfaces determined to be
+    accessible by other devices in the local network.
+    """
+    ifaces = get_network_ifaces()
+    infos = psutil.net_if_addrs()
+    addr_info = {
+        iface: [
+            info for info in infos[iface] if info.family == socket.AddressFamily.AF_INET
+        ]
+        for iface in ifaces
+    }
+    chosen = next(addrs[0] for iface, addrs in addr_info.items() if addrs)
+    return chosen.address
 
 
 def is_localhost(hostname: str) -> bool:
-    return _is_localhost(hostname)
-
-
-def replace_local_address(hostname: str) -> str:
-    return _replace_local_address(hostname)
+    try:
+        resolved_ip = socket.gethostbyname(hostname)
+        return ipaddress.ip_address(resolved_ip).is_loopback
+    except socket.gaierror:
+        return False
+    except UnicodeError:
+        # Raised when using very long strings
+        return False
+    except Exception as e:
+        logger.warning(f"Unknown error while getting host by name: {e}")
+    return False
 
 
 def is_valid_host(hostname: str) -> bool:
-    return _is_valid_host(hostname)
+    try:
+        socket.gethostbyname(hostname)
+    except socket.gaierror as e:
+        if e.errno == socket.EAI_NONAME:
+            logger.warning(f"Invalid hostname or IP address - {hostname}: {e}")
+        elif e.errno == socket.EAI_AGAIN:
+            logger.warning(f"DNS look up error - {hostname}: {e}")
+        else:
+            logger.warning(f"Socket error - {hostname}: {e}")
+        return False
+    except Exception as e:
+        logger.warning(f"An unexpected error occurred - {hostname}: {e}")
+        return False
+    return True
+
+
+LOCAL_IP: str = get_my_ip_by_routing()
+
+
+def replace_local_address(hostname: str) -> str:
+    return LOCAL_IP if is_localhost(hostname) else hostname

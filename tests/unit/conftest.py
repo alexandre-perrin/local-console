@@ -30,24 +30,6 @@ def reset_global_config():
 
 
 @pytest.fixture(autouse=True)
-def skip_local_network():
-    with (
-        patch(
-            "local_console.utils.local_network._get_network_ifaces",
-            return_value=["enp5s0"],
-        ),
-        patch(
-            "local_console.utils.local_network._get_my_ip_by_routing",
-            return_value="localhost",
-        ),
-        patch("local_console.utils.local_network._is_localhost", return_value=True),
-        patch("local_console.utils.local_network._is_valid_host", return_value=True),
-        patch("local_console.utils.local_network.LOCAL_IP", "localhost"),
-    ):
-        yield
-
-
-@pytest.fixture(autouse=True)
 def skip_broker():
     with (
         patch(
@@ -71,13 +53,16 @@ def skip_connection():
 
 
 @pytest.fixture(autouse=True)
-def mock_schedule_once():
-    with patch(
-        "local_console.gui.utils.sync_async.Clock.schedule_once"
-    ) as mock_schedule:
-
-        def immediate_callback(callback, *args, **kwargs):
-            callback(0)
-
-        mock_schedule.side_effect = immediate_callback
+def mock_schedule_once(request):
+    if "disable_mock_schedule_once" in request.keywords:
         yield
+    else:
+        with patch(
+            "local_console.gui.utils.sync_async.Clock.schedule_once"
+        ) as mock_schedule:
+
+            def immediate_callback(callback, *args, **kwargs):
+                callback(0)
+
+            mock_schedule.side_effect = immediate_callback
+            yield
