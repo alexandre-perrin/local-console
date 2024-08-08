@@ -91,13 +91,16 @@ async def test_deploy_step(tmp_path, network_id, update_status: str, nursery):
     mock_agent.mqtt_scope.return_value = AsyncMock()
     mock_agent.configure = AsyncMock()
 
+    mock_server = AsyncMock()
+    mock_server.__aenter__.return_value.port = 8000
+
     with (
         patch("local_console.core.camera.ai_model.Agent", return_value=mock_agent),
         patch.object(camera_state, "device_config") as mock_config,
         patch.object(camera_state, "ota_event") as mock_ota_event,
         patch(
             "local_console.core.camera.ai_model.AsyncWebserver",
-            return_value=mock_agent,
+            return_value=mock_server,
         ),
         patch(
             "local_console.core.camera.ai_model.get_network_ids",
