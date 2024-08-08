@@ -23,7 +23,6 @@ from local_console.core.camera.ai_model import deploy_step
 from local_console.core.camera.ai_model import undeploy_step
 from local_console.core.camera.state import CameraState
 from local_console.core.commands.ota_deploy import get_package_hash
-from local_console.utils.local_network import get_my_ip_by_routing
 
 
 @pytest.fixture(params=["Done", "Failed"])
@@ -104,6 +103,10 @@ async def test_deploy_step(tmp_path, network_id, update_status: str, nursery):
             "local_console.core.camera.ai_model.get_network_ids",
             return_value=[network_id],
         ),
+        patch(
+            "local_console.core.camera.ai_model.get_my_ip_by_routing",
+            return_value="localhost",
+        ),
     ):
         mock_config.value.OTA.UpdateStatus = update_status
         with open(tmp_file, "w") as f:
@@ -112,7 +115,7 @@ async def test_deploy_step(tmp_path, network_id, update_status: str, nursery):
         hashvalue = get_package_hash(tmp_file)
         payload = (
             '{"OTA":{"UpdateModule":"DnnModel","DesiredVersion":"",'
-            f'"PackageUri":"http://{get_my_ip_by_routing()}:8000/dummy.bin",'
+            f'"PackageUri":"http://localhost:8000/dummy.bin",'
             f'"HashValue":"{hashvalue}"'
             "}}"
         )

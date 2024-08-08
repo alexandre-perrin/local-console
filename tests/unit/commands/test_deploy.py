@@ -63,6 +63,10 @@ def test_deploy_empty_command() -> None:
             "local_console.commands.deploy.get_empty_deployment"
         ) as mock_get_deployment,
         patch("local_console.commands.deploy.is_localhost", return_value=True),
+        patch(
+            "local_console.commands.deploy.get_my_ip_by_routing",
+            return_value="localhost",
+        ),
         patch("local_console.commands.deploy.exec_deployment") as mock_exec_deploy,
     ):
         result = runner.invoke(app, ["-e"])
@@ -91,6 +95,10 @@ def test_deploy_command_target(
     with (
         patch("local_console.commands.deploy.Agent") as mock_agent_client,
         patch("local_console.commands.deploy.is_localhost", return_value=True),
+        patch(
+            "local_console.commands.deploy.get_my_ip_by_routing",
+            return_value="localhost",
+        ),
         patch("local_console.commands.deploy.DeployFSM") as mock_gen_deploy_fsm,
         patch("local_console.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
@@ -129,6 +137,10 @@ def test_deploy_command_signed(deployment_manifest: DeploymentManifest) -> None:
     with (
         patch("local_console.commands.deploy.Agent") as mock_agent_client,
         patch("local_console.commands.deploy.is_localhost", return_value=True),
+        patch(
+            "local_console.commands.deploy.get_my_ip_by_routing",
+            return_value="localhost",
+        ),
         patch("local_console.commands.deploy.DeployFSM") as mock_gen_deploy_fsm,
         patch("local_console.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
@@ -170,6 +182,10 @@ def test_deploy_command_timeout(
     with (
         patch("local_console.commands.deploy.Agent") as mock_agent_client,
         patch("local_console.commands.deploy.is_localhost", return_value=True),
+        patch(
+            "local_console.commands.deploy.get_my_ip_by_routing",
+            return_value="localhost",
+        ),
         patch("local_console.commands.deploy.DeployFSM") as mock_gen_deploy_fsm,
         patch("local_console.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
@@ -220,6 +236,10 @@ def test_deploy_manifest_no_bin(
 ):
     with (
         patch("local_console.commands.deploy.is_localhost", return_value=True),
+        patch(
+            "local_console.commands.deploy.get_my_ip_by_routing",
+            return_value="localhost",
+        ),
         patch("local_console.commands.deploy.Agent") as mock_agent_client,
         patch("local_console.commands.deploy.DeployFSM"),
         patch(
@@ -263,9 +283,12 @@ async def test_attributes_request_handling(
 @given(deployment_manifest_strategy())
 def test_deploy_forced_webserver(deployment_manifest: DeploymentManifest) -> None:
     with (
-        patch("local_console.commands.deploy.is_localhost", return_value=False),
-        patch("local_console.commands.deploy.Agent") as mock_agent_client,
         patch("local_console.commands.deploy.is_localhost", return_value=True),
+        patch(
+            "local_console.commands.deploy.get_my_ip_by_routing",
+            return_value="localhost",
+        ),
+        patch("local_console.commands.deploy.Agent") as mock_agent_client,
         patch("local_console.commands.deploy.DeployFSM") as mock_gen_deploy_fsm,
         patch("local_console.commands.deploy.exec_deployment") as mock_exec_deploy,
         patch(
