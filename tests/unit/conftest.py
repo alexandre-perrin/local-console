@@ -58,3 +58,13 @@ def skip_broker():
         ),
     ):
         yield
+
+
+@pytest.fixture(autouse=True)
+def skip_connection():
+    with (
+        patch(
+            "local_console.clients.agent.AsyncClient",
+        ),
+    ):
+        yield
