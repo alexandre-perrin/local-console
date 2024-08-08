@@ -22,7 +22,7 @@ import trio
 patch("local_console.gui.view.common.components.DeviceItem").start()
 
 from local_console.core.schemas.schemas import DeviceListItem
-from local_console.gui.device_manager import DeviceManager
+from local_console.gui.device_manager import DeviceManager, DeviceRemoveError
 from local_console.gui.controller.devices_screen import DevicesScreenController
 from local_console.gui.model.devices_screen import DevicesScreenModel
 from local_console.core.config import config_obj
@@ -273,9 +273,8 @@ async def test_device_manager(nursery):
         assert len(device_manager.proxies_factory) == 1
         assert len(device_manager.state_factory) == 1
 
-        device_manager.remove_device(device.name)
-        assert len(device_manager.proxies_factory) == 0
-        assert len(device_manager.state_factory) == 0
+        with pytest.raises(DeviceRemoveError):
+            device_manager.remove_device(device.name)
 
 
 @pytest.mark.trio
