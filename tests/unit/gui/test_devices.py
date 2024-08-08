@@ -283,7 +283,10 @@ async def test_device_manager_with_config(nursery):
     device_manager = DeviceManager(
         send_channel, nursery, trio.lowlevel.current_trio_token()
     )
-    with (patch.object(device_manager, "initialize_persistency"),):
+    with (
+        patch.object(device_manager, "initialize_persistency"),
+        patch.object(nursery, "start_soon"),
+    ):
         assert len(device_manager.proxies_factory) == 0
         assert len(device_manager.state_factory) == 0
 

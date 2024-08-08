@@ -240,7 +240,7 @@ class StreamingMixin(HasMQTTset, IsAsyncReady):
         try:
             trio.from_thread.run(
                 self._send_message,
-                ("error", str(dir_path) + " does not exist."),
+                ("error", f"Directory {dir_path} does no longer exist."),
                 trio_token=self.trio_token,
             )
         except RunFinishedError:

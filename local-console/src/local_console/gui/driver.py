@@ -86,7 +86,7 @@ class Driver:
     def show_message_gui(self, msg: MessageType) -> None:
         type_ = msg[0]
         if type_ == "error":
-            self.gui.display_error(msg[1], 30)
+            self.gui.display_error(msg[1], duration=30)
         else:
             raise NotImplementedError(f"Cannot show message of type '{type_}'")
 

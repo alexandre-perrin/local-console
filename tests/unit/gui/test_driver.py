@@ -27,13 +27,14 @@ from hypothesis import settings
 from hypothesis import strategies as st
 from local_console.core.camera.axis_mapping import SENSOR_SIZE
 from local_console.core.camera.enums import StreamStatus
-from local_console.core.camera.state import CameraState
 from local_console.core.schemas.edge_cloud_if_v1 import StartUploadInferenceData
 from local_console.core.schemas.schemas import DeviceConnection
 from local_console.core.schemas.schemas import MQTTParams
 from local_console.core.schemas.schemas import WebserverParams
 from local_console.gui.driver import Driver  # noqa
 
+from tests.fixtures.camera import cs_init
+from tests.fixtures.camera import cs_init_context
 from tests.fixtures.driver import mock_driver_with_agent
 from tests.fixtures.driver import mocked_driver_with_agent  # noqa
 from tests.mocks.mock_paho_mqtt import MockAsyncIterator
@@ -66,11 +67,11 @@ async def test_streaming_stop_required(req_id: int):
         mock_agent.client.messages.return_value.__aenter__.return_value = (
             MockAsyncIterator([msg])
         )
-        async with trio.open_nursery() as nursery:
-            send_channel, _ = trio.open_memory_channel(0)
-            driver.camera_state = CameraState(
-                send_channel, nursery, trio.lowlevel.current_trio_token()
-            )
+        async with (
+            trio.open_nursery() as nursery,
+            cs_init_context() as camera,
+        ):
+            driver.camera_state = camera
             driver.camera_state.initialize_connection_variables(
                 "EVP1",
                 DeviceConnection(
@@ -90,17 +91,14 @@ async def test_streaming_stop_required(req_id: int):
 
 
 @pytest.mark.trio
-async def test_streaming_rpc_start(mocked_driver_with_agent, nursery):
+async def test_streaming_rpc_start(mocked_driver_with_agent, cs_init) -> None:
     driver, mock_agent = mocked_driver_with_agent
 
     mock_agent.publish = AsyncMock()
     mock_rpc = AsyncMock()
     mock_agent.rpc = mock_rpc
 
-    send_channel, _ = trio.open_memory_channel(0)
-    driver.camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
+    driver.camera_state = cs_init
     driver.camera_state.mqtt_client = mock_agent
 
     driver.camera_state.image_dir_path.value = Path("my_image_path")
@@ -133,35 +131,28 @@ async def test_streaming_rpc_start(mocked_driver_with_agent, nursery):
 
 
 @pytest.mark.trio
-async def test_connection_status_timeout(mocked_driver_with_agent, nursery):
+async def test_connection_status_timeout(mocked_driver_with_agent, cs_init) -> None:
     driver, _ = mocked_driver_with_agent
-    send_channel, _ = trio.open_memory_channel(0)
-    driver.camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
+    driver.camera_state = cs_init
     driver.camera_state.stream_status.value = StreamStatus.Active
     await driver.camera_state.connection_status_timeout()
     assert driver.camera_state.stream_status.value == StreamStatus.Inactive
 
 
 @pytest.mark.trio
-async def test_send_ppl_configuration(nursery):
+async def test_send_ppl_configuration(mocked_driver_with_agent, cs_init) -> None:
+    driver, mock_agent = mocked_driver_with_agent
+    driver.camera_state = cs_init
+    driver.camera_state.mqtt_client = mock_agent
+    driver.device_manager = MagicMock()
+
     config = "myconfiguration"
     mock_configure = AsyncMock()
-    with (mock_driver_with_agent() as (driver, mock_agent),):
-        send_channel, _ = trio.open_memory_channel(0)
-        driver.camera_state = CameraState(
-            send_channel, nursery, trio.lowlevel.current_trio_token()
-        )
-        driver.camera_state.mqtt_client = mock_agent
-        driver.device_manager = MagicMock()
 
-        mock_send_app_config = AsyncMock()
-        driver.device_manager.get_active_device_state.return_value = (
-            mock_send_app_config
-        )
+    mock_send_app_config = AsyncMock()
+    driver.device_manager.get_active_device_state.return_value = mock_send_app_config
 
-        mock_agent.configure = mock_configure
+    mock_agent.configure = mock_configure
 
-        await driver.send_app_config(config)
-        mock_send_app_config.send_app_config.assert_awaited_with(config)
+    await driver.send_app_config(config)
+    mock_send_app_config.send_app_config.assert_awaited_with(config)

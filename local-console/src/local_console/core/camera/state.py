@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 from typing import Optional
 
+import trio
 from local_console.core.camera._shared import MessageType
 from local_console.core.camera.enums import DeploymentType
 from local_console.core.camera.enums import DeployStage
@@ -33,6 +34,7 @@ from local_console.core.commands.ota_deploy import get_package_hash
 from local_console.gui.enums import ApplicationConfiguration
 from local_console.utils.tracking import TrackingVariable
 from local_console.utils.validation import validate_imx500_model_file
+from trio import CancelScope
 from trio import MemorySendChannel
 from trio import Nursery
 from trio.lowlevel import TrioToken
@@ -58,18 +60,17 @@ class CameraState(MQTTMixin, StreamingMixin):
     def __init__(
         self,
         message_send_channel: MemorySendChannel[MessageType],
-        nursery: Nursery,
         trio_token: TrioToken,
     ) -> None:
-
-        # Attributes required for any mixin class' __init__()
-        self._nursery = nursery
-        self.trio_token: TrioToken = trio_token
-        self.message_send_channel = message_send_channel
-
-        # Initialize mixins' constructors
         MQTTMixin.__init__(self)
         StreamingMixin.__init__(self)
+
+        self.message_send_channel = message_send_channel
+        self.trio_token: TrioToken = trio_token
+        self._nursery: Optional[Nursery] = None
+        self._cancel_scope: Optional[CancelScope] = None
+        self._started = trio.Event()
+        self._stopped = trio.Event()
 
         # State variables not provided by mixin classes
         self.ai_model_file: TrackingVariable[str] = TrackingVariable()
@@ -183,9 +184,23 @@ class CameraState(MQTTMixin, StreamingMixin):
         self._deploy_fsm.set_manifest(manifest)
         await self.deploy_operation.aset(DeploymentType.Application)
 
-    def finish_setup(self) -> None:
-        self._nursery.start_soon(self.blobs_webserver_task)
-        self._nursery.start_soon(self.mqtt_setup)
+    async def startup(self) -> None:
+        async with trio.open_nursery() as nursery:
+            self._nursery = nursery
+            self._cancel_scope = nursery.cancel_scope
+            nursery.start_soon(self.blobs_webserver_task)
+            nursery.start_soon(self.mqtt_setup)
+            self.dir_monitor.start()
+            self._started.set()
+
+        self._stopped.set()
+        logger.debug(f"Device on port {self.mqtt_port.value} shut down")
+
+    def shutdown(self) -> None:
+        if self._started.is_set():
+            assert self._cancel_scope
+            self.dir_monitor.stop()
+            self._cancel_scope.cancel()
 
     async def send_app_config(self, config: str) -> None:
         assert self.mqtt_client

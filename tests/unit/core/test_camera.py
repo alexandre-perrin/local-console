@@ -32,7 +32,6 @@ from local_console.core.camera.mixin_mqtt import EA_STATE_TOPIC
 from local_console.core.camera.mixin_mqtt import SYSINFO_TOPIC
 from local_console.core.camera.qr import get_qr_object
 from local_console.core.camera.qr import qr_string
-from local_console.core.camera.state import CameraState
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.gui.drawer.classification import ClassificationDrawer
@@ -40,6 +39,8 @@ from local_console.gui.enums import ApplicationConfiguration
 from local_console.gui.enums import ApplicationType
 from local_console.utils.tracking import TrackingVariable
 
+from tests.fixtures.camera import cs_init
+from tests.fixtures.camera import cs_init_context
 from tests.strategies.configs import generate_invalid_ip
 from tests.strategies.configs import generate_invalid_port_number
 from tests.strategies.configs import generate_random_characters
@@ -173,6 +174,38 @@ def test_get_qr_string(
     )
 
 
+@pytest.mark.trio
+async def test_lifecycle(cs_init, nursery) -> None:
+    camera_state = cs_init
+    mock_webserver = AsyncMock()
+    mock_mqtt = AsyncMock()
+    mock_dir_monitor = Mock()
+    camera_state.blobs_webserver_task = mock_webserver
+    camera_state.mqtt_setup = mock_mqtt
+    camera_state.dir_monitor = mock_dir_monitor
+
+    # State after instance construction
+    assert not camera_state._started.is_set()
+    assert camera_state._nursery is None
+    assert camera_state._cancel_scope is None
+
+    # Behavior of startup()
+    nursery.start_soon(camera_state.startup)
+    await camera_state._started.wait()
+    mock_webserver.assert_called_once()
+    mock_mqtt.assert_called_once()
+    mock_dir_monitor.start.assert_called_once()
+    assert camera_state._nursery is not None
+    assert not camera_state._cancel_scope.cancel_called
+
+    # Behavior of shutdown()
+    camera_state.shutdown()
+    await camera_state._stopped.wait()
+    mock_dir_monitor.stop.assert_called_once()
+    assert camera_state._cancel_scope.cancel_called
+    assert len(nursery.child_tasks) == 0
+
+
 @given(
     generate_valid_ip(),
     generate_valid_port_number(),
@@ -200,10 +233,11 @@ def test_get_qr_string_no_static_ip(
 @pytest.mark.trio
 @given(device_config=generate_valid_device_configuration())
 async def test_process_state_topic_correct(device_config: DeviceConfiguration) -> None:
-    async with trio.open_nursery() as nursery:
+    async with (
+        trio.open_nursery() as nursery,
+        cs_init_context() as camera,
+    ):
         observer = AsyncMock()
-        send_channel, _ = trio.open_memory_channel(0)
-        camera = CameraState(send_channel, nursery, trio.lowlevel.current_trio_token())
         camera.mqtt_client = AsyncMock()
         camera.device_config.subscribe_async(observer)
         observer.assert_not_awaited()
@@ -224,9 +258,8 @@ async def test_process_state_topic_correct(device_config: DeviceConfiguration) -
 
 
 @pytest.mark.trio
-async def test_process_state_topic_wrong(caplog, nursery) -> None:
-    send_channel, _ = trio.open_memory_channel(0)
-    camera = CameraState(send_channel, nursery, trio.lowlevel.current_trio_token())
+async def test_process_state_topic_wrong(caplog, cs_init) -> None:
+    camera = cs_init
     wrong_obj = {"a": "b"}
     backdoor_state = {
         "state/backdoor-EA_Main/placeholder": b64encode(json.dumps(wrong_obj).encode())
@@ -238,10 +271,10 @@ async def test_process_state_topic_wrong(caplog, nursery) -> None:
 @pytest.mark.trio
 @given(proto_spec=st.sampled_from(OnWireProtocol))
 async def test_process_systeminfo(proto_spec: OnWireProtocol) -> None:
-    async with trio.open_nursery() as nursery:
-        send_channel, _ = trio.open_memory_channel(0)
-        camera = CameraState(send_channel, nursery, trio.lowlevel.current_trio_token())
-
+    async with (
+        trio.open_nursery() as nursery,
+        cs_init_context() as camera,
+    ):
         sysinfo_report = {"systemInfo": {"protocolVersion": str(proto_spec)}}
         await camera._process_sysinfo_topic(sysinfo_report)
 
@@ -251,9 +284,8 @@ async def test_process_systeminfo(proto_spec: OnWireProtocol) -> None:
 
 
 @pytest.mark.trio
-async def test_process_deploy_status_evp1(nursery) -> None:
-    send_channel, _ = trio.open_memory_channel(0)
-    camera = CameraState(send_channel, nursery, trio.lowlevel.current_trio_token())
+async def test_process_deploy_status_evp1(cs_init) -> None:
+    camera = cs_init
     camera._onwire_schema = OnWireProtocol.EVP1
     dummy_deployment = {"a": "b"}
 
@@ -265,9 +297,8 @@ async def test_process_deploy_status_evp1(nursery) -> None:
 
 
 @pytest.mark.trio
-async def test_process_deploy_status_evp2(nursery) -> None:
-    send_channel, _ = trio.open_memory_channel(0)
-    camera = CameraState(send_channel, nursery, trio.lowlevel.current_trio_token())
+async def test_process_deploy_status_evp2(cs_init) -> None:
+    camera = cs_init
     camera._onwire_schema = OnWireProtocol.EVP2
     dummy_deployment = {"a": "b"}
 
@@ -279,13 +310,12 @@ async def test_process_deploy_status_evp2(nursery) -> None:
 
 
 @pytest.mark.trio
-async def test_process_incoming_telemetry(nursery) -> None:
+async def test_process_incoming_telemetry(cs_init) -> None:
     with patch("local_console.core.camera.mixin_mqtt.datetime") as mock_time:
+        camera = cs_init
         mock_now = Mock()
         mock_time.now.return_value = mock_now
 
-        send_channel, _ = trio.open_memory_channel(0)
-        camera = CameraState(send_channel, nursery, trio.lowlevel.current_trio_token())
         dummy_telemetry = {"a": "b"}
         await camera.process_incoming("v1/devices/me/telemetry", dummy_telemetry)
 
@@ -301,9 +331,8 @@ async def test_process_incoming_telemetry(nursery) -> None:
         (DEPLOY_STATUS_TOPIC, "_process_deploy_status_topic"),
     ],
 )
-async def test_process_incoming(topic, function, nursery) -> None:
-    send_channel, _ = trio.open_memory_channel(0)
-    camera = CameraState(send_channel, nursery, trio.lowlevel.current_trio_token())
+async def test_process_incoming(topic, function, cs_init) -> None:
+    camera = cs_init
     with (patch.object(camera, function) as mock_proc,):
         payload = {topic: {"a": "b"}}
         await camera.process_incoming(MQTTTopics.ATTRIBUTES.value, payload)
@@ -311,9 +340,8 @@ async def test_process_incoming(topic, function, nursery) -> None:
 
 
 @pytest.mark.trio
-async def test_process_deploy_fsm_(nursery, tmp_path) -> None:
-    send_channel, _ = trio.open_memory_channel(0)
-    camera = CameraState(send_channel, nursery, trio.lowlevel.current_trio_token())
+async def test_process_deploy_fsm_(nursery, tmp_path, cs_init) -> None:
+    camera = cs_init
     camera.mqtt_client = AsyncMock()
 
     # setup for parsing deployment status messages
@@ -357,12 +385,10 @@ async def test_process_deploy_fsm_(nursery, tmp_path) -> None:
 
 
 @pytest.mark.trio
-async def test_storage_paths(tmp_path_factory, nursery):
+async def test_storage_paths(tmp_path_factory, cs_init) -> None:
+    camera_state = cs_init
     tgd = Path(tmp_path_factory.mktemp("images"))
-    send_channel, _ = trio.open_memory_channel(0)
-    camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
+
     # Set default image dir
     camera_state.image_dir_path.value = tgd
 
@@ -382,11 +408,8 @@ async def test_storage_paths(tmp_path_factory, nursery):
 
 
 @pytest.mark.trio
-async def test_save_into_image_directory(tmp_path, nursery):
-    send_channel, _ = trio.open_memory_channel(0)
-    camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
+async def test_save_into_image_directory(tmp_path, cs_init) -> None:
+    camera_state = cs_init
     root = tmp_path
     tgd = root / "notexists"
 
@@ -402,11 +425,8 @@ async def test_save_into_image_directory(tmp_path, nursery):
 
 
 @pytest.mark.trio
-async def test_save_into_inferences_directory(tmp_path, nursery):
-    send_channel, _ = trio.open_memory_channel(0)
-    camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
+async def test_save_into_inferences_directory(tmp_path, cs_init) -> None:
+    camera_state = cs_init
     root = tmp_path
     tgd = root / "notexists"
 
@@ -422,15 +442,12 @@ async def test_save_into_inferences_directory(tmp_path, nursery):
 
 
 @pytest.mark.trio
-async def test_process_camera_upload_image(tmp_path_factory, nursery):
+async def test_process_camera_upload_image(tmp_path_factory, cs_init) -> None:
     root = tmp_path_factory.getbasetemp()
     inferences_dir = tmp_path_factory.mktemp("inferences")
     images_dir = tmp_path_factory.mktemp("images")
 
-    send_channel, _ = trio.open_memory_channel(0)
-    camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
+    camera_state = cs_init
     camera_state.inference_dir_path.value = inferences_dir
     camera_state.image_dir_path.value = images_dir
 
@@ -442,19 +459,17 @@ async def test_process_camera_upload_image(tmp_path_factory, nursery):
         file = root / "images/a.jpg"
         camera_state._process_camera_upload(file)
         mock_save.assert_called()
-        nursery.cancel_scope.cancel()
 
 
 @pytest.mark.trio
-async def test_process_camera_upload_inferences_with_schema(tmp_path_factory, nursery):
+async def test_process_camera_upload_inferences_with_schema(
+    tmp_path_factory, cs_init
+) -> None:
     root = tmp_path_factory.getbasetemp()
     inferences_dir = tmp_path_factory.mktemp("inferences")
     images_dir = tmp_path_factory.mktemp("images")
 
-    send_channel, _ = trio.open_memory_channel(0)
-    camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
+    camera_state = cs_init
     camera_state.inference_dir_path.value = inferences_dir
     camera_state.image_dir_path.value = images_dir
 
@@ -506,16 +521,13 @@ async def test_process_camera_upload_inferences_with_schema(tmp_path_factory, nu
 
 @pytest.mark.trio
 async def test_process_camera_upload_inferences_missing_schema(
-    tmp_path_factory, nursery
-):
+    tmp_path_factory, cs_init
+) -> None:
     root = tmp_path_factory.getbasetemp()
     inferences_dir = tmp_path_factory.mktemp("inferences")
     images_dir = tmp_path_factory.mktemp("images")
 
-    send_channel, _ = trio.open_memory_channel(0)
-    camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
+    camera_state = cs_init
     camera_state.inference_dir_path.value = inferences_dir
     camera_state.image_dir_path.value = images_dir
 

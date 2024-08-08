@@ -17,23 +17,19 @@ from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
-import trio
 from local_console.core.camera.enums import StreamStatus
-from local_console.core.camera.state import CameraState
 from local_console.gui.controller.inference_screen import InferenceScreenController
 
+from tests.fixtures.camera import cs_init
 from tests.fixtures.gui import driver_set
 
 
 @pytest.mark.trio
-async def test_toggle_stream_status_active(driver_set, nursery):
+async def test_toggle_stream_status_active(driver_set, cs_init):
     driver, mock_gui = driver_set
     with (patch("local_console.gui.controller.inference_screen.InferenceScreenView"),):
         controller = InferenceScreenController(Mock(), driver)
-        send_channel, _ = trio.open_memory_channel(0)
-        driver.camera_state = CameraState(
-            send_channel, nursery, trio.lowlevel.current_trio_token()
-        )
+        driver.camera_state = cs_init
         driver.camera_state.stream_status.value = StreamStatus.Active
         controller.toggle_stream_status()
         driver.from_sync.assert_called_once_with(driver.streaming_rpc_stop)
@@ -41,14 +37,11 @@ async def test_toggle_stream_status_active(driver_set, nursery):
 
 
 @pytest.mark.trio
-async def test_toggle_stream_status_inactive(driver_set, nursery):
+async def test_toggle_stream_status_inactive(driver_set, cs_init):
     driver, mock_gui = driver_set
     with (patch("local_console.gui.controller.inference_screen.InferenceScreenView"),):
         controller = InferenceScreenController(Mock(), driver)
-        send_channel, _ = trio.open_memory_channel(0)
-        driver.camera_state = CameraState(
-            send_channel, nursery, trio.lowlevel.current_trio_token()
-        )
+        driver.camera_state = cs_init
         driver.camera_state.stream_status.value = StreamStatus.Inactive
 
         roi = driver.camera_state.roi.value

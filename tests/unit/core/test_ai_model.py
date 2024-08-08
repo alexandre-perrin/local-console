@@ -18,11 +18,11 @@ from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import pytest
-import trio
 from local_console.core.camera.ai_model import deploy_step
 from local_console.core.camera.ai_model import undeploy_step
-from local_console.core.camera.state import CameraState
 from local_console.core.commands.ota_deploy import get_package_hash
+
+from tests.fixtures.camera import cs_init
 
 
 @pytest.fixture(params=["Done", "Failed"])
@@ -36,11 +36,8 @@ def network_id(request):
 
 
 @pytest.mark.trio
-async def test_undeploy_step_rpc_sent(network_id: str, nursery):
-    send_channel, _ = trio.open_memory_channel(0)
-    camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
+async def test_undeploy_step_rpc_sent(network_id: str, cs_init):
+    camera_state = cs_init
 
     mock_agent = MagicMock()
     mock_agent.mqtt_scope.return_value = AsyncMock()
@@ -60,11 +57,8 @@ async def test_undeploy_step_rpc_sent(network_id: str, nursery):
 
 
 @pytest.mark.trio
-async def test_undeploy_step_not_deployed_model(update_status: str, nursery):
-    send_channel, _ = trio.open_memory_channel(0)
-    camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
+async def test_undeploy_step_not_deployed_model(update_status: str, cs_init):
+    camera_state = cs_init
     mock_agent = MagicMock()
     mock_agent.mqtt_scope.return_value = AsyncMock()
     mock_agent.configure = AsyncMock()
@@ -79,14 +73,10 @@ async def test_undeploy_step_not_deployed_model(update_status: str, nursery):
 
 
 @pytest.mark.trio
-async def test_deploy_step(tmp_path, network_id, update_status: str, nursery):
+async def test_deploy_step(tmp_path, network_id, update_status: str, cs_init):
+    camera_state = cs_init
     filename = "dummy.bin"
     tmp_file = tmp_path / filename
-
-    send_channel, _ = trio.open_memory_channel(0)
-    camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
     mock_agent = MagicMock()
     mock_agent.mqtt_scope.return_value = AsyncMock()
     mock_agent.configure = AsyncMock()

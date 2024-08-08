@@ -233,8 +233,10 @@ class DirectoryMonitor:
 
     def __init__(self) -> None:
         self._obs = Observer()
-        self._obs.start()
         self._watches: dict[Path, ObservedWatch] = dict()
+
+    def start(self) -> None:
+        self._obs.start()
 
     def watch(self, directory: Path, on_delete_cb: OnDeleteCallable) -> None:
         assert directory.is_dir()
