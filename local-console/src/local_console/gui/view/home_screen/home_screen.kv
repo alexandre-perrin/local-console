@@ -117,11 +117,12 @@
                     bold: True
 
                 DeviceDropDownList:
+                    id: device_selector
                     size_hint_x: .5
                     size_hint_y: .05
                     on_selected: app.driver.device_manager.set_active_device(args[1]); app.switch_proxy();
+                    selected_name: app.selected
                     padding: "20dp", "35dp"
-                    _selected_device: app.selected
                     canvas.before:
                         Color:
                             rgba: 0, 0, 0, 1

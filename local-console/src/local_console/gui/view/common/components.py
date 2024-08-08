@@ -48,7 +48,6 @@ from local_console.core.camera.axis_mapping import get_dead_zone_within_image
 from local_console.core.camera.axis_mapping import get_dead_zone_within_widget
 from local_console.core.camera.axis_mapping import get_normalized_center_subregion
 from local_console.core.camera.axis_mapping import snap_point_in_deadzone
-from local_console.core.schemas.schemas import DeviceListItem
 from local_console.gui.enums import ApplicationType
 from local_console.gui.enums import FirmwareType
 from local_console.gui.view.common.behaviors import HoverBehavior
@@ -709,7 +708,7 @@ class FirmwareDropDownItem(MDBoxLayout):
 
 class DeviceItem(MDBoxLayout):
     name = StringProperty("")
-    port = StringProperty("")
+    port = NumericProperty(int(0))
     text_height = "40dp"
     text_width = "200dp"
 
@@ -720,33 +719,33 @@ class DeviceItem(MDBoxLayout):
 class DeviceDropDownList(MDBoxLayout):
     SELECTED_EVENT: str = "on_selected"
 
-    _selected_device = StringProperty("")
+    selected_name = StringProperty("")
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.register_event_type(self.SELECTED_EVENT)
+        self._menu_items: list[dict[str, Any]] = []
 
-    def open_menu(
-        self, devices_items: list[DeviceListItem], widget: MDDropDownItem
-    ) -> None:
-        menu_items = [
+    def populate_menu(self, devices_items: list[DeviceItem]) -> None:
+        self._menu_items = [
             {
                 "text": device.name,
-                "on_release": lambda x=device.name: self.set_type(x),
+                "on_release": lambda x=device.mqtt.port: self.set_type(x),
             }
             for device in devices_items
         ]
 
-        self.menu = MDDropdownMenu(items=menu_items, position="bottom")
-        self.menu.caller = widget
+    def open_menu(self, widget: MDDropDownItem) -> None:
+        self.menu = MDDropdownMenu(
+            caller=widget, items=self._menu_items, position="bottom"
+        )
         self.menu.open()
 
-    def set_type(self, type_item: str) -> None:
-        self._selected_device = type_item
+    def set_type(self, type_item: int) -> None:
         self.dispatch(self.SELECTED_EVENT, type_item)
         self.menu.dismiss()
 
-    def on_selected(self, value: str) -> None:
+    def on_selected(self, value: int) -> None:
         """
         Default handler for the selected item
         """

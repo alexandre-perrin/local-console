@@ -42,3 +42,5 @@ class HomeScreenView(BaseScreenView):
 
     def on_enter(self, *args: Any) -> None:
         self.app.switch_proxy()
+        dman = self.app.driver.device_manager
+        self.ids.device_selector.populate_menu(dman.get_device_configs())
