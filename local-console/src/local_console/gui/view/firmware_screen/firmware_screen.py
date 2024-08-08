@@ -65,10 +65,6 @@ class FirmwareScreenView(BaseScreenView):
             "update_status", self.ids.lbl_ota_status, "text"
         )
 
-        self.app.mdl.bind(device_config=self.on_device_config)
-        self.app.mdl.bind(firmware_file=self.on_firmware_file)
-        self.app.mdl.bind(firmware_file_valid=self.on_firmware_file_valid)
-
     def on_firmware_file(self, proxy: CameraStateProxy, value: Optional[str]) -> None:
         if value and Path(value).is_file():
             self.ids.firmware_pick.accept_path(value)
@@ -84,16 +80,19 @@ class FirmwareScreenView(BaseScreenView):
     def on_device_config(
         self, proxy: CameraStateProxy, value: Optional[DeviceConfiguration]
     ) -> None:
-        update_status_finished = False
+        self.ids.txt_ota_data.text = ""
+        self.transients.update_status = ""
+        self.transients.progress_download = 0
+        self.transients.progress_update = 0
+        self.update_status_finished = False
+
         if value:
             self.ids.txt_ota_data.text = OtaData(**value.model_dump()).model_dump_json(
                 indent=4
             )
             update_status = value.OTA.UpdateStatus
-            update_status_finished = update_status in (
+            self.update_status_finished = update_status in (
                 OTAUpdateStatus.DONE,
                 OTAUpdateStatus.FAILED,
             )
             self.transients.update_status = update_status
-
-        self.update_status_finished = update_status_finished

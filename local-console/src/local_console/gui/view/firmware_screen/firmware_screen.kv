@@ -58,7 +58,7 @@
                 padding: "10dp"
 
                 EntryLabel:
-                    text: "1. Select Firmware Type:"
+                    text: "Select Firmware Type:"
                     halign: "left"
                     adaptive_width: True
 
@@ -82,9 +82,10 @@
 
                 PathSelectorCombo:
                     id: firmware_pick
-                    name: "2. Select Firmware:"
+                    name: "Select Firmware:"
                     icon: "file-cog"
                     selector: "file"
+                    path: str(app.mdl.firmware_file)
                     on_selected: app.mdl.firmware_file = args[1]
 
                 MDButton:
@@ -93,7 +94,7 @@
                     pos_hint: {"center_y": 0.5}
                     disabled:  not (app.mdl.is_ready and app.mdl.firmware_file_valid and app.mdl.firmware_file_version and root.update_status_finished)
                     MDButtonText:
-                        text: "4. Update"
+                        text: "Update"
 
         MDBoxLayout:
             orientation: "horizontal"
@@ -121,7 +122,7 @@
                 padding: "10dp"
 
                 MDLabel:
-                    text: "3. Input Firmware Information"
+                    text: "Input Firmware Information"
                     bold: True
                     halign: "center"
                     adaptive_height: True
@@ -144,6 +145,7 @@
                         height: "50dp"
                     MDTextField:
                         id: txt_firmware_file_version
+                        text: app.mdl.firmware_file_version
                         on_text: app.mdl.firmware_file_version = args[1]
                         size_hint_y: None
                         max_height: "50dp"
