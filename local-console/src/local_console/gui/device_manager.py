@@ -32,7 +32,7 @@ class DeviceManager:
 
     DEFAULT_DEVICE_NAME = "Default"
     DEFAULT_DEVICE_PORT = 1883
-    _STATE_TO_PROXY = [
+    _PROXY_TO_STATE_PROPS = [
         "module_file",
         "ai_model_file",
         "size",
@@ -42,7 +42,7 @@ class DeviceManager:
         "vapp_config_file",
         "vapp_labels_file",
     ]
-    _PROXY_TO_STATE = [
+    _STATE_TO_PROXY_PROPS = [
         "image_dir_path",
         "inference_dir_path",
     ]
@@ -161,7 +161,7 @@ class DeviceManager:
 
         def save_configuration(attribute: str, current: Any, previous: Any) -> None:
             persist = config_obj.get_device_config(device_name).persist
-            for item in self._STATE_TO_PROXY + self._PROXY_TO_STATE:
+            for item in self._PROXY_TO_STATE_PROPS + self._STATE_TO_PROXY_PROPS:
                 if attribute == item:
                     setattr(persist, item, str(current))
 
@@ -169,7 +169,7 @@ class DeviceManager:
             config_obj.save_config()
 
         # Save configuration for any modification of relevant variables
-        for item in self._STATE_TO_PROXY + self._PROXY_TO_STATE:
+        for item in self._PROXY_TO_STATE_PROPS + self._STATE_TO_PROXY_PROPS:
             getattr(self.state_factory[device_name], item).subscribe(
                 partial(save_configuration, item)
             )
@@ -182,15 +182,15 @@ class DeviceManager:
         assert persist
 
         # Attributes with `bind_state_to_proxy` requires to update using `.value` to trigger the binding
-        for item in self._PROXY_TO_STATE:
+        for item in self._STATE_TO_PROXY_PROPS:
             if getattr(persist, item):
                 setattr(
                     getattr(self.state_factory[device_name], item),
                     "value",
                     getattr(persist, item),
                 )
-        # Update using proxy to propagate to state
-        for item in self._STATE_TO_PROXY:
+        # Update using `bind_proxy_to_state`
+        for item in self._PROXY_TO_STATE_PROPS:
             if getattr(persist, item):
                 setattr(self.proxies_factory[device_name], item, getattr(persist, item))
 
