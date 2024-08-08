@@ -461,6 +461,7 @@ def test_online_watch_modification(observer, tmp_path):
 @pytest.fixture
 def directory_monitor() -> Iterator[DirectoryMonitor]:
     obs = DirectoryMonitor()
+    obs.start()
     yield obs
     obs.stop()
 

@@ -23,10 +23,11 @@ from local_console.core.camera.enums import DeploymentType
 from local_console.core.camera.enums import DeployStage
 from local_console.core.camera.enums import OTAUpdateModule
 from local_console.core.camera.enums import StreamStatus
-from local_console.core.camera.state import CameraState
 from local_console.core.config import config_obj
 from local_console.gui.model.camera_proxy import CameraStateProxy
 
+from tests.fixtures.camera import cs_init
+from tests.fixtures.camera import cs_init_context
 from tests.strategies.configs import generate_valid_device_configuration
 
 
@@ -55,7 +56,7 @@ def test_simple_property_binding():
 
 
 @pytest.mark.trio
-async def test_proxy_to_state_binding(nursery):
+async def test_proxy_to_state_binding(cs_init) -> None:
     """
     This test shows how to perform a proxy-->state data binding,
     by means of the bind_proxy_to_state() method of CameraProxy.
@@ -65,11 +66,8 @@ async def test_proxy_to_state_binding(nursery):
     """
 
     camera_proxy = CameraStateProxy()
+    camera_state = cs_init
 
-    send_channel, _ = trio.open_memory_channel(0)
-    camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
     assert camera_state.ai_model_file.previous is None
     assert camera_state.ai_model_file.value is None
 
@@ -85,13 +83,9 @@ async def test_proxy_to_state_binding(nursery):
 
 
 @pytest.mark.trio
-async def test_bind_connections(nursery):
-
+async def test_bind_connections(cs_init) -> None:
     camera_proxy = CameraStateProxy()
-    send_channel, _ = trio.open_memory_channel(0)
-    camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
+    camera_state = cs_init
 
     camera_proxy.bind_connections(camera_state)
     camera_state.initialize_connection_variables(
@@ -112,12 +106,9 @@ async def test_bind_connections(nursery):
 
 
 @pytest.mark.trio
-async def test_bind_core_variables(nursery):
+async def test_bind_core_variables(cs_init) -> None:
+    camera_state = cs_init
     camera_proxy = CameraStateProxy()
-    send_channel, _ = trio.open_memory_channel(0)
-    camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
 
     camera_proxy.bind_core_variables(camera_state)
     camera_state.is_ready.value = True
@@ -129,12 +120,9 @@ async def test_bind_core_variables(nursery):
 
 
 @pytest.mark.trio
-async def test_bind_stream_variables(nursery):
+async def test_bind_stream_variables(cs_init) -> None:
+    camera_state = cs_init
     camera_proxy = CameraStateProxy()
-    send_channel, _ = trio.open_memory_channel(0)
-    camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
 
     camera_proxy.bind_stream_variables(camera_state)
 
@@ -146,12 +134,9 @@ async def test_bind_stream_variables(nursery):
 
 
 @pytest.mark.trio
-async def test_bind_ai_model_function(nursery):
+async def test_bind_ai_model_function(cs_init) -> None:
+    camera_state = cs_init
     camera_proxy = CameraStateProxy()
-    send_channel, _ = trio.open_memory_channel(0)
-    camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
 
     camera_proxy.bind_ai_model_function(camera_state)
 
@@ -163,12 +148,9 @@ async def test_bind_ai_model_function(nursery):
 
 
 @pytest.mark.trio
-async def test_bind_firmware_file_functions(nursery):
+async def test_bind_firmware_file_functions(cs_init) -> None:
+    camera_state = cs_init
     camera_proxy = CameraStateProxy()
-    send_channel, _ = trio.open_memory_channel(0)
-    camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
 
     camera_proxy.bind_firmware_file_functions(camera_state)
 
@@ -186,12 +168,9 @@ async def test_bind_firmware_file_functions(nursery):
 
 
 @pytest.mark.trio
-async def test_bind_vapp_file_functions(nursery):
+async def test_bind_vapp_file_functions(cs_init) -> None:
+    camera_state = cs_init
     camera_proxy = CameraStateProxy()
-    send_channel, _ = trio.open_memory_channel(0)
-    camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
 
     camera_proxy.bind_vapp_file_functions(camera_state)
 
@@ -208,12 +187,9 @@ async def test_bind_vapp_file_functions(nursery):
 
 
 @pytest.mark.trio
-async def test_bind_app_module_functions(nursery):
+async def test_bind_app_module_functions(cs_init) -> None:
+    camera_state = cs_init
     camera_proxy = CameraStateProxy()
-    send_channel, _ = trio.open_memory_channel(0)
-    camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
 
     camera_proxy.bind_app_module_functions(camera_state)
 
@@ -240,12 +216,11 @@ async def test_state_to_proxy_binding(a_device_config):
     This is useful for propagating messages issued by the camera
     into GUI widgets that are data-bound via proxy properties.
     """
-    async with trio.open_nursery() as nursery:
+    async with (
+        trio.open_nursery() as nursery,
+        cs_init_context() as camera_state,
+    ):
         camera_proxy = CameraStateProxy()
-        send_channel, _ = trio.open_memory_channel(0)
-        camera_state = CameraState(
-            send_channel, nursery, trio.lowlevel.current_trio_token()
-        )
 
         # Use bind_state_to_proxy to connect to the camera_state
         camera_proxy.bind_state_to_proxy("device_config", camera_state)
@@ -258,17 +233,14 @@ async def test_state_to_proxy_binding(a_device_config):
 
 
 @pytest.mark.trio
-async def test_state_to_proxy_binding_reassignment(tmp_path_factory, nursery):
+async def test_state_to_proxy_binding_reassignment(tmp_path_factory, cs_init) -> None:
     """
     This test serves to make sure further updates to the
     state variable will be reflected on the proxy property
     """
 
     camera_proxy = CameraStateProxy()
-    send_channel, _ = trio.open_memory_channel(0)
-    camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
+    camera_state = cs_init
 
     # Value binding
     camera_proxy.bind_state_to_proxy("ai_model_file", camera_state, str)
@@ -285,17 +257,14 @@ async def test_state_to_proxy_binding_reassignment(tmp_path_factory, nursery):
 
 
 @pytest.mark.trio
-async def test_state_to_proxy_binding_with_observer(tmp_path_factory, nursery):
+async def test_state_to_proxy_binding_with_observer(tmp_path_factory, cs_init) -> None:
     """
     This test serves to see a binding of an observer callback
     to a proxy property that is bound to a state variable in action.
     """
 
     camera_proxy = CameraStateProxy()
-    send_channel, _ = trio.open_memory_channel(0)
-    camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
+    camera_state = cs_init
 
     callback_state = {"was_called": False, "instance": None, "value": None}
 

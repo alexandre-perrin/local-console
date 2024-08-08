@@ -23,19 +23,19 @@ import pytest
 import trio
 from hypothesis import given
 from local_console.core.camera.flatbuffers import FlatbufferError
-from local_console.core.camera.state import CameraState
 from local_console.gui.controller.configuration_screen import (
     ConfigurationScreenController,
 )
 from local_console.gui.enums import ApplicationSchemaFilePath
 from local_console.gui.enums import ApplicationType
 
+from tests.fixtures.camera import cs_init
 from tests.fixtures.gui import driver_set
 from tests.strategies.configs import generate_text
 
 
 @pytest.mark.trio
-async def test_apply_configuration(driver_set, nursery):
+async def test_apply_configuration(driver_set, cs_init) -> None:
     with (
         patch(
             "local_console.gui.controller.configuration_screen.ConfigurationScreenView"
@@ -48,10 +48,7 @@ async def test_apply_configuration(driver_set, nursery):
         ) as mock_apply_app_cfg,
     ):
         driver, mock_gui = driver_set
-        send_channel, _ = trio.open_memory_channel(0)
-        driver.camera_state = CameraState(
-            send_channel, nursery, trio.lowlevel.current_trio_token()
-        )
+        driver.camera_state = cs_init
         ctrl = ConfigurationScreenController(Mock(), driver)
         ctrl.apply_configuration()
         mock_apply_fb.assert_any_call()
@@ -59,13 +56,10 @@ async def test_apply_configuration(driver_set, nursery):
 
 
 @pytest.mark.trio
-async def test_apply_flatbuffers_schema(driver_set, tmp_path):
+async def test_apply_flatbuffers_schema(driver_set, cs_init, tmp_path) -> None:
     driver, mock_gui = driver_set
     async with trio.open_nursery() as nursery:
-        send_channel, _ = trio.open_memory_channel(0)
-        driver.camera_state = CameraState(
-            send_channel, nursery, trio.lowlevel.current_trio_token()
-        )
+        driver.camera_state = cs_init
         model = driver.camera_state
         mock_gui.mdl.bind_vapp_file_functions(model)
         with (
@@ -109,13 +103,10 @@ async def test_apply_flatbuffers_schema(driver_set, tmp_path):
 
 
 @pytest.mark.trio
-async def test_apply_application_configuration(driver_set, tmp_path):
+async def test_apply_application_configuration(driver_set, cs_init, tmp_path) -> None:
     driver, mock_gui = driver_set
     async with trio.open_nursery() as nursery:
-        send_channel, _ = trio.open_memory_channel(0)
-        driver.camera_state = CameraState(
-            send_channel, nursery, trio.lowlevel.current_trio_token()
-        )
+        driver.camera_state = cs_init
         model = driver.camera_state
         model.vapp_type.value = ApplicationType.CUSTOM.value
         mock_gui.mdl.bind_vapp_file_functions(model)
@@ -154,13 +145,12 @@ async def test_apply_application_configuration(driver_set, tmp_path):
 
 
 @pytest.mark.trio
-async def test_apply_application_configuration_error(driver_set, tmp_path):
+async def test_apply_application_configuration_error(
+    driver_set, cs_init, tmp_path
+) -> None:
     driver, mock_gui = driver_set
     async with trio.open_nursery() as nursery:
-        send_channel, _ = trio.open_memory_channel(0)
-        driver.camera_state = CameraState(
-            send_channel, nursery, trio.lowlevel.current_trio_token()
-        )
+        driver.camera_state = cs_init
         model = driver.camera_state
         mock_gui.mdl.bind_vapp_file_functions(model)
 
@@ -193,13 +183,10 @@ async def test_apply_application_configuration_error(driver_set, tmp_path):
 
 
 @pytest.mark.trio
-async def test_update_application_type(driver_set):
+async def test_update_application_type(driver_set, cs_init) -> None:
     driver, mock_gui = driver_set
     async with trio.open_nursery() as nursery:
-        send_channel, _ = trio.open_memory_channel(0)
-        driver.camera_state = CameraState(
-            send_channel, nursery, trio.lowlevel.current_trio_token()
-        )
+        driver.camera_state = cs_init
         model = driver.camera_state
         model.vapp_type.value = ApplicationType.CUSTOM.value
         mock_gui.mdl.bind_vapp_file_functions(model)

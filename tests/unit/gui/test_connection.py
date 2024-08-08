@@ -22,10 +22,11 @@ import trio
 from hypothesis import given
 from hypothesis import settings
 from hypothesis import strategies as st
-from local_console.core.camera.state import CameraState
 from local_console.core.config import config_obj
 from local_console.gui.controller.connection_screen import ConnectionScreenController
 
+from tests.fixtures.camera import cs_init
+from tests.fixtures.camera import cs_init_context
 from tests.fixtures.gui import driver_context
 from tests.strategies.configs import generate_invalid_ip
 from tests.strategies.configs import generate_random_characters
@@ -33,12 +34,9 @@ from tests.strategies.configs import generate_valid_port_number
 
 
 @pytest.mark.trio
-async def test_initialization(nursery):
+async def test_initialization(cs_init) -> None:
     with driver_context() as (driver, _):
-        send_channel, _ = trio.open_memory_channel(0)
-        driver.camera_state = CameraState(
-            send_channel, nursery, trio.lowlevel.current_trio_token()
-        )
+        driver.camera_state = cs_init
         device = config_obj.get_active_device_config()
         driver.camera_state.initialize_connection_variables("EVP1", device)
         with patch(
@@ -71,11 +69,11 @@ async def test_local_ip_valid_update(ip: str):
                 "local_console.gui.controller.connection_screen.ConnectionScreenView"
             ),
         ):
-            async with trio.open_nursery() as nursery:
-                send_channel, _ = trio.open_memory_channel(0)
-                driver.camera_state = CameraState(
-                    send_channel, nursery, trio.lowlevel.current_trio_token()
-                )
+            async with (
+                trio.open_nursery() as nursery,
+                cs_init_context() as camera,
+            ):
+                driver.camera_state = camera
                 device = config_obj.get_active_device_config()
                 driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
@@ -94,11 +92,11 @@ async def test_mqtt_host_valid_update(ip: str):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            async with trio.open_nursery() as nursery:
-                send_channel, _ = trio.open_memory_channel(0)
-                driver.camera_state = CameraState(
-                    send_channel, nursery, trio.lowlevel.current_trio_token()
-                )
+            async with (
+                trio.open_nursery() as nursery,
+                cs_init_context() as camera,
+            ):
+                driver.camera_state = camera
                 config = config_obj.get_config()
                 device = config_obj.get_active_device_config()
                 driver.camera_state.initialize_connection_variables(
@@ -121,11 +119,11 @@ async def test_mqtt_host_invalid_update(ip: str):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            async with trio.open_nursery() as nursery:
-                send_channel, _ = trio.open_memory_channel(0)
-                driver.camera_state = CameraState(
-                    send_channel, nursery, trio.lowlevel.current_trio_token()
-                )
+            async with (
+                trio.open_nursery() as nursery,
+                cs_init_context() as camera,
+            ):
+                driver.camera_state = camera
                 device = config_obj.get_active_device_config()
                 driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
@@ -150,11 +148,11 @@ async def test_mqtt_port_valid_update(port: str):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            async with trio.open_nursery() as nursery:
-                send_channel, _ = trio.open_memory_channel(0)
-                driver.camera_state = CameraState(
-                    send_channel, nursery, trio.lowlevel.current_trio_token()
-                )
+            async with (
+                trio.open_nursery() as nursery,
+                cs_init_context() as camera,
+            ):
+                driver.camera_state = camera
                 device = config_obj.get_active_device_config()
                 driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
@@ -168,16 +166,13 @@ async def test_mqtt_port_valid_update(port: str):
 
 
 @pytest.mark.trio
-async def test_mqtt_port_invalid_update(nursery):
+async def test_mqtt_port_invalid_update(cs_init) -> None:
     port = -1
     with driver_context() as (driver, _):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            send_channel, _ = trio.open_memory_channel(0)
-            driver.camera_state = CameraState(
-                send_channel, nursery, trio.lowlevel.current_trio_token()
-            )
+            driver.camera_state = cs_init
             device = config_obj.get_active_device_config()
             driver.camera_state.initialize_connection_variables("EVP1", device)
             ctrl = ConnectionScreenController(Mock(), driver)
@@ -199,11 +194,11 @@ async def test_ntp_host_valid_update(ip: str):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            async with trio.open_nursery() as nursery:
-                send_channel, _ = trio.open_memory_channel(0)
-                driver.camera_state = CameraState(
-                    send_channel, nursery, trio.lowlevel.current_trio_token()
-                )
+            async with (
+                trio.open_nursery() as nursery,
+                cs_init_context() as camera,
+            ):
+                driver.camera_state = camera
                 device = config_obj.get_active_device_config()
                 driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
@@ -223,11 +218,11 @@ async def test_ntp_host_invalid_update(ip: str):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            async with trio.open_nursery() as nursery:
-                send_channel, _ = trio.open_memory_channel(0)
-                driver.camera_state = CameraState(
-                    send_channel, nursery, trio.lowlevel.current_trio_token()
-                )
+            async with (
+                trio.open_nursery() as nursery,
+                cs_init_context() as camera,
+            ):
+                driver.camera_state = camera
                 device = config_obj.get_active_device_config()
                 driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
@@ -252,11 +247,11 @@ async def test_ip_address_valid_update(ip: str):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            async with trio.open_nursery() as nursery:
-                send_channel, _ = trio.open_memory_channel(0)
-                driver.camera_state = CameraState(
-                    send_channel, nursery, trio.lowlevel.current_trio_token()
-                )
+            async with (
+                trio.open_nursery() as nursery,
+                cs_init_context() as camera,
+            ):
+                driver.camera_state = camera
                 device = config_obj.get_active_device_config()
                 driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
@@ -276,11 +271,11 @@ async def test_ip_address_invalid_update(ip: str):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            async with trio.open_nursery() as nursery:
-                send_channel, _ = trio.open_memory_channel(0)
-                driver.camera_state = CameraState(
-                    send_channel, nursery, trio.lowlevel.current_trio_token()
-                )
+            async with (
+                trio.open_nursery() as nursery,
+                cs_init_context() as camera,
+            ):
+                driver.camera_state = camera
                 device = config_obj.get_active_device_config()
                 driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
@@ -305,11 +300,11 @@ async def test_subnet_mask_valid_update(ip: str):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            async with trio.open_nursery() as nursery:
-                send_channel, _ = trio.open_memory_channel(0)
-                driver.camera_state = CameraState(
-                    send_channel, nursery, trio.lowlevel.current_trio_token()
-                )
+            async with (
+                trio.open_nursery() as nursery,
+                cs_init_context() as camera,
+            ):
+                driver.camera_state = camera
                 device = config_obj.get_active_device_config()
                 driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
@@ -329,11 +324,11 @@ async def test_subnet_mask_invalid_update(ip: str):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            async with trio.open_nursery() as nursery:
-                send_channel, _ = trio.open_memory_channel(0)
-                driver.camera_state = CameraState(
-                    send_channel, nursery, trio.lowlevel.current_trio_token()
-                )
+            async with (
+                trio.open_nursery() as nursery,
+                cs_init_context() as camera,
+            ):
+                driver.camera_state = camera
                 device = config_obj.get_active_device_config()
                 driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
@@ -358,11 +353,11 @@ async def test_gateway_valid_update(ip: str):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            async with trio.open_nursery() as nursery:
-                send_channel, _ = trio.open_memory_channel(0)
-                driver.camera_state = CameraState(
-                    send_channel, nursery, trio.lowlevel.current_trio_token()
-                )
+            async with (
+                trio.open_nursery() as nursery,
+                cs_init_context() as camera,
+            ):
+                driver.camera_state = camera
                 device = config_obj.get_active_device_config()
                 driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
@@ -382,11 +377,11 @@ async def test_gateway_invalid_update(ip: str):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            async with trio.open_nursery() as nursery:
-                send_channel, _ = trio.open_memory_channel(0)
-                driver.camera_state = CameraState(
-                    send_channel, nursery, trio.lowlevel.current_trio_token()
-                )
+            async with (
+                trio.open_nursery() as nursery,
+                cs_init_context() as camera,
+            ):
+                driver.camera_state = camera
                 device = config_obj.get_active_device_config()
                 driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
@@ -411,11 +406,11 @@ async def test_dns_server_valid_update(ip: str):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            async with trio.open_nursery() as nursery:
-                send_channel, _ = trio.open_memory_channel(0)
-                driver.camera_state = CameraState(
-                    send_channel, nursery, trio.lowlevel.current_trio_token()
-                )
+            async with (
+                trio.open_nursery() as nursery,
+                cs_init_context() as camera,
+            ):
+                driver.camera_state = camera
                 device = config_obj.get_active_device_config()
                 driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
@@ -436,11 +431,11 @@ async def test_dns_server_invalid_update(ip: str):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            async with trio.open_nursery() as nursery:
-                send_channel, _ = trio.open_memory_channel(0)
-                driver.camera_state = CameraState(
-                    send_channel, nursery, trio.lowlevel.current_trio_token()
-                )
+            async with (
+                trio.open_nursery() as nursery,
+                cs_init_context() as camera,
+            ):
+                driver.camera_state = camera
                 device = config_obj.get_active_device_config()
                 driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)
@@ -468,11 +463,11 @@ async def test_wifi_ssid_password_long(ssid: str, password: str):
         with patch(
             "local_console.gui.controller.connection_screen.ConnectionScreenView"
         ):
-            async with trio.open_nursery() as nursery:
-                send_channel, _ = trio.open_memory_channel(0)
-                driver.camera_state = CameraState(
-                    send_channel, nursery, trio.lowlevel.current_trio_token()
-                )
+            async with (
+                trio.open_nursery() as nursery,
+                cs_init_context() as camera,
+            ):
+                driver.camera_state = camera
                 device = config_obj.get_active_device_config()
                 driver.camera_state.initialize_connection_variables("EVP1", device)
                 ctrl = ConnectionScreenController(Mock(), driver)

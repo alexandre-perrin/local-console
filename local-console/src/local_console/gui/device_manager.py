@@ -97,7 +97,7 @@ class DeviceManager:
 
     def add_device_to_internals(self, device: DeviceConnection) -> None:
         proxy = CameraStateProxy()
-        state = CameraState(self.send_channel.clone(), self.nursery, self.trio_token)
+        state = CameraState(self.send_channel.clone(), self.trio_token)
         self.proxies_factory[device.name] = proxy
         self.state_factory[device.name] = state
 
@@ -107,7 +107,7 @@ class DeviceManager:
         device.mqtt.port = int(device.mqtt.port)
         state.initialize_connection_variables(config.evp.iot_platform, device)
         self.initialize_persistency(device.name)
-        state.finish_setup()
+        self.nursery.start_soon(state.startup)
 
     def add_device(self, device: DeviceListItem) -> None:
         device_connection = config_obj.add_device(device)
@@ -118,6 +118,7 @@ class DeviceManager:
     def remove_device(self, name: str) -> None:
         if len(self.proxies_factory.keys()) == 1:
             raise DeviceRemoveError
+        self.state_factory[name].shutdown()
         config_obj.remove_device(name)
         config_obj.save_config()
         del self.proxies_factory[name]

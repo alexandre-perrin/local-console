@@ -19,10 +19,8 @@ from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
-import trio
 from local_console.core.camera.enums import OTAUpdateModule
 from local_console.core.camera.firmware import validate_firmware_file
-from local_console.core.camera.state import CameraState
 from local_console.core.commands.ota_deploy import get_package_hash
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
 from local_console.core.schemas.edge_cloud_if_v1 import Hardware
@@ -31,6 +29,7 @@ from local_console.core.schemas.edge_cloud_if_v1 import Permission
 from local_console.core.schemas.edge_cloud_if_v1 import Status
 from local_console.core.schemas.edge_cloud_if_v1 import Version
 
+from tests.fixtures.camera import cs_init
 from tests.fixtures.gui import driver_set
 
 
@@ -70,7 +69,7 @@ def device_config(UpdateProgress, UpdateStatus):
 
 
 @pytest.mark.trio
-async def test_select_path(driver_set, tmp_path, nursery):
+async def test_select_path(driver_set, tmp_path, cs_init) -> None:
     """
     Test how selection of file path and type results in
     hash computation and determining validity of the file,
@@ -78,10 +77,7 @@ async def test_select_path(driver_set, tmp_path, nursery):
     """
 
     driver, mock_gui = driver_set
-    send_channel, _ = trio.open_memory_channel(0)
-    driver.camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
+    driver.camera_state = cs_init
     state = driver.camera_state
     mock_gui.mdl.bind_firmware_file_functions(state)
 
@@ -240,18 +236,14 @@ def test_progress_update_checkpoint():
 
 
 @pytest.mark.trio
-async def test_update_firmware_task_invalid(tmp_path, nursery):
+async def test_update_firmware_task_invalid(tmp_path, cs_init) -> None:
 
     from local_console.core.camera.firmware import update_firmware_task
 
-    from local_console.core.camera.state import CameraState
     from local_console.core.camera.firmware import TransientStatus
     from local_console.core.camera.firmware import FirmwareException
 
-    send_channel, _ = trio.open_memory_channel(0)
-    camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
+    camera_state = cs_init
     indicator = TransientStatus()
     error_notify = Mock()
     with (
@@ -272,18 +264,14 @@ async def test_update_firmware_task_invalid(tmp_path, nursery):
 
 
 @pytest.mark.trio
-async def test_update_firmware_task_valid(tmp_path, nursery):
+async def test_update_firmware_task_valid(tmp_path, cs_init) -> None:
 
     from local_console.core.camera.firmware import update_firmware_task
 
-    from local_console.core.camera.state import CameraState
     from local_console.core.camera.firmware import TransientStatus
     from local_console.core.camera.enums import OTAUpdateModule
 
-    send_channel, _ = trio.open_memory_channel(0)
-    camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
+    camera_state = cs_init
 
     indicator = TransientStatus()
     error_notify = Mock()

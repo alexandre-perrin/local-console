@@ -18,26 +18,16 @@ from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
-import trio
-from local_console.core.camera.state import CameraState
 from local_console.gui.device_manager import DeviceManager
 
+from tests.fixtures.camera import cs_init
 from tests.fixtures.driver import mock_driver_with_agent
-
-
-@pytest.fixture
-async def cs_init(nursery):
-    send_channel, _ = trio.open_memory_channel(0)
-    camera_state = CameraState(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
-    yield camera_state, nursery, send_channel
 
 
 @pytest.mark.trio
 async def test_process_incoming_telemetry(cs_init) -> None:
     with patch("local_console.core.camera.mixin_mqtt.datetime") as mock_time:
-        camera, _, _ = cs_init
+        camera = cs_init
 
         mock_now = Mock()
         mock_time.now.return_value = mock_now
@@ -49,14 +39,14 @@ async def test_process_incoming_telemetry(cs_init) -> None:
 
 
 @pytest.mark.trio
-async def test_streaming_rpc_stop():
+async def test_streaming_rpc_stop(cs_init):
     with (mock_driver_with_agent() as (driver, mock_agent),):
 
         mock_agent.publish = AsyncMock()
         mock_rpc = AsyncMock()
         mock_agent.rpc = mock_rpc
 
-        driver.camera_state = CameraState(Mock(), Mock(), Mock())
+        driver.camera_state = cs_init
         driver.device_manager = DeviceManager(Mock(), Mock(), Mock())
         driver.device_manager.init_devices([])
         driver.device_manager.get_active_device_state().mqtt_client = mock_agent
