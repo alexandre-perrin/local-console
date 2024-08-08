@@ -159,6 +159,4 @@ class DevicesScreenController(BaseController):
             self.view.ids.box_device_list.remove_widget(device)
             self.driver.device_manager.remove_device(device.name)
 
-        if self.driver.device_manager.num_devices == 1:
-            self.driver.device_manager.set_active_device(device_list[0].name)
-            self.driver.gui.switch_proxy()
+        self.driver.gui.switch_proxy()

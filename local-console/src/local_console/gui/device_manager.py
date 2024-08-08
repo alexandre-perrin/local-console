@@ -28,6 +28,12 @@ from local_console.gui.model.camera_proxy import CameraStateProxy
 logger = logging.getLogger(__name__)
 
 
+class DeviceRemoveError(Exception):
+    """
+    Device could not be removed
+    """
+
+
 class DeviceManager:
 
     DEFAULT_DEVICE_NAME = "Default"
@@ -110,10 +116,17 @@ class DeviceManager:
         self.initialize_persistency(device.name)
 
     def remove_device(self, name: str) -> None:
+        if len(self.proxies_factory.keys()) == 1:
+            raise DeviceRemoveError
         config_obj.remove_device(name)
         config_obj.save_config()
         del self.proxies_factory[name]
         del self.state_factory[name]
+        assert self.active_device
+        if name == self.active_device.name:
+            new_active_device = self.get_device_configs()[0].name
+            logger.debug(f"Update active device to {new_active_device}")
+            self.set_active_device(new_active_device)
 
     def get_active_device_proxy(self) -> CameraStateProxy:
         assert self.active_device
