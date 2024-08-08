@@ -42,12 +42,21 @@ class ApplicationsScreenController(BaseController):
         self.driver = driver
         self.view = ApplicationsScreenView(controller=self, model=self.model)
 
+    def bind(self) -> None:
+        self.driver.gui.mdl.bind(deploy_stage=self.view.on_deploy_stage)
+
+    def unbind(self) -> None:
+        self.driver.gui.mdl.unbind(deploy_stage=self.view.on_deploy_stage)
+
     def refresh(self) -> None:
         assert self.driver.camera_state
         if self.driver.camera_state.module_file.value is not None:
             self.view.app_file_valid = validate_app_file(
                 Path(self.driver.camera_state.module_file.value)
             )
+        self.view.on_deploy_stage(
+            self.driver.gui.mdl, self.driver.camera_state.deploy_stage.value
+        )
 
     def get_view(self) -> ApplicationsScreenView:
         return self.view

@@ -13,10 +13,8 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-import json
 import logging
 from pathlib import Path
-from typing import Any
 from typing import Optional
 
 from kivy.properties import BooleanProperty
@@ -37,17 +35,6 @@ logger = logging.getLogger(__name__)
 class ApplicationsScreenView(BaseScreenView):
 
     app_file_valid = BooleanProperty(False)
-
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        self.app.mdl.bind(deploy_status=self.on_deploy_status)
-        self.app.mdl.bind(deploy_stage=self.on_deploy_stage)
-
-    def on_deploy_status(
-        self, proxy: CameraStateProxy, status: Optional[dict[str, Any]]
-    ) -> None:
-        if status:
-            self.ids.txt_deployment_data.text = json.dumps(status, indent=4)
 
     def select_path(self, path: str) -> None:
         """

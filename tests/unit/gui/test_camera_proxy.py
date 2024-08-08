@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+import json
 from pathlib import Path
 
 import pytest
@@ -223,7 +224,7 @@ async def test_bind_app_module_functions(nursery):
     camera_proxy.module_file = str(Path("test_path"))
 
     assert camera_proxy.deploy_stage == DeployStage.WaitAppliedConfirmation
-    assert camera_proxy.deploy_status == {0: "test"}
+    assert camera_proxy.deploy_status == json.dumps({0: "test"}, indent=4)
     assert camera_proxy.deploy_operation == DeploymentType.Application
     assert camera_state.module_file.value == Path("test_path")
 
