@@ -38,6 +38,22 @@ class FirmwareScreenController(BaseController):
         self.driver = driver
         self.view = FirmwareScreenView(controller=self, model=self.model)
 
+    def bind(self) -> None:
+        self.driver.gui.mdl.bind(device_config=self.view.on_device_config)
+        self.driver.gui.mdl.bind(firmware_file=self.view.on_firmware_file)
+        self.driver.gui.mdl.bind(firmware_file_valid=self.view.on_firmware_file_valid)
+
+    def unbind(self) -> None:
+        self.driver.gui.mdl.unbind(device_config=self.view.on_device_config)
+        self.driver.gui.mdl.unbind(firmware_file=self.view.on_firmware_file)
+        self.driver.gui.mdl.unbind(firmware_file_valid=self.view.on_firmware_file_valid)
+
+    def refresh(self) -> None:
+        assert self.driver.camera_state
+        self.view.on_device_config(
+            self.driver.gui.mdl, self.driver.camera_state.device_config.value
+        )
+
     def get_view(self) -> FirmwareScreenView:
         return self.view
 
