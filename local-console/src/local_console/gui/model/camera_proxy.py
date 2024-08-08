@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+import json
 from pathlib import Path
 
 from kivy.properties import BooleanProperty
@@ -71,7 +72,7 @@ class CameraStateProxy(CameraStateProxyBase):
     wifi_password = StringProperty("")
 
     module_file = StringProperty("", allownone=True)
-    deploy_status = ObjectProperty(dict(), allownone=True)
+    deploy_status = StringProperty("", allownone=True)
     deploy_stage = ObjectProperty(DeployStage, allownone=True)
     deploy_operation = ObjectProperty(DeploymentType, allownone=True)
 
@@ -146,7 +147,9 @@ class CameraStateProxy(CameraStateProxyBase):
     def bind_app_module_functions(self, camera_state: CameraState) -> None:
         # State->Proxy because these are either read from the device state
         # or from states computed within the camera tracking
-        self.bind_state_to_proxy("deploy_status", camera_state)
+        self.bind_state_to_proxy(
+            "deploy_status", camera_state, lambda v: json.dumps(v, indent=4)
+        )
         self.bind_state_to_proxy("deploy_stage", camera_state)
         self.bind_state_to_proxy("deploy_operation", camera_state)
 

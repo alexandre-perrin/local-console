@@ -48,6 +48,9 @@ class ApplicationsScreenController(BaseController):
             self.view.app_file_valid = validate_app_file(
                 Path(self.driver.camera_state.module_file.value)
             )
+        self.view.on_deploy_stage(
+            self.driver.gui.mdl, self.driver.camera_state.deploy_stage.value
+        )
 
     def get_view(self) -> ApplicationsScreenView:
         return self.view
