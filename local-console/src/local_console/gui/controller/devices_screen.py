@@ -61,7 +61,27 @@ class DevicesScreenController(BaseController):
             self.add_device_to_device_list(DeviceItem(name=name, port=port))
 
     def add_device_to_device_list(self, device: DeviceItem) -> None:
+        device.bind(on_name_edited=self.on_rename_typed)
+        device.bind(on_name_enter=self.on_rename_hit_enter)
         self.view.ids.box_device_list.add_widget(device)
+
+    def on_rename_typed(self, device_widget: DeviceItem, name: str) -> None:
+        device_widget.schedule_delayed_update(
+            lambda dt: self.rename_device(device_widget, name)
+        )
+
+    def on_rename_hit_enter(self, device_widget: DeviceItem, name: str) -> None:
+        device_widget.cancel_delayed_update()
+        self.rename_device(device_widget, name)
+
+    def rename_device(self, device_widget: DeviceItem, name: str) -> None:
+        assert self.driver
+        assert self.driver.device_manager
+
+        port = device_widget.port
+        self.driver.device_manager.rename_device(port, name)
+        self.driver.gui.refresh_active_device()
+        self.view.display_info("Device renamed", f"'{name}' connecting on port {port}")
 
     def set_new_device_name(self, name: str) -> None:
         """
