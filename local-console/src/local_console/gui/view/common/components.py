@@ -19,10 +19,12 @@ import re
 from math import fabs
 from pathlib import Path
 from typing import Any
+from typing import Callable
 from typing import Optional
 
 from kivy.clock import Clock
 from kivy.core.window import Window
+from kivy.event import EventDispatcher
 from kivy.graphics import Color
 from kivy.graphics import Line
 from kivy.graphics.texture import Texture
@@ -510,7 +512,46 @@ class NumberInputField(MDTextField):
         return super().insert_text(s, from_undo=from_undo)
 
 
-class FileSizeCombo(MDBoxLayout):
+class DelayedUpdateMixin(EventDispatcher):
+
+    cool_off_ms = NumericProperty(1100)
+    """
+    Specifies the input value cool-off period before updating
+    the 'value' property.
+
+    :attr:`value` is an :class:`~kivy.properties.NumericProperty`
+    and defaults to `0`.
+    """
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._update_clock: Optional[Clock] = None
+
+    def cancel_delayed_update(self) -> None:
+        if self._update_clock:
+            # Previous cool-off was not done, so cancel it
+            self._update_clock.cancel()
+            self._update_clock = None
+
+    def schedule_delayed_update(
+        self,
+        action: Callable[
+            [
+                float,
+            ],
+            Any,
+        ],
+    ) -> None:
+        self.cancel_delayed_update()
+
+        # Instantiate cool-off clock
+        self._update_clock = Clock.schedule_once(action, self.cool_off_ms / 1000)
+
+        # Start input value cool-off before updating
+        self._update_clock()
+
+
+class FileSizeCombo(MDBoxLayout, DelayedUpdateMixin):
     """
     Widget group that provides user-friendly input
     of a file size quantity, with the result in
@@ -534,15 +575,6 @@ class FileSizeCombo(MDBoxLayout):
     and defaults to `0`.
     """
 
-    cool_off_ms = NumericProperty(2000)
-    """
-    Specifies the input value cool-off period before updating
-    the 'value' property.
-
-    :attr:`value` is an :class:`~kivy.properties.NumericProperty`
-    and defaults to `0`.
-    """
-
     DEFAULT_SIZE = "10"
 
     _factors = {"KB": 2**10, "MB": 2**20, "GB": 2**30}
@@ -551,7 +583,6 @@ class FileSizeCombo(MDBoxLayout):
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.validation_clock: Optional[Clock] = None
         menu_items = [
             {
                 "text": unit,
@@ -568,32 +599,16 @@ class FileSizeCombo(MDBoxLayout):
     def open_menu(self, widget: MDDropDownItem) -> None:
         self.menu.caller = widget
         self.menu.open()
-
-        if self.validation_clock:
-            # Previous cool-off was not done, so cancel it
-            self.validation_clock.cancel()
+        self.cancel_delayed_update()
 
     def set_unit(self, unit_item: str) -> None:
         self._selected_unit = unit_item
         self.menu.dismiss()
-        self._schedule_validation()
+        self.schedule_delayed_update(lambda dt: self.update_value())
 
     def set_spec(self, widget: NumberInputField, text: str) -> None:
         self._spec = text
-        self._schedule_validation()
-
-    def _schedule_validation(self) -> None:
-        if not self.validation_clock:
-            # First time, instantiate cool-off clock
-            self.validation_clock = Clock.schedule_once(
-                lambda _dt: self.update_value(), self.cool_off_ms / 1000
-            )
-        else:
-            # Previous cool-off was not done, so cancel it
-            self.validation_clock.cancel()
-
-        # Start input value cool-off before updating
-        self.validation_clock()
+        self.schedule_delayed_update(lambda dt: self.update_value())
 
     def update_value(self) -> None:
         try:
