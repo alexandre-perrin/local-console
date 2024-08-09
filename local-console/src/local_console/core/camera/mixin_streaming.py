@@ -121,8 +121,6 @@ class StreamingMixin(HasMQTTset, IsAsyncReady):
 
     async def streaming_rpc_start(self, roi: Optional[UnitROI] = None) -> None:
         assert self.mqtt_client
-        assert self.image_dir_path.value
-        assert self.inference_dir_path.value
 
         instance_id = "backdoor-EA_Main"
         method = "StartUploadInferenceData"
@@ -136,9 +134,9 @@ class StreamingMixin(HasMQTTset, IsAsyncReady):
             method,
             StartUploadInferenceData(
                 StorageName=upload_url,
-                StorageSubDirectoryPath=Path(self.image_dir_path.value).name,
+                StorageSubDirectoryPath="images",
                 StorageNameIR=upload_url,
-                StorageSubDirectoryPathIR=Path(self.inference_dir_path.value).name,
+                StorageSubDirectoryPathIR="inferences",
                 CropHOffset=h_offset,
                 CropVOffset=v_offset,
                 CropHSize=h_size,

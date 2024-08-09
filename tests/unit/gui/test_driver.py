@@ -101,8 +101,6 @@ async def test_streaming_rpc_start(mocked_driver_with_agent, cs_init) -> None:
     driver.camera_state = cs_init
     driver.camera_state.mqtt_client = mock_agent
 
-    driver.camera_state.image_dir_path.value = Path("my_image_path")
-    driver.camera_state.inference_dir_path.value = Path("my_inference_path")
     driver.camera_state.upload_port = 1234
     upload_url = "http://localhost:1234"
     h_size, v_size = SENSOR_SIZE
@@ -117,11 +115,9 @@ async def test_streaming_rpc_start(mocked_driver_with_agent, cs_init) -> None:
             "StartUploadInferenceData",
             StartUploadInferenceData(
                 StorageName=upload_url,
-                StorageSubDirectoryPath=str(driver.camera_state.image_dir_path.value),
+                StorageSubDirectoryPath="images",
                 StorageNameIR=upload_url,
-                StorageSubDirectoryPathIR=str(
-                    driver.camera_state.inference_dir_path.value
-                ),
+                StorageSubDirectoryPathIR="inferences",
                 CropHOffset=0,
                 CropVOffset=0,
                 CropHSize=h_size,
