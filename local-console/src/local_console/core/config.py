@@ -174,3 +174,9 @@ class Config:
 
 # TODO:FIXME: do not use global variable
 config_obj = Config()
+
+# alias for backward compatibility
+
+
+def get_config() -> GlobalConfiguration:
+    return config_obj.get_config()
