@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 app = typer.Typer()
 
 
-@app.command(help="Command for getting logs reported by a specific module instance")
+@app.command(help="Command for getting logs reported by a specific edge app instance")
 def logs(
     instance_id: Annotated[
         str,

@@ -62,7 +62,7 @@ def deploy(
         typer.Option(
             "-s",
             "--signed",
-            help="Option to deploy signed files(already built with the 'build' command)",
+            help="Option to deploy signed files (already built with the 'build' command)",
         ),
     ] = False,
     timeout: Annotated[
