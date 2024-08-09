@@ -182,3 +182,5 @@ class DevicesScreenController(BaseController):
         if self.driver.device_manager.num_devices == 1:
             self.driver.device_manager.set_active_device(device_list[0].port)
             self.driver.gui.switch_proxy()
+
+        self.driver.gui.refresh_active_device()
