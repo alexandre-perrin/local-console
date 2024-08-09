@@ -18,6 +18,7 @@ from pathlib import Path
 from pathlib import PurePosixPath
 
 from cryptography.hazmat.primitives import hashes
+from local_console.core.camera.enums import OTAUpdateModule
 from local_console.core.schemas.edge_cloud_if_v1 import DnnModelVersion
 from local_console.core.schemas.edge_cloud_if_v1 import DnnOta
 from local_console.core.schemas.edge_cloud_if_v1 import DnnOtaBody
@@ -40,14 +41,28 @@ def get_network_id(package_file: Path) -> str:
 
 
 def configuration_spec(
-    package_file: Path, webserver_root: Path, webserver_port: int, webserver_host: str
+    ota_type: OTAUpdateModule,
+    package_file: Path,
+    webserver_root: Path,
+    webserver_port: int,
+    webserver_host: str,
 ) -> DnnOta:
     file_hash = get_package_hash(package_file)
-    version_str = get_package_version(package_file)
+    # version for ApFw and SensorFw are specified by the user
+    version_str = (
+        get_package_version(package_file)
+        if ota_type == OTAUpdateModule.DNNMODEL
+        else ""
+    )
     rel_path = PurePosixPath(package_file.relative_to(webserver_root))
     url = f"http://{webserver_host}:{webserver_port}/{rel_path}"
     return DnnOta(
-        OTA=DnnOtaBody(DesiredVersion=version_str, PackageUri=url, HashValue=file_hash)
+        OTA=DnnOtaBody(
+            UpdateModule=ota_type,
+            DesiredVersion=version_str,
+            PackageUri=url,
+            HashValue=file_hash,
+        )
     )
 
 

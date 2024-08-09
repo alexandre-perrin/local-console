@@ -23,6 +23,8 @@ from local_console.core.camera.enums import OTAUpdateModule
 from local_console.core.camera.firmware import validate_firmware_file
 from local_console.core.commands.ota_deploy import get_package_hash
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
+from local_console.core.schemas.edge_cloud_if_v1 import DnnOta
+from local_console.core.schemas.edge_cloud_if_v1 import DnnOtaBody
 from local_console.core.schemas.edge_cloud_if_v1 import Hardware
 from local_console.core.schemas.edge_cloud_if_v1 import OTA
 from local_console.core.schemas.edge_cloud_if_v1 import Permission
@@ -264,7 +266,11 @@ async def test_update_firmware_task_invalid(tmp_path, cs_init) -> None:
 
 
 @pytest.mark.trio
-async def test_update_firmware_task_valid(tmp_path, cs_init) -> None:
+@pytest.mark.parametrize(
+    "ota_type",
+    ["ApFw", "SensorFw"],
+)
+async def test_update_firmware_task_valid(tmp_path, cs_init, ota_type) -> None:
 
     from local_console.core.camera.firmware import update_firmware_task
 
@@ -276,10 +282,12 @@ async def test_update_firmware_task_valid(tmp_path, cs_init) -> None:
     indicator = TransientStatus()
     error_notify = Mock()
 
-    app_fw_file_path = tmp_path / "dummy_ota.bin"
+    extension = "bin" if ota_type == "ApFw" else "fpk"
+    filename = f"dummy_ota.{extension}"
+    app_fw_file_path = tmp_path / filename
     app_fw_file_path.write_text("dummy")
     camera_state.firmware_file.value = app_fw_file_path
-    camera_state.firmware_file_type.value = OTAUpdateModule.APFW
+    camera_state.firmware_file_type.value = OTAUpdateModule(ota_type)
     camera_state.firmware_file_version.value = "ABCDEF"
 
     # Set the end state
@@ -291,6 +299,16 @@ async def test_update_firmware_task_valid(tmp_path, cs_init) -> None:
 
     mock_server = AsyncMock()
     mock_server.__aenter__.return_value.port = 8000
+
+    hashvalue = get_package_hash(app_fw_file_path)
+    payload = DnnOta(
+        OTA=DnnOtaBody(
+            UpdateModule=ota_type,
+            DesiredVersion=camera_state.firmware_file_version.value,
+            PackageUri=f"http://1.1.1.1:8000/{filename}",
+            HashValue=hashvalue,
+        )
+    ).model_dump_json()
 
     with (
         patch.object(camera_state, "ota_event") as mock_ota_event,
@@ -306,13 +324,6 @@ async def test_update_firmware_task_valid(tmp_path, cs_init) -> None:
     ):
         await update_firmware_task(camera_state, indicator, error_notify)
 
-        hashvalue = get_package_hash(app_fw_file_path)
-        payload = (
-            '{"OTA":{"UpdateModule":"ApFw","DesiredVersion":"ABCDEF",'
-            f'"PackageUri":"http://1.1.1.1:8000/dummy_ota.bin",'
-            f'"HashValue":"{hashvalue}"'
-            "}}"
-        )
         mock_agent.configure.assert_awaited_once_with(
             "backdoor-EA_Main", "placeholder", payload
         )

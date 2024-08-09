@@ -167,11 +167,17 @@ async def update_firmware_task(
                 ),
                 AsyncWebserver(tmp_dir, webserver_port, None, True) as serve,
             ):
+                # Fill config spec
                 update_spec = configuration_spec(
-                    tmp_firmware, tmp_dir, serve.port, ip_addr
+                    state.firmware_file_type.value,
+                    tmp_firmware,
+                    tmp_dir,
+                    serve.port,
+                    ip_addr,
                 )
-                update_spec.OTA.UpdateModule = state.firmware_file_type.value
+                # Use version specified by the user
                 update_spec.OTA.DesiredVersion = state.firmware_file_version.value
+
                 payload = update_spec.model_dump_json()
                 logger.debug(f"Update spec is: {payload}")
 

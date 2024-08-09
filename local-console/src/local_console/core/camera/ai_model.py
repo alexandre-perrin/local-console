@@ -22,6 +22,7 @@ from typing import Callable
 import trio
 from local_console.clients.agent import Agent
 from local_console.core.camera.enums import MQTTTopics
+from local_console.core.camera.enums import OTAUpdateModule
 from local_console.core.camera.state import CameraState
 from local_console.core.commands.ota_deploy import configuration_spec
 from local_console.core.commands.ota_deploy import get_network_id
@@ -123,9 +124,12 @@ async def deploy_step(
                 AsyncWebserver(tmp_dir, webserver_port, None, True) as server,
             ):
                 assert ephemeral_agent.nursery  # make mypy happy
+                # Fill config spec
                 spec = configuration_spec(
-                    tmp_module, tmp_dir, server.port, ip_addr
+                    OTAUpdateModule.DNNMODEL, tmp_module, tmp_dir, server.port, ip_addr
                 ).model_dump_json()
+                logger.debug(f"Update spec is: {spec}")
+
                 await ephemeral_agent.configure("backdoor-EA_Main", "placeholder", spec)
                 while True:
                     if state.device_config.value:
