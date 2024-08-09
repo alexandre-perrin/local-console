@@ -42,10 +42,10 @@ $ . lcenv/bin/activate
 (lcenv)$
 ```
 
-3. Install the python wheel `local_console-2.3.3-py3-none-any.whl`:
+3. Install the python wheel `local_console-*-py3-none-any.whl`:
 
 ```sh
-(lcenv)$ pip install local_console-2.3.3-py3-none-any.whl
+(lcenv)$ pip install local_console-*-py3-none-any.whl
 ```
 
 The Local Console has been installed. To use it, either run the `local-console` command with the `lcenv` virtualenv activated, or use the absolute path to the `local-console` binary located in the `bin` subdirectory at the location of the `lcenv` virtualenv.
@@ -105,20 +105,23 @@ On start up, it spawns a MQTT broker instance listening on the configured port. 
 For configuring connection parameters for the devices (or the simulated agents), you can use:
 
 ```sh
-local-console config set <section> <option> <value>
+local-console config set <section> <value>
 ```
+
 and you can query the current values by using
 
 ```sh
-local-console config get [<section> <option>]
+local-console config get <section>
 ```
+
+To modify or query device parameters, use the option `-d/--device`.
 
 #### Optional parameters
 
 Some parameters are nullable, such as `device_id` in the `mqtt` section. If you need to set such a parameter back to null (i.e. clear the parameter), you may use the `unset` action as follows:
 
 ```sh
-local-console config unset <section> <option>
+local-console config unset <section>
 ```
 
 Nullable parameters will show up in the output of `config get` as assigned with `= None`
