@@ -133,7 +133,7 @@ class ConfigurationScreenController(BaseController):
         try:
             if self.driver.camera_state.vapp_labels_file.value:
                 self.driver.camera_state.vapp_labels_map.value = map_class_id_to_name(
-                    self.driver.camera_state.vapp_labels_file.value
+                    Path(self.driver.camera_state.vapp_labels_file.value)
                 )
         except FlatbufferError as e:
             self.view.display_error(str(e))
