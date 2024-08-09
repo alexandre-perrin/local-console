@@ -802,3 +802,11 @@ class DeviceDropDownList(MDBoxLayout):
         """
         Default handler for the selected item
         """
+
+
+def validate_input_is_int(typed_in: str) -> bool:
+    try:
+        int(typed_in)
+        return True
+    except Exception:
+        return False

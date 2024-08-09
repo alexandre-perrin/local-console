@@ -80,8 +80,8 @@ def test_set_new_device_port(port, expected):
 @mark.parametrize(
     "name, port, error_message",
     [
-        ("", "", "Please input name and port for new device."),
-        ("test_device_1", "", "Please input name and port for new device."),
+        ("", "0", "Please input name and port for new device."),
+        ("test_device_1", "0", "Please input name and port for new device."),
         ("", "1234", "Please input name and port for new device."),
     ],
 )
