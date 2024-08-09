@@ -79,7 +79,6 @@ class LocalConsoleGUIAPP(MDApp):
         self.load_all_kv_files(self.directory)
         self.manager_screens = MDScreenManager()
         self.views: dict[str, type[MDScreen]] = {}
-        configure()
 
     def build(self) -> MDScreenManager:
         self.title = "Local Console"
@@ -87,6 +86,7 @@ class LocalConsoleGUIAPP(MDApp):
         return self.manager_screens
 
     def generate_application_screens(self) -> None:
+        configure()
         for name, entry in screen_dict.items():
             # TODO:FIXME: as a consequence of decouple viewer and controller
             model = entry["model_class"]()  # type: ignore
