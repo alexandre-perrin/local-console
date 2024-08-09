@@ -154,15 +154,24 @@ async def test_apply_application_configuration_error(
         model = driver.camera_state
         mock_gui.mdl.bind_vapp_file_functions(model)
 
+        mock_view = MagicMock()
         with (
             patch(
-                "local_console.gui.controller.configuration_screen.ConfigurationScreenView"
+                "local_console.gui.controller.configuration_screen.ConfigurationScreenView",
+                return_value=mock_view,
             ),
             patch(
                 "local_console.gui.controller.configuration_screen.json"
             ) as mock_json,
         ):
             ctrl = ConfigurationScreenController(Mock, driver)
+
+            file = tmp_path / "labels.txt"
+            file.write_text("class1\nclass2")
+            driver.camera_state.vapp_labels_file.value = str(file)
+            ctrl.apply_application_configuration()
+            # Cast to Path if vapp_labels_file is str
+            mock_view.display_error.assert_not_called()
 
             file = tmp_path / "config.json"
             file.write_text('{"a": 3}')
