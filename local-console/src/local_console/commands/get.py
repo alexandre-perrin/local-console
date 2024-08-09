@@ -29,7 +29,7 @@ from local_console.plugin import PluginBase
 logger = logging.getLogger(__name__)
 
 app = typer.Typer(
-    name="get", help="Command to get information of the running sensing application"
+    name="get", help="Command to get information of the running edge application"
 )
 
 

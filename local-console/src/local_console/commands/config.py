@@ -29,19 +29,21 @@ from pydantic import ValidationError
 from pydantic.json import pydantic_encoder
 
 logger = logging.getLogger(__name__)
-app = typer.Typer(
-    help="Command to get or set configuration parameters of a camera or a module instance"
-)
+app = typer.Typer(help="Configure devices, module instances, and Local Console")
 
 
 @app.command(
-    "get", help="Gets the values for the requested config key, or the whole config"
+    "get",
+    help="Retrieve the value of a specific config key or display the entire configuration",
 )
 def config_get(
+    ctx: typer.Context,
     section: Annotated[
         Optional[str],
         typer.Argument(
-            help="Section to be retrieved. If none specified, returns the whole config. Hierarchy is expressed with separation of a dot. E.g., evp.iot_platform"
+            help="Section of the configuration to retrieve. If not specified, the entire configuration is returned. "
+            "Use dot notation to navigate through hierarchical sections, e.g., `evp.iot_platform`. "
+            "For device-specific configurations, use the `--device` option."
         ),
     ] = None,
     device: Annotated[
@@ -86,12 +88,13 @@ def _set(section: str, new: str | None, device: str | None) -> None:
     config_obj.save_config()
 
 
-@app.command("set", help="Sets the config key values to the specified value")
+@app.command("set", help="Sets the configuration key to the specified value")
 def config_set(
     section: Annotated[
         str,
         typer.Argument(
-            help="Section of the configuration to be set. Hierarchy is expressed with separation of a dot. E.g., evp.iot_platform"
+            help="Section of the configuration to be modified. Use dot notation to express hierarchy, e.g., `evp.iot_platform`"
+            "For device-specific configurations, use the `--device` option."
         ),
     ],
     new: Annotated[
@@ -117,7 +120,8 @@ def config_unset(
     section: Annotated[
         str,
         typer.Argument(
-            help="Section of the configuration to be set. Hierarchy is expressed with separation of a dot."
+            help="Section of the configuration to be unset. Use dot notation to express hierarchy, e.g., `evp.iot_platform`"
+            "For device-specific configurations, use the `--device` option."
         ),
     ],
     device: Annotated[

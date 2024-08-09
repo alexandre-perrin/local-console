@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 @app.command(
-    help="Command to start a MQTT broker. It will fail if there is already a broker listening in the port specified in config."
+    help="Command to start a MQTT broker. It will fail if there is already a broker listening in the port specified in config"
 )
 def broker(
     verbose: Annotated[
