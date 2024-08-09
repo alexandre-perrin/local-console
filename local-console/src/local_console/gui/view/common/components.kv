@@ -182,6 +182,8 @@
     MDTextField:
         id: txt_device_name
         text: root.name
+        on_text: root._on_name_edited(args[1])
+        on_text_validate: root._on_name_enter(self.text)
         pos_hint: {"center_x": 0.5, "center_y": 0.5}
         size_hint: None, None
         max_height: root.text_height

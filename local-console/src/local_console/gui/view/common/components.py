@@ -721,14 +721,52 @@ class FirmwareDropDownItem(MDBoxLayout):
         """
 
 
-class DeviceItem(MDBoxLayout):
+class DeviceItem(MDBoxLayout, DelayedUpdateMixin):
     name = StringProperty("")
     port = NumericProperty(int(0))
     text_height = "40dp"
     text_width = "200dp"
 
+    NAME_EDIT_EVENT: str = "on_name_edited"
+    """
+    Event that is dispatched upon text changes in the
+    name field.
+    See the default `on_name_edited` implementation
+    """
+
+    NAME_ENTER_EVENT: str = "on_name_enter"
+    """
+    Event that is dispatched when the user hits the
+    'Enter' key, indicating a hard stop to editing.
+    See the default `on_name_enter` implementation
+    """
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
+        self.register_event_type(self.NAME_EDIT_EVENT)
+        self.register_event_type(self.NAME_ENTER_EVENT)
+
+    def _on_name_edited(self, name: str) -> None:
+        self.dispatch(self.NAME_EDIT_EVENT, name)
+
+    def _on_name_enter(self, name: str) -> None:
+        self.dispatch(self.NAME_ENTER_EVENT, name)
+
+    def on_name_edited(self, name: str) -> None:
+        """
+        Called when the name field is edited.
+        Use DelayedUpdateMixin's schedule_update() to
+        rate-limit the action intended to be executed on
+        edits to the name field.
+        """
+
+    def on_name_enter(self, name: str) -> None:
+        """
+        Called when the name field is edited.
+        Use DelayedUpdateMixin's schedule_update() to
+        rate-limit the action intended to be executed on
+        edits to the name field.
+        """
 
 
 class DeviceDropDownList(MDBoxLayout):
