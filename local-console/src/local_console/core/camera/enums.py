@@ -54,6 +54,7 @@ class OTAUpdateStatus(StrEnum):
 class OTAUpdateModule(StrEnum):
     APFW = "ApFw"
     SENSORFW = "SensorFw"
+    DNNMODEL = "DnnModel"
 
 
 class FirmwareExtension(StrEnum):
