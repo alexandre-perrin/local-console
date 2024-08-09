@@ -113,6 +113,13 @@ class Config:
         assert len(active_device) == 1
         return active_device[0]
 
+    def rename_entry(self, port: int, new_name: str) -> None:
+        entry: DeviceConnection = next(
+            d for d in self._config.devices if d.mqtt.port == port
+        )
+        entry.name = new_name
+        self.save_config()
+
     def get_deployment(self) -> DeploymentManifest:
         try:
             with open(config_paths.deployment_json) as f:

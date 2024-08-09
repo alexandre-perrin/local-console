@@ -230,7 +230,7 @@ def test_remove_device():
 
         ctrl.driver.device_manager.remove_device = MagicMock()
         ctrl.remove_device()
-        ctrl.driver.device_manager.remove_device.assert_called_once_with(device2.name)
+        ctrl.driver.device_manager.remove_device.assert_called_once_with(device2.port)
 
 
 def test_devices_screen():
@@ -303,6 +303,10 @@ async def test_device_manager_with_config(nursery):
         assert len(device_manager.proxies_factory) == 2
         assert len(device_manager.state_factory) == 2
 
-        device_manager.remove_device(device.name)
+        device_manager.set_active_device(1234)
+        device_manager.rename_device(1234, "renamed_device")
+        assert config_obj.get_active_device_config().name == "renamed_device"
+
+        device_manager.remove_device(device.port)
         assert len(device_manager.proxies_factory) == 1
         assert len(device_manager.state_factory) == 1

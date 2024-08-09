@@ -115,6 +115,9 @@ class DeviceManager:
         self.add_device_to_internals(device_connection)
         self.initialize_persistency(device.port)
 
+    def rename_device(self, key: int, new_name: str) -> None:
+        config_obj.rename_entry(key, new_name)
+
     def remove_device(self, port: int) -> None:
         if len(self.proxies_factory.keys()) == 1:
             raise DeviceRemoveError
