@@ -110,11 +110,23 @@ class LocalConsoleGUIAPP(MDApp):
     ) -> None:
         self.manager_screens.current_screen.display_error(text, support_text, duration)
 
+    def refresh_active_device(self) -> None:
+        assert self.driver
+        assert self.driver.device_manager
+
+        dman = self.driver.device_manager
+        assert dman.active_device
+
+        key = dman.active_device.port
+        dman.set_active_device(key)
+        self.selected = dman.active_device.name
+
     def switch_proxy(self) -> None:
         assert self.driver
         assert self.driver.device_manager
         assert self.driver.device_manager.active_device
-        self.selected = self.driver.device_manager.active_device.name
+
+        self.refresh_active_device()
         self.driver.camera_state = self.driver.device_manager.get_active_device_state()
 
         for view in self.views.values():
