@@ -85,7 +85,7 @@ def test_set_new_device_port(port, expected):
         ("", "1234", "Please input name and port for new device."),
     ],
 )
-def test_add_new_device_invalid_name_port(name, port, error_message):
+def test_register_new_device_invalid_name_port(name, port, error_message):
     model, mock_driver = DevicesScreenModel(), MagicMock()
     with patch("local_console.gui.controller.devices_screen.DevicesScreenView"):
         ctrl = DevicesScreenController(model, mock_driver)
@@ -93,7 +93,7 @@ def test_add_new_device_invalid_name_port(name, port, error_message):
         ctrl.view.ids.txt_new_device_name.text = name
         ctrl.view.ids.txt_new_device_port.text = port
         ctrl.add_device_to_device_list = MagicMock()
-        ctrl.add_new_device()
+        ctrl.register_new_device()
 
         ctrl.view.display_error.assert_called_once_with(error_message)
         ctrl.add_device_to_device_list.assert_not_called()
@@ -105,7 +105,7 @@ def test_add_new_device_invalid_name_port(name, port, error_message):
         ("test_device_1", "1234", "You have reached the maximum number of devices."),
     ],
 )
-def test_add_new_device_invalid_device_list(name, port, error_message):
+def test_register_new_device_invalid_device_list(name, port, error_message):
     model, mock_driver = DevicesScreenModel(), MagicMock()
     with patch("local_console.gui.controller.devices_screen.DevicesScreenView"):
         ctrl = DevicesScreenController(model, mock_driver)
@@ -116,7 +116,7 @@ def test_add_new_device_invalid_device_list(name, port, error_message):
         ctrl.view.ids.txt_new_device_port.text = port
         ctrl.view.ids.box_device_list.children = device_list
         ctrl.add_device_to_device_list = MagicMock()
-        ctrl.add_new_device()
+        ctrl.register_new_device()
 
         ctrl.view.display_error.assert_called_once_with(error_message)
         ctrl.add_device_to_device_list.assert_not_called()
@@ -128,7 +128,7 @@ def test_add_new_device_invalid_device_list(name, port, error_message):
         ("test_device_1", "1234", "Please input a unique device name."),
     ],
 )
-def test_add_new_device_invalid_unique_name(name, port, error_message):
+def test_register_new_device_invalid_unique_name(name, port, error_message):
     model, mock_driver = DevicesScreenModel(), MagicMock()
     with patch("local_console.gui.controller.devices_screen.DevicesScreenView"):
         ctrl = DevicesScreenController(model, mock_driver)
@@ -142,7 +142,7 @@ def test_add_new_device_invalid_unique_name(name, port, error_message):
         ctrl.view.ids.txt_new_device_port.text = port
         ctrl.view.ids.box_device_list.children = device_list
         ctrl.add_device_to_device_list = MagicMock()
-        ctrl.add_new_device()
+        ctrl.register_new_device()
 
         ctrl.view.display_error.assert_called_once_with(error_message)
         ctrl.add_device_to_device_list.assert_not_called()
@@ -154,7 +154,7 @@ def test_add_new_device_invalid_unique_name(name, port, error_message):
         ("test_device_1", "1234", "Please input a unique port."),
     ],
 )
-def test_add_new_device_invalid_unique_port(name, port, error_message):
+def test_register_new_device_invalid_unique_port(name, port, error_message):
     model, mock_driver = DevicesScreenModel(), MagicMock()
     with patch("local_console.gui.controller.devices_screen.DevicesScreenView"):
         ctrl = DevicesScreenController(model, mock_driver)
@@ -168,7 +168,7 @@ def test_add_new_device_invalid_unique_port(name, port, error_message):
         ctrl.view.ids.txt_new_device_port.text = port
         ctrl.view.ids.box_device_list.children = device_list
         ctrl.add_device_to_device_list = MagicMock()
-        ctrl.add_new_device()
+        ctrl.register_new_device()
 
         ctrl.view.display_error.assert_called_once_with(error_message)
         ctrl.add_device_to_device_list.assert_not_called()
@@ -254,7 +254,7 @@ def test_devices_screen():
         ctrl.set_new_device_port(device_port)
         assert ctrl.view.ids.txt_new_device_port.text == device_port[:5]
 
-        ctrl.add_new_device()
+        ctrl.register_new_device()
         ctrl.remove_device()
 
 

@@ -151,7 +151,7 @@
 
                 MDButton:
                     id: btn_create_device
-                    on_release: if not self.disabled: root.controller.add_new_device()
+                    on_release: if not self.disabled: root.controller.register_new_device()
                     pos_hint: {"center_y": 0.5}
                     disabled: len(txt_new_device_port.text) <= 0 or not validate_input_is_int(txt_new_device_port.text) or int(txt_new_device_port.text) > 65535
                     MDButtonText:

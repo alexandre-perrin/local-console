@@ -108,7 +108,7 @@ class DevicesScreenController(BaseController):
     def set_device_port_text(self, port: str) -> None:
         self.view.ids.txt_new_device_port.text = port
 
-    def add_new_device(self) -> None:
+    def register_new_device(self) -> None:
         """
         This function is called when user inputs name.
         """
