@@ -78,12 +78,42 @@ def config_get(
 
 
 def _set(section: str, new: str | None, device: str | None) -> None:
+    if section.startswith("evp."):
+        __set_evp(section, new, device)
+    else:
+        __set_device_scope(section, new, device)
+
+
+def __set_device_scope(section: str, new: str | None, device: str | None) -> None:
+    assert not section.startswith("evp.")
+
     config = (
-        config_obj.get_config()
+        config_obj.get_active_device_config()
         if not device
         else config_obj.get_device_config_by_name(device)
     )
     selected_config = config
+
+    sections_split = section.split(".")
+    for parameter in sections_split[:-1]:
+        selected_config = getattr(selected_config, parameter)
+
+    parameter = sections_split[-1]
+    new_val = new if parameter != "port" else int(new)
+    try:
+        setattr(selected_config.model_copy(deep=True), parameter, new_val)
+        config.model_copy(deep=True).__class__(**json.loads(config.model_dump_json()))
+    except ValidationError as e:
+        raise SystemExit(f"Error setting '{section}'. {e.errors()[0]['msg']}.")
+    setattr(selected_config, parameter, new_val)
+    config_obj.save_config()
+
+
+def __set_evp(section: str, new: str | None, device: str | None) -> None:
+    assert section.startswith("evp.")
+
+    config = config_obj.get_config()
+    selected_config = config_obj.get_config()
 
     sections_split = section.split(".")
     for parameter in sections_split[:-1]:

@@ -105,13 +105,18 @@ class Config:
         raise ConfigError(f"Device named '{name}' not found")
 
     def get_active_device_config(self) -> DeviceConnection:
-        active_device = [
-            device
-            for device in self._config.devices
-            if device.mqtt.port == self._config.active_device
-        ]
-        assert len(active_device) == 1
-        return active_device[0]
+        if len(self._config.devices) == 1:
+            active_device = self._config.devices[0]
+        else:
+            gather = [
+                device
+                for device in self._config.devices
+                if device.mqtt.port == self._config.active_device
+            ]
+            assert len(gather) == 1
+            active_device = gather[0]
+
+        return active_device
 
     def rename_entry(self, port: int, new_name: str) -> None:
         entry: DeviceConnection = next(
