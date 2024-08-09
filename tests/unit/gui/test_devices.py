@@ -14,6 +14,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 from unittest.mock import MagicMock
+from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
@@ -256,6 +257,49 @@ def test_devices_screen():
 
         ctrl.register_new_device()
         ctrl.remove_device()
+
+
+def test_devices_screen_add_rename():
+    model, mock_driver = DevicesScreenModel(), MagicMock()
+    mock_driver.device_manager = MagicMock()
+    with (patch("local_console.gui.controller.devices_screen.DevicesScreenView"),):
+        ctrl = DevicesScreenController(model, mock_driver)
+        ctrl.validate_new_device = Mock()
+
+        port = 46895
+        device = Mock()
+        device.name = "my_device"
+        device.port = port
+        new_name = "device-reborn"
+
+        ctrl.rename_device(device, new_name)
+        ctrl.driver.device_manager.rename_device.assert_called_once_with(port, new_name)
+        ctrl.driver.gui.refresh_active_device.assert_called_once()
+        ctrl.view.display_info.assert_called_once_with(
+            "Device renamed", f"'{new_name}' connecting on port {port}"
+        )
+
+
+def test_gui_refresh_active_device():
+    with (
+        patch("local_console.gui.main.configure"),
+        patch("local_console.gui.device_manager.config_obj") as mock_config,
+    ):
+        from local_console.gui.main import LocalConsoleGUIAPP
+
+        port = 55555
+        name = "refreshed"
+        device_entries = [DeviceListItem(port=port, name=name)]
+        mock_config.config.devices = device_entries
+
+        app = LocalConsoleGUIAPP()
+        app.driver = MagicMock()
+        app.driver.device_manager = MagicMock()
+        app.driver.device_manager.active_device = device_entries[0]
+
+        assert app.selected == ""
+        app.refresh_active_device()
+        assert app.selected == name
 
 
 @pytest.mark.trio
