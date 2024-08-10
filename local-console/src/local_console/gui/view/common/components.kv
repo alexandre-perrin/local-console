@@ -182,13 +182,14 @@
     MDTextField:
         id: txt_device_name
         text: root.name
+        on_text: root._on_name_edited(args[1])
+        on_text_validate: root._on_name_enter(self.text)
         pos_hint: {"center_x": 0.5, "center_y": 0.5}
         size_hint: None, None
         max_height: root.text_height
         height: root.text_height
         max_width: root.text_width
         width: root.text_width
-        readonly: True
 
     EntryLabel:
         text: "Port:"
@@ -196,21 +197,20 @@
         size_hint_y: None
         height: root.text_height
 
-    MDTextField:
+    MDLabel:
         id: txt_device_port
-        text: root.port
+        text: str(root.port)
         pos_hint: {"center_x": 0.5, "center_y": 0.5}
         size_hint: None, None
         max_height: root.text_height
         height: root.text_height
         max_width: root.text_width
         width: root.text_width
-        readonly: True
 
 <DeviceDropDownList>:
     MDDropDownItem:
-        on_release: root.open_menu(app.driver.device_manager.get_device_configs(), *args)
+        on_release: root.open_menu(self)
         MDDropDownItemText:
-            text: root._selected_device
             font_style: "Body"
             role: "large"
+            text: root.selected_name

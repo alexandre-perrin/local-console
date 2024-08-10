@@ -231,13 +231,16 @@ def test_get_qr_string_no_static_ip(
 
 
 @pytest.mark.trio
-@given(device_config=generate_valid_device_configuration())
-async def test_process_state_topic_correct(device_config: DeviceConfiguration) -> None:
+@given(generate_valid_device_configuration(), st.sampled_from(OnWireProtocol))
+async def test_process_state_topic_correct(
+    device_config: DeviceConfiguration, onwire_schema: OnWireProtocol
+) -> None:
     async with (
         trio.open_nursery() as nursery,
         cs_init_context() as camera,
     ):
         observer = AsyncMock()
+        camera._onwire_schema = onwire_schema
         camera.mqtt_client = AsyncMock()
         camera.device_config.subscribe_async(observer)
         observer.assert_not_awaited()
@@ -258,8 +261,16 @@ async def test_process_state_topic_correct(device_config: DeviceConfiguration) -
 
 
 @pytest.mark.trio
-async def test_process_state_topic_wrong(caplog, cs_init) -> None:
+@pytest.mark.parametrize(
+    "schema",
+    [
+        (OnWireProtocol.EVP1,),
+        (OnWireProtocol.EVP2,),
+    ],
+)
+async def test_process_state_topic_wrong(schema, caplog, cs_init) -> None:
     camera = cs_init
+    camera._onwire_schema = schema
     wrong_obj = {"a": "b"}
     backdoor_state = {
         "state/backdoor-EA_Main/placeholder": b64encode(json.dumps(wrong_obj).encode())

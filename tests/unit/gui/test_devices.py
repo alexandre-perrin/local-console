@@ -14,6 +14,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 from unittest.mock import MagicMock
+from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
@@ -80,12 +81,12 @@ def test_set_new_device_port(port, expected):
 @mark.parametrize(
     "name, port, error_message",
     [
-        ("", "", "Please input name and port for new device."),
-        ("test_device_1", "", "Please input name and port for new device."),
+        ("", "0", "Please input name and port for new device."),
+        ("test_device_1", "0", "Please input name and port for new device."),
         ("", "1234", "Please input name and port for new device."),
     ],
 )
-def test_add_new_device_invalid_name_port(name, port, error_message):
+def test_register_new_device_invalid_name_port(name, port, error_message):
     model, mock_driver = DevicesScreenModel(), MagicMock()
     with patch("local_console.gui.controller.devices_screen.DevicesScreenView"):
         ctrl = DevicesScreenController(model, mock_driver)
@@ -93,7 +94,7 @@ def test_add_new_device_invalid_name_port(name, port, error_message):
         ctrl.view.ids.txt_new_device_name.text = name
         ctrl.view.ids.txt_new_device_port.text = port
         ctrl.add_device_to_device_list = MagicMock()
-        ctrl.add_new_device()
+        ctrl.register_new_device()
 
         ctrl.view.display_error.assert_called_once_with(error_message)
         ctrl.add_device_to_device_list.assert_not_called()
@@ -105,7 +106,7 @@ def test_add_new_device_invalid_name_port(name, port, error_message):
         ("test_device_1", "1234", "You have reached the maximum number of devices."),
     ],
 )
-def test_add_new_device_invalid_device_list(name, port, error_message):
+def test_register_new_device_invalid_device_list(name, port, error_message):
     model, mock_driver = DevicesScreenModel(), MagicMock()
     with patch("local_console.gui.controller.devices_screen.DevicesScreenView"):
         ctrl = DevicesScreenController(model, mock_driver)
@@ -116,7 +117,7 @@ def test_add_new_device_invalid_device_list(name, port, error_message):
         ctrl.view.ids.txt_new_device_port.text = port
         ctrl.view.ids.box_device_list.children = device_list
         ctrl.add_device_to_device_list = MagicMock()
-        ctrl.add_new_device()
+        ctrl.register_new_device()
 
         ctrl.view.display_error.assert_called_once_with(error_message)
         ctrl.add_device_to_device_list.assert_not_called()
@@ -128,7 +129,7 @@ def test_add_new_device_invalid_device_list(name, port, error_message):
         ("test_device_1", "1234", "Please input a unique device name."),
     ],
 )
-def test_add_new_device_invalid_unique_name(name, port, error_message):
+def test_register_new_device_invalid_unique_name(name, port, error_message):
     model, mock_driver = DevicesScreenModel(), MagicMock()
     with patch("local_console.gui.controller.devices_screen.DevicesScreenView"):
         ctrl = DevicesScreenController(model, mock_driver)
@@ -142,7 +143,7 @@ def test_add_new_device_invalid_unique_name(name, port, error_message):
         ctrl.view.ids.txt_new_device_port.text = port
         ctrl.view.ids.box_device_list.children = device_list
         ctrl.add_device_to_device_list = MagicMock()
-        ctrl.add_new_device()
+        ctrl.register_new_device()
 
         ctrl.view.display_error.assert_called_once_with(error_message)
         ctrl.add_device_to_device_list.assert_not_called()
@@ -154,7 +155,7 @@ def test_add_new_device_invalid_unique_name(name, port, error_message):
         ("test_device_1", "1234", "Please input a unique port."),
     ],
 )
-def test_add_new_device_invalid_unique_port(name, port, error_message):
+def test_register_new_device_invalid_unique_port(name, port, error_message):
     model, mock_driver = DevicesScreenModel(), MagicMock()
     with patch("local_console.gui.controller.devices_screen.DevicesScreenView"):
         ctrl = DevicesScreenController(model, mock_driver)
@@ -168,7 +169,7 @@ def test_add_new_device_invalid_unique_port(name, port, error_message):
         ctrl.view.ids.txt_new_device_port.text = port
         ctrl.view.ids.box_device_list.children = device_list
         ctrl.add_device_to_device_list = MagicMock()
-        ctrl.add_new_device()
+        ctrl.register_new_device()
 
         ctrl.view.display_error.assert_called_once_with(error_message)
         ctrl.add_device_to_device_list.assert_not_called()
@@ -230,7 +231,7 @@ def test_remove_device():
 
         ctrl.driver.device_manager.remove_device = MagicMock()
         ctrl.remove_device()
-        ctrl.driver.device_manager.remove_device.assert_called_once_with(device2.name)
+        ctrl.driver.device_manager.remove_device.assert_called_once_with(device2.port)
 
 
 def test_devices_screen():
@@ -254,8 +255,51 @@ def test_devices_screen():
         ctrl.set_new_device_port(device_port)
         assert ctrl.view.ids.txt_new_device_port.text == device_port[:5]
 
-        ctrl.add_new_device()
+        ctrl.register_new_device()
         ctrl.remove_device()
+
+
+def test_devices_screen_add_rename():
+    model, mock_driver = DevicesScreenModel(), MagicMock()
+    mock_driver.device_manager = MagicMock()
+    with (patch("local_console.gui.controller.devices_screen.DevicesScreenView"),):
+        ctrl = DevicesScreenController(model, mock_driver)
+        ctrl.validate_new_device = Mock()
+
+        port = 46895
+        device = Mock()
+        device.name = "my_device"
+        device.port = port
+        new_name = "device-reborn"
+
+        ctrl.rename_device(device, new_name)
+        ctrl.driver.device_manager.rename_device.assert_called_once_with(port, new_name)
+        ctrl.driver.gui.refresh_active_device.assert_called_once()
+        ctrl.view.display_info.assert_called_once_with(
+            "Device renamed", f"'{new_name}' connecting on port {port}"
+        )
+
+
+def test_gui_refresh_active_device():
+    with (
+        patch("local_console.gui.main.configure"),
+        patch("local_console.gui.device_manager.config_obj") as mock_config,
+    ):
+        from local_console.gui.main import LocalConsoleGUIAPP
+
+        port = 55555
+        name = "refreshed"
+        device_entries = [DeviceListItem(port=port, name=name)]
+        mock_config.config.devices = device_entries
+
+        app = LocalConsoleGUIAPP()
+        app.driver = MagicMock()
+        app.driver.device_manager = MagicMock()
+        app.driver.device_manager.active_device = device_entries[0]
+
+        assert app.selected == ""
+        app.refresh_active_device()
+        assert app.selected == name
 
 
 @pytest.mark.trio
@@ -290,17 +334,23 @@ async def test_device_manager_with_config(nursery):
         assert len(device_manager.proxies_factory) == 0
         assert len(device_manager.state_factory) == 0
 
-        device_manager.set_active_device(config_obj.get_active_device_config().name)
+        device_manager.set_active_device(
+            config_obj.get_active_device_config().mqtt.port
+        )
         device_manager.init_devices(config_obj.get_device_configs())
 
         assert len(device_manager.proxies_factory) == 1
         assert len(device_manager.state_factory) == 1
 
-        device = DeviceListItem(name="test_device", port="1234")
+        device = DeviceListItem(name="test_device", port=1234)
         device_manager.add_device(device)
         assert len(device_manager.proxies_factory) == 2
         assert len(device_manager.state_factory) == 2
 
-        device_manager.remove_device(device.name)
+        device_manager.set_active_device(1234)
+        device_manager.rename_device(1234, "renamed_device")
+        assert config_obj.get_active_device_config().name == "renamed_device"
+
+        device_manager.remove_device(device.port)
         assert len(device_manager.proxies_factory) == 1
         assert len(device_manager.state_factory) == 1

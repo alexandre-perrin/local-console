@@ -270,6 +270,7 @@ class MQTTMixin(HoldsDeployStatus, CanStopStreaming):
         try:
             decoded = json.loads(b64decode(payload[EA_STATE_TOPIC]))
             firmware_is_supported = True
+            self.attributes_available.value = True
         except UnicodeDecodeError:
             decoded = json.loads(payload[EA_STATE_TOPIC])
 

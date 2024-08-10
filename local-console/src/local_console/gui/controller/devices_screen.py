@@ -61,7 +61,27 @@ class DevicesScreenController(BaseController):
             self.add_device_to_device_list(DeviceItem(name=name, port=port))
 
     def add_device_to_device_list(self, device: DeviceItem) -> None:
+        device.bind(on_name_edited=self.on_rename_typed)
+        device.bind(on_name_enter=self.on_rename_hit_enter)
         self.view.ids.box_device_list.add_widget(device)
+
+    def on_rename_typed(self, device_widget: DeviceItem, name: str) -> None:
+        device_widget.schedule_delayed_update(
+            lambda dt: self.rename_device(device_widget, name)
+        )
+
+    def on_rename_hit_enter(self, device_widget: DeviceItem, name: str) -> None:
+        device_widget.cancel_delayed_update()
+        self.rename_device(device_widget, name)
+
+    def rename_device(self, device_widget: DeviceItem, name: str) -> None:
+        assert self.driver
+        assert self.driver.device_manager
+
+        port = device_widget.port
+        self.driver.device_manager.rename_device(port, name)
+        self.driver.gui.refresh_active_device()
+        self.view.display_info("Device renamed", f"'{name}' connecting on port {port}")
 
     def set_new_device_name(self, name: str) -> None:
         """
@@ -88,12 +108,12 @@ class DevicesScreenController(BaseController):
     def set_device_port_text(self, port: str) -> None:
         self.view.ids.txt_new_device_port.text = port
 
-    def add_new_device(self) -> None:
+    def register_new_device(self) -> None:
         """
         This function is called when user inputs name.
         """
         name = self.view.ids.txt_new_device_name.text
-        port = self.view.ids.txt_new_device_port.text
+        port = int(self.view.ids.txt_new_device_port.text)
         device_list = self.view.ids.box_device_list.children
 
         if not self.validate_new_device(name, port, device_list):
@@ -108,10 +128,10 @@ class DevicesScreenController(BaseController):
         self.driver.device_manager.add_device(DeviceListItem(name=name, port=port))
 
         if self.driver.device_manager.num_devices == 1:
-            self.driver.device_manager.set_active_device(name)
+            self.driver.device_manager.set_active_device(port)
             self.driver.gui.switch_proxy()
 
-    def validate_new_device(self, name: str, port: str, device_list: list) -> bool:
+    def validate_new_device(self, name: str, port: int, device_list: list) -> bool:
         if not name or not port:
             self.view.display_error("Please input name and port for new device.")
             return False
@@ -124,7 +144,7 @@ class DevicesScreenController(BaseController):
             if device.ids.txt_device_name.text == name:
                 self.view.display_error("Please input a unique device name.")
                 return False
-            if device.ids.txt_device_port.text == port:
+            if device.ids.txt_device_port.text == str(port):
                 self.view.display_error("Please input a unique port.")
                 return False
 
@@ -157,6 +177,10 @@ class DevicesScreenController(BaseController):
 
         for device in remove_devices:
             self.view.ids.box_device_list.remove_widget(device)
-            self.driver.device_manager.remove_device(device.name)
+            self.driver.device_manager.remove_device(device.port)
 
-        self.driver.gui.switch_proxy()
+        if self.driver.device_manager.num_devices == 1:
+            self.driver.device_manager.set_active_device(device_list[0].port)
+            self.driver.gui.switch_proxy()
+
+        self.driver.gui.refresh_active_device()

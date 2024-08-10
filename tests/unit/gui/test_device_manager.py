@@ -32,7 +32,9 @@ def mock_persistency_update():
     with (
         patch.object(device_manager, "_update_from_persistency") as mock_persistency,
     ):
-        device_manager.set_active_device(config_obj.get_active_device_config().name)
+        device_manager.set_active_device(
+            config_obj.get_active_device_config().mqtt.port
+        )
         device_manager.init_devices(config_obj.get_device_configs())
         yield mock_persistency, device_manager
 
@@ -45,7 +47,7 @@ def test_update_module_file_persists(module_file: str):
         state = device_manager.get_active_device_state()
         state.module_file.value = module_file
 
-        mock_persistency.assert_called_with(device_manager.active_device.name)
+        mock_persistency.assert_called_with(device_manager.active_device.port)
 
 
 @given(
@@ -59,7 +61,7 @@ def test_update_ai_model_file_persists(ai_model_file: str):
         config.ai_model_file = "not a file"
         state.ai_model_file.value = ai_model_file
         assert config.ai_model_file == ai_model_file
-        mock_persistency.assert_called_with(device_manager.active_device.name)
+        mock_persistency.assert_called_with(device_manager.active_device.port)
 
 
 def test_init_devices_with_empty_list():

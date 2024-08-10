@@ -16,12 +16,14 @@
 import json
 import logging
 from typing import Annotated
+from typing import Any
 from typing import Optional
 
 import trio
 import typer
 from local_console.clients.agent import Agent
 from local_console.core.config import config_obj
+from local_console.core.config import ConfigError
 from local_console.core.schemas.schemas import DesiredDeviceConfig
 from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.plugin import PluginBase
@@ -55,37 +57,79 @@ def config_get(
         ),
     ] = None,
 ) -> None:
-    config = (
-        config_obj.get_config() if not device else config_obj.get_device_config(device)
-    )
+    try:
+        config = (
+            config_obj.get_config()
+            if not device
+            else config_obj.get_device_config_by_name(device)
+        )
 
-    selected_config = config
+        selected_config = config
 
-    if section:
-        sections_split = section.split(".")
-        for parameter in sections_split:
-            selected_config = getattr(selected_config, parameter)
+        if section:
+            sections_split = section.split(".")
+            for parameter in sections_split:
+                selected_config = getattr(selected_config, parameter)
 
-    print(json.dumps(selected_config, indent=2, default=pydantic_encoder))
+        print(json.dumps(selected_config, indent=2, default=pydantic_encoder))
+
+    except ConfigError as e:
+        logger.error(f"Configuration error: {e}")
+        raise typer.Exit(1)
 
 
 def _set(section: str, new: str | None, device: str | None) -> None:
-    config = (
-        config_obj.get_config() if not device else config_obj.get_device_config(device)
-    )
-    selected_config = config
+    if section.startswith("evp."):
+        __set_evp(section, new, device)
+    else:
+        __set_device_scope(section, new, device)
 
+
+def __set_device_scope(section: str, new: str | None, device: str | None) -> None:
+    assert not section.startswith("evp.")
+
+    device_config = (
+        config_obj.get_active_device_config()
+        if not device
+        else config_obj.get_device_config_by_name(device)
+    )
+
+    selected_config = device_config
     sections_split = section.split(".")
     for parameter in sections_split[:-1]:
         selected_config = getattr(selected_config, parameter)
 
+    parameter = sections_split[-1]
+    if new is not None:
+        new_val: Any = new if parameter != "port" else int(new)
+    else:
+        new_val = None
+
     try:
-        setattr(selected_config.model_copy(deep=True), sections_split[-1], new)
-        config.model_copy(deep=True).__class__(**json.loads(config.model_dump_json()))
+        setattr(selected_config, parameter, new_val)
+
+        # Ensure consistency of the active device pointer
+        if len(config_obj.config.devices) == 1:
+            config_obj.config.active_device = device_config.mqtt.port
+
+        config_obj.save_config()
     except ValidationError as e:
         raise SystemExit(f"Error setting '{section}'. {e.errors()[0]['msg']}.")
-    setattr(selected_config, sections_split[-1], new)
-    config_obj.save_config()
+
+
+def __set_evp(section: str, new: str | None, device: str | None) -> None:
+    assert section.startswith("evp.")
+
+    sections_split = section.split(".")
+    selected_config = config_obj.config
+    for parameter in sections_split[:-1]:
+        selected_config = getattr(selected_config, parameter)
+
+    try:
+        setattr(selected_config, sections_split[-1], new)
+        config_obj.save_config()
+    except ValidationError as e:
+        raise SystemExit(f"Error setting '{section}'. {e.errors()[0]['msg']}.")
 
 
 @app.command("set", help="Sets the configuration key to the specified value")
