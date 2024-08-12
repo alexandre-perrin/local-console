@@ -229,7 +229,8 @@ class DirectoryMonitor:
             self._on_delete_cb = on_delete_cb
 
         def on_deleted(self, event: DirDeletedEvent) -> None:
-            self._on_delete_cb(event)
+            if event.is_directory:
+                self._on_delete_cb(event)
 
     def __init__(self) -> None:
         self._obs = Observer()
@@ -243,7 +244,8 @@ class DirectoryMonitor:
         resolved = directory.resolve()
         handler = self.EventHandler(self._watch_decorator(on_delete_cb))
         watch = self._obs.schedule(
-            handler, str(resolved), event_filter=(DirDeletedEvent,)
+            handler,
+            str(resolved),
         )
         self._watches[resolved] = watch
 

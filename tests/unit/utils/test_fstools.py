@@ -29,7 +29,6 @@ import pytest
 from local_console.utils.fstools import check_and_create_directory
 from local_console.utils.fstools import DirectoryMonitor
 from local_console.utils.fstools import StorageSizeWatcher
-from watchdog.events import DirDeletedEvent
 from watchdog.events import FileSystemEvent
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
@@ -403,7 +402,8 @@ def test_directory_deletion_watch(observer, tmp_path):
 
     class EventHandler(FileSystemEventHandler):
         def on_deleted(self, event: FileSystemEvent) -> None:
-            fs_event.set()
+            if event.is_directory:
+                fs_event.set()
 
     dir_to_watch = tmp_path / "to_delete"
     dir_to_watch.mkdir()
@@ -412,7 +412,9 @@ def test_directory_deletion_watch(observer, tmp_path):
     a_file.touch()
 
     observer.schedule(
-        EventHandler(), str(dir_to_watch), event_filter=(DirDeletedEvent,)
+        # event_filter not supported on OSX
+        EventHandler(),
+        str(dir_to_watch),
     )
 
     a_file.unlink()
@@ -432,7 +434,8 @@ def test_online_watch_modification(observer, tmp_path):
 
     class EventHandler(FileSystemEventHandler):
         def on_deleted(self, event: FileSystemEvent) -> None:
-            fs_event.set()
+            if event.is_directory:
+                fs_event.set()
 
     dir1_to_watch = tmp_path / "dir1"
     dir1_to_watch.mkdir()
