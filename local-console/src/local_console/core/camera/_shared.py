@@ -15,8 +15,10 @@
 # SPDX-License-Identifier: Apache-2.0
 from typing import Protocol
 
+import trio
 from trio import BrokenResourceError
 from trio import MemorySendChannel
+from trio import RunFinishedError
 from trio.lowlevel import TrioToken
 
 # Notification messages passed via the memory channel onto
@@ -41,4 +43,17 @@ class IsAsyncReady(Protocol):
         except BrokenResourceError:
             # This happens when shutting down the program.
             # It is not relevant.
+            pass
+
+    def send_message_sync(self, kind: str, msg: str) -> None:
+        try:
+            trio.from_thread.run(
+                self._send_message,
+                ("error", msg),
+                trio_token=self.trio_token,
+            )
+        except RunFinishedError:
+            # Trio seems to expect that functions passed to
+            # from_thread.run be long-running, and when they
+            # finish it raises this exception.
             pass
