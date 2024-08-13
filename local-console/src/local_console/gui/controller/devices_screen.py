@@ -21,6 +21,7 @@ from local_console.core.schemas.schemas import DeviceListItem
 from local_console.gui.controller.base_controller import BaseController
 from local_console.gui.driver import Driver
 from local_console.gui.model.devices_screen import DevicesScreenModel
+from local_console.gui.utils.sync_async import run_on_ui_thread
 from local_console.gui.view.common.components import DeviceItem
 from local_console.gui.view.devices_screen.devices_screen import DevicesScreenView
 
@@ -51,19 +52,24 @@ class DevicesScreenController(BaseController):
     def get_view(self) -> DevicesScreenView:
         return self.view
 
-    def restore_device_list(self, device_config: list[DeviceListItem]) -> None:
+    def restore_device_list(self, device_config_items: list[DeviceListItem]) -> None:
         """
         This function is called on init to restore device list from configuration.
         """
-        for device in device_config:
-            name = device.name
-            port = device.port
-            self.add_device_to_device_list(DeviceItem(name=name, port=port))
+        for item in device_config_items:
+            self.add_device_to_device_list(item)
+        self.driver.gui.switch_proxy()
 
-    def add_device_to_device_list(self, device: DeviceItem) -> None:
-        device.bind(on_name_edited=self.on_rename_typed)
-        device.bind(on_name_enter=self.on_rename_hit_enter)
-        self.view.ids.box_device_list.add_widget(device)
+    @run_on_ui_thread
+    def add_device_to_device_list(self, item: DeviceListItem) -> None:
+        widget = DeviceItem(name=item.name, port=item.port)
+        widget.bind(on_name_edited=self.on_rename_typed)
+        widget.bind(on_name_enter=self.on_rename_hit_enter)
+        self.view.ids.box_device_list.add_widget(widget)
+
+        assert self.driver.device_manager
+        if self.driver.device_manager.num_devices == 1:
+            self.driver.device_manager.set_active_device(item.port)
 
     def on_rename_typed(self, device_widget: DeviceItem, name: str) -> None:
         device_widget.schedule_delayed_update(
@@ -119,17 +125,15 @@ class DevicesScreenController(BaseController):
         if not self.validate_new_device(name, port, device_list):
             return
 
-        # Add the device to the view
-        self.add_device_to_device_list(DeviceItem(name=name, port=port))
-
         assert self.driver.device_manager
 
         # Save device list into device configuration
-        self.driver.device_manager.add_device(DeviceListItem(name=name, port=port))
-
-        if self.driver.device_manager.num_devices == 1:
-            self.driver.device_manager.set_active_device(port)
-            self.driver.gui.switch_proxy()
+        item = DeviceListItem(name=name, port=port)
+        self.driver.from_sync(
+            self.driver.device_manager.add_device,
+            item,
+            self.add_device_to_device_list,
+        )
 
     def validate_new_device(self, name: str, port: int, device_list: list) -> bool:
         if not name or not port:
