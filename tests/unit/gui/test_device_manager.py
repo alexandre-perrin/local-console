@@ -13,37 +13,50 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-from contextlib import contextmanager
+from contextlib import asynccontextmanager
 from unittest.mock import Mock
 from unittest.mock import patch
 
+import pytest
+import trio
 from hypothesis import given
-from hypothesis import settings
 from local_console.core.config import config_obj
 from local_console.core.schemas.schemas import DeviceListItem
+from local_console.gui.device_manager import DeviceHandlingError
 from local_console.gui.device_manager import DeviceManager
 
 from tests.strategies.configs import generate_identifiers
 
 
-@contextmanager
-def mock_persistency_update():
-    device_manager = DeviceManager(Mock(), Mock(), Mock())
-    with (
-        patch.object(device_manager, "_update_from_persistency") as mock_persistency,
-    ):
-        device_manager.set_active_device(
-            config_obj.get_active_device_config().mqtt.port
-        )
-        device_manager.init_devices(config_obj.get_device_configs())
-        yield mock_persistency, device_manager
+@asynccontextmanager
+async def mock_persistency_update():
+
+    async def mock_mqtt_setup(*args, task_status=trio.TASK_STATUS_IGNORED):
+        task_status.started(True)
+
+    async with trio.open_nursery() as nursery:
+        device_manager = DeviceManager(Mock(), nursery, Mock())
+
+        with (
+            patch.object(
+                device_manager, "_update_from_persistency"
+            ) as mock_persistency,
+            patch("local_console.gui.device_manager.config_obj.save_config"),
+            patch(
+                "local_console.gui.device_manager.CameraState.startup",
+                new=mock_mqtt_setup,
+            ),
+        ):
+            await device_manager.init_devices([])
+            yield mock_persistency, device_manager
 
 
 @given(
     generate_identifiers(max_size=5),
 )
-def test_update_module_file_persists(module_file: str):
-    with mock_persistency_update() as (mock_persistency, device_manager):
+@pytest.mark.trio
+async def test_update_module_file_persists(module_file: str):
+    async with mock_persistency_update() as (mock_persistency, device_manager):
         state = device_manager.get_active_device_state()
         state.module_file.value = module_file
 
@@ -53,9 +66,9 @@ def test_update_module_file_persists(module_file: str):
 @given(
     generate_identifiers(max_size=5),
 )
-@settings(deadline=1000)
-def test_update_ai_model_file_persists(ai_model_file: str):
-    with mock_persistency_update() as (mock_persistency, device_manager):
+@pytest.mark.trio
+async def test_update_ai_model_file_persists(ai_model_file: str):
+    async with mock_persistency_update() as (mock_persistency, device_manager):
         state = device_manager.get_active_device_state()
         config = config_obj.get_active_device_config().persist
         config.ai_model_file = "not a file"
@@ -64,15 +77,12 @@ def test_update_ai_model_file_persists(ai_model_file: str):
         mock_persistency.assert_called_with(device_manager.active_device.port)
 
 
-def test_init_devices_with_empty_list():
-    device_manager = DeviceManager(Mock(), Mock(), Mock())
-    with patch.object(device_manager, "add_device"):
-        device_manager.init_devices([])
-
+@pytest.mark.trio
+async def test_init_devices_with_empty_list():
+    async with mock_persistency_update() as (mock_persistency, device_manager):
         default_device = DeviceListItem(
             name=DeviceManager.DEFAULT_DEVICE_NAME,
             port=str(DeviceManager.DEFAULT_DEVICE_PORT),
         )
+        assert device_manager.active_device == default_device
 
-        device_manager.active_device == default_device
-        device_manager.add_device.assert_called_once_with(default_device)
