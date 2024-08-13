@@ -28,9 +28,9 @@ from local_console.gui.model.camera_proxy import CameraStateProxy
 logger = logging.getLogger(__name__)
 
 
-class DeviceRemoveError(Exception):
+class DeviceHandlingError(Exception):
     """
-    Device could not be removed
+    Exception type for device life cycle operations
     """
 
 
@@ -120,7 +120,8 @@ class DeviceManager:
 
     def remove_device(self, key: int) -> None:
         if len(self.proxies_factory.keys()) == 1:
-            raise DeviceRemoveError
+            raise DeviceHandlingError("Cannot empty device entry list!")
+
         self.state_factory[key].shutdown()
         config_obj.remove_device(key)
         config_obj.save_config()
@@ -143,20 +144,19 @@ class DeviceManager:
     def get_device_configs(self) -> list[DeviceConnection]:
         return config_obj.get_device_configs()
 
-    def set_active_device(self, port: int) -> None:
+    def set_active_device(self, key: int) -> None:
         """
-        This is the function to set active device.
-        To be implemented for handling multiple devices.
+        Set the active device if it is already in the device listing
         """
-        config_obj.config.active_device = port
-        config_obj.save_config()
         for device in config_obj.config.devices:
-            if device.mqtt.port == port:
+            if device.mqtt.port == key:
                 self.active_device = DeviceListItem(
                     name=device.name, port=device.mqtt.port
                 )
+                config_obj.config.active_device = key
+                config_obj.save_config()
                 return
-        raise Exception("Device not found")
+        raise DeviceHandlingError(f"Device for port {key} not found")
 
     def bind_state_proxy(
         self, proxy: CameraStateProxy, camera_state: CameraState
