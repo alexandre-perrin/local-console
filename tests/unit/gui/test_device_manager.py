@@ -86,3 +86,44 @@ async def test_init_devices_with_empty_list():
         )
         assert device_manager.active_device == default_device
 
+
+@pytest.mark.trio
+async def test_device_manager(nursery):
+    send_channel, _ = trio.open_memory_channel(0)
+    device_manager = DeviceManager(
+        send_channel, nursery, trio.lowlevel.current_trio_token()
+    )
+    with (patch.object(device_manager, "initialize_persistency"),):
+        assert len(device_manager.proxies_factory) == 0
+        assert len(device_manager.state_factory) == 0
+
+        device = DeviceListItem(name="test_device", port="1234")
+        await device_manager.add_device(device)
+        assert len(device_manager.proxies_factory) == 1
+        assert len(device_manager.state_factory) == 1
+
+        with pytest.raises(DeviceHandlingError):
+            device_manager.remove_device(device.name)
+
+
+@pytest.mark.trio
+async def test_device_manager_with_config():
+    async with mock_persistency_update() as (mock_persistency, device_manager):
+
+        assert len(device_manager.proxies_factory) == 1
+        assert len(device_manager.state_factory) == 1
+
+        device = DeviceListItem(name="test_device", port=1234)
+        continuation_fn = Mock()
+        await device_manager.add_device(device, continuation_fn)
+        continuation_fn.assert_called_once_with(device)
+        assert len(device_manager.proxies_factory) == 2
+        assert len(device_manager.state_factory) == 2
+
+        device_manager.set_active_device(1234)
+        device_manager.rename_device(1234, "renamed_device")
+        assert config_obj.get_active_device_config().name == "renamed_device"
+
+        device_manager.remove_device(device.port)
+        assert len(device_manager.proxies_factory) == 1
+        assert len(device_manager.state_factory) == 1
