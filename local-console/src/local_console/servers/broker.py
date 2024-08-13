@@ -25,6 +25,7 @@ from string import Template
 from tempfile import TemporaryDirectory
 
 import trio
+from trio import run_process
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ async def spawn_broker(
 
         cmd = [broker_bin, "-v", "-c", str(config_file)]
         invocation = partial(
-            trio.run_process,
+            run_process,
             command=cmd,
             check=False,
             stdout=subprocess.PIPE,
