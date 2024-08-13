@@ -69,7 +69,7 @@ class DeviceManager:
         self.proxies_factory: dict[int, CameraStateProxy] = {}
         self.state_factory: dict[int, CameraState] = {}
 
-    def init_devices(self, device_configs: list[DeviceConnection]) -> None:
+    async def init_devices(self, device_configs: list[DeviceConnection]) -> None:
         """
         Initializes the devices based on the provided configuration list.
         If no devices are found, it creates a default device
@@ -82,13 +82,13 @@ class DeviceManager:
             default_device = DeviceListItem(
                 name=self.DEFAULT_DEVICE_NAME, port=self.DEFAULT_DEVICE_PORT
             )
-            self.add_device(default_device)
+            await self.add_device(default_device)
             self.set_active_device(default_device.port)
             return
 
-        for device in device_configs:
-            self.add_device_to_internals(device)
-            self.initialize_persistency(device.mqtt.port)
+        for device_conn in device_configs:
+            device = DeviceListItem(name=device_conn.name, port=device_conn.mqtt.port)
+            await self.add_device(device)
 
         self.set_active_device(config_obj.get_active_device_config().mqtt.port)
 
