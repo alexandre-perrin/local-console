@@ -139,10 +139,23 @@ class Config:
                 f"Missing field in the deployment manifest: {missing_field}"
             )
 
-    def add_device(self, device: DeviceListItem) -> DeviceConnection:
-        device_connection = self._create_device_config(device)
-        self._config.devices.append(self._create_device_config(device))
-        return device_connection
+    def construct_device_record(self, device_item: DeviceListItem) -> DeviceConnection:
+        record_lookup = (
+            dev for dev in self.config.devices if dev.mqtt.port == device_item.port
+        )
+        conn = next(record_lookup, None)
+        if conn is None:
+            conn = self._create_device_config(device_item)
+            self._config.devices.append(conn)
+
+        return conn
+
+    def commit_device_record(self, device_conn: DeviceConnection) -> None:
+        record_lookup = (
+            dev for dev in self.config.devices if dev.mqtt.port == device_conn.mqtt.port
+        )
+        if next(record_lookup, None) is None:
+            self._config.devices.append(device_conn)
 
     def remove_device(self, key: int) -> None:
         self._config.devices = [
