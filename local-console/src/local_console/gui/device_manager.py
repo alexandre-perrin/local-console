@@ -139,6 +139,9 @@ class DeviceManager:
         if len(self.proxies_factory.keys()) == 1:
             raise DeviceHandlingError("Cannot empty device entry list!")
 
+        if key not in self.state_factory:
+            return
+
         self.state_factory[key].shutdown()
         config_obj.remove_device(key)
         config_obj.save_config()
