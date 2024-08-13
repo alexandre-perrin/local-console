@@ -48,20 +48,6 @@ class ConfigurationScreenController(BaseController):
         self.view = ConfigurationScreenView(controller=self, model=self.model)
 
         self.bind()
-        self._init_values()
-
-    def _init_values(self) -> None:
-        assert self.driver.camera_state
-        assert self.driver.camera_state.size.value
-        if isinstance(self.driver.camera_state.unit.value, str):
-            size = (
-                int(self.driver.camera_state.size.value)
-                * {"KB": 2**10, "MB": 2**20, "GB": 2**30}[
-                    self.driver.camera_state.unit.value
-                ]
-            )
-            logger.info(f"Initialize total max size: {size}")
-            self.update_total_max_size(size)
 
     def unbind(self) -> None:
         self.driver.gui.mdl.unbind(vapp_type=self.on_vapp_type)
