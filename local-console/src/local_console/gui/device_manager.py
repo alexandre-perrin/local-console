@@ -118,16 +118,16 @@ class DeviceManager:
     def rename_device(self, key: int, new_name: str) -> None:
         config_obj.rename_entry(key, new_name)
 
-    def remove_device(self, port: int) -> None:
+    def remove_device(self, key: int) -> None:
         if len(self.proxies_factory.keys()) == 1:
             raise DeviceRemoveError
-        self.state_factory[port].shutdown()
-        config_obj.remove_device(port)
+        self.state_factory[key].shutdown()
+        config_obj.remove_device(key)
         config_obj.save_config()
-        del self.proxies_factory[port]
-        del self.state_factory[port]
+        del self.proxies_factory[key]
+        del self.state_factory[key]
         assert self.active_device
-        if port == self.active_device.port:
+        if key == self.active_device.port:
             new_active_device = self.get_device_configs()[0].mqtt.port
             logger.debug(f"Update active device to {new_active_device}")
             self.set_active_device(new_active_device)
@@ -171,14 +171,14 @@ class DeviceManager:
         proxy.bind_app_module_functions(camera_state)
         proxy.bind_streaming_and_inference(camera_state)
 
-    def _register_persistency(self, device_port: int) -> None:
+    def _register_persistency(self, key: int) -> None:
         """
         Registers persistency for state attributes of a device. When the state
         attributes change, their new values are saved to the persistent configuration.
         """
 
         def save_configuration(attribute: str, current: Any, previous: Any) -> None:
-            persist = config_obj.get_device_config(device_port).persist
+            persist = config_obj.get_device_config(key).persist
             for item in self._PROXY_TO_STATE_PROPS + self._STATE_TO_PROXY_PROPS:
                 if attribute == item:
                     setattr(persist, item, str(current))
@@ -188,30 +188,30 @@ class DeviceManager:
 
         # Save configuration for any modification of relevant variables
         for item in self._PROXY_TO_STATE_PROPS + self._STATE_TO_PROXY_PROPS:
-            getattr(self.state_factory[device_port], item).subscribe(
+            getattr(self.state_factory[key], item).subscribe(
                 partial(save_configuration, item)
             )
 
-    def _update_from_persistency(self, device_port: int) -> None:
+    def _update_from_persistency(self, key: int) -> None:
         """
         Update attributes of the device's state and proxies from persistent configuration.
         """
-        persist = config_obj.get_device_config(device_port).persist
+        persist = config_obj.get_device_config(key).persist
         assert persist
 
         # Attributes with `bind_state_to_proxy` requires to update using `.value` to trigger the binding
         for item in self._STATE_TO_PROXY_PROPS:
             if getattr(persist, item):
                 setattr(
-                    getattr(self.state_factory[device_port], item),
+                    getattr(self.state_factory[key], item),
                     "value",
                     getattr(persist, item),
                 )
         # Update using `bind_proxy_to_state`
         for item in self._PROXY_TO_STATE_PROPS:
             if getattr(persist, item):
-                setattr(self.proxies_factory[device_port], item, getattr(persist, item))
+                setattr(self.proxies_factory[key], item, getattr(persist, item))
 
-    def initialize_persistency(self, device_port: int) -> None:
-        self._register_persistency(device_port)
-        self._update_from_persistency(device_port)
+    def initialize_persistency(self, key: int) -> None:
+        self._register_persistency(key)
+        self._update_from_persistency(key)
