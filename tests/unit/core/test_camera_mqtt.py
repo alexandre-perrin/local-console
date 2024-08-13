@@ -13,12 +13,14 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+from unittest.mock import ANY
 from unittest.mock import AsyncMock
 from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
 from local_console.gui.device_manager import DeviceManager
+from local_console.servers.broker import BrokerException
 
 from tests.fixtures.camera import cs_init
 from tests.fixtures.driver import mock_driver_with_agent
@@ -54,4 +56,32 @@ async def test_streaming_rpc_stop(cs_init):
         await driver.streaming_rpc_stop()
         mock_rpc.assert_awaited_with(
             "backdoor-EA_Main", "StopUploadInferenceData", "{}"
+        )
+
+
+@pytest.mark.trio
+async def test_broker_port_already_open(cs_init) -> None:
+    from local_console.core.camera.mixin_mqtt import MQTTMixin
+
+    mixin = MQTTMixin()
+    mixin.mqtt_host.value = "localhost"
+    mixin.mqtt_port.value = 2000
+    mixin._onwire_schema = OnWireProtocol.EVP1
+    mock_channel = AsyncMock()
+    mixin.message_send_channel = mock_channel
+
+    with (
+        patch("local_console.core.camera.mixin_mqtt.Agent"),
+        patch(
+            "local_console.core.camera.mixin_mqtt.spawn_broker",
+            side_effect=BrokerException("Mosquitto already initialized"),
+        ),
+    ):
+        await mixin.mqtt_setup()
+
+        mock_channel.send.assert_awaited_with(
+            (
+                "error",
+                ANY,
+            )
         )
