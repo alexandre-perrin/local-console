@@ -25,6 +25,7 @@ from typing import Protocol
 import trio
 from local_console.clients.agent import Agent
 from local_console.clients.agent import check_attributes_request
+from local_console.core.camera._shared import IsAsyncReady
 from local_console.core.camera.enums import MQTTTopics
 from local_console.core.camera.enums import StreamStatus
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
@@ -69,7 +70,7 @@ class CanStopStreaming(Protocol):
     async def streaming_rpc_stop(self) -> None: ...
 
 
-class MQTTMixin(HoldsDeployStatus, CanStopStreaming):
+class MQTTMixin(HoldsDeployStatus, CanStopStreaming, IsAsyncReady):
     """
     This Mix-in class covers the MQTT management concern belonging
     to a camera's state. This includes handling the MQTT broker and
