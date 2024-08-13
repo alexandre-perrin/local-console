@@ -19,6 +19,8 @@ from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
+import trio
+from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.gui.device_manager import DeviceManager
 from local_console.servers.broker import BrokerException
 
@@ -41,16 +43,30 @@ async def test_process_incoming_telemetry(cs_init) -> None:
 
 
 @pytest.mark.trio
-async def test_streaming_rpc_stop(cs_init):
-    with (mock_driver_with_agent() as (driver, mock_agent),):
+async def test_streaming_rpc_stop(cs_init, nursery):
 
+    async def mock_mqtt_setup(*args, task_status=trio.TASK_STATUS_IGNORED):
+        task_status.started(True)
+
+    with (
+        mock_driver_with_agent() as (driver, mock_agent),
+        patch("local_console.gui.device_manager.config_obj.save_config"),
+        patch(
+            "local_console.gui.device_manager.CameraState.startup", new=mock_mqtt_setup
+        ),
+        patch.object(cs_init, "startup", new=AsyncMock()),
+    ):
         mock_agent.publish = AsyncMock()
         mock_rpc = AsyncMock()
         mock_agent.rpc = mock_rpc
 
+        dman = DeviceManager(Mock(), nursery, Mock())
+        dman.bind_state_proxy = Mock()
+        dman.initialize_persistency = Mock()
+
         driver.camera_state = cs_init
-        driver.device_manager = DeviceManager(Mock(), Mock(), Mock())
-        driver.device_manager.init_devices([])
+        driver.device_manager = dman
+        await driver.device_manager.init_devices([])
         driver.device_manager.get_active_device_state().mqtt_client = mock_agent
 
         await driver.streaming_rpc_stop()
