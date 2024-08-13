@@ -37,6 +37,7 @@ from local_console.utils.validation import validate_imx500_model_file
 from trio import CancelScope
 from trio import MemorySendChannel
 from trio import Nursery
+from trio import TASK_STATUS_IGNORED
 from trio.lowlevel import TrioToken
 
 logger = logging.getLogger(__name__)
@@ -184,14 +185,19 @@ class CameraState(MQTTMixin, StreamingMixin):
         self._deploy_fsm.set_manifest(manifest)
         await self.deploy_operation.aset(DeploymentType.Application)
 
-    async def startup(self) -> None:
+    async def startup(self, *, task_status: Any = TASK_STATUS_IGNORED) -> None:
         async with trio.open_nursery() as nursery:
+            if not await nursery.start(self.mqtt_setup):
+                task_status.started(False)
+                return
+
+            nursery.start_soon(self.blobs_webserver_task)
+            self.dir_monitor.start()
+
             self._nursery = nursery
             self._cancel_scope = nursery.cancel_scope
-            nursery.start_soon(self.blobs_webserver_task)
-            nursery.start_soon(self.mqtt_setup)
-            self.dir_monitor.start()
             self._started.set()
+            task_status.started(True)
 
         self._stopped.set()
         logger.debug(f"Device on port {self.mqtt_port.value} shut down")
