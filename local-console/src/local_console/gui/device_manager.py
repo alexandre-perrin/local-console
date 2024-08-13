@@ -16,6 +16,8 @@
 import logging
 from functools import partial
 from typing import Any
+from typing import Callable
+from typing import Optional
 
 import trio
 from local_console.core.camera.state import CameraState
@@ -96,24 +98,39 @@ class DeviceManager:
         assert n == len(self.proxies_factory)
         return n
 
-    def add_device_to_internals(self, device: DeviceConnection) -> None:
-        proxy = CameraStateProxy()
-        state = CameraState(self.send_channel.clone(), self.trio_token)
-        self.proxies_factory[device.mqtt.port] = proxy
-        self.state_factory[device.mqtt.port] = state
+    async def add_device(
+        self,
+        device_item: DeviceListItem,
+        continuation: Optional[Callable[[DeviceListItem], None]] = None,
+    ) -> None:
+        """
+        Creates the objects that represent a camera device's state in the
+        logic, initializing the state and if successful, creates an entry
+        for the device in the persistent configuration, sets it up for
+        value updates, and finally executes a continuation callback, if
+        provided.
 
-        self.bind_state_proxy(proxy, state)
+        The 'continuation' callback is synchronous, and it is mostly intended
+        for scheduling actions in the Kivy thread, such as creating or
+        updating widgets on a screen.
+        """
+        key = device_item.port
+
+        state = CameraState(self.send_channel.clone(), self.trio_token)
+        proxy = CameraStateProxy()
 
         config = config_obj.get_config()
-        state.initialize_connection_variables(config.evp.iot_platform, device)
-        self.initialize_persistency(device.mqtt.port)
-        self.nursery.start_soon(state.startup)
-
-    def add_device(self, device: DeviceListItem) -> None:
-        device_connection = config_obj.add_device(device)
-        config_obj.save_config()
-        self.add_device_to_internals(device_connection)
-        self.initialize_persistency(device.port)
+        conn = config_obj.construct_device_record(device_item)
+        state.initialize_connection_variables(config.evp.iot_platform, conn)
+        if await self.nursery.start(state.startup):
+            config_obj.commit_device_record(conn)
+            config_obj.save_config()
+            self.bind_state_proxy(proxy, state)
+            self.state_factory[key] = state
+            self.proxies_factory[key] = proxy
+            self.initialize_persistency(key)
+            if continuation:
+                continuation(device_item)
 
     def rename_device(self, key: int, new_name: str) -> None:
         config_obj.rename_entry(key, new_name)
