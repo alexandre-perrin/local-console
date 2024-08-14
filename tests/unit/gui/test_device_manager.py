@@ -29,10 +29,9 @@ from tests.strategies.configs import generate_identifiers
 
 
 @asynccontextmanager
-async def mock_persistency_update():
-
+async def mock_persistency_update(result=True):
     async def mock_mqtt_setup(*args, task_status=trio.TASK_STATUS_IGNORED):
-        task_status.started(True)
+        task_status.started(result)
 
     async with trio.open_nursery() as nursery:
         device_manager = DeviceManager(Mock(), nursery, Mock())
@@ -127,3 +126,39 @@ async def test_device_manager_with_config():
         device_manager.remove_device(device.port)
         assert len(device_manager.proxies_factory) == 1
         assert len(device_manager.state_factory) == 1
+
+
+@pytest.mark.trio
+async def test_device_manager_add_invalid_port_same_name_retry_failure(nursery):
+
+    async with mock_persistency_update(result=False) as (
+        mock_persistency,
+        device_manager,
+    ):
+        with (patch.object(device_manager, "initialize_persistency"),):
+            send_channel, _ = trio.open_memory_channel(0)
+            device_manager = DeviceManager(
+                send_channel, nursery, trio.lowlevel.current_trio_token()
+            )
+            assert len(device_manager.proxies_factory) == 0
+            assert len(device_manager.state_factory) == 0
+
+            device = DeviceListItem(name="test_device", port="1234")
+            await device_manager.add_device(device)
+            assert len(device_manager.proxies_factory) == 0
+            assert len(device_manager.state_factory) == 0
+
+    async with mock_persistency_update() as (mock_persistency, device_manager):
+        send_channel, _ = trio.open_memory_channel(0)
+        device_manager = DeviceManager(
+            send_channel, nursery, trio.lowlevel.current_trio_token()
+        )
+        with (patch.object(device_manager, "initialize_persistency"),):
+            device = DeviceListItem(name="test_device", port="4567")
+            await device_manager.add_device(device)
+            assert len(device_manager.proxies_factory) == 1
+            assert len(device_manager.state_factory) == 1
+            # The actual plus default one
+            assert len(config_obj.get_config().devices) == 2
+            assert config_obj.get_config().devices[1].name == "test_device"
+            assert config_obj.get_config().devices[1].mqtt.port == 4567
