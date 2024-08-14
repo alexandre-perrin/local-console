@@ -43,7 +43,6 @@ from local_console.utils.fstools import DirectoryMonitor
 from local_console.utils.fstools import StorageSizeWatcher
 from local_console.utils.local_network import get_my_ip_by_routing
 from local_console.utils.tracking import TrackingVariable
-from trio import RunFinishedError
 
 
 logger = logging.getLogger(__name__)
@@ -235,17 +234,7 @@ class StreamingMixin(HasMQTTset, IsAsyncReady):
             self.dir_monitor.unwatch(pre_path)
 
     def notify_directory_deleted(self, dir_path: Path) -> None:
-        try:
-            trio.from_thread.run(
-                self._send_message,
-                ("error", f"Directory {dir_path} does no longer exist."),
-                trio_token=self.trio_token,
-            )
-        except RunFinishedError:
-            # Trio seems to expect that functions passed to
-            # from_thread.run be long-running, and when they
-            # finish it raises this exception.
-            pass
+        self.send_message_sync("error", f"Directory {dir_path} does no longer exist.")
 
     def _save_into_input_directory(self, incoming_file: Path, target_dir: Path) -> Path:
         assert incoming_file.is_file()

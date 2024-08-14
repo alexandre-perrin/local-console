@@ -92,11 +92,11 @@ class Config:
     def get_config(self) -> GlobalConfiguration:
         return self._config
 
-    def get_device_config(self, device_port: int) -> DeviceConnection:
+    def get_device_config(self, key: int) -> DeviceConnection:
         for device_config in self._config.devices:
-            if device_config.mqtt.port == device_port:
+            if device_config.mqtt.port == key:
                 return device_config
-        raise ConfigError(f"Device for port {device_port} not found")
+        raise ConfigError(f"Device for port {key} not found")
 
     def get_device_config_by_name(self, name: str) -> DeviceConnection:
         for device_config in self._config.devices:
@@ -139,16 +139,29 @@ class Config:
                 f"Missing field in the deployment manifest: {missing_field}"
             )
 
-    def add_device(self, device: DeviceListItem) -> DeviceConnection:
-        device_connection = self._create_device_config(device)
-        self._config.devices.append(self._create_device_config(device))
-        return device_connection
+    def construct_device_record(self, device_item: DeviceListItem) -> DeviceConnection:
+        record_lookup = (
+            dev for dev in self.config.devices if dev.mqtt.port == device_item.port
+        )
+        conn = next(record_lookup, None)
+        if conn is None:
+            conn = self._create_device_config(device_item)
+            self._config.devices.append(conn)
 
-    def remove_device(self, device_port: int) -> None:
+        return conn
+
+    def commit_device_record(self, device_conn: DeviceConnection) -> None:
+        record_lookup = (
+            dev for dev in self.config.devices if dev.mqtt.port == device_conn.mqtt.port
+        )
+        if next(record_lookup, None) is None:
+            self._config.devices.append(device_conn)
+
+    def remove_device(self, key: int) -> None:
         self._config.devices = [
             connection
             for connection in self._config.devices
-            if connection.mqtt.port != device_port
+            if connection.mqtt.port != key
         ]
 
     def get_device_configs(self) -> list[DeviceConnection]:
@@ -170,7 +183,7 @@ class Config:
             ),
             webserver=WebserverParams(
                 host="localhost",
-                port=8000,
+                port=0,
             ),
             name=device.name,
             persist=Persist(),

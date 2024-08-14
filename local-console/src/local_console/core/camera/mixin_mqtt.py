@@ -23,8 +23,10 @@ from typing import Optional
 from typing import Protocol
 
 import trio
+from exceptiongroup import ExceptionGroup
 from local_console.clients.agent import Agent
 from local_console.clients.agent import check_attributes_request
+from local_console.core.camera._shared import IsAsyncReady
 from local_console.core.camera.enums import MQTTTopics
 from local_console.core.camera.enums import StreamStatus
 from local_console.core.schemas.edge_cloud_if_v1 import DeviceConfiguration
@@ -32,10 +34,12 @@ from local_console.core.schemas.edge_cloud_if_v1 import Permission
 from local_console.core.schemas.edge_cloud_if_v1 import SetFactoryReset
 from local_console.core.schemas.schemas import DeviceConnection
 from local_console.core.schemas.schemas import OnWireProtocol
+from local_console.servers.broker import BrokerException
 from local_console.servers.broker import spawn_broker
 from local_console.utils.timing import TimeoutBehavior
 from local_console.utils.tracking import TrackingVariable
 from pydantic import ValidationError
+from trio import TASK_STATUS_IGNORED
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +73,7 @@ class CanStopStreaming(Protocol):
     async def streaming_rpc_stop(self) -> None: ...
 
 
-class MQTTMixin(HoldsDeployStatus, CanStopStreaming):
+class MQTTMixin(HoldsDeployStatus, CanStopStreaming, IsAsyncReady):
     """
     This Mix-in class covers the MQTT management concern belonging
     to a camera's state. This includes handling the MQTT broker and
@@ -171,7 +175,7 @@ class MQTTMixin(HoldsDeployStatus, CanStopStreaming):
         self._onwire_schema = OnWireProtocol.from_iot_spec(iot_platform)
         self.ntp_host.value = "pool.ntp.org"
 
-    async def mqtt_setup(self) -> None:
+    async def mqtt_setup(self, *, task_status: Any = TASK_STATUS_IGNORED) -> None:
         assert self.mqtt_client is None
         assert self.mqtt_host.value
         assert self.mqtt_port.value
@@ -180,40 +184,48 @@ class MQTTMixin(HoldsDeployStatus, CanStopStreaming):
         port = self.mqtt_port.value
 
         self.mqtt_client = Agent(self.mqtt_host.value, port, self._onwire_schema)
-        async with (
-            trio.open_nursery() as nursery,
-            spawn_broker(port, nursery, False),
-            self.mqtt_client.mqtt_scope(
-                [
-                    MQTTTopics.ATTRIBUTES_REQ.value,
-                    MQTTTopics.TELEMETRY.value,
-                    MQTTTopics.RPC_RESPONSES.value,
-                    MQTTTopics.ATTRIBUTES.value,
-                ]
-            ),
-        ):
-            assert self.mqtt_client.client
-            self._setup_timeouts(nursery)
+        try:
+            async with (
+                trio.open_nursery() as nursery,
+                spawn_broker(port, nursery, False),
+                self.mqtt_client.mqtt_scope(
+                    [
+                        MQTTTopics.ATTRIBUTES_REQ.value,
+                        MQTTTopics.TELEMETRY.value,
+                        MQTTTopics.RPC_RESPONSES.value,
+                        MQTTTopics.ATTRIBUTES.value,
+                    ]
+                ),
+            ):
+                assert self.mqtt_client.client
+                self._setup_timeouts(nursery)
 
-            streaming_stop_required = True
-            async with self.mqtt_client.client.messages() as mgen:
-                async for msg in mgen:
-                    if await check_attributes_request(
-                        self.mqtt_client, msg.topic, msg.payload.decode()
-                    ):
-                        self.attributes_available.value = True
-                        # attributes request handshake is performed at (re)connect
-                        # when reconnecting, multiple requests might be made
-                        if streaming_stop_required:
-                            await self.streaming_rpc_stop()
-                            streaming_stop_required = False
+                task_status.started(True)
+                streaming_stop_required = True
+                async with self.mqtt_client.client.messages() as mgen:
+                    async for msg in mgen:
+                        if await check_attributes_request(
+                            self.mqtt_client, msg.topic, msg.payload.decode()
+                        ):
+                            self.attributes_available.value = True
+                            # attributes request handshake is performed at (re)connect
+                            # when reconnecting, multiple requests might be made
+                            if streaming_stop_required:
+                                await self.streaming_rpc_stop()
+                                streaming_stop_required = False
 
-                    payload = json.loads(msg.payload)
-                    await self.process_incoming(msg.topic, payload)
+                        payload = json.loads(msg.payload)
+                        await self.process_incoming(msg.topic, payload)
 
-                    self.update_connection_status()
-                    if self._onwire_schema == OnWireProtocol.EVP2 and self.is_ready:
-                        self.timeouts["periodic-reports"].tap()
+                        self.update_connection_status()
+                        if self._onwire_schema == OnWireProtocol.EVP2 and self.is_ready:
+                            self.timeouts["periodic-reports"].tap()
+
+        except ExceptionGroup as exc_grp:
+            task_status.started(False)
+            for e in exc_grp.exceptions:
+                if isinstance(e, BrokerException):
+                    await self.message_send_channel.send(("error", str(e)))
 
     async def set_periodic_reports(self) -> None:
         # Configure the device to emit status reports twice

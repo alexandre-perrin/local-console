@@ -16,6 +16,8 @@
 import logging
 from functools import partial
 from typing import Any
+from typing import Callable
+from typing import Optional
 
 import trio
 from local_console.core.camera.state import CameraState
@@ -28,9 +30,9 @@ from local_console.gui.model.camera_proxy import CameraStateProxy
 logger = logging.getLogger(__name__)
 
 
-class DeviceRemoveError(Exception):
+class DeviceHandlingError(Exception):
     """
-    Device could not be removed
+    Exception type for device life cycle operations
     """
 
 
@@ -67,7 +69,7 @@ class DeviceManager:
         self.proxies_factory: dict[int, CameraStateProxy] = {}
         self.state_factory: dict[int, CameraState] = {}
 
-    def init_devices(self, device_configs: list[DeviceConnection]) -> None:
+    async def init_devices(self, device_configs: list[DeviceConnection]) -> None:
         """
         Initializes the devices based on the provided configuration list.
         If no devices are found, it creates a default device
@@ -80,13 +82,13 @@ class DeviceManager:
             default_device = DeviceListItem(
                 name=self.DEFAULT_DEVICE_NAME, port=self.DEFAULT_DEVICE_PORT
             )
-            self.add_device(default_device)
+            await self.add_device(default_device)
             self.set_active_device(default_device.port)
             return
 
-        for device in device_configs:
-            self.add_device_to_internals(device)
-            self.initialize_persistency(device.mqtt.port)
+        for device_conn in device_configs:
+            device = DeviceListItem(name=device_conn.name, port=device_conn.mqtt.port)
+            await self.add_device(device)
 
         self.set_active_device(config_obj.get_active_device_config().mqtt.port)
 
@@ -96,38 +98,57 @@ class DeviceManager:
         assert n == len(self.proxies_factory)
         return n
 
-    def add_device_to_internals(self, device: DeviceConnection) -> None:
-        proxy = CameraStateProxy()
-        state = CameraState(self.send_channel.clone(), self.trio_token)
-        self.proxies_factory[device.mqtt.port] = proxy
-        self.state_factory[device.mqtt.port] = state
+    async def add_device(
+        self,
+        device_item: DeviceListItem,
+        continuation: Optional[Callable[[DeviceListItem], None]] = None,
+    ) -> None:
+        """
+        Creates the objects that represent a camera device's state in the
+        logic, initializing the state and if successful, creates an entry
+        for the device in the persistent configuration, sets it up for
+        value updates, and finally executes a continuation callback, if
+        provided.
 
-        self.bind_state_proxy(proxy, state)
+        The 'continuation' callback is synchronous, and it is mostly intended
+        for scheduling actions in the Kivy thread, such as creating or
+        updating widgets on a screen.
+        """
+        key = device_item.port
+
+        state = CameraState(self.send_channel.clone(), self.trio_token)
+        proxy = CameraStateProxy()
 
         config = config_obj.get_config()
-        state.initialize_connection_variables(config.evp.iot_platform, device)
-        self.initialize_persistency(device.mqtt.port)
-        self.nursery.start_soon(state.startup)
-
-    def add_device(self, device: DeviceListItem) -> None:
-        device_connection = config_obj.add_device(device)
-        config_obj.save_config()
-        self.add_device_to_internals(device_connection)
-        self.initialize_persistency(device.port)
+        conn = config_obj.construct_device_record(device_item)
+        state.initialize_connection_variables(config.evp.iot_platform, conn)
+        if await self.nursery.start(state.startup):
+            config_obj.commit_device_record(conn)
+            config_obj.save_config()
+            self.bind_state_proxy(proxy, state)
+            self.state_factory[key] = state
+            self.proxies_factory[key] = proxy
+            self.initialize_persistency(key)
+            if continuation:
+                continuation(device_item)
 
     def rename_device(self, key: int, new_name: str) -> None:
         config_obj.rename_entry(key, new_name)
 
-    def remove_device(self, port: int) -> None:
+    def remove_device(self, key: int) -> None:
         if len(self.proxies_factory.keys()) == 1:
-            raise DeviceRemoveError
-        self.state_factory[port].shutdown()
-        config_obj.remove_device(port)
+            raise DeviceHandlingError("Cannot empty device entry list!")
+
+        if key not in self.state_factory:
+            return
+
+        self.state_factory[key].shutdown()
+        config_obj.remove_device(key)
         config_obj.save_config()
-        del self.proxies_factory[port]
-        del self.state_factory[port]
+        del self.proxies_factory[key]
+        del self.state_factory[key]
         assert self.active_device
-        if port == self.active_device.port:
+        if key == self.active_device.port:
             new_active_device = self.get_device_configs()[0].mqtt.port
             logger.debug(f"Update active device to {new_active_device}")
             self.set_active_device(new_active_device)
@@ -143,20 +164,19 @@ class DeviceManager:
     def get_device_configs(self) -> list[DeviceConnection]:
         return config_obj.get_device_configs()
 
-    def set_active_device(self, port: int) -> None:
+    def set_active_device(self, key: int) -> None:
         """
-        This is the function to set active device.
-        To be implemented for handling multiple devices.
+        Set the active device if it is already in the device listing
         """
-        config_obj.config.active_device = port
-        config_obj.save_config()
         for device in config_obj.config.devices:
-            if device.mqtt.port == port:
+            if device.mqtt.port == key:
                 self.active_device = DeviceListItem(
                     name=device.name, port=device.mqtt.port
                 )
+                config_obj.config.active_device = key
+                config_obj.save_config()
                 return
-        raise Exception("Device not found")
+        raise DeviceHandlingError(f"Device for port {key} not found")
 
     def bind_state_proxy(
         self, proxy: CameraStateProxy, camera_state: CameraState
@@ -171,14 +191,14 @@ class DeviceManager:
         proxy.bind_app_module_functions(camera_state)
         proxy.bind_streaming_and_inference(camera_state)
 
-    def _register_persistency(self, device_port: int) -> None:
+    def _register_persistency(self, key: int) -> None:
         """
         Registers persistency for state attributes of a device. When the state
         attributes change, their new values are saved to the persistent configuration.
         """
 
         def save_configuration(attribute: str, current: Any, previous: Any) -> None:
-            persist = config_obj.get_device_config(device_port).persist
+            persist = config_obj.get_device_config(key).persist
             for item in self._PROXY_TO_STATE_PROPS + self._STATE_TO_PROXY_PROPS:
                 if attribute == item:
                     setattr(persist, item, str(current))
@@ -188,30 +208,30 @@ class DeviceManager:
 
         # Save configuration for any modification of relevant variables
         for item in self._PROXY_TO_STATE_PROPS + self._STATE_TO_PROXY_PROPS:
-            getattr(self.state_factory[device_port], item).subscribe(
+            getattr(self.state_factory[key], item).subscribe(
                 partial(save_configuration, item)
             )
 
-    def _update_from_persistency(self, device_port: int) -> None:
+    def _update_from_persistency(self, key: int) -> None:
         """
         Update attributes of the device's state and proxies from persistent configuration.
         """
-        persist = config_obj.get_device_config(device_port).persist
+        persist = config_obj.get_device_config(key).persist
         assert persist
 
         # Attributes with `bind_state_to_proxy` requires to update using `.value` to trigger the binding
         for item in self._STATE_TO_PROXY_PROPS:
             if getattr(persist, item):
                 setattr(
-                    getattr(self.state_factory[device_port], item),
+                    getattr(self.state_factory[key], item),
                     "value",
                     getattr(persist, item),
                 )
         # Update using `bind_proxy_to_state`
         for item in self._PROXY_TO_STATE_PROPS:
             if getattr(persist, item):
-                setattr(self.proxies_factory[device_port], item, getattr(persist, item))
+                setattr(self.proxies_factory[key], item, getattr(persist, item))
 
-    def initialize_persistency(self, device_port: int) -> None:
-        self._register_persistency(device_port)
-        self._update_from_persistency(device_port)
+    def initialize_persistency(self, key: int) -> None:
+        self._register_persistency(key)
+        self._update_from_persistency(key)

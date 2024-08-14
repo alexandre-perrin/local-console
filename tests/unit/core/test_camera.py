@@ -178,11 +178,14 @@ def test_get_qr_string(
 async def test_lifecycle(cs_init, nursery) -> None:
     camera_state = cs_init
     mock_webserver = AsyncMock()
-    mock_mqtt = AsyncMock()
     mock_dir_monitor = Mock()
     camera_state.blobs_webserver_task = mock_webserver
-    camera_state.mqtt_setup = mock_mqtt
     camera_state.dir_monitor = mock_dir_monitor
+
+    async def mock_mqtt_setup(*, task_status=trio.TASK_STATUS_IGNORED):
+        task_status.started(True)
+
+    camera_state.mqtt_setup = mock_mqtt_setup
 
     # State after instance construction
     assert not camera_state._started.is_set()
@@ -190,10 +193,9 @@ async def test_lifecycle(cs_init, nursery) -> None:
     assert camera_state._cancel_scope is None
 
     # Behavior of startup()
-    nursery.start_soon(camera_state.startup)
+    assert await nursery.start(camera_state.startup)
     await camera_state._started.wait()
     mock_webserver.assert_called_once()
-    mock_mqtt.assert_called_once()
     mock_dir_monitor.start.assert_called_once()
     assert camera_state._nursery is not None
     assert not camera_state._cancel_scope.cancel_called

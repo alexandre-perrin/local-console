@@ -58,9 +58,13 @@ class Driver:
                         self.show_messages, self.receive_channel.clone(), channel_cs
                     )
                     self.device_manager = DeviceManager(
-                        self.send_channel, nursery, trio.lowlevel.current_trio_token()
+                        self.send_channel,
+                        nursery,
+                        trio.lowlevel.current_trio_token(),
                     )
-                    self.device_manager.init_devices(config_obj.get_device_configs())
+                    await self.device_manager.init_devices(
+                        config_obj.get_device_configs()
+                    )
 
                     await self.gui.async_run(async_lib="trio")
 

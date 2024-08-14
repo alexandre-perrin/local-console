@@ -102,8 +102,5 @@ def is_valid_host(hostname: str) -> bool:
     return True
 
 
-LOCAL_IP: str = get_my_ip_by_routing()
-
-
 def replace_local_address(hostname: str) -> str:
-    return LOCAL_IP if is_localhost(hostname) else hostname
+    return get_my_ip_by_routing() if is_localhost(hostname) else hostname

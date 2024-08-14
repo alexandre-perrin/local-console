@@ -16,7 +16,6 @@
 import logging
 import re
 import subprocess
-import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from functools import partial
@@ -26,10 +25,17 @@ from string import Template
 from tempfile import TemporaryDirectory
 
 import trio
+from trio import run_process
 
 logger = logging.getLogger(__name__)
 
 broker_assets = Path(__file__).parents[1] / "assets" / "broker"
+
+
+class BrokerException(Exception):
+    """
+    Class for broker management exceptions
+    """
 
 
 @asynccontextmanager
@@ -49,7 +55,7 @@ async def spawn_broker(
 
         cmd = [broker_bin, "-v", "-c", str(config_file)]
         invocation = partial(
-            trio.run_process,
+            run_process,
             command=cmd,
             check=False,
             stdout=subprocess.PIPE,
@@ -65,9 +71,14 @@ async def spawn_broker(
                 data = data.decode("utf-8")
                 for line in data.splitlines():
                     logger.debug(line)
-                if "Error" in data:
-                    logger.error("Mosquitto already initialized")
-                    sys.exit(1)
+
+                if "error" in data.lower():
+                    line = next(
+                        line for line in data.splitlines() if "error" in line.lower()
+                    )
+                    raise BrokerException(
+                        f"{line} (On port {port}).\nPlease check and restart Local Console."
+                    )
                 elif pattern.search(data):
                     break
 

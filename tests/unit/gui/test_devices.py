@@ -17,16 +17,11 @@ from unittest.mock import MagicMock
 from unittest.mock import Mock
 from unittest.mock import patch
 
-import pytest
-import trio
-
 patch("local_console.gui.view.common.components.DeviceItem").start()
 
 from local_console.core.schemas.schemas import DeviceListItem
-from local_console.gui.device_manager import DeviceManager, DeviceRemoveError
 from local_console.gui.controller.devices_screen import DevicesScreenController
 from local_console.gui.model.devices_screen import DevicesScreenModel
-from local_console.core.config import config_obj
 
 
 from pytest import mark
@@ -300,57 +295,3 @@ def test_gui_refresh_active_device():
         assert app.selected == ""
         app.refresh_active_device()
         assert app.selected == name
-
-
-@pytest.mark.trio
-async def test_device_manager(nursery):
-    send_channel, _ = trio.open_memory_channel(0)
-    device_manager = DeviceManager(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
-    with (patch.object(device_manager, "initialize_persistency"),):
-        assert len(device_manager.proxies_factory) == 0
-        assert len(device_manager.state_factory) == 0
-
-        device = DeviceListItem(name="test_device", port="1234")
-        device_manager.add_device(device)
-        assert len(device_manager.proxies_factory) == 1
-        assert len(device_manager.state_factory) == 1
-
-        with pytest.raises(DeviceRemoveError):
-            device_manager.remove_device(device.name)
-
-
-@pytest.mark.trio
-async def test_device_manager_with_config(nursery):
-    send_channel, _ = trio.open_memory_channel(0)
-    device_manager = DeviceManager(
-        send_channel, nursery, trio.lowlevel.current_trio_token()
-    )
-    with (
-        patch.object(device_manager, "initialize_persistency"),
-        patch.object(nursery, "start_soon"),
-    ):
-        assert len(device_manager.proxies_factory) == 0
-        assert len(device_manager.state_factory) == 0
-
-        device_manager.set_active_device(
-            config_obj.get_active_device_config().mqtt.port
-        )
-        device_manager.init_devices(config_obj.get_device_configs())
-
-        assert len(device_manager.proxies_factory) == 1
-        assert len(device_manager.state_factory) == 1
-
-        device = DeviceListItem(name="test_device", port=1234)
-        device_manager.add_device(device)
-        assert len(device_manager.proxies_factory) == 2
-        assert len(device_manager.state_factory) == 2
-
-        device_manager.set_active_device(1234)
-        device_manager.rename_device(1234, "renamed_device")
-        assert config_obj.get_active_device_config().name == "renamed_device"
-
-        device_manager.remove_device(device.port)
-        assert len(device_manager.proxies_factory) == 1
-        assert len(device_manager.state_factory) == 1

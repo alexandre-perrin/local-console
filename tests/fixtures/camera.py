@@ -30,7 +30,7 @@ async def cs_init():
 
 @asynccontextmanager
 async def cs_init_context():
-    # For using within
+    # For using within Hypothesis-driven tests
     send_channel, _ = trio.open_memory_channel(0)
     camera_state = CameraState(send_channel, trio.lowlevel.current_trio_token())
 
