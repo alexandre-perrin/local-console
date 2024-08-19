@@ -146,7 +146,6 @@ class Config:
         conn = next(record_lookup, None)
         if conn is None:
             conn = self._create_device_config(device_item)
-            self._config.devices.append(conn)
 
         return conn
 

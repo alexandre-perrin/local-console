@@ -137,7 +137,7 @@ jobs:
   verify:
     name: Verify if already published
     runs-on: [ubuntu-22.04]
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/*'
     outputs:
       exists: ${{ steps.check-tag.outputs.exists }}
       tag: ${{ steps.tag.outputs.string }}
