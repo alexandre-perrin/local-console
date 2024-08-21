@@ -121,11 +121,11 @@ class DeviceManager:
 
         config = config_obj.get_config()
         conn = config_obj.construct_device_record(device_item)
+        self.bind_state_proxy(proxy, state)
         state.initialize_connection_variables(config.evp.iot_platform, conn)
         if await self.nursery.start(state.startup):
             config_obj.commit_device_record(conn)
             config_obj.save_config()
-            self.bind_state_proxy(proxy, state)
             self.state_factory[key] = state
             self.proxies_factory[key] = proxy
             self.initialize_persistency(key)
