@@ -100,6 +100,18 @@ async def test_device_manager(nursery):
         await device_manager.add_device(device)
         assert len(device_manager.proxies_factory) == 1
         assert len(device_manager.state_factory) == 1
+        assert (
+            device_manager.proxies_factory[1234].mqtt_host
+            == device_manager.state_factory[1234].mqtt_host.value
+        )
+        assert (
+            int(device_manager.proxies_factory[1234].mqtt_port)
+            == device_manager.state_factory[1234].mqtt_port.value
+        )
+        assert (
+            device_manager.proxies_factory[1234].ntp_host
+            == device_manager.state_factory[1234].ntp_host.value
+        )
 
         with pytest.raises(DeviceHandlingError):
             device_manager.remove_device(device.name)
