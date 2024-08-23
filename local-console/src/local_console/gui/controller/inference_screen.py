@@ -33,6 +33,21 @@ class InferenceScreenController(BaseController):
         self.driver = driver
         self.view = InferenceScreenView(controller=self, model=self.model)
 
+    def refresh(self) -> None:
+        assert self.driver.device_manager
+        # Trigger for connection status
+        proxy = self.driver.device_manager.get_active_device_proxy()
+        state = self.driver.device_manager.get_active_device_state()
+
+        if state.stream_status.value is not None:
+            self.view.on_stream_status(proxy, state.stream_status.value)
+
+    def unbind(self) -> None:
+        self.driver.gui.mdl.unbind(stream_status=self.view.on_stream_status)
+
+    def bind(self) -> None:
+        self.driver.gui.mdl.bind(stream_status=self.view.on_stream_status)
+
     def get_view(self) -> InferenceScreenView:
         return self.view
 

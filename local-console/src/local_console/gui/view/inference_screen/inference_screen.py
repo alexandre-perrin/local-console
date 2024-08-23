@@ -24,7 +24,6 @@ class InferenceScreenView(BaseScreenView):
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.app.mdl.bind(stream_status=self.on_stream_status)
 
     def on_stream_status(self, instance: CameraStateProxy, value: StreamStatus) -> None:
         stream_active = value == StreamStatus.Active
