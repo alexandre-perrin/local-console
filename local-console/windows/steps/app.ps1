@@ -153,7 +153,7 @@ function Create-DesktopShortcut([string]$VirtualenvDir)
 
     $SourceExe = Join-Path $VirtualenvDir "Scripts" `
                | Join-Path -ChildPath "local-console.exe"
-    $Command = 'gui'
+    $Command = '-v gui'
 
     $Shortcut = $WshShell.CreateShortcut($DestinationPath)
     $Shortcut.TargetPath = $SourceExe
