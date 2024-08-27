@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
+from unittest.mock import MagicMock
 from unittest.mock import Mock
 from unittest.mock import patch
 
@@ -48,3 +49,33 @@ async def test_toggle_stream_status_inactive(driver_set, cs_init):
         controller.toggle_stream_status()
         driver.from_sync.assert_called_once_with(driver.streaming_rpc_start, roi)
         assert driver.camera_state.stream_status.value == StreamStatus.Transitioning
+
+
+def test_refresh_no_status():
+    with (
+        patch("local_console.gui.controller.inference_screen.InferenceScreenView"),
+        patch(
+            "local_console.gui.controller.inference_screen.InferenceScreenView.on_stream_status"
+        ) as mock_stream_status,
+    ):
+        driver = MagicMock()
+        mock_state = MagicMock()
+        mock_state.stream_status.value = None
+        driver.device_manager.get_active_device_state.return_value = mock_state
+        inf = InferenceScreenController(MagicMock(), driver)
+        inf.refresh()
+        mock_stream_status.assert_not_called()
+
+
+def test_refresh():
+    with patch(
+        "local_console.gui.controller.inference_screen.InferenceScreenView"
+    ) as mock_view:
+
+        driver = MagicMock()
+        inf = InferenceScreenController(MagicMock(), driver)
+        inf.refresh()
+        mock_view().on_stream_status.assert_called_once_with(
+            driver.device_manager.get_active_device_proxy(),
+            driver.device_manager.get_active_device_state().stream_status.value,
+        )
