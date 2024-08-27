@@ -52,6 +52,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             data = self.rfile.read(content_length)
             check_and_create_directory(Path(self.directory))
             dest_path = Path(self.directory) / self.path.lstrip("/")
+            self.log_message("", f"Webserver dest_path: {str(dest_path)}")
             dest_path.write_bytes(data)
         except Exception as e:
             logger.error(f"Error while receiving data: {e}")
