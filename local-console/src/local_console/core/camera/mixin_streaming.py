@@ -152,6 +152,7 @@ class StreamingMixin(HasMQTTset, IsAsyncReady):
         :return:
         """
         with (TemporaryDirectory(prefix="LocalConsole_") as tempdir,):
+            logger.info(f"Webserver_task {str(tempdir)}")
             async with AsyncWebserver(
                 Path(tempdir), port=0, on_incoming=self._process_camera_upload
             ) as image_serve:
@@ -180,6 +181,7 @@ class StreamingMixin(HasMQTTset, IsAsyncReady):
             target_dir = Path(self.inference_dir_path.value)
             assert target_dir
             final_file = self._save_into_input_directory(incoming_file, target_dir)
+            logger.debug(f"Inferences file path : {final_file}")
             self._grouper.register(final_file, final_file)
 
         elif incoming_file.suffix.lstrip(".") == self._extension_images:
@@ -187,6 +189,7 @@ class StreamingMixin(HasMQTTset, IsAsyncReady):
             target_dir = Path(self.image_dir_path.value)
             assert target_dir
             final_file = self._save_into_input_directory(incoming_file, target_dir)
+            logger.debug(f"Images file path : {final_file}")
             self._grouper.register(final_file, final_file)
         else:
             logger.warning(f"Unknown incoming file: {incoming_file}")
