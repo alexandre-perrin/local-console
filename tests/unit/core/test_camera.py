@@ -438,6 +438,28 @@ async def test_save_into_image_directory(tmp_path, cs_init) -> None:
 
 
 @pytest.mark.trio
+async def test_save_into_image_directory_exists(tmp_path, cs_init) -> None:
+    camera_state = cs_init
+    root = tmp_path
+    tgd = root / "notexists"
+    incoming_file = create_new(root)
+
+    assert not tgd.exists()
+    camera_state.image_dir_path.value = tgd
+    assert tgd.exists()
+
+    camera_state._save_into_input_directory(incoming_file, tgd)
+    assert tgd.exists()
+
+    # second path with the same name to force removing previous file
+    incoming_file_2 = root / incoming_file.name
+    incoming_file_2.write_bytes(b"0")
+
+    camera_state._save_into_input_directory(incoming_file_2, tgd)
+    assert tgd.exists()
+
+
+@pytest.mark.trio
 async def test_save_into_inferences_directory(tmp_path, cs_init) -> None:
     camera_state = cs_init
     root = tmp_path
@@ -451,6 +473,28 @@ async def test_save_into_inferences_directory(tmp_path, cs_init) -> None:
 
     assert not tgd.exists()
     camera_state._save_into_input_directory(create_new(root), tgd)
+    assert tgd.exists()
+
+
+@pytest.mark.trio
+async def test_save_into_inferences_directory_already_exists(tmp_path, cs_init) -> None:
+    camera_state = cs_init
+    root = tmp_path
+    tgd = root / "notexists"
+    incoming_file = create_new(root)
+
+    assert not tgd.exists()
+    camera_state.inference_dir_path.value = tgd
+    assert tgd.exists()
+
+    camera_state._save_into_input_directory(incoming_file, tgd)
+    assert tgd.exists()
+
+    # second path with the same name to force removing previous file
+    incoming_file_2 = root / incoming_file.name
+    incoming_file_2.write_bytes(b"0")
+
+    camera_state._save_into_input_directory(incoming_file_2, tgd)
     assert tgd.exists()
 
 

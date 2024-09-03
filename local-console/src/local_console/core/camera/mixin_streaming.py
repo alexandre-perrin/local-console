@@ -254,7 +254,12 @@ class StreamingMixin(HasMQTTset, IsAsyncReady):
         final = incoming_file
         check_and_create_directory(final.parent)
         if incoming_file.parent != target_dir:
+            logger.debug("Moving file to def path")
             check_and_create_directory(target_dir)
+            target_file = target_dir.joinpath(incoming_file.name)
+            if target_file.exists():
+                logger.info("Image with same name has arrived. Removing previous one.")
+                target_file.unlink()
             final = Path(shutil.move(incoming_file, target_dir))
         self.total_dir_watcher.incoming(final)
         return final
