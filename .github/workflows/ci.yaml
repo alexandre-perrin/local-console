@@ -21,7 +21,7 @@ on:
   pull_request:
   workflow_dispatch:
   push:
-    branches: [main, release/*]
+    branches: [main, release/**]
 
 env:
   PYTHON_VERSION: '3.11'
