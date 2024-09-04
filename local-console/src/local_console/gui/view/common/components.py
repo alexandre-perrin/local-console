@@ -725,7 +725,7 @@ class DeviceItem(MDBoxLayout, DelayedUpdateMixin):
     name = StringProperty("")
     port = NumericProperty(int(0))
     text_height = "40dp"
-    text_width = "200dp"
+    text_width = "150dp"
 
     NAME_EDIT_EVENT: str = "on_name_edited"
     """
