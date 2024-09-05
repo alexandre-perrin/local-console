@@ -79,7 +79,7 @@ class CameraStateProxy(CameraStateProxyBase):
     stream_image = StringProperty("")
     inference_field = StringProperty("")
 
-    size = StringProperty("10")
+    size = StringProperty("100")
     unit = StringProperty("MB")
 
     def bind_connections(self, camera_state: CameraState) -> None:

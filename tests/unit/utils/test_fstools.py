@@ -15,6 +15,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import contextlib
 import logging
+import os
 import random
 import threading
 from collections import OrderedDict
@@ -38,8 +39,23 @@ from tests import not_raises
 logger = logging.getLogger(__name__)
 
 
+class FileCreator:
+    def __init__(self) -> None:
+        self.age = 0
+
+    def __call__(self, path: Path) -> None:
+        path.write_bytes(b"0")
+        os.utime(path, ns=(self.age, self.age))
+        self.age += 1
+
+
 @pytest.fixture
-def dir_layout(tmpdir):
+def file_creator():
+    yield FileCreator()
+
+
+@pytest.fixture
+def dir_layout(tmpdir, file_creator):
     entries = [
         tmpdir.join("fileA"),
         tmpdir.join("fileB"),
@@ -48,138 +64,116 @@ def dir_layout(tmpdir):
     ]
     # Make all entries, files of size 1
     for e in entries:
-        e.write_binary(b"0")
+        file_creator(Path(e))
 
     return [Path(tmpdir), len(entries)]
 
 
-class walk_entry_mock:
-    def __init__(self) -> None:
-        self.age = 0
-        self.cache: dict[Path, int] = {}
-
-    def __call__(self, path: Path) -> tuple[tuple[int, Path], int]:
-        size = 1
-        if path in self.cache:
-            age = self.cache[path]
-        else:
-            age = self.age
-            self.cache[path] = age
-            self.age += 1
-        return (age, path), size
-
-
-def create_new(root: Path) -> Path:
+def create_new(root: Path, file_creator) -> Path:
     new_file = root / f"{random.randint(1, int(1e6))}"
-    new_file.write_bytes(b"0")
+    file_creator(new_file)
     return new_file
 
 
-def test_regular_sequence(dir_layout):
+def test_regular_sequence_base(dir_layout, file_creator):
     dir_base, size = dir_layout
-    with patch("local_console.utils.fstools.walk_entry", walk_entry_mock()):
-        w = StorageSizeWatcher(check_frequency=10)
-        assert w.state == StorageSizeWatcher.State.Start
+    w = StorageSizeWatcher(check_frequency=10)
+    assert w.state == StorageSizeWatcher.State.Start
 
-        w.set_path(dir_base)
-        assert w.state == StorageSizeWatcher.State.Accumulating
-        assert w.storage_usage == size
+    w.set_path(dir_base)
+    assert w.state == StorageSizeWatcher.State.Accumulating
+    assert w.storage_usage == size
 
-        w.incoming(create_new(dir_base))
-        assert w.state == StorageSizeWatcher.State.Accumulating
-        assert w.storage_usage == size + 1
-        size += 1
+    w.incoming(create_new(dir_base, file_creator))
+    assert w.state == StorageSizeWatcher.State.Accumulating
+    assert w.storage_usage == size + 1
+    size += 1
 
-        oldest_age, _ = w.get_oldest()
-        assert oldest_age == 0
+    oldest_age = w.get_oldest().age
+    assert oldest_age == 0
 
-        st_limit = 4
-        w.set_storage_limit(st_limit)
-        oldest_age, _ = w.get_oldest()
-        assert oldest_age == 1
-        assert w.storage_usage == st_limit
-        assert w._consistency_check()
+    st_limit = 4
+    w.set_storage_limit(st_limit)
+    oldest_age = w.get_oldest().age
+    assert oldest_age == 1
+    assert w.storage_usage == st_limit
+    assert w._consistency_check()
 
-        # Test creating and registering new files
-        # in lockstep
-        num_new_files = random.randint(5, 20)
-        for _ in range(num_new_files):
-            w.incoming(create_new(dir_base))
-        assert w._consistency_check()
-        assert w.storage_usage == st_limit
-        expected_oldest_age = oldest_age + num_new_files
-        oldest_age, _ = w.get_oldest()
-        # This is due to the timestamp mocking, as each new file
-        # is timestamped one time unit later than the previous.
-        assert oldest_age == expected_oldest_age
+    # Test creating and registering new files
+    # in lockstep
+    num_new_files = random.randint(5, 20)
+    for _ in range(num_new_files):
+        w.incoming(create_new(dir_base, file_creator))
+    assert w._consistency_check()
+    assert w.storage_usage == st_limit
+    expected_oldest_age = oldest_age + num_new_files
+    oldest_age = w.get_oldest().age
+    # This is due to the timestamp mocking, as each new file
+    # is timestamped one time unit later than the previous.
+    assert oldest_age == expected_oldest_age
 
-        # Test creating and registering new files
-        # not in lockstep
-        num_new_files = random.randint(5, 20)
-        for _ in range(num_new_files):
-            create_new(dir_base)
-        # although consistency_check restores consistency,
-        # it returns whether state was consistent before
-        assert not w._consistency_check()
-        # hence, a further call should indicate consistency.
-        assert w._consistency_check()
-        expected_oldest_age = oldest_age + num_new_files
+    # Test creating and registering new files
+    # not in lockstep
+    num_new_files = random.randint(5, 20)
+    for _ in range(num_new_files):
+        create_new(dir_base, file_creator)
+    # although consistency_check restores consistency,
+    # it returns whether state was consistent before
+    assert not w._consistency_check()
+    # hence, a further call should indicate consistency.
+    assert w._consistency_check()
+    expected_oldest_age = oldest_age + num_new_files
 
-        # However, pruning is still necessary:
-        oldest_age, _ = w.get_oldest()
-        assert oldest_age != expected_oldest_age
-        assert w.storage_usage != st_limit
-        w._prune()
-        oldest_age, _ = w.get_oldest()
-        assert oldest_age == expected_oldest_age
-        assert w.storage_usage == st_limit
+    # However, pruning is still necessary:
+    oldest_age = w.get_oldest().age
+    assert oldest_age != expected_oldest_age
+    assert w.storage_usage != st_limit
+    w._prune()
+    oldest_age = w.get_oldest().age
+    assert oldest_age == expected_oldest_age
+    assert w.storage_usage == st_limit
 
 
-def test_inconsistency_on_unexpected_deletion(dir_layout, caplog):
+def test_inconsistency_on_unexpected_deletion(dir_layout, caplog, file_creator):
     dir_base, size = dir_layout
-    with patch("local_console.utils.fstools.walk_entry", walk_entry_mock()):
-        # Have the consistency check executed on the second incoming file
-        w = StorageSizeWatcher(check_frequency=2)
-        w.set_path(dir_base)
+    # Have the consistency check executed on the second incoming file
+    w = StorageSizeWatcher(check_frequency=2)
+    w.set_path(dir_base)
 
-        # Regular update
-        to_delete_later = create_new(dir_base)
-        w.incoming(to_delete_later)
+    # Regular update
+    to_delete_later = create_new(dir_base, file_creator)
+    w.incoming(to_delete_later)
 
-        # Unrecorded update: Previous file is deleted
-        to_delete_later.unlink()
+    # Unrecorded update: Previous file is deleted
+    to_delete_later.unlink()
 
-        # Regular update
-        w.incoming(create_new(dir_base))
-        assert (
-            "File bookkeeping inconsistency: files unexpectedly removed" in caplog.text
-        )
+    # Regular update
+    w.incoming(create_new(dir_base, file_creator))
+    assert "File bookkeeping inconsistency: files unexpectedly removed" in caplog.text
 
 
 def test_ignore_setting_the_same_dir(dir_layout):
     dir_base, size = dir_layout
     w = StorageSizeWatcher(check_frequency=10)
     w._paths = MagicMock()
-    w._build_content_dict = Mock()
+    w._build_content_list = Mock()
 
     # First call to set_path works as expected
     w.set_path(dir_base)
     w._paths.add.assert_called_once()
-    w._build_content_dict.assert_called_once()
+    w._build_content_list.assert_called_once()
 
     # Second call with the same path, does not increase call count
     w._paths.__contains__.return_value = True
     w.set_path(dir_base)
     w._paths.add.assert_called_once()
-    w._build_content_dict.assert_called_once()
+    w._build_content_list.assert_called_once()
 
 
-def test_incoming_always_prunes(dir_layout):
+def test_incoming_always_prunes(dir_layout, file_creator):
     dir_base, size = dir_layout
     mock_prune = Mock()
-    with patch(
-        "local_console.utils.fstools.walk_entry", walk_entry_mock()
-    ), patch.object(StorageSizeWatcher, "_prune", mock_prune):
+    with patch.object(StorageSizeWatcher, "_prune", mock_prune):
         w = StorageSizeWatcher(check_frequency=10)
         w.set_path(dir_base)
         st_limit = 4
@@ -189,19 +183,17 @@ def test_incoming_always_prunes(dir_layout):
 
         num_new_files = random.randint(5, 20)
         for _ in range(num_new_files):
-            w.incoming(create_new(dir_base))
+            w.incoming(create_new(dir_base, file_creator))
         assert mock_prune.call_count == num_new_files + 1
 
 
-def test_remaining_before_consistency_check(dir_layout):
+def test_remaining_before_consistency_check(dir_layout, file_creator):
     check_frequency = 10
     storage_limit = 4
 
     dir_base, size = dir_layout
     mock_prune = Mock()
-    with patch(
-        "local_console.utils.fstools.walk_entry", walk_entry_mock()
-    ), patch.object(StorageSizeWatcher, "_prune", mock_prune):
+    with patch.object(StorageSizeWatcher, "_prune", mock_prune):
         w = StorageSizeWatcher(check_frequency=check_frequency)
         w.set_path(dir_base)
         w.set_storage_limit(storage_limit)
@@ -209,7 +201,7 @@ def test_remaining_before_consistency_check(dir_layout):
 
         for i in range(check_frequency):
             assert w._remaining_before_check == check_frequency - i
-            w.incoming(create_new(dir_base))
+            w.incoming(create_new(dir_base, file_creator))
         assert w._remaining_before_check == check_frequency
 
 
@@ -246,7 +238,7 @@ def test_age_bookkeeping():
 
 
 @pytest.fixture
-def multi_dir_layout(tmpdir):
+def multi_dir_layout(tmpdir, file_creator):
     bases = [tmpdir.mkdir("sub_X"), tmpdir.mkdir("sub_Y")]
     entries = [
         bases[0].join("file0"),
@@ -256,74 +248,66 @@ def multi_dir_layout(tmpdir):
     ]
     # Make all entries, files of size 1
     for e in entries:
-        e.write_binary(b"0")
-
+        file_creator(Path(e))
     return [Path(b) for b in bases], len(entries)
 
 
-def create_new_agename(root: Path, age_name: int) -> Path:
-    new_file = root / f"age_{age_name}"
-    new_file.write_bytes(b"0")
-    return new_file
-
-
-def test_regular_sequence_multiple_dirs(multi_dir_layout):
+def test_regular_sequence_multiple_dirs(multi_dir_layout, file_creator):
     dir_bases, initial_size = multi_dir_layout
     expected_curr_size = initial_size
-    walk_entry_fn = walk_entry_mock()
-    with patch("local_console.utils.fstools.walk_entry", walk_entry_fn):
-        w = StorageSizeWatcher(check_frequency=10)
-        assert w.state == StorageSizeWatcher.State.Start
 
-        w.set_path(dir_bases[0])
-        assert w.state == StorageSizeWatcher.State.Accumulating
-        assert w.storage_usage < expected_curr_size
-        oldest_age, _ = w.get_oldest()
-        assert oldest_age == 0
+    w = StorageSizeWatcher(check_frequency=10)
+    assert w.state == StorageSizeWatcher.State.Start
 
-        w.set_path(dir_bases[1])
-        assert w.storage_usage == expected_curr_size
-        assert w.state == StorageSizeWatcher.State.Accumulating
-        oldest_age, _ = w.get_oldest()
-        assert oldest_age == 0
+    w.set_path(dir_bases[0])
+    assert w.state == StorageSizeWatcher.State.Accumulating
+    assert w.storage_usage < expected_curr_size
+    oldest_age = w.get_oldest().age
+    assert oldest_age == 0
 
-        # Test that adding a new file while no limit has been set yet,
-        # does not invoke pruning, so the previous oldest file remains.
-        w.incoming(create_new_agename(dir_bases[0], walk_entry_fn.age))
-        expected_curr_size += 1
-        assert w.storage_usage == expected_curr_size
-        assert w.state == StorageSizeWatcher.State.Accumulating
-        oldest_age, _ = w.get_oldest()
-        assert oldest_age == 0
+    w.set_path(dir_bases[1])
+    assert w.storage_usage == expected_curr_size
+    assert w.state == StorageSizeWatcher.State.Accumulating
+    oldest_age = w.get_oldest().age
+    assert oldest_age == 0
 
-        # Test that setting the size limit, invokes pruning, making
-        # the oldest file, a more recent one.
-        st_limit = 4
-        w.set_storage_limit(st_limit)
-        expected_curr_size = st_limit
-        assert w.storage_usage == expected_curr_size
-        oldest_age, _ = w.get_oldest()
-        assert oldest_age == 1
+    # Test that adding a new file while no limit has been set yet,
+    # does not invoke pruning, so the previous oldest file remains.
+    w.incoming(create_new(dir_bases[0], file_creator))
+    expected_curr_size += 1
+    assert w.storage_usage == expected_curr_size
+    assert w.state == StorageSizeWatcher.State.Accumulating
+    oldest_age = w.get_oldest().age
+    assert oldest_age == 0
 
-        # Test creating and registering new files in lockstep
-        num_new_files = random.randint(5, 20)
-        for _, base in zip(range(num_new_files), cycle(dir_bases)):
-            w.incoming(create_new_agename(base, walk_entry_fn.age))
-            assert w._consistency_check()
-            assert w.storage_usage <= st_limit
+    # Test that setting the size limit, invokes pruning, making
+    # the oldest file, a more recent one.
+    st_limit = 4
+    w.set_storage_limit(st_limit)
+    expected_curr_size = st_limit
+    assert w.storage_usage == expected_curr_size
+    oldest_age = w.get_oldest().age
+    assert oldest_age == 1
 
-        files_created_up_to_now = initial_size + 1 + num_new_files
-        expected_newest_age = files_created_up_to_now - 1
-        expected_oldest_age = expected_newest_age - st_limit + 1
-        oldest_age, _ = w.get_oldest()
-        assert oldest_age == expected_oldest_age
+    # Test creating and registering new files in lockstep
+    num_new_files = random.randint(5, 20)
+    for _, base in zip(range(num_new_files), cycle(dir_bases)):
+        w.incoming(create_new(base, file_creator))
+        assert w._consistency_check()
+        assert w.storage_usage <= st_limit
 
-        # Test setting a limit larger than current usage
-        st_limit = 7
-        w.set_storage_limit(st_limit)
-        # expected_curr_size is unchanged as the limit
-        # is greater than the current size.
-        assert w.storage_usage == expected_curr_size
+    files_created_up_to_now = initial_size + 1 + num_new_files
+    expected_newest_age = files_created_up_to_now - 1
+    expected_oldest_age = expected_newest_age - st_limit + 1
+    oldest_age = w.get_oldest().age
+    assert oldest_age == expected_oldest_age
+
+    # Test setting a limit larger than current usage
+    st_limit = 7
+    w.set_storage_limit(st_limit)
+    # expected_curr_size is unchanged as the limit
+    # is greater than the current size.
+    assert w.storage_usage == expected_curr_size
 
 
 def test_ensure_dir_on_existing_dir(tmp_path_factory):
@@ -355,7 +339,7 @@ def test_ensure_dir_on_file_path(tmp_path):
 
 
 @pytest.fixture
-def observer() -> Iterator[Observer]:
+def observer() -> Iterator[Observer]:  # type: ignore
     obs = Observer()
     obs.start()
     yield obs

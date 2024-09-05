@@ -16,9 +16,9 @@
 import contextlib
 import enum
 import logging
-from collections import OrderedDict
+import os
 from collections.abc import Iterator
-from os import walk
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 from typing import Optional
@@ -30,6 +30,13 @@ from watchdog.observers.api import ObservedWatch
 
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class FileInfo:
+    age: int
+    path: Path
+    size: int
 
 
 class WatchException(Exception):
@@ -59,7 +66,7 @@ class StorageSizeWatcher:
         self._paths: set[Path] = set()
         self.state = self.State.Start
         self._size_limit: Optional[int] = None
-        self.content: OrderedDict[tuple[int, Path], int] = OrderedDict()
+        self.content: list[FileInfo] = []
         self.storage_usage = 0
         self._remaining_before_check = self.check_frequency
 
@@ -72,13 +79,14 @@ class StorageSizeWatcher:
         self._paths.add(p)
 
         # Execute regardless of current state
-        self._build_content_dict()
+        self._build_content_list(path)
 
     def unwatch_path(self, path: Path) -> None:
         assert path.is_dir()
         self._paths.discard(path.resolve())
 
     def set_storage_limit(self, limit: int) -> None:
+        logger.debug(f"Setting storage limit to {limit} bytes")
         assert limit >= 0
 
         self._size_limit = limit
@@ -110,43 +118,48 @@ class StorageSizeWatcher:
                 f"Deferring update of size statistic for incoming file {path} during state {self.state}"
             )
 
-    def get_oldest(self) -> Optional[tuple[int, Path]]:
+    def get_oldest(self) -> Optional[FileInfo]:
         if self.content:
-            key = next(iter(self.content.keys()))
-            assert key
-            return key
+            return self.content[0]
         else:
             return None
 
     def _register_file(self, path: Path) -> None:
-        key, val = walk_entry(path)
-        self.content[key] = val
-        self.storage_usage += val
+        entry = walk_entry(path)
+        self.storage_usage += entry.size
+        curr = len(self.content)
+        while curr > 0:
+            if self.content[curr - 1].age < entry.age:
+                self.content.insert(curr, entry)
+                return
+            curr -= 1
+
+        # if older than all elements
+        self.content.insert(0, entry)
 
     def _unregister_file(self, path: Path) -> None:
-        key, val = walk_entry(path)
-        self.storage_usage -= val
-        try:
-            self.content.pop(key)
-        except KeyError:
-            stale_keys = [sk for sk in self.content if sk[1] == path]
-            for sk in stale_keys:
-                self.content.pop(sk)
+        new_content = []
+        for entry in self.content:
+            if entry.path == path:
+                self.storage_usage -= entry.size
+            else:
+                new_content.append(entry)
+        self.content = new_content
 
-    def _build_content_dict(self) -> None:
+    def _build_content_list(self, root: Path) -> None:
         """
-        Generate a dictionary ordered first by file age, then by file name
-        for disambiguation, with the value being the file size.
+        Adds to `self.content` the FileInfo of files under `root` directory.
         """
         assert self._paths
         self.state = self.State.Accumulating
 
-        sorted_e = sorted(
-            (walk_entry(p) for root in self._paths for p in walk_files(root)),
-            key=lambda e: e[0],
+        new_files = list(walk_files(root))
+
+        self.content = sorted(
+            new_files + self.content,
+            key=lambda e: e.age,
         )
-        self.content = OrderedDict(sorted_e)
-        self.storage_usage = sum(e[1] for e in sorted_e)
+        self.storage_usage += sum(e.size for e in new_files)
 
     def _prune(self) -> None:
         if self._size_limit is None:
@@ -155,14 +168,13 @@ class StorageSizeWatcher:
         # In order to make this class thread-safe,
         # the following would be required:
         # self.state == self.State.Checking
-
         while self.storage_usage > self._size_limit:
             try:
-                (_, path), size = self.content.popitem(last=False)
-                path.unlink()
-                self.storage_usage -= size
+                entry = self.content.pop(0)
+                entry.path.unlink()
+                self.storage_usage -= entry.size
             except FileNotFoundError:
-                logger.warning(f"File {path} was already removed")
+                logger.warning(f"File {entry.path} was already removed")
             except KeyError:
                 break
 
@@ -172,8 +184,8 @@ class StorageSizeWatcher:
 
     def _consistency_check(self) -> bool:
         assert self._paths
-        in_memory = {k[1] for k in self.content.keys()}
-        in_storage = {p for root in self._paths for p in walk_files(root)}
+        in_memory = {k.path for k in self.content}
+        in_storage = {p.path for root in self._paths for p in walk_files(root)}
 
         difference = in_storage - in_memory
         if difference:
@@ -196,19 +208,22 @@ class StorageSizeWatcher:
         return True
 
 
-def walk_entry(path: Path) -> tuple[tuple[int, Path], int]:
-    st = path.stat()
+def walk_entry(path: Path) -> FileInfo:
+    st = os.stat(path)
     file_age = st.st_mtime_ns
     file_size = st.st_size
-    return (file_age, path), file_size
+    return FileInfo(file_age, path, file_size)
 
 
-def walk_files(root: Path) -> Iterator[Path]:
-    # os.walk to be replaced with:
-    # https://docs.python.org/3.12/library/pathlib.html#pathlib.Path.walk
-    for dir_path, dir_names, file_names in walk(root):
-        for fname in file_names:
-            yield Path(dir_path).joinpath(fname)
+def walk_files(root: Path) -> Iterator[FileInfo]:
+    # Use os.scandir, https://peps.python.org/pep-0471/, to improve performance by getting stats
+    # without additional system calls in most of the cases
+    for entry in os.scandir(root):
+        if entry.is_file():
+            stat = entry.stat()
+            yield FileInfo(stat.st_mtime_ns, Path(entry.path), stat.st_size)
+        elif entry.is_dir():
+            yield from walk_files(Path(entry.path))
 
 
 def check_and_create_directory(directory: Path) -> None:
