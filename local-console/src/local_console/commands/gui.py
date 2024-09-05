@@ -15,6 +15,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import logging
 import os
+import sys
 
 import trio
 import typer
@@ -42,7 +43,10 @@ def gui() -> None:
 
     logging.getLogger("PIL").setLevel(logging.ERROR)
 
-    trio.run(LocalConsoleGUIAPP().app_main)
+    try:
+        trio.run(LocalConsoleGUIAPP().app_main)
+    except:
+        sys.exit(1)
 
 
 class GUICommand(PluginBase):
