@@ -86,6 +86,7 @@ class StorageSizeWatcher:
         self._paths.discard(path.resolve())
 
     def set_storage_limit(self, limit: int) -> None:
+        logger.debug(f"Setting storage limit to {limit} bytes")
         assert limit >= 0
 
         self._size_limit = limit
