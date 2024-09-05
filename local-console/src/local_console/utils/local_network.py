@@ -19,6 +19,7 @@ import platform
 import socket
 
 import psutil
+from local_console.core.config import config_obj
 
 logger = logging.getLogger(__file__)
 
@@ -69,6 +70,20 @@ def get_my_ip_by_routing() -> str:
     }
     chosen = next(addrs[0] for iface, addrs in addr_info.items() if addrs)
     return chosen.address
+
+
+def get_webserver_ip() -> str:
+    config = config_obj.get_active_device_config()
+    if config.webserver.host == "localhost":
+        return get_my_ip_by_routing()
+    return config.webserver.host
+
+
+def get_mqtt_ip() -> str:
+    config = config_obj.get_active_device_config()
+    if config.mqtt.host == "localhost":
+        return get_my_ip_by_routing()
+    return config.mqtt.host
 
 
 def is_localhost(hostname: str) -> bool:

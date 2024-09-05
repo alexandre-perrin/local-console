@@ -18,14 +18,17 @@ import re
 from unittest.mock import patch
 
 from hypothesis import given
+from local_console.utils.local_network import get_mqtt_ip
 from local_console.utils.local_network import get_my_ip_by_routing
 from local_console.utils.local_network import get_network_ifaces
+from local_console.utils.local_network import get_webserver_ip
 from local_console.utils.local_network import is_localhost
 
 # For some reason, pycln removes this import, but obviously
 # pytest fails when running the tests!
 from tests.fixtures.debugging import debug_log  # noreorder # noqa
 from tests.strategies.configs import generate_text
+from local_console.core.config import config_obj
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +45,32 @@ def test_get_my_ip_by_routing():
     # Ensure we get an IPv4 address
     local_ip = get_my_ip_by_routing()
     assert re.match(r"\d+\.\d+\.\d+\.\d+", local_ip)
+
+
+def test_get_mqtt_ip_localhost():
+    config_obj.get_active_device_config().mqtt.host = "localhost"
+    ip = get_mqtt_ip()
+    assert ip != "localhost"
+    assert ip == get_my_ip_by_routing()
+
+
+def test_get_mqtt_ip():
+    config_obj.get_active_device_config().mqtt.host = "192.168.1.13"
+    ip = get_mqtt_ip()
+    assert ip == "192.168.1.13"
+
+
+def test_get_webserver_ip_localhost():
+    config_obj.get_active_device_config().mqtt.host = "localhost"
+    ip = get_webserver_ip()
+    assert ip != "localhost"
+    assert ip == get_my_ip_by_routing()
+
+
+def test_get_webserver_ip():
+    config_obj.get_active_device_config().webserver.host = "192.168.1.13"
+    ip = get_webserver_ip()
+    assert ip == "192.168.1.13"
 
 
 def test_is_localhost():
