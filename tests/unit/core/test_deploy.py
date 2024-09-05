@@ -121,7 +121,7 @@ def test_deployment_setup(tmpdir):
 
     with (
         patch(
-            "local_console.core.commands.deploy.get_my_ip_by_routing",
+            "local_console.utils.local_network.get_my_ip_by_routing",
             return_value=server_add,
         ),
     ):

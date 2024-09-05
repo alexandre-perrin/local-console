@@ -39,7 +39,7 @@ from local_console.core.schemas.schemas import DeploymentManifest
 from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.plugin import PluginBase
 from local_console.servers.webserver import SyncWebserver
-from local_console.utils.local_network import get_my_ip_by_routing
+from local_console.utils.local_network import get_webserver_ip
 from local_console.utils.local_network import is_localhost
 
 logger = logging.getLogger(__name__)
@@ -95,7 +95,7 @@ def deploy(
     config_device = config_obj.get_active_device_config()
     schema = OnWireProtocol.from_iot_spec(config.evp.iot_platform)
     agent = Agent(config_device.mqtt.host, config_device.mqtt.port, schema)
-    local_ip = get_my_ip_by_routing()
+    local_ip = get_webserver_ip()
 
     port = 0
     host_override: Optional[str] = None

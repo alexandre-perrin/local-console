@@ -41,7 +41,7 @@ from local_console.servers.webserver import AsyncWebserver
 from local_console.utils.fstools import check_and_create_directory
 from local_console.utils.fstools import DirectoryMonitor
 from local_console.utils.fstools import StorageSizeWatcher
-from local_console.utils.local_network import get_my_ip_by_routing
+from local_console.utils.local_network import get_webserver_ip
 from local_console.utils.tracking import TrackingVariable
 
 
@@ -123,7 +123,7 @@ class StreamingMixin(HasMQTTset, IsAsyncReady):
 
         instance_id = "backdoor-EA_Main"
         method = "StartUploadInferenceData"
-        host = get_my_ip_by_routing()
+        host = get_webserver_ip()
         upload_url = f"http://{host}:{self.upload_port}"
 
         (h_offset, v_offset), (h_size, v_size) = pixel_roi_from_normals(roi)

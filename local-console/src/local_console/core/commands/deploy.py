@@ -32,7 +32,7 @@ from local_console.core.schemas.schemas import Deployment
 from local_console.core.schemas.schemas import DeploymentManifest
 from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.servers.webserver import SyncWebserver
-from local_console.utils.local_network import get_my_ip_by_routing
+from local_console.utils.local_network import get_webserver_ip
 from local_console.utils.timing import TimeoutBehavior
 
 logger = logging.getLogger(__name__)
@@ -292,7 +292,7 @@ def manifest_setup_epilog(
     assert files_dir.is_dir()
 
     dm = manifest.copy(deep=True)
-    host = get_my_ip_by_routing() if not host_override else host_override
+    host = get_webserver_ip() if not host_override else host_override
     port = webserver.port if not port_override else port_override
     populate_urls_and_hashes(dm, host, port, files_dir)
     make_unique_module_ids(dm)

@@ -31,7 +31,7 @@ runner = CliRunner()
 def test_qr_with_defaults(tls_enabled: bool) -> None:
     with (
         patch("local_console.commands.qr.is_localhost", return_value=False),
-        patch("local_console.commands.qr.get_my_ip_by_routing", return_value="1.2.3.4"),
+        patch("local_console.commands.qr.get_mqtt_ip", return_value="1.2.3.4"),
         patch(
             "local_console.core.camera.qr.qr_string", return_value=""
         ) as mock_qr_string,
@@ -71,7 +71,7 @@ def test_qr_with_overrides(
 ) -> None:
     with (
         patch("local_console.commands.qr.is_localhost", return_value=False),
-        patch("local_console.commands.qr.get_my_ip_by_routing", return_value="1.2.3.4"),
+        patch("local_console.commands.qr.get_mqtt_ip", return_value="1.2.3.4"),
         patch(
             "local_console.core.camera.qr.qr_string", return_value=""
         ) as mock_qr_string,
@@ -111,7 +111,7 @@ def test_qr_for_local_host(local_host_alias: str) -> None:
     """
     with (
         patch("local_console.commands.qr.is_localhost", return_value=True),
-        patch("local_console.commands.qr.get_my_ip_by_routing", return_value="1.2.3.4"),
+        patch("local_console.commands.qr.get_mqtt_ip", return_value="1.2.3.4"),
         patch(
             "local_console.core.camera.qr.qr_string", return_value=""
         ) as mock_qr_string,
