@@ -17,6 +17,7 @@ import json
 from base64 import b64encode
 from pathlib import Path
 from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
 from unittest.mock import Mock
 from unittest.mock import patch
 
@@ -530,6 +531,9 @@ async def test_process_camera_upload_inferences_with_schema(
     camera_state.inference_dir_path.value = inferences_dir
     camera_state.image_dir_path.value = images_dir
 
+    mock_storage = MagicMock()
+    camera_state.total_dir_watcher = mock_storage
+
     with (
         patch.object(
             camera_state, "_save_into_input_directory", return_value=Path("/tmp/a.jpg")
@@ -552,13 +556,13 @@ async def test_process_camera_upload_inferences_with_schema(
     ):
         camera_state.vapp_type = TrackingVariable(ApplicationType.CLASSIFICATION.value)
         camera_state.vapp_schema_file.value = Path("objectdetection.fbs")
-        ClassificationDrawer.process_frame.side_effect = Exception
 
         image_file_in = root / "images/a.jpg"
         image_file_saved = images_dir / image_file_in.name
         mock_save.return_value = image_file_saved
         camera_state._process_camera_upload(image_file_in)
         mock_save.assert_called_with(image_file_in, images_dir)
+        mock_storage.update_file_size.assert_not_called()
 
         # A pair has not been formed yet
         ClassificationDrawer.process_frame.assert_not_called()
@@ -574,6 +578,7 @@ async def test_process_camera_upload_inferences_with_schema(
             image_file_saved,
             mock_get_flatbuffers_inference_data.return_value,
         )
+        mock_storage.update_file_size.assert_called_once_with(image_file_saved)
 
 
 @pytest.mark.trio

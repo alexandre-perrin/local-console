@@ -216,6 +216,8 @@ class StreamingMixin(HasMQTTset, IsAsyncReady):
                     ApplicationType.CLASSIFICATION.value: ClassificationDrawer,
                     ApplicationType.DETECTION.value: DetectionDrawer,
                 }[str(self.vapp_type.value)].process_frame(image_file, output_data)
+                # Adding drawings modifies file size. Update storage watcher
+                self.total_dir_watcher.update_file_size(image_file)
             except Exception as e:
                 logger.error(f"Error while performing the drawing: {e}")
             self.stream_image.value = str(image_file)
