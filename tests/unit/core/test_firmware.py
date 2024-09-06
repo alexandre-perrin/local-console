@@ -318,7 +318,7 @@ async def test_update_firmware_task_valid(tmp_path, cs_init, ota_type) -> None:
             return_value=mock_server,
         ),
         patch(
-            "local_console.core.camera.firmware.get_my_ip_by_routing",
+            "local_console.core.camera.firmware.get_webserver_ip",
             return_value="1.1.1.1",
         ),
     ):

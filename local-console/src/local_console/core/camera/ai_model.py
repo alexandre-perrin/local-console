@@ -32,7 +32,7 @@ from local_console.core.schemas.edge_cloud_if_v1 import DnnDelete
 from local_console.core.schemas.edge_cloud_if_v1 import DnnDeleteBody
 from local_console.core.schemas.schemas import OnWireProtocol
 from local_console.servers.webserver import AsyncWebserver
-from local_console.utils.local_network import get_my_ip_by_routing
+from local_console.utils.local_network import get_webserver_ip
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +111,7 @@ async def deploy_step(
         tmp_dir = Path(temporary_dir)
         tmp_module = tmp_dir / package_file.name
         shutil.copy(package_file, tmp_module)
-        ip_addr = get_my_ip_by_routing()
+        ip_addr = get_webserver_ip()
 
         # In my tests, the "Updating" phase may take this long:
         timeout_secs = 90

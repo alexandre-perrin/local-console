@@ -24,9 +24,7 @@ from local_console.gui.view.common.components import (
 from local_console.gui.view.common.components import (
     GUITooltip,
 )
-from local_console.utils.local_network import (
-    get_my_ip_by_routing,
-)  # nopycln: import # Required by the screen's KV spec file
+from local_console.utils.local_network import get_mqtt_ip
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +38,7 @@ class ConnectionScreenView(BaseScreenView):
     INPUTBOX_HEIGHT = "32dp"
 
     def on_enter(self) -> None:
-        ip = get_my_ip_by_routing()
+        ip = get_mqtt_ip()
         self.ids.lbl_local_ip.text = ip
         if ip == "":
             # In case of no connectivity

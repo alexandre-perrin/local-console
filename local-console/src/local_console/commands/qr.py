@@ -23,7 +23,7 @@ import typer
 from local_console.core.camera.qr import get_qr_object
 from local_console.core.config import config_obj
 from local_console.plugin import PluginBase
-from local_console.utils.local_network import get_my_ip_by_routing
+from local_console.utils.local_network import get_mqtt_ip
 from local_console.utils.local_network import is_localhost
 
 logger = logging.getLogger(__name__)
@@ -65,7 +65,7 @@ def qr(
     port = device_config.mqtt.port if port is None else port
     tls_enabled = enable_tls
 
-    local_ip = get_my_ip_by_routing()
+    local_ip = get_mqtt_ip()
     if is_localhost(host) or host == local_ip:
         host = local_ip
 

@@ -171,18 +171,26 @@ class Agent:
 
     @asynccontextmanager
     async def mqtt_scope(self, subs_topics: list[str]) -> AsyncIterator[None]:
+        is_os_error = False  # Determines if an OSError occurred within the context
         async with guarded_nursery() as nursery:
             self.nursery = nursery
             self.client = AsyncClient(self.mqttc, self.nursery)
-
             try:
                 self.client.connect(self._host, self._port)
                 for topic in subs_topics:
                     self.client.subscribe(topic)
                 yield
+            except OSError:
+                logger.error(
+                    f"Error while connecting to MQTT broker {self._host}:{self._port}"
+                )
+                is_os_error = True
             finally:
                 self.client.disconnect()
                 self.nursery.cancel_scope.cancel()
+
+        if is_os_error:
+            raise SystemExit
 
     async def publish(self, topic: str, payload: str) -> None:
         assert self.client is not None

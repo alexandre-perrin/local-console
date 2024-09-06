@@ -106,7 +106,7 @@ async def test_streaming_rpc_start(mocked_driver_with_agent, cs_init) -> None:
     h_size, v_size = SENSOR_SIZE
 
     with patch(
-        "local_console.core.camera.mixin_streaming.get_my_ip_by_routing",
+        "local_console.core.camera.mixin_streaming.get_webserver_ip",
         return_value="localhost",
     ):
         await driver.camera_state.streaming_rpc_start()

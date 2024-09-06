@@ -17,6 +17,7 @@ import base64
 import json
 from unittest.mock import ANY
 from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import pytest
@@ -114,3 +115,15 @@ async def test_rpc_error(instance_id: str, onwire_schema: OnWireProtocol):
                 await agent.rpc(instance_id, method, params)
 
         agent.client.publish_and_wait.assert_called_once()
+
+
+@pytest.mark.trio
+async def test_connection():
+    mock_client = MagicMock()
+    with patch("local_console.clients.agent.AsyncClient", return_value=mock_client):
+        mock_client.connect.side_effect = OSError
+        agent = Agent(ANY, ANY, ANY)
+        print(mock_client)
+        with pytest.raises(SystemExit):
+            async with agent.mqtt_scope([]):
+                pass

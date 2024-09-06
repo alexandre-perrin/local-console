@@ -97,7 +97,7 @@ async def test_deploy_step(tmp_path, network_id, update_status: str, cs_init):
             return_value=[network_id],
         ),
         patch(
-            "local_console.core.camera.ai_model.get_my_ip_by_routing",
+            "local_console.core.camera.ai_model.get_webserver_ip",
             return_value="localhost",
         ),
     ):
