@@ -472,3 +472,22 @@ def test_directory_watcher(directory_monitor, tmp_path):
 
     with not_raises(KeyError):
         directory_monitor.unwatch(dir1_to_watch)
+
+
+def test_regular_sequence_update_size(dir_layout, file_creator):
+    dir_base, size = dir_layout
+    w = StorageSizeWatcher(check_frequency=10)
+    w.set_path(dir_base)
+    assert w.storage_usage == size
+
+    new_file = create_new(dir_base, file_creator)
+    w.incoming(new_file)
+    assert w.storage_usage == size + 1
+
+    w.update_file_size(new_file)
+    assert w.storage_usage == size + 1
+
+    new_content = b"12345678"
+    new_file.write_bytes(new_content)
+    w.update_file_size(new_file)
+    assert w.storage_usage == size + len(new_content)
