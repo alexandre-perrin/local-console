@@ -12,6 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# This file incorporates material from https://github.com/dcos/dcos/tree/2.1.0-beta1, which is licensed
+# under the Apache License, Version 2.0
+#
+# - This file re-uses some components from,
+#   https://github.com/dcos/dcos/blob/2.1.0-beta1/gen/build_deploy/powershell/dcos_install.ps1
+#
 # SPDX-License-Identifier: Apache-2.0
 Param (
 	[String] $TranscriptPath
