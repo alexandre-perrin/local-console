@@ -118,6 +118,19 @@ class StorageSizeWatcher:
                 f"Deferring update of size statistic for incoming file {path} during state {self.state}"
             )
 
+    def update_file_size(self, path: Path) -> None:
+        # TODO: Optimize. Assumption: updates on files are for the newest ones.
+        curr = len(self.content)
+        while curr > 0:
+            if self.content[curr - 1].path == path:
+                entry = walk_entry(path)
+                self.storage_usage -= self.content[curr - 1].size
+                self.storage_usage += entry.size
+                self.content[curr - 1].size = entry.size
+                return
+            curr -= 1
+        logger.warning(f"Requested update of the size of {path} but does not exist")
+
     def get_oldest(self) -> Optional[FileInfo]:
         if self.content:
             return self.content[0]
